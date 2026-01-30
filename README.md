@@ -1,70 +1,90 @@
-# 🚀 Reverse Tender Platform
+# 🚀 Reverse Tender Platform - Complete Implementation
 
-A comprehensive microservices-based platform for reverse tendering with real-time bidding capabilities, built with Laravel/Lumen and modern technologies.
+A comprehensive microservices-based automotive parts reverse tender platform with real-time bidding, ZATCA compliance, and VIN OCR integration for the Saudi Arabian market.
 
 ## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Features](#features)
-- [Services](#services)
-- [Technology Stack](#technology-stack)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [API Documentation](#api-documentation)
-- [Real-time Features](#real-time-features)
-- [Deployment](#deployment)
-- [Development](#development)
-- [Contributing](#contributing)
+- [🎯 Overview](#-overview)
+- [🏛️ Architecture](#️-architecture)
+- [✨ Features](#-features)
+- [🔧 Services](#-services)
+- [💾 Database Schema](#-database-schema)
+- [🛠️ Technology Stack](#️-technology-stack)
+- [🚀 Quick Start](#-quick-start)
+- [⚙️ Configuration](#️-configuration)
+- [📚 API Documentation](#-api-documentation)
+- [⚡ Real-time Features](#-real-time-features)
+- [🇸🇦 ZATCA Integration](#-zatca-integration)
+- [🔍 VIN OCR Processing](#-vin-ocr-processing)
+- [🌐 Deployment](#-deployment)
+- [🧪 Development](#-development)
+- [📊 Monitoring](#-monitoring)
+- [🤝 Contributing](#-contributing)
 
 ## 🎯 Overview
 
-The Reverse Tender Platform is a modern, scalable solution for reverse tendering where customers post requirements and merchants bid to fulfill them. The platform features real-time bidding, comprehensive analytics, ZATCA compliance for Saudi Arabia, and advanced vehicle identification through OCR.
+The **Reverse Tender Platform** is a cutting-edge, microservices-based solution designed specifically for the automotive parts industry in Saudi Arabia. The platform enables customers to post part requirements and allows merchants to submit competitive bids in real-time.
 
-### Key Highlights
+### 🌟 Key Highlights
 
-- **🏗️ Microservices Architecture**: 9 independent, scalable services
-- **⚡ Real-time Bidding**: Laravel Reverb WebSocket integration
-- **🏛️ ZATCA Compliance**: Saudi Arabia e-invoicing integration
-- **📊 Advanced Analytics**: Business intelligence and reporting
-- **🔍 VIN OCR**: Vehicle identification number processing
-- **🔐 Multi-factor Authentication**: JWT + OAuth + OTP support
-- **🌐 Multi-cloud Deployment**: DigitalOcean + Linode infrastructure
+- **🏗️ Microservices Architecture**: 8+ independent, scalable services
+- **⚡ Real-time Bidding**: Laravel Reverb WebSocket integration with live updates
+- **🇸🇦 ZATCA Compliance**: Full Saudi Arabia e-invoicing integration
+- **📊 Advanced Analytics**: Comprehensive business intelligence and reporting
+- **🔍 VIN OCR**: AI-powered vehicle identification number processing
+- **🔐 Enterprise Security**: JWT + OAuth + OTP multi-factor authentication
+- **🌐 Multi-cloud Ready**: DigitalOcean + Linode infrastructure support
+- **📱 Mobile-first Design**: Progressive Web App with offline capabilities
+
+### 🎯 Business Value
+
+- **For Customers**: Find the best parts at competitive prices with verified merchants
+- **For Merchants**: Access to a large customer base with transparent bidding
+- **For Platform**: Commission-based revenue with comprehensive analytics
 
 ## 🏛️ Architecture
 
-### Microservices Overview
+### 🔄 Microservices Overview
 
 ```
+                    ┌─────────────────────────────────────────┐
+                    │            API Gateway                  │
+                    │         Load Balancer                   │
+                    │           :8000                         │
+                    └─────────────────┬───────────────────────┘
+                                      │
+        ┌─────────────────────────────┼─────────────────────────────┐
+        │                             │                             │
+        ▼                             ▼                             ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   API Gateway   │────│  Auth Service   │────│  User Service   │
-│     :8000       │    │     :8001       │    │     :8003       │
+│  Auth Service   │    │  User Service   │    │ Order Service   │
+│     :8001       │    │     :8003       │    │     :8002       │
+│ JWT + OAuth     │    │ Profiles + KYC  │    │ Part Requests   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
+        │                       │                       │
+        ▼                       ▼                       ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ Bidding Service │────│ Order Service   │────│Notification Svc │
-│     :8002       │    │     :8004       │    │     :8005       │
+│Bidding Service  │    │Payment Service  │    │Notification Svc │
+│     :8004       │    │     :8007       │    │     :8005       │
+│Real-time + Auto │    │ZATCA + Payments │    │Multi-channel    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
+        │                       │                       │
+        ▼                       ▼                       ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ Payment Service │────│Analytics Service│────│ VIN OCR Service │
-│     :8006       │    │     :8007       │    │     :8008       │
+│VIN OCR Service  │    │Analytics Service│    │   API Gateway   │
+│     :8006       │    │     :8008       │    │Rate Limiting    │
+│AI + ML Models   │    │BI + Reporting   │    │Authentication   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### Technology Stack
+### 🔗 Service Communication
 
-- **Backend Framework**: Laravel 10.x / Lumen
-- **Real-time**: Laravel Reverb (WebSocket)
-- **Authentication**: Laravel Sanctum + JWT
-- **Database**: MySQL 8.0 with Redis caching
-- **Queue System**: Redis-based queues
-- **File Storage**: S3-compatible storage
-- **Containerization**: Docker & Docker Compose
-- **Orchestration**: Kubernetes ready
-- **Monitoring**: Laravel Telescope + Pulse
+- **API Gateway**: Central entry point with rate limiting and authentication
+- **Service Discovery**: Consul-based service registration and discovery
+- **Load Balancing**: HAProxy with health checks
+- **Circuit Breaker**: Hystrix pattern for fault tolerance
+- **Message Queue**: Redis-based async communication
+- **Event Sourcing**: Domain events for data consistency
 
 ## ✨ Features
 
@@ -103,24 +123,208 @@ The Reverse Tender Platform is a modern, scalable solution for reverse tendering
 - **Processing History**: Complete audit trail
 - **Batch Processing**: Multiple image processing
 
-## 🛠️ Services
+## 🔧 Services
 
 ### 1. 🔐 Auth Service (Port 8001)
 **Purpose**: User authentication and authorization
-- User registration and login
-- JWT token management
-- OAuth integration
-- Two-factor authentication
-- Session management
+- Multi-factor authentication (Email + Phone + OTP)
+- JWT token management with refresh tokens
+- OAuth integration (Google, Apple, Facebook)
+- Role-based access control (Customer, Merchant, Admin)
+- Session management and device tracking
+
+**Key Features**:
+- Laravel Sanctum integration
+- Rate limiting for login attempts
+- Password strength validation
+- Account lockout protection
+- Audit logging
 
 **Key Endpoints**:
-- `POST /api/v1/auth/register` - User registration
-- `POST /api/v1/auth/login` - User login
-- `GET /api/v1/auth/me` - Get user profile
-- `POST /api/v1/auth/otp/send` - Send OTP
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/auth/me` - Get user profile
+- `POST /api/auth/otp/send` - Send OTP
+- `POST /api/auth/refresh` - Refresh JWT token
 
-### 2. ⚡ Bidding Service (Port 8002)
+### 2. 📋 Order Service (Port 8002)
+**Purpose**: Part request and order management
+- Order creation and lifecycle management
+- Image upload and processing (up to 10 images per order)
+- Order status tracking and history
+- Search and filtering capabilities
+- Integration with VIN OCR service
+
+**Key Features**:
+- Spatie Media Library for image handling
+- Order number generation (ORD + date + random)
+- Status workflow (draft → published → bidding → awarded → completed)
+- Real-time order updates via WebSocket
+- Comprehensive validation and error handling
+
+**Key Endpoints**:
+- `GET /api/orders` - List orders with filtering
+- `POST /api/orders` - Create new order
+- `GET /api/orders/{id}` - Get order details
+- `PUT /api/orders/{id}` - Update order
+- `POST /api/orders/{id}/publish` - Publish order
+- `POST /api/orders/{id}/images` - Upload images
+
+### 3. 👥 User Service (Port 8003)
+**Purpose**: User profile and vehicle management
+- Customer and merchant profile management
+- Vehicle registration and VIN processing
+- Document verification for merchants
+- Profile completion tracking
+
+**Key Features**:
+- Customer profiles with loyalty points
+- Merchant profiles with business verification
+- Vehicle management with VIN OCR integration
+- Document upload and verification workflow
+- Profile completion scoring
+
+### 4. 🎯 Bidding Service (Port 8004)
 **Purpose**: Real-time bidding with Laravel Reverb
+- Real-time bid submission and updates
+- Auto-bidding functionality
+- Bid messaging and communication
+- Competition analytics and insights
+
+**Key Features**:
+- Laravel Reverb WebSocket integration
+- Auto-bidding with confidence thresholds
+- Rate limiting (10 bids/min, 20 messages/min)
+- Real-time bid notifications
+- Bid history and analytics
+
+**Key Endpoints**:
+- `GET /api/bids` - List bids with filtering
+- `POST /api/bids` - Submit new bid
+- `PUT /api/bids/{id}` - Update bid
+- `POST /api/bids/{id}/messages` - Send bid message
+- `GET /api/bids/statistics` - Get bidding statistics
+
+### 5. 📢 Notification Service (Port 8005)
+**Purpose**: Multi-channel notification delivery
+- Push notifications, SMS, Email, WhatsApp
+- Notification preferences management
+- Template-based messaging
+- Delivery tracking and analytics
+
+**Key Features**:
+- Multi-channel delivery (Push, SMS, Email, WhatsApp)
+- User preference management
+- Template engine for dynamic content
+- Delivery status tracking
+- Notification scheduling
+
+### 6. 🔍 VIN OCR Service (Port 8006)
+**Purpose**: Vehicle identification number processing
+- OCR processing of VIN images
+- VIN validation and verification
+- Vehicle information lookup
+- Processing history and confidence scoring
+
+**Key Features**:
+- Tesseract OCR engine integration
+- Google Vision API support
+- VIN validation using Luhn algorithm
+- Confidence scoring (0-1 range)
+- Batch processing capabilities
+
+### 7. 💳 Payment Service (Port 8007)
+**Purpose**: Payment processing and ZATCA compliance
+- Payment gateway integration
+- ZATCA e-invoicing for Saudi Arabia
+- Tax calculation and compliance
+- Payment history and reporting
+
+**Key Features**:
+- Multiple payment methods (Card, Bank Transfer, STC Pay)
+- ZATCA invoice generation with QR codes
+- VAT calculation (15% for Saudi Arabia)
+- Payment status tracking
+- Refund and dispute management
+
+### 8. 📊 Analytics Service (Port 8008)
+**Purpose**: Business intelligence and reporting
+- User behavior analytics
+- Business metrics and KPIs
+- Custom report generation
+- Real-time dashboard data
+
+**Key Features**:
+- Event tracking and analysis
+- Business metrics aggregation
+- Custom report builder
+- Real-time dashboard APIs
+- Data export (PDF, Excel, CSV)
+
+## 💾 Database Schema
+
+The platform uses a comprehensive database schema with **13 business domains**:
+
+### 🔐 Authentication & User Management
+- `users` - Core user accounts
+- `user_sessions` - Session management
+- `oauth_providers` - OAuth integrations
+- `otp_verifications` - Two-factor authentication
+
+### 👥 Customer & Merchant Profiles
+- `customer_profiles` - Customer information and preferences
+- `merchant_profiles` - Business information and verification
+- `merchant_verifications` - Document verification workflow
+
+### 🚗 Vehicle Management
+- `vehicle_brands` - Car manufacturers
+- `vehicle_models` - Car models by brand
+- `vehicle_trims` - Specific trim levels
+- `vehicles` - Customer vehicles with VIN
+- `vin_ocr_logs` - VIN processing history
+
+### 🔧 Parts & Categories
+- `part_categories` - Hierarchical part categories
+- `parts` - Part catalog with specifications
+- `vehicle_parts` - Vehicle-part compatibility
+
+### 📋 Orders & Requests
+- `orders` - Part requests from customers
+- `order_images` - Order-related images
+- `order_status_history` - Status change tracking
+
+### 🎯 Bidding System
+- `bids` - Merchant bids on orders
+- `bid_messages` - Bid-related communication
+- `bid_history` - Bid change tracking
+
+### 🏆 Awards & Contracts
+- `awards` - Winning bids and contracts
+
+### 📢 Notifications
+- `notifications` - System notifications
+- `notification_preferences` - User preferences
+
+### 💳 Payments & ZATCA
+- `payments` - Payment transactions
+- `zatca_invoices` - ZATCA-compliant invoices
+
+### ⭐ Reviews & Ratings
+- `reviews` - Customer and merchant reviews
+
+### 📊 Analytics
+- `user_analytics` - User behavior tracking
+- `business_metrics` - Aggregated business data
+
+### ⚙️ System Configuration
+- `system_settings` - Platform configuration
+
+**Key Features**:
+- **ZATCA Compliance**: National ID, Tax numbers, Invoice generation
+- **VIN OCR Support**: Confidence scoring, Processing logs
+- **Performance Optimization**: Composite indexes, Partitioning-ready
+- **Data Integrity**: Foreign key constraints, Soft deletes
+- **Audit Trail**: Complete change tracking
 - Real-time bid placement
 - Competition tracking
 - Bid management
@@ -618,4 +822,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Built with ❤️ for the Saudi Arabian market and beyond**
 
 *Last updated: January 2024*
-
