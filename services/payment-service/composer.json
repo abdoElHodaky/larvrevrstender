@@ -1,6 +1,6 @@
 {
-    "name": "reversetender/bidding-service",
-    "description": "Real-time bidding microservice for Reverse Tender Platform",
+    "name": "reversetender/payment-service",
+    "description": "Payment processing microservice for Reverse Tender Platform with ZATCA integration",
     "type": "project",
     "license": "MIT",
     "require": {
@@ -12,8 +12,9 @@
         "predis/predis": "^2.2",
         "laravel/horizon": "^5.28",
         "laravel/telescope": "^5.2",
-        "pusher/pusher-php-server": "^7.2",
-        "ratchet/pawl": "^0.4"
+        "stripe/stripe-php": "^15.8",
+        "paypal/paypal-checkout-sdk": "^1.0",
+        "endroid/qr-code": "^5.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
