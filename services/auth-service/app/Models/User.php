@@ -32,7 +32,13 @@ class User extends Authenticatable implements MustVerifyEmail
         'last_login_ip',
         'login_count',
         'status',
-        'metadata'
+        'metadata',
+        'google_id',
+        'facebook_id',
+        'twitter_id',
+        'github_id',
+        'avatar',
+        'provider'
     ];
 
     /**
@@ -75,11 +81,17 @@ class User extends Authenticatable implements MustVerifyEmail
     const STATUS_BANNED = 'banned';
 
     /**
-     * Create a new personal access token for the user.
+     * Create a new personal access token for the user with expiration.
      */
-    public function createToken(string $name, array $abilities = ['*'])
+    public function createToken(string $name, array $abilities = ['*'], $expiresAt = null)
     {
-        return $this->createToken($name, $abilities);
+        $token = parent::createToken($name, $abilities);
+        
+        if ($expiresAt) {
+            $token->accessToken->update(['expires_at' => $expiresAt]);
+        }
+        
+        return $token;
     }
 
     /**

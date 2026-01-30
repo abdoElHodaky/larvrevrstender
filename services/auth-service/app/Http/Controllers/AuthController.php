@@ -3,16 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\AuthService;
+use App\Services\SocialAuthService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
+    private AuthService $authService;
+    private SocialAuthService $socialAuthService;
+
+    public function __construct(AuthService $authService, SocialAuthService $socialAuthService)
+    {
+        $this->authService = $authService;
+        $this->socialAuthService = $socialAuthService;
+    }
+
     /**
      * Register a new user
      */
@@ -20,42 +29,36 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => 'nullable|string|email|max:255|unique:users',
             'phone' => 'required|string|saudi_phone|unique:users',
             'password' => 'required|string|min:8|strong_password|confirmed',
-            'type' => 'required|in:customer,merchant',
+            'type' => 'nullable|in:customer,merchant',
         ]);
 
         if ($validator->fails()) {
             return response()->error('Validation failed', $validator->errors(), 422);
         }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password' => Hash::make($request->password),
-            'type' => $request->type,
-            'status' => User::STATUS_ACTIVE,
-        ]);
+        $result = $this->authService->register($request->all());
 
-        // Create Sanctum token with user-specific abilities
-        $token = $user->createToken('auth-token', $user->getTokenAbilities());
+        if (!$result['success']) {
+            return response()->error($result['message'], null, 400);
+        }
 
         return response()->success([
-            'user' => $user,
-            'token' => $token->plainTextToken,
-            'token_type' => 'Bearer',
-        ], 'User registered successfully', 201);
+            'user_id' => $result['user_id'],
+            'requires_verification' => $result['requires_verification'],
+            'expires_at' => $result['expires_at'] ?? null
+        ], $result['message'], 201);
     }
 
     /**
-     * Login user
+     * Login user with phone and password
      */
     public function login(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
+            'phone' => 'required|string|saudi_phone',
             'password' => 'required|string',
         ]);
 
@@ -63,27 +66,96 @@ class AuthController extends Controller
             return response()->error('Validation failed', $validator->errors(), 422);
         }
 
-        $user = User::where('email', $request->email)->first();
+        $result = $this->authService->login($request->phone, $request->password);
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->error('Invalid credentials', null, 401);
+        if (!$result['success']) {
+            $statusCode = isset($result['requires_verification']) ? 202 : 401;
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+                'requires_verification' => $result['requires_verification'] ?? false,
+                'user_id' => $result['user_id'] ?? null,
+                'expires_at' => $result['expires_at'] ?? null
+            ], $statusCode);
         }
-
-        if (!$user->isActive()) {
-            return response()->error('Account is not active', null, 403);
-        }
-
-        // Update login tracking
-        $user->updateLastLogin($request->ip());
-
-        // Create Sanctum token with user-specific abilities
-        $token = $user->createToken('auth-token', $user->getTokenAbilities());
 
         return response()->success([
-            'user' => $user,
-            'token' => $token->plainTextToken,
-            'token_type' => 'Bearer',
-        ], 'Login successful');
+            'user' => $result['user'],
+            'access_token' => $result['access_token'],
+            'token_type' => $result['token_type'],
+        ], $result['message']);
+    }
+
+    /**
+     * Verify OTP for registration or login
+     */
+    public function verifyOtp(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|integer|exists:users,id',
+            'otp' => 'required|string|size:6',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->error('Validation failed', $validator->errors(), 422);
+        }
+
+        $result = $this->authService->verifyOtp($request->user_id, $request->otp);
+
+        if (!$result['success']) {
+            return response()->error($result['message'], null, 400);
+        }
+
+        return response()->success([
+            'user' => $result['user'],
+            'access_token' => $result['access_token'],
+            'token_type' => $result['token_type'],
+        ], $result['message']);
+    }
+
+    /**
+     * Logout user (revoke current token)
+     */
+    public function logout(Request $request): JsonResponse
+    {
+        $result = $this->authService->logout($request->user());
+
+        if (!$result['success']) {
+            return response()->error($result['message'], null, 500);
+        }
+
+        return response()->success(null, $result['message']);
+    }
+
+    /**
+     * Logout from all devices (revoke all tokens)
+     */
+    public function logoutAll(Request $request): JsonResponse
+    {
+        $result = $this->authService->logoutAll($request->user());
+
+        if (!$result['success']) {
+            return response()->error($result['message'], null, 500);
+        }
+
+        return response()->success(null, $result['message']);
+    }
+
+    /**
+     * Refresh access token
+     */
+    public function refreshToken(Request $request): JsonResponse
+    {
+        $result = $this->authService->refreshToken($request->user());
+
+        if (!$result['success']) {
+            return response()->error($result['message'], null, 500);
+        }
+
+        return response()->success([
+            'access_token' => $result['access_token'],
+            'token_type' => $result['token_type'],
+        ], 'Token refreshed successfully');
     }
 
     /**
@@ -338,5 +410,53 @@ class AuthController extends Controller
 
         return response()->success(null, 'Two-factor authentication disabled');
     }
-}
 
+    /**
+     * Redirect to social provider
+     */
+    public function socialRedirect(string $provider): JsonResponse
+    {
+        if (!in_array($provider, $this->socialAuthService->getSupportedProviders())) {
+            return response()->error('Unsupported provider', null, 400);
+        }
+
+        try {
+            $redirectUrl = $this->socialAuthService->getRedirectUrl($provider);
+            
+            return response()->success([
+                'redirect_url' => $redirectUrl
+            ], 'Redirect URL generated');
+            
+        } catch (\Exception $e) {
+            return response()->error('Failed to generate redirect URL', null, 500);
+        }
+    }
+
+    /**
+     * Handle social provider callback
+     */
+    public function socialCallback(string $provider): JsonResponse
+    {
+        if (!in_array($provider, $this->socialAuthService->getSupportedProviders())) {
+            return response()->error('Unsupported provider', null, 400);
+        }
+
+        try {
+            $socialUser = Socialite::driver($provider)->user();
+            $result = $this->socialAuthService->handleSocialAuth($provider, $socialUser);
+
+            if (!$result['success']) {
+                return response()->error($result['message'], null, 400);
+            }
+
+            return response()->success([
+                'user' => $result['user'],
+                'access_token' => $result['token'],
+                'token_type' => $result['token_type'],
+            ], 'Social authentication successful');
+
+        } catch (\Exception $e) {
+            return response()->error('Social authentication failed', null, 400);
+        }
+    }
+}

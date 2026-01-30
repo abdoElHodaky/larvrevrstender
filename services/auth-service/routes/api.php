@@ -21,34 +21,19 @@ Route::prefix('v1')->group(function () {
         // Basic authentication
         Route::post('/register', [AuthController::class, 'register']);
         Route::post('/login', [AuthController::class, 'login']);
-        Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
-        Route::post('/refresh', [AuthController::class, 'refresh'])->middleware('auth:sanctum');
-        
-        // Email verification
-        Route::post('/email/verify', [AuthController::class, 'verifyEmail']);
-        Route::post('/email/resend', [AuthController::class, 'resendEmailVerification']);
-        
-        // Phone verification
-        Route::post('/phone/verify', [AuthController::class, 'verifyPhone']);
-        Route::post('/phone/resend', [AuthController::class, 'resendPhoneVerification']);
-        
-        // Password reset
-        Route::post('/password/forgot', [PasswordResetController::class, 'sendResetLink']);
-        Route::post('/password/reset', [PasswordResetController::class, 'resetPassword']);
-        Route::post('/password/change', [PasswordResetController::class, 'changePassword'])->middleware('auth:sanctum');
+        Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
         
         // Social authentication
         Route::prefix('social')->group(function () {
-            Route::get('/{provider}/redirect', [SocialAuthController::class, 'redirectToProvider']);
-            Route::post('/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback']);
-            Route::post('/{provider}/login', [SocialAuthController::class, 'socialLogin']);
+            Route::post('/{provider}/redirect', [AuthController::class, 'socialRedirect']);
+            Route::post('/{provider}/callback', [AuthController::class, 'socialCallback']);
         });
         
-        // OTP management
-        Route::prefix('otp')->group(function () {
-            Route::post('/send', [OtpController::class, 'sendOtp']);
-            Route::post('/verify', [OtpController::class, 'verifyOtp']);
-            Route::post('/resend', [OtpController::class, 'resendOtp']);
+        // Authenticated routes
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::post('/logout', [AuthController::class, 'logout']);
+            Route::post('/logout-all', [AuthController::class, 'logoutAll']);
+            Route::post('/refresh-token', [AuthController::class, 'refreshToken']);
         });
         
         // User profile (authenticated)
