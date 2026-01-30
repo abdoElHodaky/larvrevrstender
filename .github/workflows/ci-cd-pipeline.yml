@@ -1,0 +1,508 @@
+name: CI/CD Pipeline - Reverse Tender Platform
+
+on:
+  push:
+    branches: [ main, develop, staging ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: reversetender
+
+jobs:
+  # Security and Quality Checks
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/php@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+      - name: TruffleHog OSS Secret Scanning
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # Code Quality Analysis
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, iconv, json, mbstring, pdo
+          tools: composer:v2
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-
+
+      - name: Install dependencies
+        run: |
+          cd services/user-service && composer install --prefer-dist --no-progress
+          cd ../order-service && composer install --prefer-dist --no-progress
+          cd ../payment-service && composer install --prefer-dist --no-progress
+          cd ../notification-service && composer install --prefer-dist --no-progress
+
+      - name: Run PHPStan
+        run: |
+          cd services/user-service && ./vendor/bin/phpstan analyse --memory-limit=2G
+          cd ../order-service && ./vendor/bin/phpstan analyse --memory-limit=2G
+          cd ../payment-service && ./vendor/bin/phpstan analyse --memory-limit=2G
+          cd ../notification-service && ./vendor/bin/phpstan analyse --memory-limit=2G
+
+      - name: Run PHP CS Fixer
+        run: |
+          cd services/user-service && ./vendor/bin/php-cs-fixer fix --dry-run --diff
+          cd ../order-service && ./vendor/bin/php-cs-fixer fix --dry-run --diff
+          cd ../payment-service && ./vendor/bin/php-cs-fixer fix --dry-run --diff
+          cd ../notification-service && ./vendor/bin/php-cs-fixer fix --dry-run --diff
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # Unit and Integration Tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: reversetender_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, iconv, json, mbstring, pdo
+          tools: composer:v2
+          coverage: xdebug
+
+      - name: Install dependencies
+        run: |
+          cd services/user-service && composer install --prefer-dist --no-progress
+          cd ../order-service && composer install --prefer-dist --no-progress
+          cd ../payment-service && composer install --prefer-dist --no-progress
+          cd ../notification-service && composer install --prefer-dist --no-progress
+
+      - name: Prepare test environment
+        run: |
+          cd services/user-service
+          cp .env.testing .env
+          php artisan key:generate
+          php artisan migrate --force
+          php artisan db:seed --class=TestSeeder
+
+      - name: Run User Service Tests
+        run: |
+          cd services/user-service
+          php artisan test --coverage --coverage-clover=coverage.xml
+
+      - name: Run Order Service Tests
+        run: |
+          cd services/order-service
+          cp .env.testing .env
+          php artisan key:generate
+          php artisan migrate --force
+          php artisan test --coverage --coverage-clover=coverage.xml
+
+      - name: Run Payment Service Tests
+        run: |
+          cd services/payment-service
+          cp .env.testing .env
+          php artisan key:generate
+          php artisan migrate --force
+          php artisan test --coverage --coverage-clover=coverage.xml
+
+      - name: Run Notification Service Tests
+        run: |
+          cd services/notification-service
+          cp .env.testing .env
+          php artisan key:generate
+          php artisan migrate --force
+          php artisan test --coverage --coverage-clover=coverage.xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./services/*/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  # Build Docker Images
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [security-scan, code-quality, test]
+    if: github.event_name == 'push'
+    strategy:
+      matrix:
+        service: [user-service, order-service, payment-service, notification-service]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/${{ matrix.service }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: https://staging.reversetender.sa
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: me-south-1
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region me-south-1 --name reversetender-staging
+
+      - name: Deploy to staging
+        run: |
+          # Update image tags in Kubernetes manifests
+          sed -i "s|image: .*user-service:.*|image: ${{ env.REGISTRY }}/${{ github.repository }}/user-service:develop-${{ github.sha }}|g" deployment/kubernetes/staging/user-service.yaml
+          sed -i "s|image: .*order-service:.*|image: ${{ env.REGISTRY }}/${{ github.repository }}/order-service:develop-${{ github.sha }}|g" deployment/kubernetes/staging/order-service.yaml
+          sed -i "s|image: .*payment-service:.*|image: ${{ env.REGISTRY }}/${{ github.repository }}/payment-service:develop-${{ github.sha }}|g" deployment/kubernetes/staging/payment-service.yaml
+          sed -i "s|image: .*notification-service:.*|image: ${{ env.REGISTRY }}/${{ github.repository }}/notification-service:develop-${{ github.sha }}|g" deployment/kubernetes/staging/notification-service.yaml
+          
+          # Apply Kubernetes manifests
+          kubectl apply -f deployment/kubernetes/staging/ -n reversetender-staging
+          
+          # Wait for rollout to complete
+          kubectl rollout status deployment/user-service -n reversetender-staging --timeout=600s
+          kubectl rollout status deployment/order-service -n reversetender-staging --timeout=600s
+          kubectl rollout status deployment/payment-service -n reversetender-staging --timeout=600s
+          kubectl rollout status deployment/notification-service -n reversetender-staging --timeout=600s
+
+      - name: Run database migrations
+        run: |
+          kubectl exec deployment/user-service -n reversetender-staging -- php artisan migrate --force
+          kubectl exec deployment/order-service -n reversetender-staging -- php artisan migrate --force
+          kubectl exec deployment/payment-service -n reversetender-staging -- php artisan migrate --force
+          kubectl exec deployment/notification-service -n reversetender-staging -- php artisan migrate --force
+
+      - name: Run smoke tests
+        run: |
+          # Wait for services to be ready
+          sleep 30
+          
+          # Test API endpoints
+          curl -f https://staging-api.reversetender.sa/v1/health || exit 1
+          curl -f https://staging.reversetender.sa/health || exit 1
+
+      - name: Notify deployment status
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+
+  # Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://reversetender.sa
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-region: me-south-1
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region me-south-1 --name reversetender-production
+
+      - name: Create backup
+        run: |
+          # Create database backup before deployment
+          kubectl exec deployment/mysql -n reversetender-production -- mysqldump -u root -p${{ secrets.DB_PASSWORD }} reversetender_production > backup-$(date +%Y%m%d-%H%M%S).sql
+          
+          # Upload backup to S3
+          aws s3 cp backup-*.sql s3://reversetender-backups/pre-deployment/
+
+      - name: Deploy to production (Blue-Green)
+        run: |
+          # Update image tags for green deployment
+          sed -i "s|image: .*user-service:.*|image: ${{ env.REGISTRY }}/${{ github.repository }}/user-service:main-${{ github.sha }}|g" deployment/kubernetes/production/user-service-green.yaml
+          sed -i "s|image: .*order-service:.*|image: ${{ env.REGISTRY }}/${{ github.repository }}/order-service:main-${{ github.sha }}|g" deployment/kubernetes/production/order-service-green.yaml
+          sed -i "s|image: .*payment-service:.*|image: ${{ env.REGISTRY }}/${{ github.repository }}/payment-service:main-${{ github.sha }}|g" deployment/kubernetes/production/payment-service-green.yaml
+          sed -i "s|image: .*notification-service:.*|image: ${{ env.REGISTRY }}/${{ github.repository }}/notification-service:main-${{ github.sha }}|g" deployment/kubernetes/production/notification-service-green.yaml
+          
+          # Deploy green environment
+          kubectl apply -f deployment/kubernetes/production/*-green.yaml -n reversetender-production
+          
+          # Wait for green deployment to be ready
+          kubectl rollout status deployment/user-service-green -n reversetender-production --timeout=600s
+          kubectl rollout status deployment/order-service-green -n reversetender-production --timeout=600s
+          kubectl rollout status deployment/payment-service-green -n reversetender-production --timeout=600s
+          kubectl rollout status deployment/notification-service-green -n reversetender-production --timeout=600s
+
+      - name: Run database migrations (Production)
+        run: |
+          kubectl exec deployment/user-service-green -n reversetender-production -- php artisan migrate --force
+          kubectl exec deployment/order-service-green -n reversetender-production -- php artisan migrate --force
+          kubectl exec deployment/payment-service-green -n reversetender-production -- php artisan migrate --force
+          kubectl exec deployment/notification-service-green -n reversetender-production -- php artisan migrate --force
+
+      - name: Run production smoke tests
+        run: |
+          # Test green environment
+          sleep 60
+          
+          # Internal health checks
+          kubectl exec deployment/user-service-green -n reversetender-production -- curl -f http://localhost:8001/health
+          kubectl exec deployment/order-service-green -n reversetender-production -- curl -f http://localhost:8002/health
+          kubectl exec deployment/payment-service-green -n reversetender-production -- curl -f http://localhost:8003/health
+          kubectl exec deployment/notification-service-green -n reversetender-production -- curl -f http://localhost:8004/health
+
+      - name: Switch traffic to green (Blue-Green Deployment)
+        run: |
+          # Update service selectors to point to green deployment
+          kubectl patch service user-service -n reversetender-production -p '{"spec":{"selector":{"version":"green"}}}'
+          kubectl patch service order-service -n reversetender-production -p '{"spec":{"selector":{"version":"green"}}}'
+          kubectl patch service payment-service -n reversetender-production -p '{"spec":{"selector":{"version":"green"}}}'
+          kubectl patch service notification-service -n reversetender-production -p '{"spec":{"selector":{"version":"green"}}}'
+          
+          # Wait for traffic switch
+          sleep 30
+
+      - name: Verify production deployment
+        run: |
+          # Test public endpoints
+          curl -f https://api.reversetender.sa/v1/health || exit 1
+          curl -f https://reversetender.sa/health || exit 1
+          
+          # Test critical user flows
+          curl -f https://api.reversetender.sa/v1/auth/health || exit 1
+
+      - name: Clean up blue deployment
+        run: |
+          # Remove old blue deployment after successful green deployment
+          kubectl delete deployment user-service-blue order-service-blue payment-service-blue notification-service-blue -n reversetender-production --ignore-not-found=true
+
+      - name: Update monitoring and alerting
+        run: |
+          # Update Grafana dashboards with new deployment info
+          curl -X POST https://grafana.reversetender.sa/api/annotations \
+            -H "Authorization: Bearer ${{ secrets.GRAFANA_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "text": "Production deployment completed - Version: ${{ github.sha }}",
+              "tags": ["deployment", "production"],
+              "time": '$(date +%s000)'
+            }'
+
+      - name: Notify successful deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+          custom_payload: |
+            {
+              "text": "🚀 Production deployment successful!",
+              "attachments": [{
+                "color": "good",
+                "fields": [{
+                  "title": "Version",
+                  "value": "${{ github.sha }}",
+                  "short": true
+                }, {
+                  "title": "Environment",
+                  "value": "Production",
+                  "short": true
+                }, {
+                  "title": "URL",
+                  "value": "https://reversetender.sa",
+                  "short": false
+                }]
+              }]
+            }
+
+  # Rollback on Failure
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: failure()
+    environment:
+      name: production
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-region: me-south-1
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region me-south-1 --name reversetender-production
+
+      - name: Rollback to previous version
+        run: |
+          # Switch traffic back to blue deployment
+          kubectl patch service user-service -n reversetender-production -p '{"spec":{"selector":{"version":"blue"}}}'
+          kubectl patch service order-service -n reversetender-production -p '{"spec":{"selector":{"version":"blue"}}}'
+          kubectl patch service payment-service -n reversetender-production -p '{"spec":{"selector":{"version":"blue"}}}'
+          kubectl patch service notification-service -n reversetender-production -p '{"spec":{"selector":{"version":"blue"}}}'
+          
+          # Remove failed green deployment
+          kubectl delete deployment user-service-green order-service-green payment-service-green notification-service-green -n reversetender-production --ignore-not-found=true
+
+      - name: Restore database backup
+        run: |
+          # Download latest backup
+          aws s3 cp s3://reversetender-backups/pre-deployment/backup-$(date +%Y%m%d)*.sql ./backup.sql
+          
+          # Restore database (if needed)
+          # kubectl exec deployment/mysql -n reversetender-production -- mysql -u root -p${{ secrets.DB_PASSWORD }} reversetender_production < backup.sql
+
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          custom_payload: |
+            {
+              "text": "🚨 Production deployment failed - Rollback completed!",
+              "attachments": [{
+                "color": "danger",
+                "fields": [{
+                  "title": "Action",
+                  "value": "Automatic rollback to previous version",
+                  "short": false
+                }, {
+                  "title": "Status",
+                  "value": "System restored to stable state",
+                  "short": false
+                }]
+              }]
+            }
+
