@@ -14,8 +14,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Register service-specific bindings
-        $this->app->singleton('order_service.service', function ($app) {
-            return new \App\Services\OrderServiceService();
+        $this->app->singleton('bidding_service.service', function ($app) {
+            return new \App\Services\BiddingServiceService();
         });
     }
 

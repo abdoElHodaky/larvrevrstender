@@ -22,16 +22,16 @@ Route::get('/up', [HealthController::class, 'up']);
 // Service info route
 Route::get('/info', function () {
     return response()->json([
-        'service' => 'analytics-service',
+        'service' => 'vin-ocr-service',
         'version' => config('app.version', '1.0.0'),
         'environment' => config('app.env'),
         'timestamp' => now()->toISOString(),
     ]);
 });
 
-// AnalyticsService routes
-Route::prefix('analytics')->group(function () {
-    // TODO: Add analytics specific routes
+// VinOcrService routes
+Route::prefix('vin-ocr')->group(function () {
+    // TODO: Add vin-ocr specific routes
 });
 
 // Protected routes

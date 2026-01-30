@@ -22,16 +22,16 @@ Route::get('/up', [HealthController::class, 'up']);
 // Service info route
 Route::get('/info', function () {
     return response()->json([
-        'service' => 'analytics-service',
+        'service' => 'bidding-service',
         'version' => config('app.version', '1.0.0'),
         'environment' => config('app.env'),
         'timestamp' => now()->toISOString(),
     ]);
 });
 
-// AnalyticsService routes
-Route::prefix('analytics')->group(function () {
-    // TODO: Add analytics specific routes
+// BiddingService routes
+Route::prefix('bidding')->group(function () {
+    // TODO: Add bidding specific routes
 });
 
 // Protected routes

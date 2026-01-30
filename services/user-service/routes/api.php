@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\UserProfileController;
+use App\Http\Controllers\HealthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -15,60 +15,28 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
+// Health check routes
+Route::get('/health', [HealthController::class, 'check']);
+Route::get('/up', [HealthController::class, 'up']);
 
-// Health check endpoint
-Route::get('/health', function () {
+// Service info route
+Route::get('/info', function () {
     return response()->json([
-        'status' => 'healthy',
         'service' => 'user-service',
-        'timestamp' => now()->toISOString()
+        'version' => config('app.version', '1.0.0'),
+        'environment' => config('app.env'),
+        'timestamp' => now()->toISOString(),
     ]);
 });
 
-// User Profile Management Routes
-Route::middleware(['auth:sanctum'])->group(function () {
-    // Profile CRUD operations
-    Route::get('/profile', [UserProfileController::class, 'show']);
-    Route::post('/profile', [UserProfileController::class, 'store']);
-    
-    // Delivery addresses
-    Route::post('/profile/delivery-address', [UserProfileController::class, 'addDeliveryAddress']);
-    
-    // Preferences
-    Route::put('/profile/preferences', [UserProfileController::class, 'updatePreferences']);
-    
-    // KYC Verification
-    Route::post('/profile/kyc-verification', [UserProfileController::class, 'submitKYCVerification']);
-    Route::get('/profile/verification-status', [UserProfileController::class, 'verificationStatus']);
-    
-    // Preferred categories
-    Route::post('/profile/preferred-categories', [UserProfileController::class, 'addPreferredCategory']);
-    Route::delete('/profile/preferred-categories', [UserProfileController::class, 'removePreferredCategory']);
+// UserService routes
+Route::prefix('user')->group(function () {
+    // TODO: Add user specific routes
 });
 
-// Admin routes (for internal service communication)
-Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
-    // These routes would be used by other services or admin panel
-    Route::get('/profiles/{userId}', function ($userId) {
-        $profile = \App\Models\CustomerProfile::where('user_id', $userId)->first();
-        return response()->json(['data' => $profile]);
-    });
-    
-    Route::put('/profiles/{userId}/verification-status', function (Request $request, $userId) {
-        $request->validate([
-            'status' => 'required|in:pending,verified,rejected'
-        ]);
-        
-        $profile = \App\Models\CustomerProfile::where('user_id', $userId)->firstOrFail();
-        $profile->update(['verification_status' => $request->status]);
-        
-        // Fire event for verification completion
-        event(new \App\Events\KYCVerificationCompleted($profile, $request->status));
-        
-        return response()->json(['data' => $profile]);
+// Protected routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
     });
 });
-

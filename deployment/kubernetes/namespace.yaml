@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reverse-tender
+  labels:
+    name: reverse-tender
+    environment: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reverse-tender-monitoring
+  labels:
+    name: reverse-tender-monitoring
+    environment: production
+

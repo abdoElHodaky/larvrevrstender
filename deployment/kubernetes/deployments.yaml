@@ -1,0 +1,537 @@
+# Auth Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: reverse-tender
+  labels:
+    app: auth-service
+    service: auth
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+        service: auth
+    spec:
+      containers:
+      - name: auth-service
+        image: reverse-tender/auth-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: APP_NAME
+          value: "Auth Service"
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: host
+        - name: DB_DATABASE
+          value: "auth_service"
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: password
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: host
+        envFrom:
+        - configMapRef:
+            name: reverse-tender-config
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /up
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# User Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: reverse-tender
+  labels:
+    app: user-service
+    service: user
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+        service: user
+    spec:
+      containers:
+      - name: user-service
+        image: reverse-tender/user-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: APP_NAME
+          value: "User Service"
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: host
+        - name: DB_DATABASE
+          value: "user_service"
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: password
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: host
+        envFrom:
+        - configMapRef:
+            name: reverse-tender-config
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /up
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# Bidding Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bidding-service
+  namespace: reverse-tender
+  labels:
+    app: bidding-service
+    service: bidding
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bidding-service
+  template:
+    metadata:
+      labels:
+        app: bidding-service
+        service: bidding
+    spec:
+      containers:
+      - name: bidding-service
+        image: reverse-tender/bidding-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: APP_NAME
+          value: "Bidding Service"
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: host
+        - name: DB_DATABASE
+          value: "bidding_service"
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: password
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: host
+        - name: PUSHER_APP_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pusher-secret
+              key: app-key
+        - name: PUSHER_APP_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: pusher-secret
+              key: app-secret
+        envFrom:
+        - configMapRef:
+            name: reverse-tender-config
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /up
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# Order Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: reverse-tender
+  labels:
+    app: order-service
+    service: order
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+        service: order
+    spec:
+      containers:
+      - name: order-service
+        image: reverse-tender/order-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: APP_NAME
+          value: "Order Service"
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: host
+        - name: DB_DATABASE
+          value: "order_service"
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: password
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: host
+        envFrom:
+        - configMapRef:
+            name: reverse-tender-config
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /up
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# Payment Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: reverse-tender
+  labels:
+    app: payment-service
+    service: payment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+        service: payment
+    spec:
+      containers:
+      - name: payment-service
+        image: reverse-tender/payment-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: APP_NAME
+          value: "Payment Service"
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: host
+        - name: DB_DATABASE
+          value: "payment_service"
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: password
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: host
+        - name: STRIPE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: payment-secret
+              key: stripe-key
+        - name: STRIPE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: payment-secret
+              key: stripe-secret
+        envFrom:
+        - configMapRef:
+            name: reverse-tender-config
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /up
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# Analytics Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+  namespace: reverse-tender
+  labels:
+    app: analytics-service
+    service: analytics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analytics-service
+  template:
+    metadata:
+      labels:
+        app: analytics-service
+        service: analytics
+    spec:
+      containers:
+      - name: analytics-service
+        image: reverse-tender/analytics-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: APP_NAME
+          value: "Analytics Service"
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: host
+        - name: DB_DATABASE
+          value: "analytics_service"
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: password
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: host
+        envFrom:
+        - configMapRef:
+            name: reverse-tender-config
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /up
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# VIN OCR Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vin-ocr-service
+  namespace: reverse-tender
+  labels:
+    app: vin-ocr-service
+    service: vin-ocr
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vin-ocr-service
+  template:
+    metadata:
+      labels:
+        app: vin-ocr-service
+        service: vin-ocr
+    spec:
+      containers:
+      - name: vin-ocr-service
+        image: reverse-tender/vin-ocr-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: APP_NAME
+          value: "VIN OCR Service"
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: host
+        - name: DB_DATABASE
+          value: "vin_ocr_service"
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: password
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: host
+        envFrom:
+        - configMapRef:
+            name: reverse-tender-config
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /up
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+

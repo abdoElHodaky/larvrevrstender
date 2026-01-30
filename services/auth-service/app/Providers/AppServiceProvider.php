@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Http\Resources\Json\JsonResource;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -12,17 +13,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Register service bindings
+        // Register service-specific bindings
         $this->app->singleton('auth.service', function ($app) {
             return new \App\Services\AuthService();
         });
 
-        $this->app->singleton('otp.service', function ($app) {
-            return new \App\Services\OtpService();
+        // Register JWT service
+        $this->app->singleton('jwt.service', function ($app) {
+            return new \App\Services\JWTService();
         });
 
-        $this->app->singleton('social.service', function ($app) {
-            return new \App\Services\SocialAuthService();
+        // Register OTP service
+        $this->app->singleton('otp.service', function ($app) {
+            return new \App\Services\OTPService();
         });
     }
 
@@ -34,54 +37,30 @@ class AppServiceProvider extends ServiceProvider
         // Set default string length for MySQL
         Schema::defaultStringLength(191);
 
+        // Remove data wrapping from JSON resources
+        JsonResource::withoutWrapping();
+
         // Register custom validation rules
-        $this->registerValidationRules();
+        $this->registerCustomValidationRules();
 
-        // Register custom macros
-        $this->registerMacros();
+        // Register event listeners
+        $this->registerEventListeners();
     }
 
     /**
-     * Register custom validation rules
+     * Register custom validation rules.
      */
-    private function registerValidationRules(): void
+    private function registerCustomValidationRules(): void
     {
-        \Validator::extend('saudi_phone', function ($attribute, $value, $parameters, $validator) {
-            return preg_match('/^\+966[0-9]{9}$/', $value);
-        });
-
-        \Validator::extend('saudi_national_id', function ($attribute, $value, $parameters, $validator) {
-            return preg_match('/^[12][0-9]{9}$/', $value);
-        });
-
-        \Validator::extend('strong_password', function ($attribute, $value, $parameters, $validator) {
-            return preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/', $value);
-        });
+        // Add custom validation rules here
     }
 
     /**
-     * Register custom macros
+     * Register event listeners.
      */
-    private function registerMacros(): void
+    private function registerEventListeners(): void
     {
-        // Add custom response macros
-        \Response::macro('success', function ($data = null, $message = 'Success', $code = 200) {
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'data' => $data,
-                'timestamp' => now()->toISOString()
-            ], $code);
-        });
-
-        \Response::macro('error', function ($message = 'Error', $errors = null, $code = 400) {
-            return response()->json([
-                'success' => false,
-                'message' => $message,
-                'errors' => $errors,
-                'timestamp' => now()->toISOString()
-            ], $code);
-        });
+        // Add event listeners here
     }
 }
 
