@@ -72,13 +72,13 @@ services:
           cpus: '0.5'
           memory: 512M
 
-  # Bidding Service - Real-time bidding system
+  # Bidding Service - Real-time bidding system with Laravel Reverb
   bidding-service:
     image: reversetender/bidding-service:${APP_VERSION:-latest}
     container_name: rt_bidding_service
     ports:
       - "8002:8002"
-      - "8080:8080"  # WebSocket port
+      - "8080:8080"  # Laravel Reverb WebSocket port
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
@@ -88,11 +88,13 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis-primary
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - WEBSOCKET_ENABLED=true
-      - PUSHER_APP_ID=${PUSHER_APP_ID}
-      - PUSHER_APP_KEY=${PUSHER_APP_KEY}
-      - PUSHER_APP_SECRET=${PUSHER_APP_SECRET}
-      - PUSHER_APP_CLUSTER=${PUSHER_APP_CLUSTER}
+      - BROADCAST_DRIVER=reverb
+      - REVERB_APP_ID=${REVERB_APP_ID:-reverse-tender}
+      - REVERB_APP_KEY=${REVERB_APP_KEY:-reverse-tender-key}
+      - REVERB_APP_SECRET=${REVERB_APP_SECRET:-reverse-tender-secret}
+      - REVERB_HOST=0.0.0.0
+      - REVERB_PORT=8080
+      - REVERB_SCHEME=http
     volumes:
       - ./logs/bidding-service:/var/www/storage/logs
     networks:
@@ -389,4 +391,3 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/16
-
