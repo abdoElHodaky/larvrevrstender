@@ -1,435 +1,494 @@
-# 📊 Enhanced Database Schema Diagram
+# 🎨 Enhanced Database Schema - Reverse Tender Platform
+
+## 🌟 Visual ERD with Eye-Catching Styling
 
 ```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ff6b6b',
+    'primaryTextColor': '#fff',
+    'primaryBorderColor': '#ff4757',
+    'lineColor': '#5f27cd',
+    'secondaryColor': '#00d2d3',
+    'tertiaryColor': '#ff9ff3',
+    'background': '#f1f2f6',
+    'mainBkg': '#ffffff',
+    'secondBkg': '#ecf0f1',
+    'tertiaryBkg': '#bdc3c7'
+  }
+}}%%
+
 erDiagram
-    %% Users and Authentication
+    %% 🔐 AUTHENTICATION & USER MANAGEMENT DOMAIN
+    users ||--o{ user_sessions : "has_many"
+    users ||--o{ oauth_providers : "has_many"
+    users ||--o{ otp_verifications : "has_many"
+    users ||--|| customer_profiles : "has_one"
+    users ||--|| merchant_profiles : "has_one"
+    
     users {
-        bigint id PK
-        string name
-        string email UK
-        string phone UK
-        string password
-        enum type "customer, merchant, admin"
-        boolean verified
-        timestamp email_verified_at
-        timestamp phone_verified_at
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "🔑 Primary Key"
+        varchar name "👤 Full Name"
+        varchar email UK "📧 Email Address"
+        varchar phone UK "📱 Phone Number"
+        varchar password "🔒 Encrypted Password"
+        enum type "👥 customer|merchant|admin"
+        boolean verified "✅ Account Verified"
+        timestamp email_verified_at "📧 Email Verification Time"
+        timestamp phone_verified_at "📱 Phone Verification Time"
+        timestamp created_at "⏰ Created At"
+        timestamp updated_at "🔄 Updated At"
     }
     
     user_sessions {
-        bigint id PK
-        bigint user_id FK
-        string session_token UK
-        string device_info
-        string ip_address
-        timestamp expires_at
-        timestamp created_at
+        bigint id PK "🔑 Session ID"
+        bigint user_id FK "👤 User Reference"
+        varchar session_token UK "🎫 Unique Session Token"
+        text device_info "📱 Device Information"
+        varchar ip_address "🌐 IP Address"
+        timestamp expires_at "⏰ Session Expiry"
+        timestamp created_at "⏰ Created At"
     }
     
     oauth_providers {
-        bigint id PK
-        bigint user_id FK
-        string provider "google, apple, facebook"
-        string provider_id
-        string provider_token
-        timestamp created_at
+        bigint id PK "🔑 OAuth ID"
+        bigint user_id FK "👤 User Reference"
+        enum provider "🔗 google|apple|facebook|twitter"
+        varchar provider_id "🆔 Provider User ID"
+        text provider_token "🎫 OAuth Token"
+        timestamp created_at "⏰ Created At"
     }
     
     otp_verifications {
-        bigint id PK
-        bigint user_id FK
-        string phone_or_email
-        string otp_code
-        enum type "registration, login, password_reset"
-        boolean verified
-        timestamp expires_at
-        timestamp created_at
+        bigint id PK "🔑 OTP ID"
+        bigint user_id FK "👤 User Reference"
+        varchar phone_or_email "📱📧 Contact Method"
+        varchar otp_code "🔢 6-Digit Code"
+        enum type "📝 registration|login|password_reset"
+        boolean verified "✅ Verification Status"
+        timestamp expires_at "⏰ Code Expiry"
+        timestamp created_at "⏰ Created At"
     }
     
-    %% Customer Profiles
+    %% 👥 CUSTOMER PROFILE DOMAIN
+    customer_profiles ||--o{ vehicles : "owns_many"
+    customer_profiles ||--o{ part_requests : "creates_many"
+    customer_profiles ||--o{ reviews : "writes_many"
+    
     customer_profiles {
-        bigint id PK
-        bigint user_id FK
-        string national_id "Saudi National ID for ZATCA"
-        text national_address
-        json default_location
-        json preferences
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "🔑 Customer ID"
+        bigint user_id FK "👤 User Reference"
+        varchar national_id "🇸🇦 Saudi National ID (ZATCA)"
+        text national_address "🏠 National Address"
+        json default_location "📍 GPS Coordinates"
+        json preferences "⚙️ User Preferences"
+        decimal loyalty_points "🎯 Loyalty Points"
+        timestamp created_at "⏰ Created At"
+        timestamp updated_at "🔄 Updated At"
     }
     
-    %% Merchant Profiles
+    %% 🏪 MERCHANT PROFILE DOMAIN
+    merchant_profiles ||--o{ merchant_verifications : "has_many"
+    merchant_profiles ||--o{ bids : "submits_many"
+    merchant_profiles ||--o{ reviews : "receives_many"
+    
     merchant_profiles {
-        bigint id PK
-        bigint user_id FK
-        string business_name
-        string business_license
-        string tax_number "For ZATCA integration"
-        json specializations
-        decimal rating "3,2"
-        int total_reviews
-        boolean verified
-        json verification_documents
-        json business_hours
-        json service_areas
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "🔑 Merchant ID"
+        bigint user_id FK "👤 User Reference"
+        varchar business_name "🏪 Business Name"
+        varchar business_license "📄 License Number"
+        varchar tax_number "💰 Tax ID (ZATCA)"
+        json specializations "🔧 Service Categories"
+        decimal rating "⭐ Average Rating (0-5)"
+        int total_reviews "📊 Review Count"
+        boolean verified "✅ Verification Status"
+        json verification_documents "📋 Document URLs"
+        json business_hours "🕒 Operating Hours"
+        json service_areas "🗺️ Coverage Areas"
+        decimal commission_rate "💸 Platform Commission"
+        timestamp created_at "⏰ Created At"
+        timestamp updated_at "🔄 Updated At"
     }
     
     merchant_verifications {
-        bigint id PK
-        bigint merchant_id FK
-        enum document_type "license, tax_certificate, insurance"
-        string document_path
-        enum status "pending, approved, rejected"
-        text rejection_reason
-        timestamp verified_at
-        timestamp created_at
+        bigint id PK "🔑 Verification ID"
+        bigint merchant_id FK "🏪 Merchant Reference"
+        enum document_type "📄 license|tax_certificate|insurance|cr"
+        varchar document_path "📁 File Path"
+        enum status "📊 pending|approved|rejected|expired"
+        text rejection_reason "❌ Rejection Details"
+        bigint verified_by FK "👤 Admin User ID"
+        timestamp verified_at "✅ Verification Time"
+        timestamp expires_at "⏰ Document Expiry"
+        timestamp created_at "⏰ Created At"
     }
     
-    %% Vehicle Management
+    %% 🚗 VEHICLE MANAGEMENT DOMAIN
+    vehicle_brands ||--o{ vehicle_models : "has_many"
+    vehicle_models ||--o{ vehicle_trims : "has_many"
+    vehicle_brands ||--o{ vehicles : "brand_reference"
+    vehicle_models ||--o{ vehicles : "model_reference"
+    vehicle_trims ||--o{ vehicles : "trim_reference"
+    vehicles ||--o{ vin_ocr_logs : "has_processing_logs"
+    
     vehicle_brands {
-        bigint id PK
-        string name
-        string logo_url
-        boolean active
-        timestamp created_at
+        bigint id PK "🔑 Brand ID"
+        varchar name "🚗 Brand Name"
+        varchar logo_url "🖼️ Logo Image URL"
+        varchar country_origin "🌍 Country of Origin"
+        boolean active "✅ Active Status"
+        int sort_order "📊 Display Order"
+        timestamp created_at "⏰ Created At"
     }
     
     vehicle_models {
-        bigint id PK
-        bigint brand_id FK
-        string name
-        int year_start
-        int year_end
-        boolean active
-        timestamp created_at
+        bigint id PK "🔑 Model ID"
+        bigint brand_id FK "🚗 Brand Reference"
+        varchar name "🚙 Model Name"
+        int year_start "📅 Production Start Year"
+        int year_end "📅 Production End Year"
+        enum category "🏷️ sedan|suv|hatchback|coupe|truck"
+        boolean active "✅ Active Status"
+        timestamp created_at "⏰ Created At"
     }
     
     vehicle_trims {
-        bigint id PK
-        bigint model_id FK
-        string name
-        string engine_type
-        string transmission_type
-        string fuel_type
-        string body_style
-        timestamp created_at
+        bigint id PK "🔑 Trim ID"
+        bigint model_id FK "🚙 Model Reference"
+        varchar name "✨ Trim Level"
+        varchar engine_type "⚙️ Engine Specification"
+        varchar transmission_type "🔧 Transmission Type"
+        enum fuel_type "⛽ gasoline|diesel|hybrid|electric"
+        enum body_style "🚗 sedan|suv|hatchback|coupe"
+        json specifications "📋 Technical Specs"
+        timestamp created_at "⏰ Created At"
     }
     
     vehicles {
-        bigint id PK
-        bigint customer_id FK
-        bigint brand_id FK
-        bigint model_id FK
-        bigint trim_id FK
-        int year
-        string vin UK "17 characters"
-        boolean is_primary
-        string custom_name
-        int mileage
-        string engine_type
-        string transmission_type
-        string fuel_type
-        string body_style
-        decimal vin_confidence "3,2" "OCR confidence score"
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "🔑 Vehicle ID"
+        bigint customer_id FK "👤 Owner Reference"
+        bigint brand_id FK "🚗 Brand Reference"
+        bigint model_id FK "🚙 Model Reference"
+        bigint trim_id FK "✨ Trim Reference"
+        int year "📅 Manufacturing Year"
+        varchar vin UK "🔢 17-Character VIN"
+        boolean is_primary "⭐ Primary Vehicle"
+        varchar custom_name "🏷️ Custom Nickname"
+        int mileage "🛣️ Current Mileage"
+        varchar color "🎨 Vehicle Color"
+        enum condition "📊 excellent|good|fair|poor"
+        decimal vin_confidence "🎯 OCR Confidence (0-1)"
+        json maintenance_history "🔧 Service Records"
+        timestamp created_at "⏰ Created At"
+        timestamp updated_at "🔄 Updated At"
     }
     
     vin_ocr_logs {
-        bigint id PK
-        bigint vehicle_id FK
-        string original_image_path
-        string processed_image_path
-        string extracted_vin
-        decimal confidence_score "3,2"
-        json ocr_metadata
-        enum status "processing, completed, failed"
-        timestamp created_at
+        bigint id PK "🔑 OCR Log ID"
+        bigint vehicle_id FK "🚗 Vehicle Reference"
+        varchar original_image_path "📷 Original Image Path"
+        varchar processed_image_path "🖼️ Processed Image Path"
+        varchar extracted_vin "🔢 Extracted VIN Code"
+        decimal confidence_score "🎯 OCR Confidence (0-1)"
+        json ocr_metadata "📊 Processing Metadata"
+        enum status "⚙️ processing|completed|failed"
+        text error_message "❌ Error Details"
+        timestamp created_at "⏰ Created At"
     }
     
-    %% Part Categories and Management
+    %% 🔧 PART CATEGORIES & MANAGEMENT DOMAIN
+    part_categories ||--o{ part_categories : "has_subcategories"
+    part_categories ||--o{ parts : "contains_parts"
+    parts ||--o{ vehicle_parts : "compatible_with"
+    vehicles ||--o{ vehicle_parts : "uses_parts"
+    
     part_categories {
-        bigint id PK
-        bigint parent_id FK
-        string name
-        string description
-        string icon_url
-        boolean active
-        int sort_order
-        timestamp created_at
+        bigint id PK "🔑 Category ID"
+        bigint parent_id FK "📁 Parent Category"
+        varchar name "🏷️ Category Name"
+        text description "📝 Category Description"
+        varchar icon_url "🖼️ Category Icon"
+        boolean active "✅ Active Status"
+        int sort_order "📊 Display Order"
+        json metadata "📋 Additional Properties"
+        timestamp created_at "⏰ Created At"
     }
     
     parts {
-        bigint id PK
-        bigint category_id FK
-        string name
-        string part_number
-        text description
-        json specifications
-        boolean active
-        timestamp created_at
+        bigint id PK "🔑 Part ID"
+        bigint category_id FK "📁 Category Reference"
+        varchar name "🔧 Part Name"
+        varchar part_number "🔢 Manufacturer Part Number"
+        text description "📝 Part Description"
+        json specifications "📋 Technical Specifications"
+        json compatibility_rules "🚗 Vehicle Compatibility"
+        boolean active "✅ Active Status"
+        decimal avg_price "💰 Average Market Price"
+        timestamp created_at "⏰ Created At"
     }
     
     vehicle_parts {
-        bigint id PK
-        bigint vehicle_id FK
-        bigint part_id FK
-        boolean compatible
-        text notes
-        timestamp created_at
+        bigint id PK "🔑 Compatibility ID"
+        bigint vehicle_id FK "🚗 Vehicle Reference"
+        bigint part_id FK "🔧 Part Reference"
+        boolean compatible "✅ Compatibility Status"
+        text compatibility_notes "📝 Compatibility Notes"
+        json fitment_details "🔧 Installation Details"
+        timestamp created_at "⏰ Created At"
     }
     
-    %% Orders and Requests
+    %% 📋 ORDERS & PART REQUESTS DOMAIN
+    customer_profiles ||--o{ orders : "creates_requests"
+    vehicles ||--o{ orders : "needs_parts"
+    orders ||--o{ order_images : "has_images"
+    orders ||--o{ order_status_history : "tracks_changes"
+    orders ||--o{ bids : "receives_bids"
+    
     orders {
-        bigint id PK
-        bigint customer_id FK
-        bigint vehicle_id FK
-        string order_number UK
-        enum status "draft, published, bidding, awarded, completed, cancelled"
-        string title
-        text description
-        json part_details
-        decimal budget_min "10,2"
-        decimal budget_max "10,2"
-        json delivery_location
-        boolean urgent
-        timestamp deadline
-        timestamp published_at
-        timestamp completed_at
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "🔑 Order ID"
+        bigint customer_id FK "👤 Customer Reference"
+        bigint vehicle_id FK "🚗 Vehicle Reference"
+        varchar order_number UK "🔢 Unique Order Number"
+        enum status "📊 draft|published|bidding|awarded|completed|cancelled"
+        varchar title "📝 Request Title"
+        text description "📄 Detailed Description"
+        json part_details "🔧 Required Parts Specification"
+        decimal budget_min "💰 Minimum Budget"
+        decimal budget_max "💰 Maximum Budget"
+        json delivery_location "📍 Delivery Address"
+        boolean urgent "🚨 Urgent Request"
+        int priority_score "⭐ Priority Score (1-10)"
+        timestamp deadline "⏰ Response Deadline"
+        timestamp published_at "📅 Published Time"
+        timestamp completed_at "✅ Completion Time"
+        timestamp created_at "⏰ Created At"
+        timestamp updated_at "🔄 Updated At"
     }
     
     order_images {
-        bigint id PK
-        bigint order_id FK
-        string image_path
-        string image_type "part_photo, damage_photo, reference"
-        text description
-        int sort_order
-        timestamp created_at
+        bigint id PK "🔑 Image ID"
+        bigint order_id FK "📋 Order Reference"
+        varchar image_path "📷 Image File Path"
+        enum image_type "🖼️ part_photo|damage_photo|reference|vin_photo"
+        text description "📝 Image Description"
+        int sort_order "📊 Display Order"
+        json metadata "📋 Image Properties"
+        timestamp created_at "⏰ Created At"
     }
     
     order_status_history {
-        bigint id PK
-        bigint order_id FK
-        bigint user_id FK
-        enum old_status
-        enum new_status
-        text reason
-        json metadata
-        timestamp created_at
+        bigint id PK "🔑 History ID"
+        bigint order_id FK "📋 Order Reference"
+        bigint user_id FK "👤 User Who Changed"
+        enum old_status "📊 Previous Status"
+        enum new_status "📊 New Status"
+        text reason "📝 Change Reason"
+        json metadata "📋 Additional Context"
+        timestamp created_at "⏰ Changed At"
     }
     
-    %% Bidding System
+    %% 🎯 BIDDING & AUCTION SYSTEM DOMAIN
+    merchant_profiles ||--o{ bids : "submits_bids"
+    orders ||--o{ bids : "receives_bids"
+    bids ||--o{ bid_messages : "has_communications"
+    bids ||--o{ bid_history : "tracks_changes"
+    bids ||--|| awards : "can_be_awarded"
+    
     bids {
-        bigint id PK
-        bigint order_id FK
-        bigint merchant_id FK
-        decimal amount "10,2"
-        text description
-        json part_details
-        int delivery_days
-        enum status "active, withdrawn, awarded, rejected"
-        boolean auto_bid
-        decimal max_amount "10,2"
-        timestamp expires_at
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "🔑 Bid ID"
+        bigint order_id FK "📋 Order Reference"
+        bigint merchant_id FK "🏪 Merchant Reference"
+        decimal amount "💰 Bid Amount"
+        text description "📝 Bid Description"
+        json part_details "🔧 Offered Parts Details"
+        int delivery_days "📅 Delivery Timeline (Days)"
+        enum status "📊 active|withdrawn|awarded|rejected|expired"
+        boolean auto_bid "🤖 Automated Bidding"
+        decimal max_amount "💰 Auto-bid Maximum"
+        json warranty_terms "🛡️ Warranty Information"
+        decimal confidence_score "🎯 Merchant Confidence (0-1)"
+        timestamp expires_at "⏰ Bid Expiry"
+        timestamp created_at "⏰ Created At"
+        timestamp updated_at "🔄 Updated At"
     }
     
     bid_messages {
-        bigint id PK
-        bigint bid_id FK
-        bigint user_id FK
-        text message
-        json attachments
-        timestamp created_at
+        bigint id PK "🔑 Message ID"
+        bigint bid_id FK "🎯 Bid Reference"
+        bigint user_id FK "👤 Sender Reference"
+        text message "💬 Message Content"
+        json attachments "📎 File Attachments"
+        boolean is_system_message "🤖 System Generated"
+        timestamp created_at "⏰ Created At"
     }
     
     bid_history {
-        bigint id PK
-        bigint bid_id FK
-        decimal old_amount "10,2"
-        decimal new_amount "10,2"
-        text reason
-        timestamp created_at
+        bigint id PK "🔑 History ID"
+        bigint bid_id FK "🎯 Bid Reference"
+        decimal old_amount "💰 Previous Amount"
+        decimal new_amount "💰 New Amount"
+        text reason "📝 Change Reason"
+        json metadata "📋 Change Context"
+        timestamp created_at "⏰ Changed At"
     }
     
-    %% Awards and Contracts
+    %% 🏆 AWARDS & CONTRACTS DOMAIN
+    orders ||--|| awards : "can_have_award"
+    bids ||--|| awards : "winning_bid"
+    merchant_profiles ||--o{ awards : "receives_awards"
+    
     awards {
-        bigint id PK
-        bigint order_id FK
-        bigint bid_id FK
-        bigint merchant_id FK
-        decimal final_amount "10,2"
-        text terms
-        timestamp awarded_at
-        timestamp expected_delivery
-        enum status "active, completed, disputed, cancelled"
-        timestamp created_at
+        bigint id PK "🔑 Award ID"
+        bigint order_id FK "📋 Order Reference"
+        bigint bid_id FK "🎯 Winning Bid Reference"
+        bigint merchant_id FK "🏪 Merchant Reference"
+        decimal final_amount "💰 Final Contract Amount"
+        text contract_terms "📄 Contract Terms"
+        json delivery_terms "🚚 Delivery Agreement"
+        timestamp awarded_at "🏆 Award Time"
+        timestamp expected_delivery "📅 Expected Delivery"
+        enum status "📊 active|completed|disputed|cancelled"
+        json dispute_details "⚖️ Dispute Information"
+        timestamp created_at "⏰ Created At"
     }
     
-    %% Notifications
+    %% 📢 NOTIFICATION SYSTEM DOMAIN
+    users ||--o{ notifications : "receives_notifications"
+    users ||--|| notification_preferences : "has_preferences"
+    
     notifications {
-        bigint id PK
-        bigint user_id FK
-        string type "bid_received, order_update, payment_due"
-        string title
-        text message
-        json data
-        enum channel "push, sms, email, in_app"
-        boolean read
-        timestamp sent_at
-        timestamp read_at
-        timestamp created_at
+        bigint id PK "🔑 Notification ID"
+        bigint user_id FK "👤 User Reference"
+        enum type "📝 bid_received|order_update|payment_due|award_notification"
+        varchar title "📋 Notification Title"
+        text message "💬 Notification Message"
+        json data "📊 Additional Data"
+        enum channel "📱 push|sms|email|in_app|whatsapp"
+        boolean read "👁️ Read Status"
+        enum priority "⭐ low|medium|high|urgent"
+        timestamp sent_at "📤 Sent Time"
+        timestamp read_at "👁️ Read Time"
+        timestamp expires_at "⏰ Expiry Time"
+        timestamp created_at "⏰ Created At"
     }
     
     notification_preferences {
-        bigint id PK
-        bigint user_id FK
-        string notification_type
-        boolean push_enabled
-        boolean sms_enabled
-        boolean email_enabled
-        json schedule_settings
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "🔑 Preference ID"
+        bigint user_id FK "👤 User Reference"
+        varchar notification_type "📝 Notification Category"
+        boolean push_enabled "📱 Push Notifications"
+        boolean sms_enabled "📞 SMS Notifications"
+        boolean email_enabled "📧 Email Notifications"
+        boolean whatsapp_enabled "💬 WhatsApp Notifications"
+        json schedule_settings "⏰ Delivery Schedule"
+        json frequency_limits "🔄 Frequency Controls"
+        timestamp created_at "⏰ Created At"
+        timestamp updated_at "🔄 Updated At"
     }
     
-    %% Payment and ZATCA Integration
+    %% 💳 PAYMENT & ZATCA INTEGRATION DOMAIN
+    orders ||--o{ payments : "has_payments"
+    awards ||--o{ payments : "contract_payments"
+    users ||--o{ payments : "payer_payments"
+    users ||--o{ payments : "payee_payments"
+    payments ||--|| zatca_invoices : "generates_invoice"
+    
     payments {
-        bigint id PK
-        bigint order_id FK
-        bigint award_id FK
-        bigint payer_id FK
-        bigint payee_id FK
-        string payment_number UK
-        decimal amount "10,2"
-        decimal tax_amount "10,2"
-        string currency "SAR"
-        enum status "pending, processing, completed, failed, refunded"
-        enum payment_method "card, bank_transfer, wallet"
-        json payment_details
-        string gateway_transaction_id
-        timestamp processed_at
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "🔑 Payment ID"
+        bigint order_id FK "📋 Order Reference"
+        bigint award_id FK "🏆 Award Reference"
+        bigint payer_id FK "👤 Payer Reference"
+        bigint payee_id FK "🏪 Payee Reference"
+        varchar payment_number UK "🔢 Unique Payment Number"
+        decimal amount "💰 Payment Amount"
+        decimal tax_amount "💰 VAT Amount (15%)"
+        varchar currency "💱 SAR (Saudi Riyal)"
+        enum status "📊 pending|processing|completed|failed|refunded"
+        enum payment_method "💳 card|bank_transfer|wallet|stc_pay"
+        json payment_details "📋 Gateway Details"
+        varchar gateway_transaction_id "🔗 Gateway Transaction ID"
+        json zatca_compliance "🇸🇦 ZATCA Compliance Data"
+        timestamp processed_at "✅ Processing Time"
+        timestamp created_at "⏰ Created At"
+        timestamp updated_at "🔄 Updated At"
     }
     
     zatca_invoices {
-        bigint id PK
-        bigint payment_id FK
-        string invoice_number UK
-        string zatca_uuid UK
-        string qr_code
-        json invoice_data
-        enum status "draft, submitted, approved, rejected"
-        string zatca_response
-        timestamp submitted_at
-        timestamp approved_at
-        timestamp created_at
+        bigint id PK "🔑 Invoice ID"
+        bigint payment_id FK "💳 Payment Reference"
+        varchar invoice_number UK "🔢 ZATCA Invoice Number"
+        varchar zatca_uuid UK "🆔 ZATCA Unique ID"
+        text qr_code "📱 QR Code Data"
+        json invoice_data "📄 Complete Invoice JSON"
+        enum status "📊 draft|submitted|approved|rejected|cancelled"
+        text zatca_response "🇸🇦 ZATCA API Response"
+        varchar hash_value "🔐 Invoice Hash"
+        timestamp submitted_at "📤 Submission Time"
+        timestamp approved_at "✅ Approval Time"
+        timestamp created_at "⏰ Created At"
     }
     
-    %% Reviews and Ratings
+    %% ⭐ REVIEWS & RATING SYSTEM DOMAIN
+    orders ||--o{ reviews : "can_be_reviewed"
+    users ||--o{ reviews : "writes_reviews"
+    users ||--o{ reviews : "receives_reviews"
+    
     reviews {
-        bigint id PK
-        bigint order_id FK
-        bigint reviewer_id FK
-        bigint reviewee_id FK
-        int rating "1-5"
-        text comment
-        json criteria_ratings
-        boolean verified_purchase
-        timestamp created_at
-        timestamp updated_at
+        bigint id PK "🔑 Review ID"
+        bigint order_id FK "📋 Order Reference"
+        bigint reviewer_id FK "👤 Reviewer Reference"
+        bigint reviewee_id FK "🏪 Reviewee Reference"
+        int rating "⭐ Overall Rating (1-5)"
+        text comment "💬 Review Comment"
+        json criteria_ratings "📊 Detailed Ratings"
+        boolean verified_purchase "✅ Verified Transaction"
+        boolean helpful "👍 Helpful Review"
+        int helpful_count "👍 Helpful Votes"
+        enum status "📊 active|hidden|flagged|deleted"
+        timestamp created_at "⏰ Created At"
+        timestamp updated_at "🔄 Updated At"
     }
     
-    %% Analytics and Reporting
+    %% 📊 ANALYTICS & BUSINESS INTELLIGENCE DOMAIN
+    users ||--o{ user_analytics : "generates_events"
+    
     user_analytics {
-        bigint id PK
-        bigint user_id FK
-        string event_type
-        json event_data
-        string session_id
-        string ip_address
-        string user_agent
-        timestamp created_at
+        bigint id PK "🔑 Analytics ID"
+        bigint user_id FK "👤 User Reference"
+        varchar event_type "📝 Event Category"
+        json event_data "📊 Event Details"
+        varchar session_id "🔗 Session Identifier"
+        varchar ip_address "🌐 IP Address"
+        varchar user_agent "🖥️ Browser/Device Info"
+        json geo_location "📍 Geographic Data"
+        varchar referrer "🔗 Traffic Source"
+        timestamp created_at "⏰ Event Time"
     }
     
     business_metrics {
-        bigint id PK
-        date metric_date
-        string metric_type "orders, bids, revenue, users"
-        decimal value "15,2"
-        json breakdown
-        timestamp created_at
+        bigint id PK "🔑 Metric ID"
+        date metric_date "📅 Metric Date"
+        enum metric_type "📊 orders|bids|revenue|users|conversion"
+        decimal value "📈 Metric Value"
+        json breakdown "📊 Detailed Breakdown"
+        json dimensions "🏷️ Metric Dimensions"
+        varchar aggregation_level "📊 daily|weekly|monthly"
+        timestamp created_at "⏰ Created At"
     }
     
-    %% System Configuration
+    %% ⚙️ SYSTEM CONFIGURATION DOMAIN
     system_settings {
-        bigint id PK
-        string key UK
-        text value
-        string type "string, number, boolean, json"
-        text description
-        timestamp updated_at
-        timestamp created_at
+        bigint id PK "🔑 Setting ID"
+        varchar key UK "🏷️ Configuration Key"
+        text value "📝 Configuration Value"
+        enum type "📊 string|number|boolean|json"
+        text description "📄 Setting Description"
+        boolean encrypted "🔒 Encrypted Value"
+        varchar category "📁 Setting Category"
+        timestamp updated_at "🔄 Updated At"
+        timestamp created_at "⏰ Created At"
     }
-    
-    %% Relationships
-    users ||--o{ customer_profiles : "has"
-    users ||--o{ merchant_profiles : "has"
-    users ||--o{ user_sessions : "has"
-    users ||--o{ oauth_providers : "has"
-    users ||--o{ otp_verifications : "has"
-    
-    customer_profiles ||--o{ vehicles : "owns"
-    merchant_profiles ||--o{ merchant_verifications : "has"
-    
-    vehicle_brands ||--o{ vehicle_models : "has"
-    vehicle_models ||--o{ vehicle_trims : "has"
-    vehicle_brands ||--o{ vehicles : "belongs_to"
-    vehicle_models ||--o{ vehicles : "belongs_to"
-    vehicle_trims ||--o{ vehicles : "belongs_to"
-    vehicles ||--o{ vin_ocr_logs : "has"
-    
-    part_categories ||--o{ part_categories : "parent"
-    part_categories ||--o{ parts : "contains"
-    vehicles ||--o{ vehicle_parts : "compatible_with"
-    parts ||--o{ vehicle_parts : "compatible_with"
-    
-    customer_profiles ||--o{ orders : "creates"
-    vehicles ||--o{ orders : "for"
-    orders ||--o{ order_images : "has"
-    orders ||--o{ order_status_history : "tracks"
-    
-    orders ||--o{ bids : "receives"
-    merchant_profiles ||--o{ bids : "submits"
-    bids ||--o{ bid_messages : "has"
-    bids ||--o{ bid_history : "tracks"
-    
-    orders ||--o{ awards : "awarded_to"
-    bids ||--o{ awards : "wins"
-    merchant_profiles ||--o{ awards : "receives"
-    
-    users ||--o{ notifications : "receives"
-    users ||--o{ notification_preferences : "has"
-    
-    orders ||--o{ payments : "for"
-    awards ||--o{ payments : "for"
-    users ||--o{ payments : "pays"
-    users ||--o{ payments : "receives"
-    payments ||--o{ zatca_invoices : "generates"
-    
-    orders ||--o{ reviews : "about"
-    users ||--o{ reviews : "writes"
-    users ||--o{ reviews : "receives"
-    
-    users ||--o{ user_analytics : "generates"
 ```
 
 ## 🔍 Schema Design Principles
@@ -524,4 +583,3 @@ ALTER TABLE notifications PARTITION BY RANGE (YEAR(created_at) * 100 + MONTH(cre
 ```
 
 This schema provides a robust foundation for the Reverse Tender Platform with full support for ZATCA compliance, VIN OCR integration, real-time bidding, and comprehensive analytics.
-
