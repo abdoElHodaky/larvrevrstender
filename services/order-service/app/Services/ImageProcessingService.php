@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Contracts\ImageProcessingServiceInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Facades\Image;
@@ -11,13 +12,24 @@ use Intervention\Image\Facades\Image;
  * 
  * Handles image upload, processing, and optimization for orders
  */
-class ImageProcessingService
+class ImageProcessingService implements ImageProcessingServiceInterface
 {
-    protected array $allowedTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-    protected int $maxFileSize = 10240; // 10MB in KB
-    protected int $thumbnailSize = 300;
-    protected int $largeSize = 1200;
-    protected int $quality = 85;
+    protected array $config;
+    protected array $allowedTypes;
+    protected int $maxFileSize;
+    protected int $thumbnailSize;
+    protected int $largeSize;
+    protected int $quality;
+
+    public function __construct(array $storageConfig, array $processingConfig)
+    {
+        $this->config = $storageConfig;
+        $this->allowedTypes = $processingConfig['allowed_types'] ?? ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $this->maxFileSize = $processingConfig['max_file_size'] ?? 10240; // 10MB in KB
+        $this->thumbnailSize = $processingConfig['thumbnail_size'] ?? 300;
+        $this->largeSize = $processingConfig['large_size'] ?? 1200;
+        $this->quality = $processingConfig['quality'] ?? 85;
+    }
 
     /**
      * Process order image
@@ -25,7 +37,7 @@ class ImageProcessingService
     public function processOrderImage(UploadedFile $file, string $imageType): array
     {
         // Validate file
-        $this->validateImage($file);
+        $this->validateImageInternal($file);
 
         // Generate unique filename
         $filename = $this->generateFilename($file);
@@ -47,9 +59,22 @@ class ImageProcessingService
     }
 
     /**
-     * Validate uploaded image
+     * Validate image file
      */
-    protected function validateImage(UploadedFile $file): void
+    public function validateImage(UploadedFile $file): bool
+    {
+        try {
+            $this->validateImageInternal($file);
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Validate uploaded image (internal)
+     */
+    protected function validateImageInternal(UploadedFile $file): void
     {
         // Check file size
         if ($file->getSize() > $this->maxFileSize * 1024) {
@@ -159,5 +184,54 @@ class ImageProcessingService
     public function getImageUrl(string $path): string
     {
         return Storage::disk('s3')->url($path);
+    }
+
+    /**
+     * Get supported image formats
+     */
+    public function getSupportedFormats(): array
+    {
+        return $this->allowedTypes;
+    }
+
+    /**
+     * Get maximum file size
+     */
+    public function getMaxFileSize(): int
+    {
+        return $this->maxFileSize;
+    }
+
+    /**
+     * Resize image to specific dimensions
+     */
+    public function resizeImage(string $imagePath, int $width, int $height): string
+    {
+        $image = Image::make(Storage::disk('s3')->get($imagePath))
+            ->resize($width, $height, function ($constraint) {
+                $constraint->aspectRatio();
+                $constraint->upsize();
+            })
+            ->encode('jpg', $this->quality);
+
+        $resizedPath = str_replace('.', "_resized_{$width}x{$height}.", $imagePath);
+        Storage::disk('s3')->put($resizedPath, $image->stream());
+
+        return $resizedPath;
+    }
+
+    /**
+     * Generate image thumbnail
+     */
+    public function generateThumbnail(string $imagePath, int $size = 300): string
+    {
+        $image = Image::make(Storage::disk('s3')->get($imagePath))
+            ->fit($size, $size)
+            ->encode('jpg', $this->quality);
+
+        $thumbnailPath = str_replace('.', "_thumb_{$size}.", $imagePath);
+        Storage::disk('s3')->put($thumbnailPath, $image->stream());
+
+        return $thumbnailPath;
     }
 }

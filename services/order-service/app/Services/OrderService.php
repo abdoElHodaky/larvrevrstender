@@ -7,6 +7,10 @@ use App\Events\OrderCreated;
 use App\Events\OrderPublished;
 use App\Events\OrderCancelled;
 use App\Events\OrderStatusChanged;
+use App\Services\Contracts\NotificationServiceInterface;
+use App\Services\Contracts\VehicleServiceInterface;
+use App\Services\Contracts\ImageProcessingServiceInterface;
+use App\Services\Contracts\AnalyticsServiceInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -22,18 +26,21 @@ use Carbon\Carbon;
  */
 class OrderService
 {
-    protected NotificationService $notificationService;
-    protected VehicleService $vehicleService;
-    protected ImageProcessingService $imageProcessingService;
+    protected NotificationServiceInterface $notificationService;
+    protected VehicleServiceInterface $vehicleService;
+    protected ImageProcessingServiceInterface $imageProcessingService;
+    protected AnalyticsServiceInterface $analyticsService;
 
     public function __construct(
-        NotificationService $notificationService,
-        VehicleService $vehicleService,
-        ImageProcessingService $imageProcessingService
+        NotificationServiceInterface $notificationService,
+        VehicleServiceInterface $vehicleService,
+        ImageProcessingServiceInterface $imageProcessingService,
+        AnalyticsServiceInterface $analyticsService
     ) {
         $this->notificationService = $notificationService;
         $this->vehicleService = $vehicleService;
         $this->imageProcessingService = $imageProcessingService;
+        $this->analyticsService = $analyticsService;
     }
 
     /**
@@ -64,6 +71,13 @@ class OrderService
 
             // Fire event
             event(new OrderCreated($order));
+
+            // Track analytics
+            $this->analyticsService->trackOrderEvent($order, 'order_created', [
+                'vehicle_id' => $data['vehicle_id'],
+                'budget_max' => $data['budget_max'] ?? null,
+                'urgent' => $data['urgent'] ?? false
+            ]);
 
             DB::commit();
             return $order;
@@ -126,6 +140,11 @@ class OrderService
 
             // Fire event
             event(new OrderPublished($order));
+
+            // Track analytics
+            $this->analyticsService->trackOrderEvent($order, 'order_published', [
+                'time_to_publish' => $order->created_at->diffInMinutes($order->published_at)
+            ]);
 
             DB::commit();
             return $order;

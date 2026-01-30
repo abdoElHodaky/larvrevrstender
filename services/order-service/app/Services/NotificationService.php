@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\User;
+use App\Services\Contracts\NotificationServiceInterface;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -13,13 +14,13 @@ use Illuminate\Support\Facades\Log;
  * Handles communication with the notification service
  * for sending order-related notifications
  */
-class NotificationService
+class NotificationService implements NotificationServiceInterface
 {
     protected string $notificationServiceUrl;
 
-    public function __construct()
+    public function __construct(string $notificationServiceUrl)
     {
-        $this->notificationServiceUrl = config('services.notification.url', env('NOTIFICATION_SERVICE_URL'));
+        $this->notificationServiceUrl = $notificationServiceUrl;
     }
 
     /**
@@ -211,6 +212,56 @@ class NotificationService
                 'order_id' => $order->id,
                 'error' => $e->getMessage()
             ]);
+        }
+    }
+
+    /**
+     * Send bulk notification to multiple users
+     */
+    public function sendBulkNotification(array $userIds, array $notificationData): void
+    {
+        try {
+            $response = Http::timeout(10)
+                ->post("{$this->notificationServiceUrl}/api/notifications/bulk", [
+                    'user_ids' => $userIds,
+                    'notification_data' => $notificationData
+                ]);
+
+            if (!$response->successful()) {
+                Log::warning('Failed to send bulk notification', [
+                    'user_ids' => $userIds,
+                    'response' => $response->body()
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Bulk notification error', [
+                'user_ids' => $userIds,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get notification delivery status
+     */
+    public function getDeliveryStatus(string $notificationId): array
+    {
+        try {
+            $response = Http::timeout(10)
+                ->get("{$this->notificationServiceUrl}/api/notifications/{$notificationId}/status");
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return ['status' => 'unknown', 'error' => 'Failed to get status'];
+        } catch (\Exception $e) {
+            Log::error('Failed to get notification status', [
+                'notification_id' => $notificationId,
+                'error' => $e->getMessage()
+            ]);
+
+            return ['status' => 'error', 'error' => $e->getMessage()];
         }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Contracts\VehicleServiceInterface;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -10,13 +11,13 @@ use Illuminate\Support\Facades\Log;
  * 
  * Handles communication with the user service for vehicle-related operations
  */
-class VehicleService
+class VehicleService implements VehicleServiceInterface
 {
     protected string $userServiceUrl;
 
-    public function __construct()
+    public function __construct(string $userServiceUrl)
     {
-        $this->userServiceUrl = config('services.user.url', env('USER_SERVICE_URL'));
+        $this->userServiceUrl = $userServiceUrl;
     }
 
     /**
@@ -70,6 +71,67 @@ class VehicleService
         } catch (\Exception $e) {
             Log::error('Failed to get vehicle details', [
                 'vehicle_id' => $vehicleId,
+                'error' => $e->getMessage()
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Get vehicles by customer
+     */
+    public function getCustomerVehicles(int $customerId): array
+    {
+        try {
+            $response = Http::timeout(10)
+                ->get("{$this->userServiceUrl}/api/internal/customers/{$customerId}/vehicles");
+
+            if ($response->successful()) {
+                return $response->json()['vehicles'] ?? [];
+            }
+
+            return [];
+        } catch (\Exception $e) {
+            Log::error('Failed to get customer vehicles', [
+                'customer_id' => $customerId,
+                'error' => $e->getMessage()
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
+     * Validate VIN format
+     */
+    public function validateVin(string $vin): bool
+    {
+        // Basic VIN validation (17 characters, alphanumeric except I, O, Q)
+        if (strlen($vin) !== 17) {
+            return false;
+        }
+
+        return preg_match('/^[A-HJ-NPR-Z0-9]{17}$/', strtoupper($vin)) === 1;
+    }
+
+    /**
+     * Get vehicle specifications by VIN
+     */
+    public function getVehicleSpecsByVin(string $vin): ?array
+    {
+        try {
+            $response = Http::timeout(15)
+                ->get("{$this->userServiceUrl}/api/internal/vehicles/vin/{$vin}/specs");
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Failed to get vehicle specs by VIN', [
+                'vin' => $vin,
                 'error' => $e->getMessage()
             ]);
 
