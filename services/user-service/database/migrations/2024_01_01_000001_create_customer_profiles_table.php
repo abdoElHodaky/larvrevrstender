@@ -14,26 +14,15 @@ return new class extends Migration
         Schema::create('customer_profiles', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->unique();
-            $table->string('company_name')->nullable();
-            $table->string('industry')->nullable();
-            $table->enum('company_size', ['startup', 'small', 'medium', 'large', 'enterprise'])->nullable();
-            $table->decimal('annual_budget', 15, 2)->nullable();
-            $table->json('preferred_categories')->nullable();
-            $table->json('delivery_addresses')->nullable();
-            $table->text('payment_terms')->nullable();
-            $table->enum('verification_status', ['pending', 'verified', 'rejected'])->default('pending');
-            $table->json('verification_documents')->nullable();
-            $table->json('preferences')->nullable();
-            $table->json('metadata')->nullable();
+            $table->string('national_id', 20)->nullable()->index(); // Saudi National ID for ZATCA
+            $table->text('national_address')->nullable();
+            $table->json('default_location')->nullable(); // GPS coordinates, address details
+            $table->json('preferences')->nullable(); // Notification preferences, language, etc.
             $table->timestamps();
-            $table->softDeletes();
 
-            // Indexes
+            // Foreign key constraint (references users table in auth-service)
             $table->index('user_id');
-            $table->index('verification_status');
-            $table->index('industry');
-            $table->index('company_size');
-            $table->index('created_at');
+            $table->index('national_id');
         });
     }
 
