@@ -44,37 +44,169 @@ The **Reverse Tender Platform** is a cutting-edge, microservices-based solution 
 
 ## 🏛️ Architecture
 
-### 🔄 Microservices Overview
+### 🔄 Microservices Architecture
 
+```mermaid
+graph TB
+    %% External Clients
+    PWA[📱 PWA Client<br/>Vue.js + PWA]
+    ADMIN[🖥️ Admin Dashboard<br/>Vue.js + Admin UI]
+    MOBILE[📱 Mobile Apps<br/>React Native]
+    
+    %% Load Balancer & Gateway
+    LB[⚖️ Load Balancer<br/>Nginx/HAProxy]
+    GATEWAY[🚪 API Gateway<br/>Laravel + Rate Limiting<br/>Port: 8000]
+    
+    %% Core Services
+    AUTH[🔐 Auth Service<br/>JWT + OAuth + OTP<br/>Port: 8001]
+    USER[👥 User Service<br/>Profiles + KYC<br/>Port: 8003]
+    ORDER[📋 Order Service<br/>Part Requests<br/>Port: 8002]
+    BIDDING[🎯 Bidding Service<br/>Real-time Auctions<br/>Port: 8004]
+    NOTIFICATION[📢 Notification Service<br/>Multi-channel<br/>Port: 8005]
+    PAYMENT[💳 Payment Service<br/>ZATCA + Gateways<br/>Port: 8007]
+    ANALYTICS[📊 Analytics Service<br/>BI + Reporting<br/>Port: 8008]
+    VIN_OCR[🔍 VIN OCR Service<br/>AI + ML Models<br/>Port: 8006]
+    
+    %% Data Layer
+    MYSQL[(🗃️ MySQL 8.0<br/>Primary Database)]
+    REDIS[(⚡ Redis 7.0<br/>Cache + Sessions)]
+    MINIO[(📁 MinIO S3<br/>File Storage)]
+    
+    %% Message Queue
+    QUEUE[📨 Message Queue<br/>Redis Pub/Sub]
+    
+    %% External Services
+    ZATCA[🏛️ ZATCA API<br/>E-Invoicing]
+    SMS_PROVIDER[📱 SMS Provider<br/>Twilio/AWS SNS]
+    EMAIL_PROVIDER[📧 Email Provider<br/>SendGrid/SES]
+    PUSH_PROVIDER[🔔 Push Provider<br/>FCM/APNS]
+    
+    %% Client Connections
+    PWA --> LB
+    ADMIN --> LB
+    MOBILE --> LB
+    
+    %% Load Balancer to Gateway
+    LB --> GATEWAY
+    
+    %% Gateway to Services
+    GATEWAY --> AUTH
+    GATEWAY --> USER
+    GATEWAY --> ORDER
+    GATEWAY --> BIDDING
+    GATEWAY --> NOTIFICATION
+    GATEWAY --> PAYMENT
+    GATEWAY --> ANALYTICS
+    GATEWAY --> VIN_OCR
+    
+    %% Service Interconnections
+    AUTH --> USER
+    USER --> ORDER
+    ORDER --> BIDDING
+    BIDDING --> NOTIFICATION
+    ORDER --> PAYMENT
+    PAYMENT --> ZATCA
+    
+    %% Data Layer Connections
+    AUTH --> MYSQL
+    USER --> MYSQL
+    ORDER --> MYSQL
+    BIDDING --> MYSQL
+    NOTIFICATION --> MYSQL
+    PAYMENT --> MYSQL
+    ANALYTICS --> MYSQL
+    VIN_OCR --> MYSQL
+    
+    %% Cache Connections
+    AUTH --> REDIS
+    USER --> REDIS
+    ORDER --> REDIS
+    BIDDING --> REDIS
+    GATEWAY --> REDIS
+    
+    %% File Storage
+    USER --> MINIO
+    ORDER --> MINIO
+    VIN_OCR --> MINIO
+    
+    %% Message Queue
+    BIDDING --> QUEUE
+    NOTIFICATION --> QUEUE
+    ORDER --> QUEUE
+    
+    %% External Service Connections
+    NOTIFICATION --> SMS_PROVIDER
+    NOTIFICATION --> EMAIL_PROVIDER
+    NOTIFICATION --> PUSH_PROVIDER
+    PAYMENT --> ZATCA
+    
+    %% Styling
+    classDef clientStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef serviceStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef dataStyle fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef externalStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    
+    class PWA,ADMIN,MOBILE clientStyle
+    class AUTH,USER,ORDER,BIDDING,NOTIFICATION,PAYMENT,ANALYTICS,VIN_OCR,GATEWAY serviceStyle
+    class MYSQL,REDIS,MINIO,QUEUE dataStyle
+    class ZATCA,SMS_PROVIDER,EMAIL_PROVIDER,PUSH_PROVIDER externalStyle
 ```
-                    ┌─────────────────────────────────────────┐
-                    │            API Gateway                  │
-                    │         Load Balancer                   │
-                    │           :8000                         │
-                    └─────────────────┬───────────────────────┘
-                                      │
-        ┌─────────────────────────────┼─────────────────────────────┐
-        │                             │                             │
-        ▼                             ▼                             ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Auth Service   │    │  User Service   │    │ Order Service   │
-│     :8001       │    │     :8003       │    │     :8002       │
-│ JWT + OAuth     │    │ Profiles + KYC  │    │ Part Requests   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-        │                       │                       │
-        ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│Bidding Service  │    │Payment Service  │    │Notification Svc │
-│     :8004       │    │     :8007       │    │     :8005       │
-│Real-time + Auto │    │ZATCA + Payments │    │Multi-channel    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-        │                       │                       │
-        ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│VIN OCR Service  │    │Analytics Service│    │   API Gateway   │
-│     :8006       │    │     :8008       │    │Rate Limiting    │
-│AI + ML Models   │    │BI + Reporting   │    │Authentication   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+
+### 🌐 Multi-Cloud Deployment Architecture
+
+```mermaid
+graph TB
+    subgraph "DigitalOcean Infrastructure"
+        DO_LB[🔄 DO Load Balancer]
+        DO_K8S[☸️ DOKS Cluster<br/>Kubernetes 1.28]
+        DO_DB[(🗃️ Managed MySQL<br/>2-node cluster)]
+        DO_REDIS[(⚡ Managed Redis<br/>1-node cluster)]
+        
+        DO_LB --> DO_K8S
+        DO_K8S --> DO_DB
+        DO_K8S --> DO_REDIS
+    end
+    
+    subgraph "Linode Infrastructure"
+        LN_LB[🔄 NodeBalancer]
+        LN_K8S[☸️ LKE Cluster<br/>Kubernetes 1.28]
+        LN_DB[(🗃️ Managed MySQL<br/>Single instance)]
+        LN_REDIS[⚡ In-Cluster Redis<br/>Deployment]
+        
+        LN_LB --> LN_K8S
+        LN_K8S --> LN_DB
+        LN_K8S --> LN_REDIS
+    end
+    
+    subgraph "Kubernetes Services"
+        K8S_SERVICES[🎯 Microservices<br/>7 Services + Gateway]
+        K8S_HPA[📈 Horizontal Pod Autoscaler<br/>2-10 replicas]
+        K8S_INGRESS[🚪 Nginx Ingress<br/>SSL Termination]
+    end
+    
+    %% External Services
+    DOMAIN[🌐 reverse-tender.com<br/>DNS Management]
+    MONITORING[📊 Monitoring Stack<br/>Prometheus + Grafana]
+    
+    %% Connections
+    DOMAIN --> DO_LB
+    DOMAIN --> LN_LB
+    DO_K8S --> K8S_SERVICES
+    LN_K8S --> K8S_SERVICES
+    K8S_SERVICES --> K8S_HPA
+    K8S_SERVICES --> K8S_INGRESS
+    K8S_SERVICES --> MONITORING
+    
+    %% Styling
+    classDef doStyle fill:#0080ff,color:#fff,stroke:#0066cc,stroke-width:2px
+    classDef lnStyle fill:#00b04f,color:#fff,stroke:#009639,stroke-width:2px
+    classDef k8sStyle fill:#326ce5,color:#fff,stroke:#1a4480,stroke-width:2px
+    classDef externalStyle fill:#ff9800,color:#fff,stroke:#f57c00,stroke-width:2px
+    
+    class DO_LB,DO_K8S,DO_DB,DO_REDIS doStyle
+    class LN_LB,LN_K8S,LN_DB,LN_REDIS lnStyle
+    class K8S_SERVICES,K8S_HPA,K8S_INGRESS k8sStyle
+    class DOMAIN,MONITORING externalStyle
 ```
 
 ### 🔗 Service Communication
@@ -262,6 +394,269 @@ The **Reverse Tender Platform** is a cutting-edge, microservices-based solution 
 - Data export (PDF, Excel, CSV)
 
 ## 💾 Database Schema
+
+### 🗃️ Enhanced Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    %% Core User Management
+    users {
+        bigint id PK
+        string name
+        string email UK
+        string phone UK
+        string password
+        enum type "customer, merchant, admin"
+        boolean verified
+        timestamp email_verified_at
+        timestamp phone_verified_at
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    customer_profiles {
+        bigint id PK
+        bigint user_id FK
+        string national_id
+        text national_address
+        json default_location
+        json preferences
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    merchant_profiles {
+        bigint id PK
+        bigint user_id FK
+        string business_name
+        string business_license
+        string tax_number
+        json specializations
+        decimal rating
+        int total_reviews
+        boolean verified
+        json verification_documents
+        json business_hours
+        json service_areas
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    %% Vehicle Management
+    brands {
+        bigint id PK
+        string name
+        string logo_url
+        boolean active
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    vehicle_models {
+        bigint id PK
+        bigint brand_id FK
+        string name
+        int year_start
+        int year_end
+        boolean active
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    trims {
+        bigint id PK
+        bigint model_id FK
+        string name
+        string engine_type
+        string transmission_type
+        string fuel_type
+        string body_style
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    vehicles {
+        bigint id PK
+        bigint customer_id FK
+        bigint brand_id FK
+        bigint model_id FK
+        bigint trim_id FK
+        int year
+        string vin UK
+        boolean is_primary
+        string custom_name
+        int mileage
+        decimal vin_confidence
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    %% Order Management
+    part_requests {
+        bigint id PK
+        bigint customer_id FK
+        bigint vehicle_id FK
+        string title
+        text description
+        json part_details
+        json images
+        enum status "draft, active, closed, cancelled"
+        decimal budget_min
+        decimal budget_max
+        timestamp expires_at
+        boolean auto_award
+        json auto_award_criteria
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    bids {
+        bigint id PK
+        bigint part_request_id FK
+        bigint merchant_id FK
+        decimal amount
+        text description
+        json part_details
+        json images
+        enum status "pending, accepted, rejected, withdrawn"
+        timestamp expires_at
+        boolean is_auto_bid
+        json auto_bid_config
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    orders {
+        bigint id PK
+        bigint part_request_id FK
+        bigint winning_bid_id FK
+        bigint customer_id FK
+        bigint merchant_id FK
+        string order_number UK
+        decimal amount
+        enum status "pending, confirmed, shipped, delivered, completed, cancelled"
+        json shipping_details
+        json tracking_info
+        timestamp confirmed_at
+        timestamp shipped_at
+        timestamp delivered_at
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    %% Payment & ZATCA Integration
+    invoices {
+        bigint id PK
+        bigint order_id FK
+        string invoice_number UK
+        timestamp issue_date
+        timestamp due_date
+        decimal subtotal
+        decimal vat_amount
+        decimal total_amount
+        string currency
+        enum status "draft, approved, rejected, cancelled"
+        string zatca_uuid
+        string zatca_hash
+        text qr_code
+        longtext xml_content
+        json zatca_response
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    payments {
+        bigint id PK
+        bigint order_id FK
+        bigint invoice_id FK
+        string payment_id UK
+        decimal amount
+        string currency
+        enum method "card, bank_transfer, wallet"
+        enum status "pending, completed, failed, refunded"
+        json gateway_response
+        string transaction_id
+        timestamp processed_at
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    %% VIN OCR Processing
+    vin_ocr_logs {
+        bigint id PK
+        bigint customer_id FK
+        string image_path
+        string extracted_vin
+        decimal confidence_score
+        json vehicle_data
+        enum processing_status "processing, success, failed"
+        text error_message
+        timestamp created_at
+    }
+    
+    %% Authentication & Security
+    personal_access_tokens {
+        bigint id PK
+        string tokenable_type
+        bigint tokenable_id
+        string name
+        string token UK
+        text abilities
+        timestamp last_used_at
+        timestamp expires_at
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    otp_verifications {
+        bigint id PK
+        string identifier
+        enum type "email, phone"
+        string code
+        enum purpose "registration, login, password_reset, phone_verification"
+        boolean verified
+        timestamp verified_at
+        timestamp expires_at
+        int attempts
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    %% Relationships
+    users ||--o{ customer_profiles : "has profile"
+    users ||--o{ merchant_profiles : "has profile"
+    customer_profiles ||--o{ vehicles : "owns"
+    customer_profiles ||--o{ part_requests : "creates"
+    merchant_profiles ||--o{ bids : "submits"
+    
+    brands ||--o{ vehicle_models : "has models"
+    brands ||--o{ vehicles : "brand"
+    vehicle_models ||--o{ trims : "has trims"
+    vehicle_models ||--o{ vehicles : "model"
+    trims ||--o{ vehicles : "trim"
+    
+    vehicles ||--o{ part_requests : "for vehicle"
+    part_requests ||--o{ bids : "receives"
+    bids ||--o{ orders : "winning bid"
+    part_requests ||--o{ orders : "creates"
+    
+    orders ||--o{ invoices : "generates"
+    orders ||--o{ payments : "payment for"
+    invoices ||--o{ payments : "pays"
+    
+    customer_profiles ||--o{ vin_ocr_logs : "processes"
+    users ||--o{ personal_access_tokens : "has tokens"
+    users ||--o{ otp_verifications : "verifies"
+```
+
+### 📊 Database Statistics
+
+- **Total Tables**: 18 core tables
+- **Relationships**: 25+ foreign key relationships
+- **Indexes**: 40+ optimized indexes for performance
+- **ZATCA Ready**: Full Saudi e-invoicing compliance
+- **VIN OCR Support**: Complete vehicle identification workflow
+- **Multi-tenant**: Isolated data per user type
 
 The platform uses a comprehensive database schema with **13 business domains**:
 
@@ -601,14 +996,130 @@ The platform uses Laravel Reverb for real-time features:
 
 ## 🚀 Deployment
 
-### Development Environment
+### 🐳 Docker Development Environment
 
-```bash
-# Start all services in development mode
-docker-compose -f deployment/docker/development/docker-compose.yml up -d
+```mermaid
+graph TB
+    subgraph "Docker Compose Stack"
+        NGINX[🌐 Nginx Reverse Proxy<br/>Port: 80, 443]
+        
+        subgraph "Microservices"
+            AUTH_DOCKER[🔐 Auth Service<br/>Port: 8001]
+            USER_DOCKER[👥 User Service<br/>Port: 8003]
+            ORDER_DOCKER[📋 Order Service<br/>Port: 8002]
+            BIDDING_DOCKER[🎯 Bidding Service<br/>Port: 8004]
+            NOTIFICATION_DOCKER[📢 Notification Service<br/>Port: 8005]
+            PAYMENT_DOCKER[💳 Payment Service<br/>Port: 8007]
+            ANALYTICS_DOCKER[📊 Analytics Service<br/>Port: 8008]
+            VIN_OCR_DOCKER[🔍 VIN OCR Service<br/>Port: 8006]
+        end
+        
+        subgraph "Data Services"
+            MYSQL_DOCKER[(🗃️ MySQL 8.0<br/>Port: 3306)]
+            REDIS_DOCKER[(⚡ Redis 7.0<br/>Port: 6379)]
+            MINIO_DOCKER[(📁 MinIO S3<br/>Port: 9000)]
+        end
+        
+        subgraph "Volumes"
+            MYSQL_VOL[💾 mysql_data]
+            REDIS_VOL[💾 redis_data]
+            MINIO_VOL[💾 minio_data]
+            SSL_VOL[🔒 ssl_certs]
+        end
+    end
+    
+    %% External Access
+    BROWSER[🌐 Browser<br/>localhost:80]
+    API_CLIENT[📱 API Client<br/>localhost:8000]
+    
+    %% Connections
+    BROWSER --> NGINX
+    API_CLIENT --> NGINX
+    
+    NGINX --> AUTH_DOCKER
+    NGINX --> USER_DOCKER
+    NGINX --> ORDER_DOCKER
+    NGINX --> BIDDING_DOCKER
+    NGINX --> NOTIFICATION_DOCKER
+    NGINX --> PAYMENT_DOCKER
+    NGINX --> ANALYTICS_DOCKER
+    NGINX --> VIN_OCR_DOCKER
+    
+    %% Data Connections
+    AUTH_DOCKER --> MYSQL_DOCKER
+    USER_DOCKER --> MYSQL_DOCKER
+    ORDER_DOCKER --> MYSQL_DOCKER
+    BIDDING_DOCKER --> MYSQL_DOCKER
+    NOTIFICATION_DOCKER --> MYSQL_DOCKER
+    PAYMENT_DOCKER --> MYSQL_DOCKER
+    ANALYTICS_DOCKER --> MYSQL_DOCKER
+    VIN_OCR_DOCKER --> MYSQL_DOCKER
+    
+    AUTH_DOCKER --> REDIS_DOCKER
+    USER_DOCKER --> REDIS_DOCKER
+    ORDER_DOCKER --> REDIS_DOCKER
+    BIDDING_DOCKER --> REDIS_DOCKER
+    
+    USER_DOCKER --> MINIO_DOCKER
+    ORDER_DOCKER --> MINIO_DOCKER
+    VIN_OCR_DOCKER --> MINIO_DOCKER
+    
+    %% Volume Mounts
+    MYSQL_DOCKER --> MYSQL_VOL
+    REDIS_DOCKER --> REDIS_VOL
+    MINIO_DOCKER --> MINIO_VOL
+    NGINX --> SSL_VOL
+    
+    %% Styling
+    classDef serviceStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef dataStyle fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef volumeStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef externalStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    
+    class AUTH_DOCKER,USER_DOCKER,ORDER_DOCKER,BIDDING_DOCKER,NOTIFICATION_DOCKER,PAYMENT_DOCKER,ANALYTICS_DOCKER,VIN_OCR_DOCKER,NGINX serviceStyle
+    class MYSQL_DOCKER,REDIS_DOCKER,MINIO_DOCKER dataStyle
+    class MYSQL_VOL,REDIS_VOL,MINIO_VOL,SSL_VOL volumeStyle
+    class BROWSER,API_CLIENT externalStyle
 ```
 
-### Production Environment
+#### 🚀 Quick Start with Docker
+
+```bash
+# Clone the repository
+git clone https://github.com/abdoElHodaky/larvrevrstender.git
+cd larvrevrstender
+
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Access services
+# API Gateway: http://localhost:8000
+# Individual services: http://localhost:800X
+# MySQL: localhost:3306 (root/root_password)
+# Redis: localhost:6379
+```
+
+#### 📁 Docker Structure
+
+```
+docker/
+├── README.md                    # Docker documentation
+├── nginx/                       # Nginx reverse proxy
+│   ├── nginx.conf              # Main configuration
+│   └── conf.d/                 # Virtual hosts
+├── mysql/                      # MySQL configuration
+│   └── init/                   # Database initialization
+└── ssl/                        # SSL certificates
+
+deployment/docker/
+└── production/                  # Production Docker configs
+    └── docker-compose.yml      # Production stack
+```
+
+### ☸️ Kubernetes Production Deployment
 
 ```bash
 # Deploy to production
@@ -618,7 +1129,7 @@ docker-compose -f deployment/docker/production/docker-compose.yml up -d
 kubectl apply -f deployment/kubernetes/
 ```
 
-### Multi-cloud Deployment
+### 🌐 Multi-cloud Deployment
 
 The platform supports deployment across multiple cloud providers:
 
