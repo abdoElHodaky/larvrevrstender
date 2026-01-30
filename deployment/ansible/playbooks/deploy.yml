@@ -1,0 +1,290 @@
+---
+# Main deployment playbook for Reverse Tender Platform
+- name: Deploy Reverse Tender Platform
+  hosts: all
+  become: yes
+  gather_facts: yes
+  vars:
+    app_version: "{{ lookup('env', 'APP_VERSION') | default('latest') }}"
+    environment: "{{ lookup('env', 'ENVIRONMENT') | default('production') }}"
+    app_user: "reversetender"
+    app_directory: "/opt/reverse-tender"
+    docker_compose_file: "docker-compose.{{ environment }}.yml"
+    
+  pre_tasks:
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+      when: ansible_os_family == "Debian"
+      
+    - name: Create application user
+      user:
+        name: "{{ app_user }}"
+        shell: /bin/bash
+        home: "/home/{{ app_user }}"
+        create_home: yes
+        groups: docker
+        append: yes
+
+  roles:
+    - role: docker-setup
+      tags: [docker, setup]
+    - role: nginx-proxy
+      tags: [nginx, proxy]
+      when: "'app' in group_names"
+    - role: mysql-setup
+      tags: [mysql, database]
+      when: "'database' in group_names"
+    - role: redis-setup
+      tags: [redis, cache]
+      when: "'cache' in group_names"
+    - role: monitoring-setup
+      tags: [monitoring, observability]
+      when: "'monitoring' in group_names"
+    - role: security-hardening
+      tags: [security, hardening]
+
+  tasks:
+    - name: Create application directory
+      file:
+        path: "{{ app_directory }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    - name: Copy Docker Compose configuration
+      template:
+        src: "docker-compose.{{ environment }}.yml.j2"
+        dest: "{{ app_directory }}/{{ docker_compose_file }}"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+      notify: restart application
+
+    - name: Copy environment configuration
+      template:
+        src: ".env.{{ environment }}.j2"
+        dest: "{{ app_directory }}/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0600'
+      notify: restart application
+
+    - name: Create log directories
+      file:
+        path: "{{ app_directory }}/logs/{{ item }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+      loop:
+        - api-gateway
+        - auth-service
+        - bidding-service
+        - user-service
+        - order-service
+        - notification-service
+        - payment-service
+        - analytics-service
+        - vin-ocr-service
+        - nginx
+
+    - name: Pull Docker images
+      docker_image:
+        name: "reversetender/{{ item }}"
+        tag: "{{ app_version }}"
+        source: pull
+        force_source: yes
+      loop:
+        - api-gateway
+        - auth-service
+        - bidding-service
+        - user-service
+        - order-service
+        - notification-service
+        - payment-service
+        - analytics-service
+        - vin-ocr-service
+      when: "'app' in group_names"
+
+    - name: Start application services
+      docker_compose:
+        project_src: "{{ app_directory }}"
+        files:
+          - "{{ docker_compose_file }}"
+        state: present
+        pull: yes
+      become_user: "{{ app_user }}"
+      when: "'app' in group_names"
+
+    - name: Wait for services to be ready
+      uri:
+        url: "http://localhost:8000/health"
+        method: GET
+        status_code: 200
+      register: health_check
+      until: health_check.status == 200
+      retries: 30
+      delay: 10
+      when: "'app' in group_names"
+
+    - name: Run database migrations
+      command: >
+        docker-compose -f {{ docker_compose_file }} 
+        exec -T api-gateway php artisan migrate --force
+      args:
+        chdir: "{{ app_directory }}"
+      become_user: "{{ app_user }}"
+      when: "'app' in group_names and inventory_hostname == groups['app'][0]"
+      run_once: true
+
+    - name: Clear application cache
+      command: >
+        docker-compose -f {{ docker_compose_file }}
+        exec -T api-gateway php artisan config:cache
+      args:
+        chdir: "{{ app_directory }}"
+      become_user: "{{ app_user }}"
+      when: "'app' in group_names"
+
+    - name: Optimize application
+      command: >
+        docker-compose -f {{ docker_compose_file }}
+        exec -T api-gateway php artisan optimize
+      args:
+        chdir: "{{ app_directory }}"
+      become_user: "{{ app_user }}"
+      when: "'app' in group_names"
+
+  handlers:
+    - name: restart application
+      docker_compose:
+        project_src: "{{ app_directory }}"
+        files:
+          - "{{ docker_compose_file }}"
+        restarted: yes
+      become_user: "{{ app_user }}"
+      when: "'app' in group_names"
+
+# Database-specific tasks
+- name: Configure Database Servers
+  hosts: database
+  become: yes
+  vars:
+    mysql_root_password: "{{ vault_mysql_root_password }}"
+    mysql_replication_user: "replication"
+    mysql_replication_password: "{{ vault_mysql_replication_password }}"
+    
+  tasks:
+    - name: Configure MySQL primary server
+      template:
+        src: mysql/primary.cnf.j2
+        dest: /etc/mysql/mysql.conf.d/primary.cnf
+        backup: yes
+      notify: restart mysql
+      when: "'primary' in inventory_hostname"
+
+    - name: Configure MySQL replica server
+      template:
+        src: mysql/replica.cnf.j2
+        dest: /etc/mysql/mysql.conf.d/replica.cnf
+        backup: yes
+      notify: restart mysql
+      when: "'replica' in inventory_hostname"
+
+    - name: Create replication user
+      mysql_user:
+        name: "{{ mysql_replication_user }}"
+        password: "{{ mysql_replication_password }}"
+        priv: "*.*:REPLICATION SLAVE"
+        host: "%"
+        state: present
+      when: "'primary' in inventory_hostname"
+
+    - name: Setup replica replication
+      mysql_replication:
+        mode: changeprimary
+        primary_host: "{{ hostvars[groups['database'][0]]['ansible_default_ipv4']['address'] }}"
+        primary_user: "{{ mysql_replication_user }}"
+        primary_password: "{{ mysql_replication_password }}"
+        primary_auto_position: yes
+      when: "'replica' in inventory_hostname"
+
+  handlers:
+    - name: restart mysql
+      systemd:
+        name: mysql
+        state: restarted
+
+# Cache-specific tasks
+- name: Configure Cache Servers
+  hosts: cache
+  become: yes
+  vars:
+    redis_password: "{{ vault_redis_password }}"
+    
+  tasks:
+    - name: Configure Redis primary
+      template:
+        src: redis/primary.conf.j2
+        dest: /etc/redis/redis.conf
+        backup: yes
+      notify: restart redis
+      when: "'primary' in inventory_hostname"
+
+    - name: Configure Redis replica
+      template:
+        src: redis/replica.conf.j2
+        dest: /etc/redis/redis.conf
+        backup: yes
+      notify: restart redis
+      when: "'replica' in inventory_hostname"
+
+  handlers:
+    - name: restart redis
+      systemd:
+        name: redis-server
+        state: restarted
+
+# Monitoring setup
+- name: Configure Monitoring
+  hosts: monitoring
+  become: yes
+  
+  tasks:
+    - name: Create monitoring directories
+      file:
+        path: "/opt/monitoring/{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - prometheus
+        - grafana
+        - alertmanager
+        - elasticsearch
+        - kibana
+
+    - name: Deploy monitoring stack
+      docker_compose:
+        project_src: /opt/monitoring
+        files:
+          - docker-compose.monitoring.yml
+        state: present
+        pull: yes
+
+    - name: Configure Prometheus targets
+      template:
+        src: prometheus/targets.yml.j2
+        dest: /opt/monitoring/prometheus/targets.yml
+      notify: reload prometheus
+
+  handlers:
+    - name: reload prometheus
+      uri:
+        url: http://localhost:9090/-/reload
+        method: POST
+
