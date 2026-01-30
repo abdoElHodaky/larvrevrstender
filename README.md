@@ -1,368 +1,621 @@
-# 🔄 Reverse Tender Platform | منصة المناقصة العكسية لقطع الغيار
+# 🚀 Reverse Tender Platform
 
-[![CI/CD Pipeline](https://github.com/abdoElHodaky/larvrevrstender/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/abdoElHodaky/larvrevrstender/actions/workflows/ci-cd.yml)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![PHP Version](https://img.shields.io/badge/php-8.2+-blue.svg)](https://php.net)
-[![Laravel](https://img.shields.io/badge/laravel-10+-red.svg)](https://laravel.com)
-[![Vue.js](https://img.shields.io/badge/vue.js-3+-green.svg)](https://vuejs.org)
+A comprehensive microservices-based platform for reverse tendering with real-time bidding capabilities, built with Laravel/Lumen and modern technologies.
 
-## 🎯 Project Overview
+## 📋 Table of Contents
 
-**Reverse Tender Platform for Auto Parts** - A sophisticated Laravel microservices platform where customers request auto parts and merchants submit competitive bids. Built with modern technologies including real-time WebSocket communication, PWA capabilities, and comprehensive business intelligence.
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Features](#features)
+- [Services](#services)
+- [Technology Stack](#technology-stack)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [API Documentation](#api-documentation)
+- [Real-time Features](#real-time-features)
+- [Deployment](#deployment)
+- [Development](#development)
+- [Contributing](#contributing)
 
-## 📋 Current Project Status
+## 🎯 Overview
 
-> **⚠️ Documentation & Planning Phase**
-> 
-> This repository is currently in the **documentation and planning phase**. The comprehensive implementation plans, architecture diagrams, and development roadmaps are complete, but the actual application code is still being developed.
-> 
-> **CI/CD Pipeline Status**: The GitHub Actions workflow is configured to automatically skip tests when application directories don't exist, so passing checks indicate the documentation phase is working correctly.
-> 
-> **What's Available Now**:
-> - ✅ Complete [Backend Development Plan](BACKEND_DEVELOPMENT_PLAN.md) (975 lines)
-> - ✅ Detailed [Architecture Analysis](DEEP_DETAILED_ANALYSIS_PLAN.md) 
-> - ✅ [Project Structure](PROJECT_STRUCTURE.md) documentation
-> - ✅ Docker infrastructure setup
-> - ✅ CI/CD pipeline ready for development
-> 
-> **Coming Next**: Implementation of the microservices architecture following the detailed plans above.
+The Reverse Tender Platform is a modern, scalable solution for reverse tendering where customers post requirements and merchants bid to fulfill them. The platform features real-time bidding, comprehensive analytics, ZATCA compliance for Saudi Arabia, and advanced vehicle identification through OCR.
 
-### 🏆 Key Features
+### Key Highlights
 
-- **🔄 Reverse Bidding System**: Customers request parts, merchants compete with bids
-- **⚡ Real-time Updates**: WebSocket-powered live bidding and notifications
-- **📱 PWA Frontend**: Mobile-first Progressive Web Application
-- **🏗️ Microservices Architecture**: Scalable and maintainable service-oriented design
-- **🔐 Secure Authentication**: JWT + OTP verification with SMS integration
-- **📊 Business Intelligence**: Comprehensive analytics and reporting
-- **🌐 Multi-language Support**: Arabic and English interfaces
+- **🏗️ Microservices Architecture**: 9 independent, scalable services
+- **⚡ Real-time Bidding**: Laravel Reverb WebSocket integration
+- **🏛️ ZATCA Compliance**: Saudi Arabia e-invoicing integration
+- **📊 Advanced Analytics**: Business intelligence and reporting
+- **🔍 VIN OCR**: Vehicle identification number processing
+- **🔐 Multi-factor Authentication**: JWT + OAuth + OTP support
+- **🌐 Multi-cloud Deployment**: DigitalOcean + Linode infrastructure
 
-## 🏗️ Architecture Overview
+## 🏛️ Architecture
 
-Based on the comprehensive microservices architecture:
+### Microservices Overview
 
-```mermaid
-%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'primaryColor': '#2563eb',
-    'primaryTextColor': '#ffffff',
-    'primaryBorderColor': '#1d4ed8',
-    'lineColor': '#3b82f6',
-    'secondaryColor': '#dbeafe',
-    'tertiaryColor': '#eff6ff',
-    'background': '#ffffff'
-  }
-}}%%
-graph TB
-    subgraph "🎨 Frontend Layer"
-        PWA[📱 PWA Application<br/>Vue.js 3 + PWA]
-        Admin[🔧 Admin Dashboard<br/>Management Interface]
-        Landing[🌐 Landing Page<br/>Marketing Site]
-    end
-    
-    subgraph "🚪 API Gateway"
-        Gateway[🔒 Laravel API Gateway<br/>Rate Limiting + Auth]
-    end
-    
-    subgraph "🔧 Microservices Layer"
-        Auth[🔐 Auth Service<br/>JWT + OAuth + OTP]
-        Bidding[🎯 Bidding Service<br/>Real-time Auctions]
-        User[👥 User Service<br/>Customers + Merchants]
-        Order[📋 Order Service<br/>Request Management]
-        Notification[📢 Notification Service<br/>Push + SMS + Email]
-        Payment[💳 Payment Service<br/>Future Integration]
-        Analytics[📊 Analytics Service<br/>Reports + Insights]
-    end
-    
-    subgraph "🗄️ Data Layer"
-        MySQL[(🗃️ MySQL<br/>Main Database)]
-        Redis[(⚡ Redis<br/>Cache + Queue)]
-        S3[(📁 S3/MinIO<br/>File Storage)]
-    end
-    
-    PWA --> Gateway
-    Admin --> Gateway
-    Landing --> Gateway
-    
-    Gateway --> Auth
-    Gateway --> Bidding
-    Gateway --> User
-    Gateway --> Order
-    Gateway --> Notification
-    Gateway --> Payment
-    Gateway --> Analytics
-    
-    Auth --> MySQL
-    Bidding --> MySQL
-    Bidding --> Redis
-    User --> MySQL
-    User --> S3
-    Order --> MySQL
-    Order --> S3
-    Notification --> Redis
-    Payment --> MySQL
-    Analytics --> MySQL
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   API Gateway   │────│  Auth Service   │────│  User Service   │
+│     :8000       │    │     :8001       │    │     :8003       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ Bidding Service │────│ Order Service   │────│Notification Svc │
+│     :8002       │    │     :8004       │    │     :8005       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ Payment Service │────│Analytics Service│────│ VIN OCR Service │
+│     :8006       │    │     :8007       │    │     :8008       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 🚀 Quick Start
+### Technology Stack
+
+- **Backend Framework**: Laravel 10.x / Lumen
+- **Real-time**: Laravel Reverb (WebSocket)
+- **Authentication**: Laravel Sanctum + JWT
+- **Database**: MySQL 8.0 with Redis caching
+- **Queue System**: Redis-based queues
+- **File Storage**: S3-compatible storage
+- **Containerization**: Docker & Docker Compose
+- **Orchestration**: Kubernetes ready
+- **Monitoring**: Laravel Telescope + Pulse
+
+## ✨ Features
+
+### 🔐 Authentication & Authorization
+- Multi-factor authentication (Email + Phone + OTP)
+- JWT token-based authentication
+- OAuth integration (Google, Facebook, Apple)
+- Role-based access control (Customer, Merchant, Admin)
+- Session management and device tracking
+
+### 📱 Real-time Bidding
+- **Laravel Reverb Integration**: Native WebSocket support
+- **Live Bid Updates**: Real-time bid notifications
+- **Competition Tracking**: Live competition level indicators
+- **Multi-channel Broadcasting**: Public, private, and presence channels
+- **Bid Analytics**: Real-time bidding insights
+
+### 📊 Analytics & Reporting
+- **User Analytics**: Behavior tracking and insights
+- **Business Metrics**: KPI monitoring and trends
+- **Custom Reports**: PDF and Excel export
+- **Real-time Dashboard**: Live metrics and statistics
+- **Conversion Funnel**: User journey analysis
+
+### 🏛️ ZATCA E-Invoicing (Saudi Arabia)
+- **Invoice Generation**: Automatic numbering and QR codes
+- **ZATCA API Integration**: Direct submission to government servers
+- **Tax Compliance**: VAT calculation and reporting
+- **Audit Trail**: Complete logging and status tracking
+- **National ID Validation**: Saudi-specific validation
+
+### 🔍 VIN OCR Processing
+- **Image Processing**: Vehicle identification from images
+- **OCR Engine**: Tesseract and Google Vision API support
+- **VIN Validation**: Luhn algorithm validation
+- **Processing History**: Complete audit trail
+- **Batch Processing**: Multiple image processing
+
+## 🛠️ Services
+
+### 1. 🔐 Auth Service (Port 8001)
+**Purpose**: User authentication and authorization
+- User registration and login
+- JWT token management
+- OAuth integration
+- Two-factor authentication
+- Session management
+
+**Key Endpoints**:
+- `POST /api/v1/auth/register` - User registration
+- `POST /api/v1/auth/login` - User login
+- `GET /api/v1/auth/me` - Get user profile
+- `POST /api/v1/auth/otp/send` - Send OTP
+
+### 2. ⚡ Bidding Service (Port 8002)
+**Purpose**: Real-time bidding with Laravel Reverb
+- Real-time bid placement
+- Competition tracking
+- Bid management
+- WebSocket connections
+
+**Key Features**:
+- Laravel Reverb WebSocket server
+- Real-time bid notifications
+- Competition level indicators
+- Multi-channel broadcasting
+
+### 3. 👥 User Service (Port 8003)
+**Purpose**: User profile and preference management
+- Customer profiles
+- Merchant profiles
+- Preference management
+- Profile verification
+
+### 4. 📦 Order Service (Port 8004)
+**Purpose**: Order and requirement management
+- Order creation and management
+- Requirement specifications
+- Order tracking
+- Status management
+
+### 5. 📢 Notification Service (Port 8005)
+**Purpose**: Multi-channel notifications
+- Push notifications (FCM, APNS)
+- SMS notifications (Twilio)
+- Email notifications (SendGrid)
+- In-app notifications
+
+### 6. 💳 Payment Service (Port 8006)
+**Purpose**: Payment processing and ZATCA compliance
+- Payment gateway integration
+- ZATCA e-invoicing
+- Tax calculations
+- Invoice generation
+
+### 7. 📊 Analytics Service (Port 8007)
+**Purpose**: Business intelligence and reporting
+- Event tracking
+- User analytics
+- Business metrics
+- Custom reports
+
+### 8. 🔍 VIN OCR Service (Port 8008)
+**Purpose**: Vehicle identification processing
+- Image upload and processing
+- OCR text extraction
+- VIN validation
+- Vehicle information lookup
+
+### 9. 🌐 API Gateway (Port 8000)
+**Purpose**: Request routing and load balancing
+- Service discovery
+- Load balancing
+- Rate limiting
+- Request/response transformation
+
+## 🚀 Installation
 
 ### Prerequisites
 
-- **Docker & Docker Compose** (recommended)
-- **PHP 8.2+** with extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, redis
-- **Node.js 18+** for frontend development
-- **MySQL 8.0+** for database
-- **Redis 7.0+** for caching and queues
+- Docker & Docker Compose
+- PHP 8.1+
+- Composer
+- Node.js 18+ (for frontend)
+- MySQL 8.0
+- Redis 6.0+
 
-### 🐳 Docker Setup (Recommended)
+### Quick Start
 
+1. **Clone the repository**
 ```bash
-# Clone the repository
 git clone https://github.com/abdoElHodaky/larvrevrstender.git
 cd larvrevrstender
-
-# Start all services with Docker Compose
-docker-compose up -d
-
-# Wait for services to initialize (30-60 seconds)
-# Check service health
-docker-compose ps
-
-# Access the applications
-echo "🌐 API Gateway: http://localhost:8000"
-echo "📱 PWA Frontend: http://localhost:3000"
-echo "🔧 Admin Dashboard: http://localhost:3001"
-echo "📁 MinIO Console: http://localhost:9001"
 ```
 
-### 🛠️ Manual Setup
+2. **Environment Setup**
+```bash
+# Copy environment files
+cp .env.example .env
+cp services/auth-service/.env.example services/auth-service/.env
+cp services/bidding-service/.env.example services/bidding-service/.env
+# ... repeat for all services
+```
+
+3. **Install Dependencies**
+```bash
+# Install PHP dependencies for each service
+cd services/auth-service && composer install
+cd ../bidding-service && composer install
+cd ../analytics-service && composer install
+# ... repeat for all services
+```
+
+4. **Database Setup**
+```bash
+# Start infrastructure services
+docker-compose -f deployment/docker/development/docker-compose.yml up -d mysql redis
+
+# Run migrations for each service
+cd services/auth-service && php artisan migrate --seed
+cd ../user-service && php artisan migrate --seed
+# ... repeat for all services
+```
+
+5. **Start Services**
+```bash
+# Development mode
+docker-compose -f deployment/docker/development/docker-compose.yml up -d
+
+# Or start individual services
+cd services/auth-service && php artisan serve --port=8001
+cd services/bidding-service && php artisan serve --port=8002
+# ... repeat for all services
+```
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Each service has its own `.env` file with specific configurations:
+
+#### Auth Service
+```env
+APP_NAME="Reverse Tender Auth Service"
+DB_DATABASE=reverse_tender_auth
+JWT_SECRET=your-jwt-secret
+TWILIO_SID=your-twilio-sid
+GOOGLE_CLIENT_ID=your-google-client-id
+```
+
+#### Bidding Service (Laravel Reverb)
+```env
+APP_NAME="Reverse Tender Bidding Service"
+DB_DATABASE=reverse_tender_bidding
+BROADCAST_DRIVER=reverb
+REVERB_APP_ID=reverse-tender
+REVERB_APP_KEY=reverse-tender-key
+REVERB_HOST=0.0.0.0
+REVERB_PORT=8080
+```
+
+#### Payment Service (ZATCA)
+```env
+APP_NAME="Reverse Tender Payment Service"
+DB_DATABASE=reverse_tender_payments
+ZATCA_API_URL=https://api.zatca.gov.sa
+ZATCA_API_KEY=your-zatca-api-key
+ZATCA_CERTIFICATE_PATH=/path/to/certificate.pem
+```
+
+### Service Discovery
+
+Services communicate through environment-defined URLs:
+
+```env
+API_GATEWAY_URL=http://localhost:8000
+AUTH_SERVICE_URL=http://localhost:8001
+BIDDING_SERVICE_URL=http://localhost:8002
+USER_SERVICE_URL=http://localhost:8003
+```
+
+## 📚 API Documentation
+
+### Authentication
+
+All API requests (except public endpoints) require authentication:
 
 ```bash
-# Install backend dependencies
-find services -name "composer.json" -execdir composer install \;
+# Login to get token
+curl -X POST http://localhost:8001/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "password"}'
 
-# Install frontend dependencies
-cd frontend/pwa && npm install
-cd ../admin && npm install
-
-# Setup environment files
-find services -name ".env.example" -execdir cp .env.example .env \;
-
-# Generate application keys
-find services -name "artisan" -execdir php artisan key:generate \;
-
-# Run database migrations
-find services -name "artisan" -execdir php artisan migrate \;
-
-# Start development servers
-# (Run each in separate terminal)
-cd services/api-gateway && php artisan serve --port=8000
-cd frontend/pwa && npm run dev
-cd frontend/admin && npm run dev
+# Use token in subsequent requests
+curl -X GET http://localhost:8001/api/v1/auth/me \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 📊 Service Endpoints
+### Real-time Bidding
 
-| Service | Port | URL | Description |
-|---------|------|-----|-------------|
-| API Gateway | 8000 | http://localhost:8000 | Main API entry point |
-| Auth Service | 8001 | http://localhost:8001 | Authentication & authorization |
-| Bidding Service | 8002 | http://localhost:8002 | Real-time bidding system |
-| User Service | 8003 | http://localhost:8003 | User & merchant management |
-| Order Service | 8004 | http://localhost:8004 | Order & request processing |
-| Notification Service | 8005 | http://localhost:8005 | Multi-channel notifications |
-| Payment Service | 8006 | http://localhost:8006 | Payment processing (future) |
-| Analytics Service | 8007 | http://localhost:8007 | Business intelligence |
-| WebSocket Server | 6001 | ws://localhost:6001 | Real-time communication |
-| PWA Frontend | 3000 | http://localhost:3000 | Customer interface |
-| Admin Dashboard | 3001 | http://localhost:3001 | Administrative interface |
+Connect to Laravel Reverb WebSocket:
 
-## 🔄 Business Process Flow
+```javascript
+// Frontend JavaScript
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
 
-The platform follows a comprehensive reverse tender process:
+window.Pusher = Pusher;
 
-```mermaid
-%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'primaryColor': '#059669',
-    'primaryTextColor': '#ffffff',
-    'primaryBorderColor': '#047857',
-    'lineColor': '#10b981',
-    'secondaryColor': '#d1fae5',
-    'tertiaryColor': '#ecfdf5',
-    'background': '#ffffff'
-  }
-}}%%
-sequenceDiagram
-    participant C as 🚗 Customer
-    participant S as 🔧 System
-    participant M as 🏪 Merchants
-    participant A as 👨‍💼 Admin
-    
-    Note over C,A: 📝 Request Creation Phase
-    C->>S: 1. Create auto parts request
-    S->>S: 2. Process & validate request
-    S->>M: 3. Notify eligible merchants
-    
-    Note over C,A: 🎯 Bidding Phase (30 min)
-    M->>S: 4. Submit competitive bids
-    A->>S: 5. (Optional) Admin bid
-    S->>S: 6. Real-time bid ranking
-    S->>C: 7. Live bid updates
-    
-    Note over C,A: 🔍 Selection Phase
-    S->>C: 8. Show top 5 bids
-    C->>S: 9. Select winning bid
-    S->>M: 10. Notify winning merchant
-    
-    Note over C,A: 📦 Fulfillment Phase
-    M->>S: 11. Prepare & ship parts
-    S->>C: 12. Tracking updates
-    C->>S: 13. Confirm delivery
-    
-    Note over C,A: 💰 Payment Phase
-    C->>S: 14. Process payment
-    S->>M: 15. Transfer funds (minus commission)
-    S->>A: 16. Platform commission (5-10%)
+window.Echo = new Echo({
+    broadcaster: 'reverb',
+    key: 'reverse-tender-key',
+    wsHost: 'localhost',
+    wsPort: 8080,
+    wssPort: 8080,
+    forceTLS: false,
+    enabledTransports: ['ws', 'wss'],
+});
+
+// Listen for bid events
+Echo.channel('bidding.order.123')
+    .listen('BidPlaced', (e) => {
+        console.log('New bid placed:', e.bid);
+    })
+    .listen('BidUpdated', (e) => {
+        console.log('Bid updated:', e.bid);
+    })
+    .listen('BidAwarded', (e) => {
+        console.log('Bid awarded:', e.bid);
+    });
 ```
 
-## 🛠️ Development
+### Service Endpoints
 
-### 📋 Implementation Phases
+#### Auth Service (8001)
+- `POST /api/v1/auth/register` - User registration
+- `POST /api/v1/auth/login` - User login
+- `GET /api/v1/auth/me` - Get user profile
+- `POST /api/v1/auth/otp/send` - Send OTP
+- `POST /api/v1/auth/social/{provider}/login` - Social login
 
-The project follows an 8-phase development approach:
+#### Bidding Service (8002)
+- `GET /api/v1/bids` - Get bids
+- `POST /api/v1/bids` - Place bid
+- `PUT /api/v1/bids/{id}` - Update bid
+- `DELETE /api/v1/bids/{id}` - Cancel bid
 
-1. **Phase 0**: ✅ Foundation Setup (Complete)
-2. **Phase 1**: 🔄 Core Services (In Progress)
-3. **Phase 2**: ⏳ Real-time Bidding
-4. **Phase 3**: ⏳ PWA Frontend
-5. **Phase 4**: ⏳ Integration & Admin
-6. **Phase 5**: ⏳ Testing & QA
-7. **Phase 6**: ⏳ Deployment
-8. **Phase 7**: ⏳ Launch & Support
+#### Analytics Service (8007)
+- `POST /api/v1/analytics/events` - Track event
+- `GET /api/v1/analytics/dashboard` - Dashboard data
+- `GET /api/v1/analytics/metrics` - Business metrics
+- `POST /api/v1/analytics/reports` - Generate report
 
-### 🧪 Testing
+#### VIN OCR Service (8008)
+- `POST /api/v1/vin/upload` - Upload VIN image
+- `GET /api/v1/vin/process/{id}` - Get processing status
+- `GET /api/v1/vin/history` - Processing history
+
+## ⚡ Real-time Features
+
+### Laravel Reverb Integration
+
+The platform uses Laravel Reverb for real-time features:
+
+#### Bidding Events
+- **BidPlaced**: Notifies when a new bid is placed
+- **BidUpdated**: Notifies when a bid is modified
+- **BidAwarded**: Notifies when a bid wins
+
+#### Channel Types
+- **Public Channels**: `bidding.order.{orderId}` - Open bidding updates
+- **Private Channels**: `private-user.{userId}` - User-specific notifications
+- **Presence Channels**: `presence-bidding.{orderId}` - Active bidders
+
+#### Configuration
+```php
+// config/broadcasting.php
+'reverb' => [
+    'driver' => 'reverb',
+    'key' => env('REVERB_APP_KEY'),
+    'secret' => env('REVERB_APP_SECRET'),
+    'app_id' => env('REVERB_APP_ID'),
+    'options' => [
+        'host' => env('REVERB_HOST', '127.0.0.1'),
+        'port' => env('REVERB_PORT', 8080),
+        'scheme' => env('REVERB_SCHEME', 'http'),
+    ],
+],
+```
+
+## 🚀 Deployment
+
+### Development Environment
 
 ```bash
+# Start all services in development mode
+docker-compose -f deployment/docker/development/docker-compose.yml up -d
+```
+
+### Production Environment
+
+```bash
+# Deploy to production
+docker-compose -f deployment/docker/production/docker-compose.yml up -d
+
+# Or use Kubernetes
+kubectl apply -f deployment/kubernetes/
+```
+
+### Multi-cloud Deployment
+
+The platform supports deployment across multiple cloud providers:
+
+- **Primary**: DigitalOcean (Application servers)
+- **Secondary**: Linode (Database and storage)
+- **CDN**: CloudFlare for global content delivery
+
+### Environment-specific Configurations
+
+#### Development
+- Debug mode enabled
+- Local database and Redis
+- Detailed logging
+- Development tools (Telescope, DebugBar)
+
+#### Staging
+- Production-like environment
+- Staging database
+- Monitoring enabled
+- Rate limiting active
+
+#### Production
+- Optimized performance
+- Production database with replication
+- Enhanced security
+- Comprehensive monitoring
+
+## 👨‍💻 Development
+
+### Project Structure
+
+```
+larvrevrstender/
+├── services/                    # Microservices
+│   ├── auth-service/           # Authentication service
+│   ├── bidding-service/        # Real-time bidding
+│   ├── user-service/           # User management
+│   ├── order-service/          # Order management
+│   ├── notification-service/   # Notifications
+│   ├── payment-service/        # Payments & ZATCA
+│   ├── analytics-service/      # Analytics & reporting
+│   ├── vin-ocr-service/       # VIN OCR processing
+│   └── api-gateway/           # API gateway
+├── deployment/                 # Deployment configurations
+│   ├── docker/                # Docker configurations
+│   ├── kubernetes/            # Kubernetes manifests
+│   └── terraform/             # Infrastructure as code
+├── docs/                      # Documentation
+├── frontend/                  # Frontend applications
+└── shared/                    # Shared libraries
+```
+
+### Service Structure (Laravel/Lumen Compatible)
+
+Each service follows standard Laravel/Lumen structure:
+
+```
+service-name/
+├── app/
+│   ├── Http/Controllers/      # API controllers
+│   ├── Models/               # Eloquent models
+│   ├── Services/             # Business logic
+│   ├── Events/               # Laravel events
+│   ├── Listeners/            # Event listeners
+│   ├── Providers/            # Service providers
+│   └── Middleware/           # Custom middleware
+├── config/                   # Configuration files
+├── database/
+│   ├── migrations/           # Database migrations
+│   ├── seeders/             # Database seeders
+│   └── factories/           # Model factories
+├── routes/
+│   └── api.php              # API routes
+├── tests/
+│   ├── Feature/             # Feature tests
+│   └── Unit/                # Unit tests
+├── composer.json            # PHP dependencies
+├── .env.example            # Environment template
+└── README.md               # Service documentation
+```
+
+### Development Workflow
+
+1. **Feature Development**
+```bash
+# Create feature branch
+git checkout -b feature/new-feature
+
+# Make changes to relevant services
+cd services/auth-service
+# ... make changes
+
+# Run tests
+composer test
+
+# Commit changes
+git add .
+git commit -m "feat: add new feature"
+```
+
+2. **Testing**
+```bash
+# Run tests for specific service
+cd services/auth-service
+composer test
+
 # Run all tests
-docker-compose exec api-gateway php artisan test
-
-# Run specific test suites
-docker-compose exec api-gateway php artisan test --testsuite=Unit
-docker-compose exec api-gateway php artisan test --testsuite=Feature
-docker-compose exec api-gateway php artisan test --testsuite=Integration
-
-# Frontend tests
-cd frontend/pwa && npm run test
-cd frontend/admin && npm run test
-
-# Code coverage
-docker-compose exec api-gateway php artisan test --coverage
+./scripts/run-all-tests.sh
 ```
 
-### 📊 Code Quality
-
+3. **Code Quality**
 ```bash
-# PHP Static Analysis
-find services -name "composer.json" -execdir ./vendor/bin/phpstan analyse --level=5 app \;
+# Run code formatting
+composer pint
 
-# Code Formatting
-find services -name "composer.json" -execdir ./vendor/bin/pint \;
-
-# Frontend Linting
-cd frontend/pwa && npm run lint
-cd frontend/admin && npm run lint
+# Run static analysis
+composer analyse
 ```
 
-## 📈 Business Model
+### Adding New Services
 
-### 💰 Revenue Streams
+1. **Create Service Structure**
+```bash
+mkdir services/new-service
+cd services/new-service
 
-- **Transaction Commission**: 5-10% per successful bid
-- **Merchant Subscriptions**: Monthly/Annual premium plans
-- **Featured Listings**: Premium placement for merchant bids
-- **Shipping Margins**: Logistics partnership revenue
+# Copy structure from existing service
+cp -r ../auth-service/* .
 
-### 📊 Success Metrics
+# Update composer.json and configurations
+```
 
-**Technical KPIs**:
-- API Response Time: <200ms (95th percentile)
-- Page Load Time: <3s (3G network)
-- Lighthouse Score: >90 (all categories)
-- Uptime: >99.5%
+2. **Update Docker Compose**
+```yaml
+# Add to docker-compose.yml
+new-service:
+  image: reversetender/new-service:latest
+  ports:
+    - "8009:8009"
+  environment:
+    - APP_ENV=production
+    - DB_DATABASE=reverse_tender_new
+```
 
-**Business KPIs**:
-- Daily Active Users: 100+
-- Monthly Transactions: 500+
-- Average Order Value: 500 SAR
-- Customer Satisfaction: 4.5/5
-
-## 🔮 Roadmap
-
-### 🎯 Current Phase (Phase 0-1)
-- ✅ Project foundation and Docker setup
-- ✅ Database schema and migrations
-- ✅ CI/CD pipeline configuration
-- 🔄 Core services implementation
-
-### 📅 Upcoming Features
-
-**Q1 2026**:
-- ZATCA Integration for e-invoicing (5,000 SAR)
-- VIN OCR for automatic vehicle data (3,000 SAR)
-
-**Q2 2026**:
-- Advanced analytics dashboard (4,000 SAR)
-- Native mobile applications (15,000 SAR)
-
-**Q3 2026**:
-- AI-powered recommendations (12,000 SAR)
-- Fraud detection system
-- Chatbot integration
-
-## 📚 Documentation
-
-- 📋 [Deep Detailed Analysis Plan](./DEEP_DETAILED_ANALYSIS_PLAN.md)
-- 🏗️ [Project Structure](./PROJECT_STRUCTURE.md)
-- 📖 [Original Implementation Plan](./Reverse%20Tender_implementation_plan.md)
-- 🔧 [API Documentation](./docs/api/) (Coming Soon)
-- 🚀 [Deployment Guide](./docs/deployment/) (Coming Soon)
+3. **Update API Gateway**
+```php
+// Add routing rules
+Route::prefix('new')->group(function () {
+    Route::any('{path?}', function ($path = '') {
+        return app('gateway')->forward('new-service', $path);
+    })->where('path', '.*');
+});
+```
 
 ## 🤝 Contributing
 
+We welcome contributions! Please follow these guidelines:
+
+### Development Setup
+
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
 
-### 📝 Development Guidelines
+### Code Standards
 
-- Follow PSR-12 coding standards for PHP
-- Use ESLint configuration for JavaScript/Vue.js
-- Write comprehensive tests (target: 70%+ coverage)
-- Update documentation for new features
-- Follow conventional commit messages
+- Follow PSR-12 coding standards
+- Write comprehensive tests
+- Document new features
+- Use meaningful commit messages
+
+### Pull Request Process
+
+1. Update documentation if needed
+2. Add tests for new features
+3. Ensure CI/CD passes
+4. Request review from maintainers
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👥 Team
+## 🆘 Support
 
-- **Project Manager**: [Contact Details]
-- **Technical Lead**: [Contact Details]
-- **Frontend Developer**: [Contact Details]
-- **DevOps Engineer**: [Contact Details]
-
-## 📞 Support
-
-- **Email**: support@reversetender.com
-- **Documentation**: [Wiki](https://github.com/abdoElHodaky/larvrevrstender/wiki)
+- **Documentation**: [docs/](docs/)
 - **Issues**: [GitHub Issues](https://github.com/abdoElHodaky/larvrevrstender/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/abdoElHodaky/larvrevrstender/discussions)
+
+## 🙏 Acknowledgments
+
+- Laravel Framework team for the excellent framework
+- Laravel Reverb team for real-time capabilities
+- ZATCA for e-invoicing standards
+- All contributors and supporters
 
 ---
 
-**🚀 Built with modern technologies for the Saudi auto parts market** | **مبني بتقنيات حديثة لسوق قطع غيار السيارات السعودي**
+**Built with ❤️ for the Saudi Arabian market and beyond**
+
+*Last updated: January 2024*
+
