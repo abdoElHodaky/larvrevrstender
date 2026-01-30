@@ -7,11 +7,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
 
-class User extends Authenticatable implements JWTSubject, MustVerifyEmail
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
@@ -76,24 +75,38 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
     const STATUS_BANNED = 'banned';
 
     /**
-     * Get the identifier that will be stored in the subject claim of the JWT.
+     * Create a new personal access token for the user.
      */
-    public function getJWTIdentifier()
+    public function createToken(string $name, array $abilities = ['*'])
     {
-        return $this->getKey();
+        return $this->createToken($name, $abilities);
     }
 
     /**
-     * Return a key value array, containing any custom claims to be added to the JWT.
+     * Get user abilities for Sanctum token
      */
-    public function getJWTCustomClaims()
+    public function getTokenAbilities(): array
     {
-        return [
-            'type' => $this->type,
-            'status' => $this->status,
-            'email_verified' => !is_null($this->email_verified_at),
-            'phone_verified' => !is_null($this->phone_verified_at),
-        ];
+        $abilities = ['*'];
+        
+        if ($this->isAdmin()) {
+            $abilities = array_merge($abilities, [
+                'admin:read', 'admin:write', 'admin:delete',
+                'users:manage', 'system:manage'
+            ]);
+        } elseif ($this->isMerchant()) {
+            $abilities = array_merge($abilities, [
+                'merchant:read', 'merchant:write',
+                'bids:create', 'bids:update', 'orders:view'
+            ]);
+        } else {
+            $abilities = array_merge($abilities, [
+                'customer:read', 'customer:write',
+                'orders:create', 'orders:update', 'bids:view'
+            ]);
+        }
+        
+        return $abilities;
     }
 
     /**
@@ -326,4 +339,3 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
         return $this->hasMany(OtpCode::class);
     }
 }
-

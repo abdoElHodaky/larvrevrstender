@@ -71,14 +71,14 @@ Route::prefix('v1')->group(function () {
         });
     });
     
-    // Admin routes
-    Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
-        Route::get('/users', [AuthController::class, 'getUsers']);
-        Route::get('/users/{userId}', [AuthController::class, 'getUser']);
-        Route::put('/users/{userId}/status', [AuthController::class, 'updateUserStatus']);
-        Route::delete('/users/{userId}', [AuthController::class, 'deleteUser']);
-        Route::get('/sessions', [AuthController::class, 'getAllSessions']);
-        Route::delete('/sessions/{sessionId}', [AuthController::class, 'revokeUserSession']);
+    // Admin routes (using gates for authorization)
+    Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
+        Route::get('/users', [AuthController::class, 'getUsers'])->middleware('can:manage-users');
+        Route::get('/users/{userId}', [AuthController::class, 'getUser'])->middleware('can:manage-users');
+        Route::put('/users/{userId}/status', [AuthController::class, 'updateUserStatus'])->middleware('can:manage-users');
+        Route::delete('/users/{userId}', [AuthController::class, 'deleteUser'])->middleware('can:manage-users');
+        Route::get('/sessions', [AuthController::class, 'getAllSessions'])->middleware('can:admin-access');
+        Route::delete('/sessions/{sessionId}', [AuthController::class, 'revokeUserSession'])->middleware('can:admin-access');
     });
     
     // Health check
@@ -120,4 +120,3 @@ Route::fallback(function () {
         'service' => 'auth-service'
     ], 404);
 });
-
