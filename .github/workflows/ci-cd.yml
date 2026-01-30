@@ -13,67 +13,29 @@ env:
   REDIS_VERSION: '7.0'
 
 jobs:
-  # Phase Detection - Determines what components exist and should be tested
-  phase-detection:
-    name: Detect Project Phase
-    runs-on: ubuntu-latest
-    outputs:
-      has-services: ${{ steps.detect.outputs.has-services }}
-      has-frontend: ${{ steps.detect.outputs.has-frontend }}
-      has-tests: ${{ steps.detect.outputs.has-tests }}
-      project-phase: ${{ steps.detect.outputs.project-phase }}
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Detect project components
-      id: detect
-      run: |
-        # Check for services with composer.json files
-        if find services -name "composer.json" 2>/dev/null | grep -q .; then
-          echo "has-services=true" >> $GITHUB_OUTPUT
-        else
-          echo "has-services=false" >> $GITHUB_OUTPUT
-        fi
-        
-        # Check for frontend directories with package.json files
-        if [[ -f "frontend/pwa/package.json" || -f "frontend/admin/package.json" ]]; then
-          echo "has-frontend=true" >> $GITHUB_OUTPUT
-        else
-          echo "has-frontend=false" >> $GITHUB_OUTPUT
-        fi
-        
-        # Check for test files
-        if [[ -d "tests" && $(find tests -name "*.php" 2>/dev/null | wc -l) -gt 0 ]]; then
-          echo "has-tests=true" >> $GITHUB_OUTPUT
-        else
-          echo "has-tests=false" >> $GITHUB_OUTPUT
-        fi
-        
-        # Determine project phase
-        if [[ -f "services/api-gateway/composer.json" ]]; then
-          echo "project-phase=implementation" >> $GITHUB_OUTPUT
-        elif [[ -d "services" && -d "frontend" ]]; then
-          echo "project-phase=structure" >> $GITHUB_OUTPUT
-        else
-          echo "project-phase=foundation" >> $GITHUB_OUTPUT
-        fi
-        
-        echo "Project phase detected: $(cat $GITHUB_OUTPUT | grep project-phase | cut -d'=' -f2)"
-
-  # Code Quality & Security Checks - Only runs if services exist
+  # Code Quality & Security Checks
   code-quality:
     name: Code Quality & Security
     runs-on: ubuntu-latest
-    needs: phase-detection
-    if: needs.phase-detection.outputs.has-services == 'true'
+    outputs:
+      services-exist: ${{ steps.check-services.outputs.exists }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Check if services directory exists
+      id: check-services
+      run: |
+        if [ -d "services" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "⚠️ Services directory not found - skipping backend code quality checks"
+        fi
+      
     - name: Setup PHP
+      if: steps.check-services.outputs.exists == 'true'
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ env.PHP_VERSION }}
@@ -81,36 +43,44 @@ jobs:
         tools: composer:v2
         
     - name: Cache Composer dependencies
+      if: steps.check-services.outputs.exists == 'true'
       uses: actions/cache@v3
       with:
         path: ~/.composer/cache/files
         key: composer-${{ hashFiles('**/composer.lock') }}
         
     - name: Install Composer dependencies
+      if: steps.check-services.outputs.exists == 'true'
       run: |
         find services -name "composer.json" -execdir composer install --no-progress --prefer-dist --optimize-autoloader \;
         
     - name: Run PHPStan Analysis
+      if: steps.check-services.outputs.exists == 'true'
       run: |
         find services -name "composer.json" -execdir ./vendor/bin/phpstan analyse --level=5 app \;
-      continue-on-error: true
         
     - name: Run Laravel Pint (Code Formatting)
+      if: steps.check-services.outputs.exists == 'true'
       run: |
         find services -name "composer.json" -execdir ./vendor/bin/pint --test \;
-      continue-on-error: true
         
     - name: Security Audit
+      if: steps.check-services.outputs.exists == 'true'
       run: |
         find services -name "composer.json" -execdir composer audit \;
-      continue-on-error: true
+        
+    - name: Skip backend tests notification
+      if: steps.check-services.outputs.exists == 'false'
+      run: |
+        echo "✅ Backend code quality checks skipped - services directory not found"
+        echo "This is expected during the documentation/planning phase of the project"
 
-  # Backend Testing - Only runs if services exist and code quality passes
+  # Backend Testing
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
-    needs: [phase-detection, code-quality]
-    if: needs.phase-detection.outputs.has-services == 'true'
+    needs: code-quality
+    if: needs.code-quality.outputs.services-exist == 'true'
     
     services:
       mysql:
@@ -187,18 +157,29 @@ jobs:
         flags: backend
         name: backend-coverage
 
-  # Frontend Testing - Only runs if frontend directories exist
+  # Frontend Testing
   frontend-tests:
     name: Frontend Tests
     runs-on: ubuntu-latest
-    needs: phase-detection
-    if: needs.phase-detection.outputs.has-frontend == 'true'
+    outputs:
+      frontend-exist: ${{ steps.check-frontend.outputs.exists }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Check if frontend directories exist
+      id: check-frontend
+      run: |
+        if [ -d "frontend/pwa" ] && [ -d "frontend/admin" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "⚠️ Frontend directories not found - skipping frontend tests"
+        fi
+      
     - name: Setup Node.js
+      if: steps.check-frontend.outputs.exists == 'true'
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
@@ -206,57 +187,49 @@ jobs:
         cache-dependency-path: 'frontend/*/package-lock.json'
         
     - name: Install dependencies
+      if: steps.check-frontend.outputs.exists == 'true'
       run: |
-        if [[ -f "frontend/pwa/package.json" ]]; then
-          cd frontend/pwa && npm ci
-        fi
-        if [[ -f "frontend/admin/package.json" ]]; then
-          cd frontend/admin && npm ci
-        fi
+        cd frontend/pwa && npm ci
+        cd ../admin && npm ci
         
     - name: Run ESLint
+      if: steps.check-frontend.outputs.exists == 'true'
       run: |
-        if [[ -f "frontend/pwa/package.json" ]]; then
-          cd frontend/pwa && npm run lint
-        fi
-        if [[ -f "frontend/admin/package.json" ]]; then
-          cd frontend/admin && npm run lint
-        fi
-      continue-on-error: true
+        cd frontend/pwa && npm run lint
+        cd ../admin && npm run lint
         
     - name: Run unit tests
+      if: steps.check-frontend.outputs.exists == 'true'
       run: |
-        if [[ -f "frontend/pwa/package.json" ]]; then
-          cd frontend/pwa && npm run test:unit
-        fi
-        if [[ -f "frontend/admin/package.json" ]]; then
-          cd frontend/admin && npm run test:unit
-        fi
-      continue-on-error: true
+        cd frontend/pwa && npm run test:unit
+        cd ../admin && npm run test:unit
         
     - name: Build applications
+      if: steps.check-frontend.outputs.exists == 'true'
       run: |
-        if [[ -f "frontend/pwa/package.json" ]]; then
-          cd frontend/pwa && npm run build
-        fi
-        if [[ -f "frontend/admin/package.json" ]]; then
-          cd frontend/admin && npm run build
-        fi
+        cd frontend/pwa && npm run build
+        cd ../admin && npm run build
         
     - name: Run Lighthouse CI
+      if: steps.check-frontend.outputs.exists == 'true'
       uses: treosh/lighthouse-ci-action@v10
       with:
         configPath: './frontend/pwa/lighthouserc.json'
         uploadArtifacts: true
         temporaryPublicStorage: true
-      continue-on-error: true
+        
+    - name: Skip frontend tests notification
+      if: steps.check-frontend.outputs.exists == 'false'
+      run: |
+        echo "✅ Frontend tests skipped - frontend directories not found"
+        echo "This is expected during the documentation/planning phase of the project"
 
-  # Integration Tests - Only runs if both backend and frontend exist
+  # Integration Tests
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-    needs: [phase-detection, backend-tests, frontend-tests]
-    if: always() && (needs.phase-detection.outputs.has-services == 'true' || needs.phase-detection.outputs.has-frontend == 'true')
+    needs: [backend-tests, frontend-tests]
+    if: always() && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-tests.result == 'success' || needs.frontend-tests.result == 'skipped') && (needs.code-quality.outputs.services-exist == 'true' || needs.frontend-tests.outputs.frontend-exist == 'true')
     
     services:
       mysql:
@@ -278,22 +251,42 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Check if docker-compose.test.yml exists
+      id: check-docker-test
+      run: |
+        if [ -f "docker-compose.test.yml" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "⚠️ docker-compose.test.yml not found - skipping integration tests"
+        fi
+      
     - name: Setup Docker Buildx
+      if: steps.check-docker-test.outputs.exists == 'true'
       uses: docker/setup-buildx-action@v3
       
     - name: Build Docker images
+      if: steps.check-docker-test.outputs.exists == 'true'
       run: |
         docker-compose -f docker-compose.test.yml build
         
     - name: Run integration tests
+      if: steps.check-docker-test.outputs.exists == 'true'
       run: |
         docker-compose -f docker-compose.test.yml up -d
         sleep 30
         docker-compose -f docker-compose.test.yml exec -T api-gateway php artisan test --testsuite=Integration
         
     - name: Cleanup
+      if: steps.check-docker-test.outputs.exists == 'true'
       run: |
         docker-compose -f docker-compose.test.yml down -v
+        
+    - name: Skip integration tests notification
+      if: steps.check-docker-test.outputs.exists == 'false'
+      run: |
+        echo "✅ Integration tests skipped - docker-compose.test.yml not found"
+        echo "This is expected during the documentation/planning phase of the project"
 
   # Security Scanning
   security-scan:
@@ -441,23 +434,37 @@ jobs:
         name: performance-results
         path: tests/performance/results/
 
-  # Notification - Only runs if SLACK_WEBHOOK_URL secret exists
+  # Notification
   notify:
     name: Notify Team
     runs-on: ubuntu-latest
-    needs: [phase-detection, deploy-staging, deploy-production]
-    if: always() && vars.SLACK_WEBHOOK_URL != ''
+    needs: [deploy-staging, deploy-production]
+    if: always()
     
     steps:
+    - name: Check if Slack webhook is configured
+      id: check-slack
+      run: |
+        if [ -n "${{ secrets.SLACK_WEBHOOK }}" ]; then
+          echo "configured=true" >> $GITHUB_OUTPUT
+        else
+          echo "configured=false" >> $GITHUB_OUTPUT
+          echo "⚠️ SLACK_WEBHOOK secret not configured - skipping Slack notification"
+        fi
+        
     - name: Notify Slack
+      if: steps.check-slack.outputs.configured == 'true'
       uses: 8398a7/action-slack@v3
       with:
         status: ${{ job.status }}
         channel: '#reverse-tender-ci'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
         fields: repo,message,commit,author,action,eventName,ref,workflow
-        author_name: 'Reverse Tender CI/CD'
-        success_message: ':white_check_mark: Deployment completed successfully'
-        failure_message: ':no_entry: Deployment failed'
-        cancelled_message: ':warning: Deployment was cancelled'
       env:
-        SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        
+    - name: Skip notification
+      if: steps.check-slack.outputs.configured == 'false'
+      run: |
+        echo "✅ Slack notification skipped - webhook not configured"
+        echo "To enable Slack notifications, add SLACK_WEBHOOK secret to repository settings"
