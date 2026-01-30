@@ -1,0 +1,463 @@
+name: CI/CD Pipeline - Reverse Tender Platform
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  PHP_VERSION: '8.2'
+  NODE_VERSION: '18'
+  MYSQL_VERSION: '8.0'
+  REDIS_VERSION: '7.0'
+
+jobs:
+  # Phase Detection - Determines what components exist and should be tested
+  phase-detection:
+    name: Detect Project Phase
+    runs-on: ubuntu-latest
+    outputs:
+      has-services: ${{ steps.detect.outputs.has-services }}
+      has-frontend: ${{ steps.detect.outputs.has-frontend }}
+      has-tests: ${{ steps.detect.outputs.has-tests }}
+      project-phase: ${{ steps.detect.outputs.project-phase }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Detect project components
+      id: detect
+      run: |
+        # Check for services with composer.json files
+        if find services -name "composer.json" 2>/dev/null | grep -q .; then
+          echo "has-services=true" >> $GITHUB_OUTPUT
+        else
+          echo "has-services=false" >> $GITHUB_OUTPUT
+        fi
+        
+        # Check for frontend directories with package.json files
+        if [[ -f "frontend/pwa/package.json" || -f "frontend/admin/package.json" ]]; then
+          echo "has-frontend=true" >> $GITHUB_OUTPUT
+        else
+          echo "has-frontend=false" >> $GITHUB_OUTPUT
+        fi
+        
+        # Check for test files
+        if [[ -d "tests" && $(find tests -name "*.php" 2>/dev/null | wc -l) -gt 0 ]]; then
+          echo "has-tests=true" >> $GITHUB_OUTPUT
+        else
+          echo "has-tests=false" >> $GITHUB_OUTPUT
+        fi
+        
+        # Determine project phase
+        if [[ -f "services/api-gateway/composer.json" ]]; then
+          echo "project-phase=implementation" >> $GITHUB_OUTPUT
+        elif [[ -d "services" && -d "frontend" ]]; then
+          echo "project-phase=structure" >> $GITHUB_OUTPUT
+        else
+          echo "project-phase=foundation" >> $GITHUB_OUTPUT
+        fi
+        
+        echo "Project phase detected: $(cat $GITHUB_OUTPUT | grep project-phase | cut -d'=' -f2)"
+
+  # Code Quality & Security Checks - Only runs if services exist
+  code-quality:
+    name: Code Quality & Security
+    runs-on: ubuntu-latest
+    needs: phase-detection
+    if: needs.phase-detection.outputs.has-services == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ env.PHP_VERSION }}
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, iconv, json, mbstring, redis
+        tools: composer:v2
+        
+    - name: Cache Composer dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.composer/cache/files
+        key: composer-${{ hashFiles('**/composer.lock') }}
+        
+    - name: Install Composer dependencies
+      run: |
+        find services -name "composer.json" -execdir composer install --no-progress --prefer-dist --optimize-autoloader \;
+        
+    - name: Run PHPStan Analysis
+      run: |
+        find services -name "composer.json" -execdir ./vendor/bin/phpstan analyse --level=5 app \;
+      continue-on-error: true
+        
+    - name: Run Laravel Pint (Code Formatting)
+      run: |
+        find services -name "composer.json" -execdir ./vendor/bin/pint --test \;
+      continue-on-error: true
+        
+    - name: Security Audit
+      run: |
+        find services -name "composer.json" -execdir composer audit \;
+      continue-on-error: true
+
+  # Backend Testing - Only runs if services exist and code quality passes
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    needs: [phase-detection, code-quality]
+    if: needs.phase-detection.outputs.has-services == 'true'
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: reverse_tender_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ env.PHP_VERSION }}
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, iconv, json, mbstring, redis
+        tools: composer:v2
+        
+    - name: Cache Composer dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.composer/cache/files
+        key: composer-${{ hashFiles('**/composer.lock') }}
+        
+    - name: Install dependencies
+      run: |
+        find services -name "composer.json" -execdir composer install --no-progress --prefer-dist --optimize-autoloader \;
+        
+    - name: Setup Laravel environment
+      run: |
+        find services -name ".env.example" -execdir cp .env.example .env \;
+        find services -name "artisan" -execdir php artisan key:generate \;
+        
+    - name: Run database migrations
+      run: |
+        find services -name "artisan" -execdir php artisan migrate --force \;
+      env:
+        DB_CONNECTION: mysql
+        DB_HOST: 127.0.0.1
+        DB_PORT: 3306
+        DB_DATABASE: reverse_tender_test
+        DB_USERNAME: root
+        DB_PASSWORD: root_password
+        REDIS_HOST: 127.0.0.1
+        REDIS_PORT: 6379
+        
+    - name: Run PHPUnit tests
+      run: |
+        find services -name "phpunit.xml" -execdir ./vendor/bin/phpunit --coverage-clover=coverage.xml \;
+      env:
+        DB_CONNECTION: mysql
+        DB_HOST: 127.0.0.1
+        DB_PORT: 3306
+        DB_DATABASE: reverse_tender_test
+        DB_USERNAME: root
+        DB_PASSWORD: root_password
+        REDIS_HOST: 127.0.0.1
+        REDIS_PORT: 6379
+        
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./services/*/coverage.xml
+        flags: backend
+        name: backend-coverage
+
+  # Frontend Testing - Only runs if frontend directories exist
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    needs: phase-detection
+    if: needs.phase-detection.outputs.has-frontend == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'frontend/*/package-lock.json'
+        
+    - name: Install dependencies
+      run: |
+        if [[ -f "frontend/pwa/package.json" ]]; then
+          cd frontend/pwa && npm ci
+        fi
+        if [[ -f "frontend/admin/package.json" ]]; then
+          cd frontend/admin && npm ci
+        fi
+        
+    - name: Run ESLint
+      run: |
+        if [[ -f "frontend/pwa/package.json" ]]; then
+          cd frontend/pwa && npm run lint
+        fi
+        if [[ -f "frontend/admin/package.json" ]]; then
+          cd frontend/admin && npm run lint
+        fi
+      continue-on-error: true
+        
+    - name: Run unit tests
+      run: |
+        if [[ -f "frontend/pwa/package.json" ]]; then
+          cd frontend/pwa && npm run test:unit
+        fi
+        if [[ -f "frontend/admin/package.json" ]]; then
+          cd frontend/admin && npm run test:unit
+        fi
+      continue-on-error: true
+        
+    - name: Build applications
+      run: |
+        if [[ -f "frontend/pwa/package.json" ]]; then
+          cd frontend/pwa && npm run build
+        fi
+        if [[ -f "frontend/admin/package.json" ]]; then
+          cd frontend/admin && npm run build
+        fi
+        
+    - name: Run Lighthouse CI
+      uses: treosh/lighthouse-ci-action@v10
+      with:
+        configPath: './frontend/pwa/lighthouserc.json'
+        uploadArtifacts: true
+        temporaryPublicStorage: true
+      continue-on-error: true
+
+  # Integration Tests - Only runs if both backend and frontend exist
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [phase-detection, backend-tests, frontend-tests]
+    if: always() && (needs.phase-detection.outputs.has-services == 'true' || needs.phase-detection.outputs.has-frontend == 'true')
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: reverse_tender_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Build Docker images
+      run: |
+        docker-compose -f docker-compose.test.yml build
+        
+    - name: Run integration tests
+      run: |
+        docker-compose -f docker-compose.test.yml up -d
+        sleep 30
+        docker-compose -f docker-compose.test.yml exec -T api-gateway php artisan test --testsuite=Integration
+        
+    - name: Cleanup
+      run: |
+        docker-compose -f docker-compose.test.yml down -v
+
+  # Security Scanning
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # Build and Deploy (Staging)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [integration-tests, security-scan]
+    if: github.ref == 'refs/heads/develop'
+    
+    environment:
+      name: staging
+      url: https://staging.reversetender.com
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Login to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ secrets.CONTAINER_REGISTRY }}
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+        
+    - name: Build and push Docker images
+      run: |
+        docker-compose -f docker-compose.staging.yml build
+        docker-compose -f docker-compose.staging.yml push
+        
+    - name: Deploy to staging server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.STAGING_HOST }}
+        username: ${{ secrets.STAGING_USERNAME }}
+        key: ${{ secrets.STAGING_SSH_KEY }}
+        script: |
+          cd /var/www/reverse-tender-staging
+          git pull origin develop
+          docker-compose -f docker-compose.staging.yml pull
+          docker-compose -f docker-compose.staging.yml up -d
+          docker-compose -f docker-compose.staging.yml exec -T api-gateway php artisan migrate --force
+          docker-compose -f docker-compose.staging.yml exec -T api-gateway php artisan config:cache
+          docker-compose -f docker-compose.staging.yml exec -T api-gateway php artisan route:cache
+
+  # Build and Deploy (Production)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [integration-tests, security-scan]
+    if: github.ref == 'refs/heads/main'
+    
+    environment:
+      name: production
+      url: https://reversetender.com
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Login to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ secrets.CONTAINER_REGISTRY }}
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+        
+    - name: Build and push Docker images
+      run: |
+        docker-compose -f docker-compose.prod.yml build
+        docker-compose -f docker-compose.prod.yml push
+        
+    - name: Deploy to production server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.PRODUCTION_HOST }}
+        username: ${{ secrets.PRODUCTION_USERNAME }}
+        key: ${{ secrets.PRODUCTION_SSH_KEY }}
+        script: |
+          cd /var/www/reverse-tender-production
+          git pull origin main
+          docker-compose -f docker-compose.prod.yml pull
+          docker-compose -f docker-compose.prod.yml up -d
+          docker-compose -f docker-compose.prod.yml exec -T api-gateway php artisan migrate --force
+          docker-compose -f docker-compose.prod.yml exec -T api-gateway php artisan config:cache
+          docker-compose -f docker-compose.prod.yml exec -T api-gateway php artisan route:cache
+          
+    - name: Health check
+      run: |
+        sleep 30
+        curl -f https://reversetender.com/health || exit 1
+
+  # Performance Testing
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        
+    - name: Install Artillery
+      run: npm install -g artillery@latest
+      
+    - name: Run load tests
+      run: |
+        artillery run tests/performance/load-test.yml
+        
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-results
+        path: tests/performance/results/
+
+  # Notification - Only runs if SLACK_WEBHOOK_URL secret exists
+  notify:
+    name: Notify Team
+    runs-on: ubuntu-latest
+    needs: [phase-detection, deploy-staging, deploy-production]
+    if: always() && vars.SLACK_WEBHOOK_URL != ''
+    
+    steps:
+    - name: Notify Slack
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#reverse-tender-ci'
+        fields: repo,message,commit,author,action,eventName,ref,workflow
+        author_name: 'Reverse Tender CI/CD'
+        success_message: ':white_check_mark: Deployment completed successfully'
+        failure_message: ':no_entry: Deployment failed'
+        cancelled_message: ':warning: Deployment was cancelled'
+      env:
+        SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
