@@ -1,0 +1,259 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8000:80"
+    volumes:
+      - ./services/api-gateway:/var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - reverse-tender-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:80"
+    volumes:
+      - ./services/auth-service:/var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - reverse-tender-network
+
+  # Bidding Service
+  bidding-service:
+    build:
+      context: ./services/bidding-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:80"
+    volumes:
+      - ./services/bidding-service:/var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - reverse-tender-network
+
+  # User Service
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:80"
+    volumes:
+      - ./services/user-service:/var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+      - S3_ENDPOINT=minio:9000
+    depends_on:
+      - mysql
+      - redis
+      - minio
+    networks:
+      - reverse-tender-network
+
+  # Order Service
+  order-service:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+    ports:
+      - "8004:80"
+    volumes:
+      - ./services/order-service:/var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+      - S3_ENDPOINT=minio:9000
+    depends_on:
+      - mysql
+      - redis
+      - minio
+    networks:
+      - reverse-tender-network
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    ports:
+      - "8005:80"
+    volumes:
+      - ./services/notification-service:/var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    networks:
+      - reverse-tender-network
+
+  # Payment Service (Future)
+  payment-service:
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile
+    ports:
+      - "8006:80"
+    volumes:
+      - ./services/payment-service:/var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=mysql
+    depends_on:
+      - mysql
+    networks:
+      - reverse-tender-network
+
+  # Analytics Service
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+      dockerfile: Dockerfile
+    ports:
+      - "8007:80"
+    volumes:
+      - ./services/analytics-service:/var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=mysql
+    depends_on:
+      - mysql
+    networks:
+      - reverse-tender-network
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: reverse_tender
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: laravel_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - reverse-tender-network
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - reverse-tender-network
+
+  # MinIO S3-compatible Storage
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - reverse-tender-network
+
+  # WebSocket Server for Real-time Bidding
+  websocket-server:
+    build:
+      context: ./services/websocket-server
+      dockerfile: Dockerfile
+    ports:
+      - "6001:6001"
+    volumes:
+      - ./services/websocket-server:/var/www/html
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    networks:
+      - reverse-tender-network
+
+  # PWA Frontend
+  pwa-frontend:
+    build:
+      context: ./frontend/pwa
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/pwa:/app
+    environment:
+      - VITE_API_GATEWAY_URL=http://localhost:8000
+      - VITE_WEBSOCKET_URL=ws://localhost:6001
+    depends_on:
+      - api-gateway
+    networks:
+      - reverse-tender-network
+
+  # Admin Dashboard
+  admin-dashboard:
+    build:
+      context: ./frontend/admin
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./frontend/admin:/app
+    environment:
+      - VITE_API_GATEWAY_URL=http://localhost:8000
+    depends_on:
+      - api-gateway
+    networks:
+      - reverse-tender-network
+
+volumes:
+  mysql_data:
+  redis_data:
+  minio_data:
+
+networks:
+  reverse-tender-network:
+    driver: bridge

@@ -1,0 +1,393 @@
+version: '3.8'
+
+services:
+  # API Gateway - Central entry point
+  api-gateway:
+    image: reversetender/api-gateway:${APP_VERSION:-latest}
+    container_name: rt_api_gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=https://reversetender.com
+      - DB_HOST=mysql-primary
+      - DB_DATABASE=reverse_tender
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis-primary
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - RATE_LIMIT_ENABLED=true
+    volumes:
+      - ./logs/api-gateway:/var/www/storage/logs
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Auth Service - Authentication and authorization
+  auth-service:
+    image: reversetender/auth-service:${APP_VERSION:-latest}
+    container_name: rt_auth_service
+    ports:
+      - "8001:8001"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=mysql-primary
+      - DB_DATABASE=reverse_tender_auth
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis-primary
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_TTL=900
+      - REFRESH_TTL=43200
+      - OTP_EXPIRY=300
+      - TWILIO_SID=${TWILIO_SID}
+      - TWILIO_TOKEN=${TWILIO_TOKEN}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+    volumes:
+      - ./logs/auth-service:/var/www/storage/logs
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Bidding Service - Real-time bidding system with Laravel Reverb
+  bidding-service:
+    image: reversetender/bidding-service:${APP_VERSION:-latest}
+    container_name: rt_bidding_service
+    ports:
+      - "8002:8002"
+      - "8080:8080"  # Laravel Reverb WebSocket port
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=mysql-primary
+      - DB_DATABASE=reverse_tender_bidding
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis-primary
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - BROADCAST_DRIVER=reverb
+      - REVERB_APP_ID=${REVERB_APP_ID:-reverse-tender}
+      - REVERB_APP_KEY=${REVERB_APP_KEY:-reverse-tender-key}
+      - REVERB_APP_SECRET=${REVERB_APP_SECRET:-reverse-tender-secret}
+      - REVERB_HOST=0.0.0.0
+      - REVERB_PORT=8080
+      - REVERB_SCHEME=http
+    volumes:
+      - ./logs/bidding-service:/var/www/storage/logs
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1.5G
+
+  # User Service - User and profile management
+  user-service:
+    image: reversetender/user-service:${APP_VERSION:-latest}
+    container_name: rt_user_service
+    ports:
+      - "8003:8003"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=mysql-primary
+      - DB_DATABASE=reverse_tender_users
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis-primary
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - S3_BUCKET=${S3_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_REGION=${S3_REGION}
+    volumes:
+      - ./logs/user-service:/var/www/storage/logs
+      - ./uploads:/var/www/storage/uploads
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+
+  # Order Service - Order and request management
+  order-service:
+    image: reversetender/order-service:${APP_VERSION:-latest}
+    container_name: rt_order_service
+    ports:
+      - "8004:8004"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=mysql-primary
+      - DB_DATABASE=reverse_tender_orders
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis-primary
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - S3_BUCKET=${S3_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+    volumes:
+      - ./logs/order-service:/var/www/storage/logs
+      - ./uploads:/var/www/storage/uploads
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+
+  # Notification Service - Multi-channel notifications
+  notification-service:
+    image: reversetender/notification-service:${APP_VERSION:-latest}
+    container_name: rt_notification_service
+    ports:
+      - "8005:8005"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=mysql-primary
+      - DB_DATABASE=reverse_tender_notifications
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis-primary
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - FCM_SERVER_KEY=${FCM_SERVER_KEY}
+      - APNS_KEY_ID=${APNS_KEY_ID}
+      - APNS_TEAM_ID=${APNS_TEAM_ID}
+      - TWILIO_SID=${TWILIO_SID}
+      - TWILIO_TOKEN=${TWILIO_TOKEN}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+    volumes:
+      - ./logs/notification-service:/var/www/storage/logs
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+
+  # Payment Service - Payment processing and ZATCA
+  payment-service:
+    image: reversetender/payment-service:${APP_VERSION:-latest}
+    container_name: rt_payment_service
+    ports:
+      - "8006:8006"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=mysql-primary
+      - DB_DATABASE=reverse_tender_payments
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis-primary
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - ZATCA_API_URL=${ZATCA_API_URL}
+      - ZATCA_API_KEY=${ZATCA_API_KEY}
+      - ZATCA_CERTIFICATE=${ZATCA_CERTIFICATE}
+      - PAYMENT_GATEWAY_URL=${PAYMENT_GATEWAY_URL}
+      - PAYMENT_GATEWAY_KEY=${PAYMENT_GATEWAY_KEY}
+    volumes:
+      - ./logs/payment-service:/var/www/storage/logs
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+
+  # Analytics Service - Business intelligence
+  analytics-service:
+    image: reversetender/analytics-service:${APP_VERSION:-latest}
+    container_name: rt_analytics_service
+    ports:
+      - "8007:8007"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=mysql-primary
+      - DB_DATABASE=reverse_tender_analytics
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis-primary
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - ./logs/analytics-service:/var/www/storage/logs
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+
+  # VIN OCR Service - Vehicle identification
+  vin-ocr-service:
+    image: reversetender/vin-ocr-service:${APP_VERSION:-latest}
+    container_name: rt_vin_ocr_service
+    ports:
+      - "8008:8008"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=mysql-primary
+      - DB_DATABASE=reverse_tender_vehicles
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis-primary
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - GOOGLE_CLOUD_VISION_KEY=${GOOGLE_CLOUD_VISION_KEY}
+      - TESSERACT_ENABLED=true
+      - S3_BUCKET=${S3_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+    volumes:
+      - ./logs/vin-ocr-service:/var/www/storage/logs
+      - ./uploads:/var/www/storage/uploads
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+
+  # MySQL Primary Database
+  mysql-primary:
+    image: mysql:8.0
+    container_name: rt_mysql_primary
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=reverse_tender
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - mysql_primary_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d
+      - ./database/config/mysql.cnf:/etc/mysql/conf.d/custom.cnf
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+
+  # Redis Primary Cache
+  redis-primary:
+    image: redis:7.0-alpine
+    container_name: rt_redis_primary
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - redis_primary_data:/data
+      - ./database/config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: rt_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/sites:/etc/nginx/conf.d
+      - ./ssl:/etc/ssl/certs
+      - ./logs/nginx:/var/log/nginx
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+  # Monitoring - Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: rt_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - prometheus_data:/prometheus
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+
+  # Monitoring - Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: rt_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+
+volumes:
+  mysql_primary_data:
+    driver: local
+  redis_primary_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  reverse-tender-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
