@@ -6,6 +6,7 @@ CREATE DATABASE IF NOT EXISTS order_service CHARACTER SET utf8mb4 COLLATE utf8mb
 CREATE DATABASE IF NOT EXISTS payment_service CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS analytics_service CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS vin_ocr_service CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS notification_service CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Grant privileges to root user for all service databases
 GRANT ALL PRIVILEGES ON auth_service.* TO 'root'@'%';
@@ -15,6 +16,7 @@ GRANT ALL PRIVILEGES ON order_service.* TO 'root'@'%';
 GRANT ALL PRIVILEGES ON payment_service.* TO 'root'@'%';
 GRANT ALL PRIVILEGES ON analytics_service.* TO 'root'@'%';
 GRANT ALL PRIVILEGES ON vin_ocr_service.* TO 'root'@'%';
+GRANT ALL PRIVILEGES ON notification_service.* TO 'root'@'%';
 
 -- Create service-specific users for better security (optional)
 CREATE USER IF NOT EXISTS 'auth_user'@'%' IDENTIFIED BY 'auth_password';
@@ -24,6 +26,7 @@ CREATE USER IF NOT EXISTS 'order_user'@'%' IDENTIFIED BY 'order_password';
 CREATE USER IF NOT EXISTS 'payment_user'@'%' IDENTIFIED BY 'payment_password';
 CREATE USER IF NOT EXISTS 'analytics_user'@'%' IDENTIFIED BY 'analytics_password';
 CREATE USER IF NOT EXISTS 'vin_ocr_user'@'%' IDENTIFIED BY 'vin_ocr_password';
+CREATE USER IF NOT EXISTS 'notification_user'@'%' IDENTIFIED BY 'notification_password';
 
 -- Grant specific privileges to service users
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON auth_service.* TO 'auth_user'@'%';
@@ -33,6 +36,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON order_servic
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON payment_service.* TO 'payment_user'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON analytics_service.* TO 'analytics_user'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON vin_ocr_service.* TO 'vin_ocr_user'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON notification_service.* TO 'notification_user'@'%';
 
 -- Flush privileges to apply changes
 FLUSH PRIVILEGES;
@@ -94,3 +98,10 @@ CREATE TABLE IF NOT EXISTS migrations (
     PRIMARY KEY (id)
 );
 
+USE notification_service;
+CREATE TABLE IF NOT EXISTS migrations (
+    id int unsigned NOT NULL AUTO_INCREMENT,
+    migration varchar(255) NOT NULL,
+    batch int NOT NULL,
+    PRIMARY KEY (id)
+);
