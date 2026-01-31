@@ -24,29 +24,66 @@ The **Reverse Tender Platform** revolutionizes the automotive parts industry in 
 ### 🎯 Business Model
 ```mermaid
 graph TB
-    subgraph "🚗 Customer Journey"
-        A[Customer Posts Part Request] --> B[VIN OCR Processing]
-        B --> C[Smart Part Matching]
-        C --> D[Merchant Notifications]
+    %% Subgraph 1: Customer Journey
+    subgraph CJ ["<br>🚗 CUSTOMER JOURNEY"]
+        A(["<b>Post Part Request</b><br/>(User Interface)"]) 
+        B(["<b>VIN OCR Processing</b><br/>(AI Extraction)"])
+        C(["<b>Smart Part Matching</b><br/>(Catalog Sync)"])
+        D(["<b>Merchant Notifications</b><br/>(Push/SMS)"])
+        
+        A ==> B ==> C ==> D
     end
     
-    subgraph "🏪 Merchant Response"
-        D --> E[Competitive Bidding]
-        E --> F[Bid Analysis & Ranking]
-        F --> G[Customer Selection]
+    %% Subgraph 2: Merchant Response
+    subgraph MR ["<br>🏪 MERCHANT RESPONSE"]
+        E(["<b>Competitive Bidding</b><br/>(Live Auction)"])
+        F(["<b>Bid Analysis & Ranking</b><br/>(Logic Engine)"])
+        G(["<b>Customer Selection</b><br/>(Decision)"])
+        
+        D ==> E ==> F ==> G
     end
     
-    subgraph "💳 Transaction Flow"
-        G --> H[Order Creation]
-        H --> I[Multi-Gateway Payment]
-        I --> J[ZATCA Invoice Generation]
-        J --> K[Order Fulfillment]
+    %% Subgraph 3: Transaction & Compliance
+    subgraph TF ["<br>💳 TRANSACTION FLOW"]
+        H(["<b>Order Creation</b><br/>(Ledger Entry)"])
+        I(["<b>Multi-Gateway Payment</b><br/>(Checkout)"])
+        J(["<b>ZATCA Invoice</b><br/>(Tax Compliance)"])
+        K(["<b>Order Fulfillment</b><br/>(Shipping)"])
+        
+        G ==> H ==> I ==> J ==> K
     end
+
+    %% Subgraph 4: Post-Sales & Analytics
+    subgraph PS ["<br>📈 POST-SALES & GROWTH"]
+        L(["<b>Rating & Review</b><br/>(Trust Layer)"])
+        M(["<b>Refunds/Disputes</b><br/>(Escrow Release)"])
+        N(["<b>AI Model Tuning</b><br/>(Feedback Loop)"])
+        
+        K ==> L
+        K ==> M
+        L -.-> N
+    end
+
+    %% External Infrastructure
+    EXT1{{AI/ML Service}} -.-> B
+    EXT1 -.-> N
+    EXT2[(Parts DB)] -.-> C
+    EXT3{{Payment}} --- I
+    EXT4{{ZATCA}} --- J
+    EXT5{{Logistics}} --- K
+
+    %% Styling Logic
+    classDef default font-family:Segoe UI,Arial,sans-serif,font-size:13px,color:#333;
     
-    style A fill:#e1f5fe
-    style E fill:#f3e5f5
-    style I fill:#e8f5e8
-    style J fill:#fff3e0
+    style CJ fill:#f0f7ff,stroke:#0288d1,stroke-width:2px,stroke-dasharray: 5 5
+    style MR fill:#fdf2ff,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5
+    style TF fill:#f1f8e9,stroke:#388e3c,stroke-width:2px,stroke-dasharray: 5 5
+    style PS fill:#fff8e1,stroke:#ffa000,stroke-width:2px,stroke-dasharray: 5 5
+
+    %% Specific Node Accents
+    style J fill:#fffde7,stroke:#fbc02d,stroke-width:3px
+    style N fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style M fill:#ffebee,stroke:#c62828,stroke-width:1px
 ```
 
 ---
