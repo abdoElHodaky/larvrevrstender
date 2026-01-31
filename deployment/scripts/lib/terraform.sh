@@ -117,7 +117,7 @@ terraform_check_required_vars() {
 terraform_prepare_environment() {
     log_info "Preparing Terraform environment..."
     
-    local terraform_dir="${SCRIPT_DIR}/../../terraform"
+    local terraform_dir="${SCRIPT_DIR}/../terraform"
     
     # Create terraform directory if it doesn't exist
     create_directory "$terraform_dir"
@@ -136,7 +136,7 @@ terraform_prepare_environment() {
 
 # Create terraform.tfvars file
 terraform_create_tfvars() {
-    local terraform_dir="${SCRIPT_DIR}/../../terraform"
+    local terraform_dir="${SCRIPT_DIR}/../terraform"
     local tfvars_file="$terraform_dir/terraform.tfvars"
     
     log_info "Creating Terraform variables file: $tfvars_file"
@@ -235,7 +235,7 @@ EOF
 
 # Create backend configuration
 terraform_create_backend_config() {
-    local terraform_dir="${SCRIPT_DIR}/../../terraform"
+    local terraform_dir="${SCRIPT_DIR}/../terraform"
     local backend_file="$terraform_dir/backend.tf"
     
     # Only create backend config for production
@@ -296,7 +296,7 @@ terraform_set_env_vars() {
 terraform_initialize() {
     log_info "Initializing Terraform..."
     
-    local terraform_dir="${SCRIPT_DIR}/../../terraform"
+    local terraform_dir="${SCRIPT_DIR}/../terraform"
     
     if [[ "$DRY_RUN" != "true" ]]; then
         (cd "$terraform_dir" && terraform init -upgrade) || {
@@ -312,7 +312,7 @@ terraform_initialize() {
 terraform_plan_deployment() {
     log_info "Planning Terraform deployment..."
     
-    local terraform_dir="${SCRIPT_DIR}/../../terraform"
+    local terraform_dir="${SCRIPT_DIR}/../terraform"
     local plan_file="$terraform_dir/terraform.tfplan"
     
     if [[ "$DRY_RUN" != "true" ]]; then
@@ -335,7 +335,7 @@ terraform_plan_deployment() {
 terraform_apply_deployment() {
     log_info "Applying Terraform deployment..."
     
-    local terraform_dir="${SCRIPT_DIR}/../../terraform"
+    local terraform_dir="${SCRIPT_DIR}/../terraform"
     local plan_file="$terraform_dir/terraform.tfplan"
     
     if [[ "$DRY_RUN" != "true" ]]; then
@@ -364,7 +364,7 @@ terraform_apply_deployment() {
 terraform_verify_deployment() {
     log_info "Verifying Terraform deployment..."
     
-    local terraform_dir="${SCRIPT_DIR}/../../terraform"
+    local terraform_dir="${SCRIPT_DIR}/../terraform"
     
     if [[ "$DRY_RUN" != "true" ]]; then
         # Check Terraform state
@@ -391,7 +391,7 @@ terraform_verify_deployment() {
 terraform_validate_infrastructure() {
     log_debug "Validating deployed infrastructure..."
     
-    local terraform_dir="${SCRIPT_DIR}/../../terraform"
+    local terraform_dir="${SCRIPT_DIR}/../terraform"
     
     # Get important outputs
     local kubernetes_endpoint
@@ -435,7 +435,7 @@ terraform_validate_infrastructure() {
 terraform_destroy() {
     log_warning "Destroying Terraform deployment..."
     
-    local terraform_dir="${SCRIPT_DIR}/../../terraform"
+    local terraform_dir="${SCRIPT_DIR}/../terraform"
     
     # Confirm destruction
     if [[ "$FORCE" != "true" ]]; then
@@ -460,7 +460,7 @@ terraform_destroy() {
 
 # Get Terraform outputs
 terraform_get_outputs() {
-    local terraform_dir="${SCRIPT_DIR}/../../terraform"
+    local terraform_dir="${SCRIPT_DIR}/../terraform"
     
     if [[ -f "$terraform_dir/terraform.tfstate" ]]; then
         (cd "$terraform_dir" && terraform output -json) || {

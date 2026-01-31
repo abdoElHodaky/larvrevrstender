@@ -432,4 +432,3 @@ export -f create_directory validate_environment_variable backup_file restore_fil
 export -f process_template wait_for_service check_url docker_login docker_build_and_push
 export -f kubectl_apply kubectl_wait_for_deployment terraform_init terraform_plan terraform_apply
 export -f show_progress cleanup_temp_files handle_error set_error_handling check_version
-

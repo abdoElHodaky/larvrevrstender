@@ -66,7 +66,7 @@ kubernetes_check_prerequisites() {
 kubernetes_prepare_environment() {
     log_info "Preparing Kubernetes environment..."
     
-    local k8s_dir="${SCRIPT_DIR}/../../k8s"
+    local k8s_dir="${SCRIPT_DIR}/../k8s"
     
     # Check Kubernetes configuration directory
     check_directory_exists "$k8s_dir"
@@ -87,7 +87,7 @@ kubernetes_prepare_environment() {
 kubernetes_prepare_secrets() {
     log_info "Preparing Kubernetes secrets..."
     
-    local k8s_dir="${SCRIPT_DIR}/../../k8s"
+    local k8s_dir="${SCRIPT_DIR}/../k8s"
     local secrets_dir="$k8s_dir/secrets"
     
     # Create secret files from environment variables
@@ -123,7 +123,7 @@ kubernetes_prepare_secrets() {
 kubernetes_validate_manifests() {
     log_info "Validating Kubernetes manifests..."
     
-    local k8s_dir="${SCRIPT_DIR}/../../k8s"
+    local k8s_dir="${SCRIPT_DIR}/../k8s"
     local base_dir="$k8s_dir/base"
     local overlay_dir="$k8s_dir/overlays/${ENVIRONMENT}"
     
@@ -194,7 +194,7 @@ kubernetes_configure_kubectl() {
 kubernetes_deploy_applications() {
     log_info "Deploying applications to Kubernetes..."
     
-    local k8s_dir="${SCRIPT_DIR}/../../k8s"
+    local k8s_dir="${SCRIPT_DIR}/../k8s"
     local overlay_dir="$k8s_dir/overlays/${ENVIRONMENT}"
     local base_dir="$k8s_dir/base"
     
@@ -248,7 +248,7 @@ kubernetes_deploy_secrets() {
     log_info "Deploying secrets..."
     
     local namespace="${KUBERNETES_NAMESPACE:-reverse-tender}"
-    local secrets_dir="${SCRIPT_DIR}/../../k8s/secrets"
+    local secrets_dir="${SCRIPT_DIR}/../k8s/secrets"
     
     if [[ "$DRY_RUN" != "true" ]]; then
         # Create generic secret from files
@@ -375,7 +375,7 @@ kubernetes_deploy_monitoring_helm() {
 kubernetes_deploy_monitoring_manifests() {
     log_info "Deploying monitoring with manifests..."
     
-    local k8s_dir="${SCRIPT_DIR}/../../k8s"
+    local k8s_dir="${SCRIPT_DIR}/../k8s"
     local monitoring_dir="$k8s_dir/monitoring"
     
     if [[ -d "$monitoring_dir" ]]; then

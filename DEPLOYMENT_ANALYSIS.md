@@ -107,7 +107,7 @@ deployment/
 
 ### **Unified Directory Structure**:
 ```
-deployment-new/
+deployment/
 ├── README.md (Comprehensive deployment guide)
 ├── deploy.sh (Single entry point)
 ├── config/

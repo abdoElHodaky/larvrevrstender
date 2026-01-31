@@ -24,7 +24,7 @@ deployment/
 
 ### **New Structure (After)**
 ```
-deployment-new/
+deployment/
 ├── deploy.sh (single entry point)
 ├── config/ (unified configuration)
 ├── docker/ (consolidated with overlays)
@@ -87,42 +87,42 @@ cd ..
 #### **Step 4: Migrate Environment Variables**
 ```bash
 # Review new configuration structure
-cat deployment-new/config/base.env
-cat deployment-new/config/environments/production.env
+cat deployment/config/base.env
+cat deployment/config/environments/production.env
 
 # Update with your current values
-cp current-env-vars.txt deployment-new/config/environments/production.env.backup
-# Edit deployment-new/config/environments/production.env with your values
+cp current-env-vars.txt deployment/config/environments/production.env.backup
+# Edit deployment/config/environments/production.env with your values
 ```
 
 #### **Step 5: Migrate Provider Configuration**
 ```bash
 # For DigitalOcean users
-cp deployment-new/config/providers/digitalocean.env deployment-new/config/providers/digitalocean.env.backup
+cp deployment/config/providers/digitalocean.env deployment/config/providers/digitalocean.env.backup
 # Edit with your specific DO configuration
 
 # For Linode users
-cp deployment-new/config/providers/linode.env deployment-new/config/providers/linode.env.backup
+cp deployment/config/providers/linode.env deployment/config/providers/linode.env.backup
 # Edit with your specific Linode configuration
 ```
 
 #### **Step 6: Migrate Custom Configurations**
 ```bash
 # Copy any custom nginx configurations
-cp -r deployment/nginx deployment-new/docker/nginx 2>/dev/null || true
+cp -r deployment/nginx deployment/docker/nginx 2>/dev/null || true
 
 # Copy any custom monitoring configurations
-cp -r deployment/monitoring deployment-new/docker/monitoring 2>/dev/null || true
+cp -r deployment/monitoring deployment/docker/monitoring 2>/dev/null || true
 
 # Copy any custom SSL certificates
-cp -r deployment/ssl deployment-new/docker/ssl 2>/dev/null || true
+cp -r deployment/ssl deployment/docker/ssl 2>/dev/null || true
 ```
 
 ### **Phase 3: Testing**
 
 #### **Step 7: Test Development Environment**
 ```bash
-cd deployment-new
+cd deployment
 
 # Test configuration validation
 ./scripts/validate.sh
@@ -218,7 +218,7 @@ kubectl top pods -n reverse-tender
 
 # Compare configuration complexity
 wc -l deployment-backup-*/docker/*.yml
-wc -l deployment-new/docker/*.yml
+wc -l deployment/docker/*.yml
 ```
 
 #### **Step 13: Cleanup Old Structure**
@@ -228,7 +228,7 @@ wc -l deployment-new/docker/*.yml
 mv deployment deployment-old-$(date +%Y%m%d_%H%M%S)
 
 # Rename new deployment to primary
-mv deployment-new deployment
+mv deployment deployment
 
 # Update any CI/CD pipelines to use new structure
 # Update documentation references
@@ -240,11 +240,11 @@ mv deployment-new deployment
 ### **If Migration Fails**
 ```bash
 # Stop new deployment
-cd deployment-new
+cd deployment
 ./deploy.sh -e production -p digitalocean -t application --force-stop
 
 # Restore old deployment
-mv deployment deployment-new-failed
+mv deployment deployment-failed
 mv deployment-backup-YYYYMMDD_HHMMSS deployment
 
 # Redeploy using old system
