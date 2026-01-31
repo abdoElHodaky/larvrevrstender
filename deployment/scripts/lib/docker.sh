@@ -73,7 +73,7 @@ docker_prepare_environment() {
     log_info "Preparing Docker environment..."
     
     # Create necessary directories
-    local docker_dir="${SCRIPT_DIR}/../../docker"
+    local docker_dir="${SCRIPT_DIR}/../docker"
     create_directory "${docker_dir}/logs"
     create_directory "${docker_dir}/uploads"
     create_directory "${docker_dir}/ssl"
@@ -98,7 +98,7 @@ docker_prepare_environment() {
 
 # Create environment file for Docker Compose
 docker_create_env_file() {
-    local docker_dir="${SCRIPT_DIR}/../../docker"
+    local docker_dir="${SCRIPT_DIR}/../docker"
     local env_file="${docker_dir}/.env"
     
     log_info "Creating Docker Compose environment file: $env_file"
@@ -217,7 +217,7 @@ docker_deploy_development() {
 docker_deploy_staging() {
     log_info "Deploying staging environment with Docker Compose..."
     
-    local docker_dir="${SCRIPT_DIR}/../../docker"
+    local docker_dir="${SCRIPT_DIR}/../docker"
     local compose_files=(
         "-f" "${docker_dir}/docker-compose.base.yml"
         "-f" "${docker_dir}/environments/staging.yml"
@@ -240,7 +240,7 @@ docker_deploy_staging() {
 docker_deploy_production() {
     log_info "Deploying production environment with Docker Compose..."
     
-    local docker_dir="${SCRIPT_DIR}/../../docker"
+    local docker_dir="${SCRIPT_DIR}/../docker"
     local compose_files=(
         "-f" "${docker_dir}/docker-compose.base.yml"
         "-f" "${docker_dir}/environments/production.yml"
@@ -514,4 +514,3 @@ docker_cleanup() {
 export -f docker_deploy docker_check_prerequisites docker_prepare_environment
 export -f docker_deploy_development docker_deploy_staging docker_deploy_production
 export -f docker_verify_deployment docker_cleanup
-
