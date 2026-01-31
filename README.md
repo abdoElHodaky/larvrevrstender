@@ -381,10 +381,6 @@ flowchart TB
     style TERRAFORM_MULTI fill:#623CE4,stroke:#5835CC,stroke-width:3px,color:#fff
     style HELM_MULTI fill:#0F1689,stroke:#0A1269,stroke-width:3px,color:#fff
 ```
-```mermaid
-   
-
-```
 
 ---
 
@@ -417,211 +413,83 @@ pie title Platform Performance Metrics
 
 ### 🔧 Multi-Cloud Technology Stack
 ```mermaid
-graph TB
-    subgraph "🏗️ Application Framework"
-        subgraph "⚡ Runtime Environment"
-            PHP[🐘 PHP 8.2+<br/>Laravel 10.x Framework<br/>Eloquent ORM<br/>Artisan CLI<br/>Queue Management]
-            COMPOSER[📦 Composer<br/>Dependency Management<br/>Autoloading<br/>Package Registry]
-        end
+graph TD
+    %% Global Styling
+    accTitle: Multi-Cloud Laravel Enterprise Architecture
+    accDescr: A comprehensive diagram showing Laravel 11 integrated across AWS, DigitalOcean, and Linode with Saudi-specific fintech and observability stacks.
+
+    subgraph APP ["🏗️ CORE APPLICATION FRAMEWORK"]
+        direction LR
+        PHP["🐘 PHP 8.3 & Laravel 11<br/>(Eloquent, Artisan, Queues)"]
+        TOOL["🛠️ DEV OPS<br/>(PHPStan, PHPUnit, Composer)"]
+        PHP === TOOL
+    end
+
+    %% Cloud Service Clusters
+    subgraph CLOUDS ["🌐 MULTI-CLOUD INFRASTRUCTURE"]
+        direction TB
         
-        subgraph "🔧 Development Tools"
-            PHPSTAN[🔍 PHPStan<br/>Static Analysis<br/>Type Checking<br/>Code Quality]
-            PHPUNIT[🧪 PHPUnit<br/>Unit Testing<br/>Integration Testing<br/>Code Coverage]
+        subgraph AWS ["🟠 AMAZON WEB SERVICES (Primary)"]
+            EKS[☸️ EKS Managed K8s]
+            RDS[🗄️ RDS MySQL Multi-AZ]
+            S3[☁️ S3 Object Storage]
+        end
+
+        subgraph DO ["🔵 DIGITALOCEAN (Secondary/Edge)"]
+            DOKS[☸️ DOKS Managed K8s]
+            DODB[🗄️ Managed MySQL]
+            SPACES[☁️ DO Spaces]
+        end
+
+        subgraph LIN ["🟢 LINODE (Cost-Optimized/DR)"]
+            LKE[☸️ LKE Managed K8s]
+            LNDB[🗄️ Managed MySQL]
+            LNOS[☁️ Object Storage]
         end
     end
-    
-    subgraph "💾 Multi-Cloud Data Layer"
-        subgraph "🟠 AWS Data Services"
-            RDS_STACK[🗄️ AWS RDS MySQL 8.0<br/>Multi-AZ Deployment<br/>Read Replicas<br/>Automated Backups<br/>Point-in-time Recovery]
-            ELASTICACHE_STACK[⚡ AWS ElastiCache<br/>Redis 7.0 Cluster<br/>Encryption at Rest<br/>Multi-AZ Replication<br/>Automatic Failover]
-            S3_STACK[☁️ AWS S3<br/>Object Storage<br/>Versioning • Lifecycle<br/>Cross-Region Replication<br/>99.999999999% Durability]
-        end
-        
-        subgraph "🔵 DigitalOcean Data Services"
-            DO_DB[🗄️ DO Managed Database<br/>MySQL 8.0 Cluster<br/>Automated Backups<br/>High Availability<br/>Connection Pooling]
-            DO_REDIS[⚡ DO Managed Redis<br/>Redis 7.0 Instance<br/>Memory Optimization<br/>Data Persistence<br/>SSL Encryption]
-            DO_SPACES[☁️ DO Spaces<br/>S3-Compatible Storage<br/>CDN Integration<br/>Global Edge Locations<br/>99.9% Uptime SLA]
-        end
-        
-        subgraph "🟢 Linode Data Services"
-            LINODE_DB[🗄️ Linode Database<br/>MySQL 8.0 Instance<br/>Automated Backups<br/>SSL Connections<br/>Cost Optimized]
-            LINODE_REDIS[⚡ Linode Redis<br/>Redis 7.0 Single Node<br/>Basic Configuration<br/>Development Ready<br/>Affordable Pricing]
-            LINODE_STORAGE[☁️ Linode Object Storage<br/>S3-Compatible API<br/>Multi-region Support<br/>Simple Pricing<br/>Developer Friendly]
-        end
+
+    subgraph FINTECH ["💳 KSA FINTECH & COMPLIANCE"]
+        direction RL
+        ZATCA[🏛️ ZATCA E-Invoicing]
+        SAMA[🏦 SAMA Regulatory]
+        PAY["🇸🇦 PAYMENTS<br/>(Mada, STC Pay, Stripe)"]
     end
-    
-    subgraph "☸️ Multi-Cloud Container Orchestration"
-        subgraph "🟠 AWS Container Services"
-            EKS[☸️ Amazon EKS<br/>Kubernetes 1.28+<br/>Auto Scaling Groups<br/>Spot Instances<br/>Fargate Support]
-            ECR[📦 Amazon ECR<br/>Container Registry<br/>Vulnerability Scanning<br/>Image Signing<br/>Lifecycle Policies]
-        end
-        
-        subgraph "🔵 DigitalOcean Container Services"
-            DOKS[☸️ DigitalOcean Kubernetes<br/>Managed Kubernetes<br/>Auto Scaling<br/>Load Balancers<br/>Simple Pricing]
-            DO_REGISTRY[📦 DO Container Registry<br/>Private Registry<br/>Vulnerability Scanning<br/>Garbage Collection<br/>Integration Ready]
-        end
-        
-        subgraph "🟢 Linode Container Services"
-            LKE[☸️ Linode Kubernetes Engine<br/>Managed Kubernetes<br/>NodeBalancers<br/>Block Storage<br/>Cost Effective]
-            LINODE_REGISTRY[📦 Harbor Registry<br/>Open Source Registry<br/>Security Scanning<br/>Replication<br/>RBAC Support]
-        end
+
+    subgraph OBS ["📊 OBSERVABILITY & AI"]
+        direction TB
+        OCR["👁️ OCR ENGINES<br/>(Textract, Vision, Tesseract)"]
+        MON["📈 MONITORING<br/>(Prometheus, Grafana, Sentry)"]
     end
+
+    %% Strategic Connections
+    APP ==> AWS & DO & LIN
+    AWS & DO & LIN <==> FINTECH
+    APP -.-> OBS
+
+    %% Distinguished Styling
+    style APP fill:#1a1a1a,stroke:#8892BF,stroke-width:4px,color:#fff
+    style CLOUDS fill:#0f172a,stroke:#334155,stroke-dasharray: 5 5,color:#fff
     
-    subgraph "🔌 External Service Integrations"
-        subgraph "💳 Payment Gateway Ecosystem"
-            STRIPE_TECH[💳 Stripe<br/>Global Payment Processing<br/>3D Secure 2.0<br/>Webhooks<br/>99.99% Uptime]
-            PAYPAL_TECH[🅿️ PayPal<br/>Digital Wallet<br/>Express Checkout<br/>Buyer Protection<br/>Global Reach]
-            MADA_TECH[🏛️ Mada<br/>Saudi Local Cards<br/>Real-time Processing<br/>SAMA Compliant<br/>Local Currency]
-            STC_TECH[📱 STC Pay<br/>Mobile Payments<br/>OTP Verification<br/>Instant Transfer<br/>Saudi Market]
-        end
-        
-        subgraph "👁️ Multi-Engine OCR Services"
-            GOOGLE_OCR[🔍 Google Cloud Vision<br/>Text Detection<br/>Document Analysis<br/>99.9% Accuracy<br/>Multi-language Support]
-            AWS_OCR[📄 AWS Textract<br/>Document Processing<br/>Form Recognition<br/>Table Extraction<br/>Handwriting Detection]
-            AZURE_OCR[🔷 Azure Computer Vision<br/>OCR Processing<br/>Layout Analysis<br/>Multi-format Support<br/>Real-time Processing]
-            TESSERACT_OCR[⚙️ Tesseract OCR<br/>Open Source Engine<br/>Local Processing<br/>Privacy Focused<br/>Cost Effective]
-        end
-        
-        subgraph "🏛️ Compliance & Government"
-            ZATCA_TECH[🏛️ ZATCA Portal<br/>Saudi Tax Authority<br/>E-Invoice Submission<br/>Digital Signatures<br/>QR Code Generation]
-            SAMA_TECH[🏦 SAMA Integration<br/>Financial Regulations<br/>AML Compliance<br/>Transaction Monitoring<br/>Regulatory Reporting]
-        end
-        
-        subgraph "📱 Communication Services"
-            UNIFONIC_TECH[📲 Unifonic SMS<br/>Saudi Arabia Provider<br/>Unicode Support<br/>Delivery Reports<br/>Bulk Messaging]
-            FCM_TECH[🔔 Firebase FCM<br/>Push Notifications<br/>Cross-platform<br/>Real-time Delivery<br/>Analytics Integration]
-            SES_TECH[📧 Amazon SES<br/>Email Service<br/>High Deliverability<br/>Bounce Handling<br/>Reputation Management]
-        end
-    end
+    %% AWS Neon
+    style AWS fill:#232f3e,stroke:#FF9900,stroke-width:3px,color:#FF9900
+    style EKS fill:#FF9900,color:#000
+    style RDS fill:#FF9900,color:#000
     
-    subgraph "📊 Multi-Cloud Monitoring & Observability"
-        subgraph "📈 Metrics & Analytics"
-            PROMETHEUS_TECH[📊 Prometheus<br/>Multi-cluster Federation<br/>Time Series Database<br/>PromQL Queries<br/>Alert Manager]
-            GRAFANA_TECH[📈 Grafana Enterprise<br/>Multi-datasource Dashboards<br/>Alert Correlation<br/>Team Management<br/>Plugin Ecosystem]
-        end
-        
-        subgraph "📋 Logging & Tracing"
-            ELASTIC_TECH[🔍 Elastic Cloud<br/>Centralized Logging<br/>Full-text Search<br/>Machine Learning<br/>Security Analytics]
-            JAEGER_TECH[🔗 Jaeger Tracing<br/>Distributed Tracing<br/>Performance Monitoring<br/>Root Cause Analysis<br/>Service Dependencies]
-        end
-        
-        subgraph "🚨 Error Tracking & APM"
-            NEWRELIC_TECH[📱 New Relic<br/>Application Performance<br/>Infrastructure Monitoring<br/>Error Tracking<br/>Business Insights]
-            SENTRY_TECH[🚨 Sentry<br/>Error Monitoring<br/>Performance Monitoring<br/>Release Health<br/>Issue Tracking]
-        end
-    end
+    %% DigitalOcean Neon
+    style DO fill:#000b1a,stroke:#0080FF,stroke-width:3px,color:#0080FF
+    style DOKS fill:#0080FF,color:#fff
+    style DODB fill:#0080FF,color:#fff
     
-    %% Framework Connections
-    PHP --> COMPOSER
-    PHP --> PHPSTAN
-    PHP --> PHPUNIT
-    
-    %% Multi-cloud Data Connections
-    PHP --> RDS_STACK
-    PHP --> DO_DB
-    PHP --> LINODE_DB
-    
-    PHP --> ELASTICACHE_STACK
-    PHP --> DO_REDIS
-    PHP --> LINODE_REDIS
-    
-    PHP --> S3_STACK
-    PHP --> DO_SPACES
-    PHP --> LINODE_STORAGE
-    
-    %% Container Orchestration
-    PHP --> EKS
-    PHP --> DOKS
-    PHP --> LKE
-    
-    EKS --> ECR
-    DOKS --> DO_REGISTRY
-    LKE --> LINODE_REGISTRY
-    
-    %% Payment Gateway Integrations
-    PHP --> STRIPE_TECH
-    PHP --> PAYPAL_TECH
-    PHP --> MADA_TECH
-    PHP --> STC_TECH
-    
-    %% OCR Service Integrations
-    PHP --> GOOGLE_OCR
-    PHP --> AWS_OCR
-    PHP --> AZURE_OCR
-    PHP --> TESSERACT_OCR
-    
-    %% Compliance Integrations
-    PHP --> ZATCA_TECH
-    PHP --> SAMA_TECH
-    
-    %% Communication Services
-    PHP --> UNIFONIC_TECH
-    PHP --> FCM_TECH
-    PHP --> SES_TECH
-    
-    %% Monitoring Connections
-    PHP --> PROMETHEUS_TECH
-    PHP --> GRAFANA_TECH
-    PHP --> ELASTIC_TECH
-    PHP --> JAEGER_TECH
-    PHP --> NEWRELIC_TECH
-    PHP --> SENTRY_TECH
-    
-    %% Enhanced Multi-Cloud Styling
-    style PHP fill:#8892BF,stroke:#6B73C1,stroke-width:4px,color:#fff
-    style COMPOSER fill:#885630,stroke:#6B4423,stroke-width:3px,color:#fff
-    style PHPSTAN fill:#4A90E2,stroke:#357ABD,stroke-width:3px,color:#fff
-    style PHPUNIT fill:#366832,stroke:#2A5228,stroke-width:3px,color:#fff
-    
-    %% AWS Services Styling
-    style RDS_STACK fill:#FF9500,stroke:#E6850E,stroke-width:3px,color:#fff
-    style ELASTICACHE_STACK fill:#FF6B47,stroke:#E6522C,stroke-width:3px,color:#fff
-    style S3_STACK fill:#FF8C42,stroke:#E67A2E,stroke-width:3px,color:#fff
-    style EKS fill:#FF7A00,stroke:#E66B00,stroke-width:3px,color:#fff
-    style ECR fill:#FF9933,stroke:#E6851F,stroke-width:3px,color:#fff
-    
-    %% DigitalOcean Services Styling
-    style DO_DB fill:#0080FF,stroke:#0066CC,stroke-width:3px,color:#fff
-    style DO_REDIS fill:#4169E1,stroke:#2E4BC6,stroke-width:3px,color:#fff
-    style DO_SPACES fill:#1E90FF,stroke:#0F7AE5,stroke-width:3px,color:#fff
-    style DOKS fill:#0066FF,stroke:#0052CC,stroke-width:3px,color:#fff
-    style DO_REGISTRY fill:#3399FF,stroke:#1F85E6,stroke-width:3px,color:#fff
-    
-    %% Linode Services Styling
-    style LINODE_DB fill:#00B04F,stroke:#00A040,stroke-width:3px,color:#fff
-    style LINODE_REDIS fill:#32CD32,stroke:#28B428,stroke-width:3px,color:#fff
-    style LINODE_STORAGE fill:#90EE90,stroke:#7DD87D,stroke-width:3px,color:#000
-    style LKE fill:#228B22,stroke:#1E7A1E,stroke-width:3px,color:#fff
-    style LINODE_REGISTRY fill:#9ACD32,stroke:#87B82A,stroke-width:3px,color:#000
-    
-    %% Payment Services Styling
-    style STRIPE_TECH fill:#635BFF,stroke:#5A52E6,stroke-width:3px,color:#fff
-    style PAYPAL_TECH fill:#0070BA,stroke:#005EA6,stroke-width:3px,color:#fff
-    style MADA_TECH fill:#1B365D,stroke:#163052,stroke-width:3px,color:#fff
-    style STC_TECH fill:#E60012,stroke:#CC0010,stroke-width:3px,color:#fff
-    
-    %% OCR Services Styling
-    style GOOGLE_OCR fill:#4285F4,stroke:#3367D6,stroke-width:3px,color:#fff
-    style AWS_OCR fill:#FF9900,stroke:#E6850E,stroke-width:3px,color:#fff
-    style AZURE_OCR fill:#0078D4,stroke:#0063AA,stroke-width:3px,color:#fff
-    style TESSERACT_OCR fill:#2E8B57,stroke:#25784A,stroke-width:3px,color:#fff
-    
-    %% Compliance Services Styling
-    style ZATCA_TECH fill:#006C35,stroke:#005A2D,stroke-width:3px,color:#fff
-    style SAMA_TECH fill:#8B4513,stroke:#7A3C11,stroke-width:3px,color:#fff
-    
-    %% Communication Services Styling
-    style UNIFONIC_TECH fill:#FF6B35,stroke:#E6522C,stroke-width:3px,color:#fff
-    style FCM_TECH fill:#FFA000,stroke:#E6900E,stroke-width:3px,color:#fff
-    style SES_TECH fill:#FF9900,stroke:#E6850E,stroke-width:3px,color:#fff
-    
-    %% Monitoring Services Styling
-    style PROMETHEUS_TECH fill:#E6522C,stroke:#CC4A28,stroke-width:3px,color:#fff
-    style GRAFANA_TECH fill:#F46800,stroke:#DB5E00,stroke-width:3px,color:#fff
-    style ELASTIC_TECH fill:#005571,stroke:#004A5C,stroke-width:3px,color:#fff
-    style JAEGER_TECH fill:#60D0E4,stroke:#4FC3D7,stroke-width:3px,color:#000
-    style NEWRELIC_TECH fill:#008C99,stroke:#007A85,stroke-width:3px,color:#fff
-    style SENTRY_TECH fill:#362D59,stroke:#2E254A,stroke-width:3px,color:#fff
+    %% Linode Neon
+    style LIN fill:#001a09,stroke:#00B04F,stroke-width:3px,color:#00B04F
+    style LKE fill:#00B04F,color:#fff
+    style LNDB fill:#00B04F,color:#fff
+
+    %% Specialized Services
+    style FINTECH fill:#1e1e1e,stroke:#d4af37,stroke-width:3px,color:#d4af37
+    style ZATCA fill:#006C35,color:#fff
+    style PAY fill:#E60012,color:#fff
+    style OBS fill:#1e1e1e,stroke:#00f2ff,stroke-width:2px,color:#00f2ff
 ```
 
 ### 🚀 Multi-Cloud DevOps & Infrastructure
@@ -809,8 +677,8 @@ graph TB
     style LOGS fill:#0d1117,stroke:#3fb950
     style APM fill:#0d1117,stroke:#3fb950
     style GRAFANA fill:#f46800,stroke:#fff,stroke-width:4px
-
 ```
+```mermaid
 flowchart TB
     subgraph "🔄 Advanced CI/CD Pipeline"
         subgraph "📝 Source Control & Quality"
