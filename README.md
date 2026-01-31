@@ -26,38 +26,38 @@ The **Reverse Tender Platform** revolutionizes the automotive parts industry in 
 graph TB
     %% Subgraph 1: Customer Journey
     subgraph CJ ["<br>🚗 CUSTOMER JOURNEY"]
-        A(["<b>Post Part Request</b><br/>(User Interface)"]) 
-        B(["<b>VIN OCR Processing</b><br/>(AI Extraction)"])
-        C(["<b>Smart Part Matching</b><br/>(Catalog Sync)"])
-        D(["<b>Merchant Notifications</b><br/>(Push/SMS)"])
+        A(["<b>📝 Post Part Request</b><br/>(User Interface)"]) 
+        B(["<b>🔍 VIN OCR Extraction</b><br/>(AI Processing)"])
+        C(["<b>⚙️ Smart Part Matching</b><br/>(Catalog Sync)"])
+        D(["<b>🔔 Merchant Alerts</b><br/>(Push/SMS)"])
         
         A ==> B ==> C ==> D
     end
     
     %% Subgraph 2: Merchant Response
     subgraph MR ["<br>🏪 MERCHANT RESPONSE"]
-        E(["<b>Competitive Bidding</b><br/>(Live Auction)"])
-        F(["<b>Bid Analysis & Ranking</b><br/>(Logic Engine)"])
-        G(["<b>Customer Selection</b><br/>(Decision)"])
+        E(["<b>⚖️ Competitive Bidding</b><br/>(Live Auction)"])
+        F(["<b>📊 Bid Ranking</b><br/>(Logic Engine)"])
+        G(["<b>✅ Customer Selection</b><br/>(Decision)"])
         
         D ==> E ==> F ==> G
     end
     
     %% Subgraph 3: Transaction & Compliance
     subgraph TF ["<br>💳 TRANSACTION FLOW"]
-        H(["<b>Order Creation</b><br/>(Ledger Entry)"])
-        I(["<b>Multi-Gateway Payment</b><br/>(Checkout)"])
-        J(["<b>ZATCA Invoice</b><br/>(Tax Compliance)"])
-        K(["<b>Order Fulfillment</b><br/>(Shipping)"])
+        H(["<b>📖 Order Creation</b><br/>(Ledger Entry)"])
+        I(["<b>💰 Multi-Gateway Pay</b><br/>(Checkout)"])
+        J(["<b>🇸🇦 ZATCA Invoice</b><br/>(Tax Compliance)"])
+        K(["<b>📦 Order Fulfillment</b><br/>(Shipping)"])
         
         G ==> H ==> I ==> J ==> K
     end
 
     %% Subgraph 4: Post-Sales & Analytics
     subgraph PS ["<br>📈 POST-SALES & GROWTH"]
-        L(["<b>Rating & Review</b><br/>(Trust Layer)"])
-        M(["<b>Refunds/Disputes</b><br/>(Escrow Release)"])
-        N(["<b>AI Model Tuning</b><br/>(Feedback Loop)"])
+        L(["<b>⭐ Rating & Review</b><br/>(Trust Layer)"])
+        M(["<b>🛑 Refunds/Disputes</b><br/>(Escrow Release)"])
+        N(["<b>🧠 AI Model Tuning</b><br/>(Feedback Loop)"])
         
         K ==> L
         K ==> M
@@ -65,25 +65,27 @@ graph TB
     end
 
     %% External Infrastructure
-    EXT1{{AI/ML Service}} -.-> B
+    EXT1{{🤖 AI/ML Service}} -.-> B
     EXT1 -.-> N
-    EXT2[(Parts DB)] -.-> C
-    EXT3{{Payment}} --- I
-    EXT4{{ZATCA}} --- J
-    EXT5{{Logistics}} --- K
+    EXT2[(🗄️ Parts DB)] -.-> C
+    EXT3{{💳 Payment}} --- I
+    EXT4{{🏛️ ZATCA}} --- J
+    EXT5{{🚚 Logistics}} --- K
 
-    %% Styling Logic
-    classDef default font-family:Segoe UI,Arial,sans-serif,font-size:13px,color:#333;
+    %% Dark Mode Styling
+    classDef default font-family:Arial,sans-serif,font-size:13px,color:#E0E0E0,stroke-width:2px;
     
-    style CJ fill:#f0f7ff,stroke:#0288d1,stroke-width:2px,stroke-dasharray: 5 5
-    style MR fill:#fdf2ff,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5
-    style TF fill:#f1f8e9,stroke:#388e3c,stroke-width:2px,stroke-dasharray: 5 5
-    style PS fill:#fff8e1,stroke:#ffa000,stroke-width:2px,stroke-dasharray: 5 5
+    style CJ fill:#0D1B2A,stroke:#3A86FF,stroke-width:2px,color:#A9D1FF
+    style MR fill:#1A1625,stroke:#BE4DFF,stroke-width:2px,color:#E0B0FF
+    style TF fill:#0B1A10,stroke:#00C853,stroke-width:2px,color:#A5D6A7
+    style PS fill:#1C1912,stroke:#FFAB00,stroke-width:2px,color:#FFE082
 
-    %% Specific Node Accents
-    style J fill:#fffde7,stroke:#fbc02d,stroke-width:3px
-    style N fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style M fill:#ffebee,stroke:#c62828,stroke-width:1px
+    %% Specific High-Contrast Accents
+    style J fill:#3E3610,stroke:#FFD600,stroke-width:3px,color:#FFD600
+    style N fill:#004E7C,stroke:#4FC3F7,stroke-width:2px,color:#E1F5FE
+    style M fill:#2C1616,stroke:#FF5252,stroke-width:2px,color:#FF8A80
+    style EXT1 fill:#263238,stroke:#90A4AE,color:#CFD8DC
+    style EXT2 fill:#263238,stroke:#90A4AE,color:#CFD8DC
 ```
 
 ---
