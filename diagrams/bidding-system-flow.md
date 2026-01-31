@@ -47,100 +47,116 @@
 ```
 ```mermaid
 %%{init: {
-  'theme': 'base',
+  'theme': 'dark',
   'themeVariables': {
-    'primaryColor': '#00E5FF',
+    'primaryColor': '#FF4757',
     'primaryTextColor': '#FFFFFF',
-    'primaryBorderColor': '#00E5FF',
-    'lineColor': '#00E5FF',
-    'secondaryColor': '#FF00FF',
-    'tertiaryColor': '#121212',
+    'primaryBorderColor': '#FF6B81',
+    'lineColor': '#2ED573',
+    'secondaryColor': '#1E90FF',
+    'tertiaryColor': '#FFA502',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#1E293B',
+    'actorBkg': '#FF4757',
+    'actorBorder': '#FF6B81',
     'actorTextColor': '#FFFFFF',
-    'actorBkg': '#1A1A1A',
-    'actorBorder': '#00E5FF',
-    'noteTextColor': '#FFFFFF',
-    'noteBkgColor': '#2D2D2D',
-    'signalColor': '#FFFFFF',
-    'signalTextColor': '#FFFFFF',
-    'labelTextColor': '#FFFFFF',
-    'loopTextColor': '#00E5FF',
-    'sequenceNumberColor': '#000000'
+    'activationBkgColor': '#2ED573',
+    'activationBorderColor': '#FFFFFF',
+    'noteBkgColor': '#FFA502',
+    'noteTextColor': '#000000'
   }
 }}%%
+
 sequenceDiagram
     autonumber
+    participant Customer as 👤 Customer
+    participant PWA as 📱 PWA Client
+    participant Gateway as 🚪 API Gateway
+    participant Order as 📋 Order Service
+    participant Bidding as 🎯 Bidding Service
+    participant Notification as 📢 Notification Service
+    participant Merchant as 🏪 Merchant
+    participant WebSocket as 🔄 WebSocket Server
+    participant Redis as ⚡ Redis Queue
+    participant DB as 🗃️ Database
     
-    box "User Experience" #121212
-        participant C as 👤 Customer
-        participant P as 📱 PWA Client
-    end
+    rect rgb(30, 41, 59)
+    Note over Customer,DB: 1. Order Creation & Publishing
+    Customer->>PWA: Create part request
+    PWA->>Gateway: POST /api/orders
+    Gateway->>Order: Create order
+    Order->>DB: Save order (status: draft)
+    Order->>PWA: Order ID Created
     
-    box "Edge & Real-time" #001F3F
-        participant G as 🚪 Gateway
-        participant WS as 🔄 WebSocket
-    end
-    
-    box "Core Services" #1F003F
-        participant O as 📋 Order SVC
-        participant B as 🎯 Bidding SVC
-        participant N as 📢 Notify SVC
-    end
-    
-    box "Data Plane" #002B16
-        participant R as ⚡ Redis
-        participant DB as 🗃️ DB
+    Customer->>PWA: Publish order
+    PWA->>Gateway: PUT /api/orders/{id}/publish
+    Order->>DB: Update status to 'published'
+    Order->>Redis: Publish order_published event
+    Order->>PWA: Order is now live
     end
 
-    Note over C, DB: 🟢 INITIALIZATION & PUBLISHING
-    rect rgb(30, 30, 30)
-        C->>P: Create & Publish
-        P->>G: POST/PUT /api/orders
-        G->>O: Process Order
-        O->>DB: Status: Published
-        O->>R: Event: order_published
-        R->>N: Trigger Logic
-        N-->>C: Push: "Live"
+    rect rgb(15, 23, 42)
+    Note over Customer,DB: 2. Merchant Discovery & Bidding
+    Redis->>Notification: order_published event
+    Notification->>DB: Filter merchants (Geo/Specs)
+    Notification->>Merchant: Push/SMS/Email Alert
+    
+    Merchant->>Gateway: POST /api/bids
+    Bidding->>DB: Validate constraints
+    alt Valid bid
+        Bidding->>DB: Save bid
+        Bidding->>Redis: Publish bid_created
+        Bidding->>WebSocket: Broadcast to Customer
+        Bidding->>Merchant: 201 Created
+    else Invalid bid
+        Bidding->>Merchant: 400 Bad Request
+    end
     end
 
-    Note over C, DB: 🟠 COMPETITIVE BIDDING & MESSAGING
-    rect rgb(45, 35, 10)
-        loop Merchant Interaction
-            participant M as 🏪 Merchant
-            M->>G: POST /bids
-            B->>DB: Validate & Save
-            B->>R: bid_created
-            B->>WS: Broadcast
-            WS-->>P: Update UI
-            M->>G: POST /messages
-            B->>WS: Push Message
-            WS-->>P: "New Message"
+    rect rgb(30, 41, 59)
+    Note over Customer,DB: 3. Real-time Communication & Auto-bidding
+    Merchant->>Gateway: POST /api/bids/{id}/messages
+    Bidding->>WebSocket: Push message to Customer
+    Customer->>PWA: Reply to Merchant
+    PWA->>WebSocket: Push reply to Merchant
+
+    Note right of Bidding: Auto-bid Trigger
+    loop On competing bid
+        Bidding->>Bidding: Check merchant rules
+        alt Threshold met
+            Bidding->>DB: Create counter-bid
+            Bidding->>WebSocket: Broadcast auto-bid
         end
     end
-
-    Note over C, DB: ⚡ AUTO-BIDDING ENGINE (BG PROCESS)
-    rect rgb(40, 0, 60)
-        B->>B: Check Auto-rules
-        B->>DB: Execute Counter-bid
-        B->>R: auto_bid_created
-        B->>WS: Update Market Price
-        B->>N: Alert Merchant
     end
 
-    Note over C, DB: 🏆 AWARD & FINALIZATION
-    rect rgb(10, 40, 20)
-        C->>P: Select Winner
-        P->>G: POST /award
-        B->>DB: Atomic State Change
-        B->>R: bid_awarded
-        N-->>M: SMS: "You Won!"
-        N-->>M: SMS: "Not Selected" (Losing Bids)
+    rect rgb(15, 23, 42)
+    Note over Customer,DB: 4. Bid Management (Withdrawal & Expiration)
+    Merchant->>Gateway: DELETE /api/bids/{id}
+    Bidding->>DB: Check if award exists
+    Bidding->>DB: Set status: 'withdrawn'
+    Bidding->>WebSocket: Update Customer UI
+
+    Note left of Bidding: Cron Job: Check Deadlines
+    Bidding->>DB: Update status: 'expired'
+    Bidding->>Redis: Publish order_expired
+    Notification->>Customer: Notify: No winner selected
     end
 
-    Note over C, DB: 🔴 CLEANUP
-    rect rgb(50, 10, 10)
-        B->>DB: Scan Cron
-        B->>R: order_expired
-        N-->>C: Push: "Expired"
+    rect rgb(30, 41, 59)
+    Note over Customer,DB: 5. Final Award Process
+    Customer->>PWA: Select winning bid
+    PWA->>Gateway: POST /api/orders/{id}/award
+    Bidding->>DB: Update 'awarded' & 'rejected' statuses
+    Bidding->>Redis: Publish bid_awarded
+    
+    par Async Notifications
+        Notification->>Merchant: Push (You Won!)
+        Notification->>Merchant: Email (Contract/Next Steps)
+        Notification->>Customer: Confirmation Receipt
+    end
     end
 ```
 
