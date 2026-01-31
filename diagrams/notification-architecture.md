@@ -119,50 +119,75 @@ graph TB
 }}%%
 
 sequenceDiagram
+    autonumber
     participant Service as 🔧 Any Service
     participant Queue as 📨 Redis Queue
-    participant NotificationService as 📢 Notification Service
+    participant NS as 📢 Notification Service
     participant DB as 🗃️ Database
-    participant PushWorker as 🔔 Push Worker
-    participant SMSWorker as 📱 SMS Worker
-    participant EmailWorker as 📧 Email Worker
-    participant WebSocketWorker as 🔄 WebSocket Worker
+    participant Push as 🔔 Push Worker
+    participant SMS as 📱 SMS Worker
+    participant Email as 📧 Email Worker
+    participant WS as 🔄 WebSocket Worker
     participant Client as 📱 Client App
     
-    Note over Service,Client: Event-Driven Notification Flow
+    Note over Service,Client: ⚡ EVENT-DRIVEN NOTIFICATION ARCHITECTURE ⚡
     
-    Service->>Queue: Publish event (order_created, bid_received, etc.)
-    Queue->>NotificationService: Event received
+    Service->>Queue: 📤 Publish event
+    activate Queue
+    Queue-->>NS: 📥 Trigger Received
+    deactivate Queue
     
-    NotificationService->>DB: Get user notification preferences
-    NotificationService->>DB: Get notification template
-    NotificationService->>NotificationService: Build notification content
-    
-    alt Push notification enabled
-        NotificationService->>PushWorker: Queue push notification
-        PushWorker->>PushWorker: Send to FCM/APNS
-        PushWorker->>Client: Push notification delivered
+    activate NS
+    rect rgb(30, 41, 59)
+    NS->>DB: 🔍 Fetch preferences & templates
+    activate DB
+    DB-->>NS: 📋 Data returned
+    deactivate DB
+    NS->>NS: ⚙️ Build notification content
     end
     
-    alt SMS notification enabled
-        NotificationService->>SMSWorker: Queue SMS notification
-        SMSWorker->>SMSWorker: Send via Twilio/AWS SNS
-        SMSWorker->>Client: SMS delivered
+    rect rgba(255, 71, 87, 0.2)
+    alt 🔔 Push notification enabled
+        NS->>Push: 🚀 Queue push notification
+        activate Push
+        Push->>Push: 🔒 Send to FCM/APNS
+        Push->>Client: 📲 Push delivered
+        deactivate Push
+    end
     end
     
-    alt Email notification enabled
-        NotificationService->>EmailWorker: Queue email notification
-        EmailWorker->>EmailWorker: Send via SendGrid/SES
-        EmailWorker->>Client: Email delivered
+    rect rgba(46, 213, 115, 0.2)
+    alt 📱 SMS notification enabled
+        NS->>SMS: 🚀 Queue SMS notification
+        activate SMS
+        SMS->>SMS: 💬 Send via Twilio/SNS
+        SMS->>Client: 💬 SMS delivered
+        deactivate SMS
+    end
     end
     
-    alt In-app notification enabled
-        NotificationService->>WebSocketWorker: Queue in-app notification
-        WebSocketWorker->>DB: Save notification record
-        WebSocketWorker->>Client: Real-time in-app notification
+    rect rgba(30, 144, 255, 0.2)
+    alt 📧 Email notification enabled
+        NS->>Email: 🚀 Queue email notification
+        activate Email
+        Email->>Email: 📬 Send via SendGrid/SES
+        Email->>Client: 📬 Email delivered
+        deactivate Email
+    end
     end
     
-    NotificationService->>DB: Log notification delivery status
+    rect rgba(255, 165, 2, 0.2)
+    alt 🔄 In-app notification enabled
+        NS->>WS: 🚀 Queue in-app notification
+        activate WS
+        WS->>DB: 💾 Save record
+        WS->>Client: 🟢 Real-time notification
+        deactivate WS
+    end
+    end
+    
+    NS->>DB: ✅ Log delivery status
+    deactivate NS
 ```
 
 ## 🔔 Notification Types & Templates
