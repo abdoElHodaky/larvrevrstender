@@ -127,219 +127,263 @@ graph TB
 
 ### 🚀 Multi-Cloud Deployment Architecture
 ```mermaid
-graph TB
+    flowchart TB
+    %% Global Styling Definitions
+    classDef default font-family:Inter,font-weight:bold,color:#fff,stroke-width:2px;
+    
+    subgraph GOVERNANCE ["🏗️ 1. GOVERNANCE & DELIVERY (THE FACTORY)"]
+        direction LR
+        subgraph SCM ["Source & Quality"]
+            GIT["GitHub Enterprise"] ==> QG["Sonar / Snyk"]
+        end
+        subgraph CI ["Build & Registry"]
+            BLD["Multi-arch Docker"] ==> REG["ECR / Harbor"]
+        end
+        subgraph CD ["GitOps Deployment"]
+            ARGO["ArgoCD / Terraform"] ==> RB["Auto-Rollback"]
+        end
+        SCM ==> CI ==> CD
+    end
+
+    subgraph RUNTIME ["☸️ 2. MULTI-CLOUD RUNTIME (THE FOUNDATION)"]
+        direction TB
+        
+        subgraph CLOUD_CORE ["Compute Clusters"]
+            direction LR
+            subgraph AWS_PROD ["🟠 AWS (Primary)"]
+                ALB_A["ALB / WAF"] --- EKS["EKS 1.28"]
+                RDS["RDS Multi-AZ"] --- S3["S3 Assets"]
+            end
+            
+            subgraph DO_DR ["🔵 DigitalOcean (Secondary/DR)"]
+                LB_D["DO LB"] --- DOKS["DOKS Cluster"]
+                MDB["DO Managed DB"] --- SPC["Spaces Storage"]
+            end
+
+            subgraph LIN_DEV ["🟢 Linode (Dev/Test)"]
+                NB_L["NodeBalancer"] --- LKE["LKE Engine"]
+                LDB["Linode DB"] --- OBJ["Obj Storage"]
+            end
+        end
+
+        subgraph FABRIC ["🕸️ THE MESH FABRIC"]
+            direction LR
+            ISTIO["Istio Service Mesh"] <--> LNK["Linkerd mTLS"]
+            NGX["NGINX Ingress"] <--> TRF["Traefik Edge"]
+        end
+        
+        CLOUD_CORE <==> FABRIC
+    end
+
+    subgraph GUARDRAILS ["🛡️ 3. SECURITY & OBSERVABILITY (THE BRAIN)"]
+        direction BT
+        subgraph SEC ["Zero Trust"]
+            VAULT["Vault Secrets"] --- OPA["Policy as Code"]
+            FALCO["Falco Runtime"] --- SEAL["Sealed Secrets"]
+        end
+        subgraph OBS ["Unified Glass"]
+            PROM["Prometheus/Thanos"] --- ELK["Elastic Stack"]
+            JAEG["Jaeger Tracing"] --- NR["New Relic APM"]
+        end
+        SEC ==> OBS
+        OBS ==> GRAFANA["📈 GRAFANA MASTER DASHBOARD"]
+    end
+
+    %% Strategic Interconnects
+    CD ==> RUNTIME
+    RUNTIME ==> GUARDRAILS
+
+    %% DISTINGUISHED STYLING
+    style GOVERNANCE fill:#1a1c2e,stroke:#8957e5,stroke-width:4px
+    style RUNTIME fill:#0b0e14,stroke:#fff,stroke-width:4px
+    style GUARDRAILS fill:#161b22,stroke:#3fb950,stroke-width:4px
+    
+    style AWS_PROD fill:#232f3e,stroke:#ff9900
+    style DO_DR fill:#002b5c,stroke:#0080ff
+    style LIN_DEV fill:#003b1a,stroke:#00b04f
+    
+    style GRAFANA fill:#f46800,stroke:#fff,stroke-width:5px,color:#fff
+```
+
+```mermaid
+flowchart TB
     subgraph "🌐 Multi-Cloud Infrastructure"
         subgraph "☁️ AWS Production (Primary)"
             subgraph "🔄 AWS Load Balancing"
-                ALB_AWS[🟠 AWS ALB<br/>Application Load Balancer<br/>SSL Termination • WAF<br/>Auto Scaling • Multi-AZ<br/>99.99% SLA]
+                ALB_AWS["🟠 AWS ALB<br/>Application Load Balancer<br/>SSL Termination • WAF<br/>Auto Scaling • Multi-AZ<br/>99.99% SLA"]
             end
-            
             subgraph "☸️ AWS EKS Cluster"
                 subgraph "🏠 Namespace: reversetender-aws-prod"
-                    POD1_AWS[👤 User Service<br/>🟠 EKS Pods (3 replicas)<br/>Auto-scaling • Health Checks<br/>Resource: 2 CPU, 4GB RAM]
-                    POD2_AWS[📦 Order Service<br/>🟠 EKS Pods (3 replicas)<br/>Auto-scaling • Health Checks<br/>Resource: 2 CPU, 4GB RAM]
-                    POD3_AWS[💳 Payment Service<br/>🟠 EKS Pods (3 replicas)<br/>Auto-scaling • Health Checks<br/>Resource: 2 CPU, 4GB RAM]
-                    POD4_AWS[📱 Notification Service<br/>🟠 EKS Pods (2 replicas)<br/>Auto-scaling • Health Checks<br/>Resource: 1 CPU, 2GB RAM]
+                    POD1_AWS["👤 User Service<br/>🟠 EKS Pods (3 replicas)<br/>Auto-scaling • Health Checks<br/>Resource: 2 CPU, 4GB RAM"]
+                    POD2_AWS["📦 Order Service<br/>🟠 EKS Pods (3 replicas)<br/>Auto-scaling • Health Checks<br/>Resource: 2 CPU, 4GB RAM"]
+                    POD3_AWS["💳 Payment Service<br/>🟠 EKS Pods (3 replicas)<br/>Auto-scaling • Health Checks<br/>Resource: 2 CPU, 4GB RAM"]
+                    POD4_AWS["📱 Notification Service<br/>🟠 EKS Pods (2 replicas)<br/>Auto-scaling • Health Checks<br/>Resource: 1 CPU, 2GB RAM"]
                 end
             end
-            
             subgraph "💾 AWS Data Services"
-                RDS_AWS[🟠 AWS RDS MySQL<br/>Multi-AZ Deployment<br/>Read Replicas (3)<br/>Automated Backups<br/>Point-in-time Recovery]
-                ELASTICACHE_AWS[🟠 AWS ElastiCache<br/>Redis Cluster Mode<br/>Encryption at Rest/Transit<br/>Multi-AZ Replication<br/>Automatic Failover]
-                S3_AWS[🟠 AWS S3<br/>Object Storage<br/>Versioning • Lifecycle<br/>Cross-Region Replication<br/>99.999999999% Durability]
+                RDS_AWS["🟠 AWS RDS MySQL<br/>Multi-AZ Deployment<br/>Read Replicas (3)<br/>Automated Backups<br/>Point-in-time Recovery"]
+                ELASTICACHE_AWS["🟠 AWS ElastiCache<br/>Redis Cluster Mode<br/>Encryption at Rest/Transit<br/>Multi-AZ Replication<br/>Automatic Failover"]
+                S3_AWS["🟠 AWS S3<br/>Object Storage<br/>Versioning • Lifecycle<br/>Cross-Region Replication<br/>99.999999999% Durability"]
             end
         end
-        
         subgraph "🌊 DigitalOcean (Secondary/DR)"
             subgraph "🔄 DO Load Balancing"
-                LB_DO[🔵 DO Load Balancer<br/>Layer 4/7 Load Balancing<br/>SSL Termination<br/>Health Checks<br/>99.99% SLA]
+                LB_DO["🔵 DO Load Balancer<br/>Layer 4/7 Load Balancing<br/>SSL Termination<br/>Health Checks<br/>99.99% SLA"]
             end
-            
             subgraph "☸️ DO Kubernetes"
                 subgraph "🏠 Namespace: reversetender-do-dr"
-                    POD1_DO[👤 User Service<br/>🔵 DOKS Pods (2 replicas)<br/>Disaster Recovery<br/>Resource: 2 CPU, 4GB RAM]
-                    POD2_DO[📦 Order Service<br/>🔵 DOKS Pods (2 replicas)<br/>Disaster Recovery<br/>Resource: 2 CPU, 4GB RAM]
-                    POD3_DO[💳 Payment Service<br/>🔵 DOKS Pods (2 replicas)<br/>Disaster Recovery<br/>Resource: 2 CPU, 4GB RAM]
-                    POD4_DO[📱 Notification Service<br/>🔵 DOKS Pods (1 replica)<br/>Disaster Recovery<br/>Resource: 1 CPU, 2GB RAM]
+                    POD1_DO["👤 User Service<br/>🔵 DOKS Pods (2 replicas)<br/>Disaster Recovery<br/>Resource: 2 CPU, 4GB RAM"]
+                    POD2_DO["📦 Order Service<br/>🔵 DOKS Pods (2 replicas)<br/>Disaster Recovery<br/>Resource: 2 CPU, 4GB RAM"]
+                    POD3_DO["💳 Payment Service<br/>🔵 DOKS Pods (2 replicas)<br/>Disaster Recovery<br/>Resource: 2 CPU, 4GB RAM"]
+                    POD4_DO["📱 Notification Service<br/>🔵 DOKS Pods (1 replica)<br/>Disaster Recovery<br/>Resource: 1 CPU, 2GB RAM"]
                 end
             end
-            
             subgraph "💾 DO Data Services"
-                DB_DO[🔵 DO Managed Database<br/>MySQL Cluster<br/>Automated Backups<br/>Point-in-time Recovery<br/>High Availability]
-                REDIS_DO[🔵 DO Managed Redis<br/>Redis Cluster<br/>Memory Optimization<br/>Automatic Failover<br/>Data Persistence]
-                SPACES_DO[🔵 DO Spaces<br/>S3-Compatible Storage<br/>CDN Integration<br/>Global Distribution<br/>99.9% SLA]
+                DB_DO["🔵 DO Managed Database<br/>MySQL Cluster<br/>Automated Backups<br/>Point-in-time Recovery<br/>High Availability"]
+                REDIS_DO["🔵 DO Managed Redis<br/>Redis Cluster<br/>Memory Optimization<br/>Automatic Failover<br/>Data Persistence"]
+                SPACES_DO["🔵 DO Spaces<br/>S3-Compatible Storage<br/>CDN Integration<br/>Global Distribution<br/>99.9% SLA"]
             end
         end
-        
         subgraph "🟢 Linode (Development/Testing)"
             subgraph "🔄 Linode Load Balancing"
-                LB_LINODE[🟢 Linode NodeBalancer<br/>Layer 4 Load Balancing<br/>SSL Termination<br/>Health Checks<br/>99.9% SLA]
+                LB_LINODE["🟢 Linode NodeBalancer<br/>Layer 4 Load Balancing<br/>SSL Termination<br/>Health Checks<br/>99.9% SLA"]
             end
-            
             subgraph "☸️ Linode LKE"
                 subgraph "🏠 Namespace: reversetender-linode-dev"
-                    POD1_LINODE[👤 User Service<br/>🟢 LKE Pods (1 replica)<br/>Development Environment<br/>Resource: 1 CPU, 2GB RAM]
-                    POD2_LINODE[📦 Order Service<br/>🟢 LKE Pods (1 replica)<br/>Development Environment<br/>Resource: 1 CPU, 2GB RAM]
-                    POD3_LINODE[💳 Payment Service<br/>🟢 LKE Pods (1 replica)<br/>Development Environment<br/>Resource: 1 CPU, 2GB RAM]
-                    POD4_LINODE[📱 Notification Service<br/>🟢 LKE Pods (1 replica)<br/>Development Environment<br/>Resource: 1 CPU, 2GB RAM]
+                    POD1_LINODE["👤 User Service<br/>🟢 LKE Pods (1 replica)<br/>Development Environment<br/>Resource: 1 CPU, 2GB RAM"]
+                    POD2_LINODE["📦 Order Service<br/>🟢 LKE Pods (1 replica)<br/>Development Environment<br/>Resource: 1 CPU, 2GB RAM"]
+                    POD3_LINODE["💳 Payment Service<br/>🟢 LKE Pods (1 replica)<br/>Development Environment<br/>Resource: 1 CPU, 2GB RAM"]
+                    POD4_LINODE["📱 Notification Service<br/>🟢 LKE Pods (1 replica)<br/>Development Environment<br/>Resource: 1 CPU, 2GB RAM"]
                 end
             end
-            
             subgraph "💾 Linode Data Services"
-                DB_LINODE[🟢 Linode Database<br/>MySQL Instance<br/>Automated Backups<br/>Development Data<br/>Cost Optimized]
-                REDIS_LINODE[🟢 Linode Redis<br/>Single Instance<br/>Development Cache<br/>Basic Configuration<br/>Cost Optimized]
-                STORAGE_LINODE[🟢 Linode Object Storage<br/>S3-Compatible API<br/>Development Assets<br/>Basic Configuration<br/>Cost Optimized]
+                DB_LINODE["🟢 Linode Database<br/>MySQL Instance<br/>Automated Backups<br/>Development Data<br/>Cost Optimized"]
+                REDIS_LINODE["🟢 Linode Redis<br/>Single Instance<br/>Development Cache<br/>Basic Configuration<br/>Cost Optimized"]
+                STORAGE_LINODE["🟢 Linode Object Storage<br/>S3-Compatible API<br/>Development Assets<br/>Basic Configuration<br/>Cost Optimized"]
             end
         end
     end
-    
     subgraph "📊 Multi-Cloud Monitoring"
         subgraph "🔍 Observability Stack"
-            PROM_MULTI[📊 Prometheus Federation<br/>Multi-cluster Metrics<br/>Cross-cloud Monitoring<br/>Unified Dashboards]
-            GRAF_MULTI[📈 Grafana Enterprise<br/>Multi-datasource Dashboards<br/>Alert Correlation<br/>Cross-cloud Visualization]
-            ELK_MULTI[📋 Elastic Cloud<br/>Centralized Logging<br/>Multi-cloud Log Aggregation<br/>Security Analytics]
+            PROM_MULTI["📊 Prometheus Federation<br/>Multi-cluster Metrics<br/>Cross-cloud Monitoring<br/>Unified Dashboards"]
+            GRAF_MULTI["📈 Grafana Enterprise<br/>Multi-datasource Dashboards<br/>Alert Correlation<br/>Cross-cloud Visualization"]
+            ELK_MULTI["📋 Elastic Cloud<br/>Centralized Logging<br/>Multi-cloud Log Aggregation<br/>Security Analytics"]
         end
-        
         subgraph "🚨 Alerting & Incident Response"
-            ALERT_MULTI[🚨 Multi-cloud Alerting<br/>PagerDuty Integration<br/>Slack Notifications<br/>Escalation Policies]
-            CHAOS_MULTI[🔄 Chaos Engineering<br/>Multi-cloud Resilience<br/>Disaster Recovery Testing<br/>Failover Validation]
+            ALERT_MULTI["🚨 Multi-cloud Alerting<br/>PagerDuty Integration<br/>Slack Notifications<br/>Escalation Policies"]
+            CHAOS_MULTI["🔄 Chaos Engineering<br/>Multi-cloud Resilience<br/>Disaster Recovery Testing<br/>Failover Validation"]
         end
     end
-    
     subgraph "🔄 Multi-Cloud CI/CD"
         subgraph "🏗️ Build & Deploy Pipeline"
-            GH_MULTI[🔧 GitHub Actions<br/>Multi-cloud Deployment<br/>Environment Promotion<br/>Rollback Capabilities]
-            TERRAFORM_MULTI[🏗️ Terraform Cloud<br/>Infrastructure as Code<br/>Multi-provider Management<br/>State Management]
-            HELM_MULTI[⚙️ Helm Charts<br/>Kubernetes Deployments<br/>Environment Templating<br/>Release Management]
+            GH_MULTI["🔧 GitHub Actions<br/>Multi-cloud Deployment<br/>Environment Promotion<br/>Rollback Capabilities"]
+            TERRAFORM_MULTI["🏗️ Terraform Cloud<br/>Infrastructure as Code<br/>Multi-provider Management<br/>State Management"]
+            HELM_MULTI["⚙️ Helm Charts<br/>Kubernetes Deployments<br/>Environment Templating<br/>Release Management"]
         end
     end
-    
     %% AWS Connections
     ALB_AWS --> POD1_AWS
     ALB_AWS --> POD2_AWS
     ALB_AWS --> POD3_AWS
     ALB_AWS --> POD4_AWS
-    
     POD1_AWS --> RDS_AWS
     POD2_AWS --> RDS_AWS
     POD3_AWS --> RDS_AWS
     POD4_AWS --> RDS_AWS
-    
     POD1_AWS --> ELASTICACHE_AWS
     POD2_AWS --> ELASTICACHE_AWS
     POD3_AWS --> ELASTICACHE_AWS
     POD4_AWS --> ELASTICACHE_AWS
-    
     POD1_AWS --> S3_AWS
     POD4_AWS --> S3_AWS
-    
     %% DigitalOcean Connections
     LB_DO --> POD1_DO
     LB_DO --> POD2_DO
     LB_DO --> POD3_DO
     LB_DO --> POD4_DO
-    
     POD1_DO --> DB_DO
     POD2_DO --> DB_DO
     POD3_DO --> DB_DO
     POD4_DO --> DB_DO
-    
     POD1_DO --> REDIS_DO
     POD2_DO --> REDIS_DO
     POD3_DO --> REDIS_DO
     POD4_DO --> REDIS_DO
-    
     POD1_DO --> SPACES_DO
     POD4_DO --> SPACES_DO
-    
     %% Linode Connections
     LB_LINODE --> POD1_LINODE
     LB_LINODE --> POD2_LINODE
     LB_LINODE --> POD3_LINODE
     LB_LINODE --> POD4_LINODE
-    
     POD1_LINODE --> DB_LINODE
     POD2_LINODE --> DB_LINODE
     POD3_LINODE --> DB_LINODE
     POD4_LINODE --> DB_LINODE
-    
     POD1_LINODE --> REDIS_LINODE
     POD2_LINODE --> REDIS_LINODE
     POD3_LINODE --> REDIS_LINODE
     POD4_LINODE --> REDIS_LINODE
-    
     POD1_LINODE --> STORAGE_LINODE
     POD4_LINODE --> STORAGE_LINODE
-    
     %% Cross-cloud Data Replication
     RDS_AWS -.->|Data Replication| DB_DO
     DB_DO -.->|Backup Sync| DB_LINODE
     S3_AWS -.->|Asset Sync| SPACES_DO
     SPACES_DO -.->|Dev Sync| STORAGE_LINODE
-    
     %% Monitoring Connections
     POD1_AWS --> PROM_MULTI
     POD1_DO --> PROM_MULTI
     POD1_LINODE --> PROM_MULTI
-    
     PROM_MULTI --> GRAF_MULTI
     PROM_MULTI --> ALERT_MULTI
-    
     POD1_AWS --> ELK_MULTI
     POD1_DO --> ELK_MULTI
     POD1_LINODE --> ELK_MULTI
-    
     %% CI/CD Connections
     GH_MULTI --> ALB_AWS
     GH_MULTI --> LB_DO
     GH_MULTI --> LB_LINODE
-    
     TERRAFORM_MULTI --> GH_MULTI
     HELM_MULTI --> GH_MULTI
-    
     %% Disaster Recovery Flow
     ALB_AWS -.->|Failover| LB_DO
     LB_DO -.->|Development| LB_LINODE
-    
     %% Enhanced Styling
     style ALB_AWS fill:#FF9500,stroke:#FF6B00,stroke-width:3px,color:#fff
     style LB_DO fill:#0080FF,stroke:#0066CC,stroke-width:3px,color:#fff
     style LB_LINODE fill:#00B04F,stroke:#00A040,stroke-width:3px,color:#fff
-    
     style POD1_AWS fill:#FF7F50,stroke:#FF6347,stroke-width:2px,color:#fff
     style POD2_AWS fill:#87CEEB,stroke:#4682B4,stroke-width:2px,color:#fff
     style POD3_AWS fill:#DDA0DD,stroke:#9370DB,stroke-width:2px,color:#fff
     style POD4_AWS fill:#F0E68C,stroke:#DAA520,stroke-width:2px,color:#000
-    
     style POD1_DO fill:#4169E1,stroke:#0000FF,stroke-width:2px,color:#fff
     style POD2_DO fill:#32CD32,stroke:#228B22,stroke-width:2px,color:#fff
     style POD3_DO fill:#FF69B4,stroke:#FF1493,stroke-width:2px,color:#fff
     style POD4_DO fill:#20B2AA,stroke:#008B8B,stroke-width:2px,color:#fff
-    
     style POD1_LINODE fill:#90EE90,stroke:#32CD32,stroke-width:2px,color:#000
     style POD2_LINODE fill:#98FB98,stroke:#00FF7F,stroke-width:2px,color:#000
     style POD3_LINODE fill:#AFEEEE,stroke:#40E0D0,stroke-width:2px,color:#000
     style POD4_LINODE fill:#F5DEB3,stroke:#D2B48C,stroke-width:2px,color:#000
-    
     style RDS_AWS fill:#FF4500,stroke:#DC143C,stroke-width:3px,color:#fff
     style DB_DO fill:#1E90FF,stroke:#0000CD,stroke-width:3px,color:#fff
     style DB_LINODE fill:#228B22,stroke:#006400,stroke-width:3px,color:#fff
-    
     style ELASTICACHE_AWS fill:#FF6347,stroke:#B22222,stroke-width:3px,color:#fff
     style REDIS_DO fill:#4682B4,stroke:#2F4F4F,stroke-width:3px,color:#fff
     style REDIS_LINODE fill:#32CD32,stroke:#228B22,stroke-width:3px,color:#fff
-    
     style S3_AWS fill:#FFA500,stroke:#FF8C00,stroke-width:3px,color:#fff
     style SPACES_DO fill:#00CED1,stroke:#008B8B,stroke-width:3px,color:#fff
     style STORAGE_LINODE fill:#9ACD32,stroke:#6B8E23,stroke-width:3px,color:#fff
-    
     style PROM_MULTI fill:#E6522C,stroke:#CC2936,stroke-width:3px,color:#fff
     style GRAF_MULTI fill:#F46800,stroke:#E55100,stroke-width:3px,color:#fff
     style ELK_MULTI fill:#005571,stroke:#003D4F,stroke-width:3px,color:#fff
-    
     style GH_MULTI fill:#24292E,stroke:#1B1F23,stroke-width:3px,color:#fff
     style TERRAFORM_MULTI fill:#623CE4,stroke:#5835CC,stroke-width:3px,color:#fff
     style HELM_MULTI fill:#0F1689,stroke:#0A1269,stroke-width:3px,color:#fff
+```
+```mermaid
+   
+
 ```
 
 ---
