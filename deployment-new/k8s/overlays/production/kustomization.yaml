@@ -1,0 +1,215 @@
+# Production Overlay for Reverse Tender Platform
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: reverse-tender-production
+
+# Base configuration to extend
+bases:
+  - ../../base
+
+# Namespace override
+namespace: reverse-tender-prod
+
+# Production-specific labels
+commonLabels:
+  environment: production
+  tier: production
+
+# Production-specific annotations
+commonAnnotations:
+  environment: production
+  deployment.kubernetes.io/revision: "1"
+
+# Production image tags
+images:
+  - name: reversetender/api-gateway
+    newTag: v1.0.0
+  - name: reversetender/auth-service
+    newTag: v1.0.0
+  - name: reversetender/bidding-service
+    newTag: v1.0.0
+  - name: reversetender/user-service
+    newTag: v1.0.0
+  - name: reversetender/order-service
+    newTag: v1.0.0
+  - name: reversetender/notification-service
+    newTag: v1.0.0
+  - name: reversetender/payment-service
+    newTag: v1.0.0
+  - name: reversetender/analytics-service
+    newTag: v1.0.0
+  - name: reversetender/vin-ocr-service
+    newTag: v1.0.0
+
+# Production replica counts
+replicas:
+  - name: api-gateway
+    count: 3
+  - name: auth-service
+    count: 3
+  - name: bidding-service
+    count: 5
+  - name: user-service
+    count: 3
+  - name: order-service
+    count: 3
+  - name: notification-service
+    count: 3
+  - name: payment-service
+    count: 3
+  - name: analytics-service
+    count: 2
+  - name: vin-ocr-service
+    count: 3
+
+# Production-specific ConfigMap
+configMapGenerator:
+  - name: app-config-prod
+    behavior: merge
+    literals:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - LOG_LEVEL=warning
+      - API_RATE_LIMIT=1000
+      - OPCACHE_ENABLED=true
+      - SESSION_LIFETIME=120
+      - SESSION_SECURE_COOKIE=true
+      - BACKUP_ENABLED=true
+      - MONITORING_ENABLED=true
+      - SSL_ENABLED=true
+
+# Production-specific secrets
+secretGenerator:
+  - name: app-secrets-prod
+    behavior: merge
+    type: Opaque
+    files:
+      - JWT_SECRET=secrets/jwt-secret.txt
+      - APP_KEY=secrets/app-key.txt
+      - DB_PASSWORD=secrets/db-password.txt
+      - REDIS_PASSWORD=secrets/redis-password.txt
+
+# Production-specific patches
+patches:
+  # Increase resource limits for production
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+
+  - target:
+      kind: Deployment
+      name: bidding-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "1Gi"
+            cpu: "1000m"
+          limits:
+            memory: "3Gi"
+            cpu: "2000m"
+
+  - target:
+      kind: Deployment
+      name: vin-ocr-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+
+  # Add production-specific environment variables
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: APP_ENV
+          value: production
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: APP_DEBUG
+          value: "false"
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: LOG_LEVEL
+          value: warning
+
+  # Add node affinity for production workloads
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/affinity
+        value:
+          nodeAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                - key: node-type
+                  operator: In
+                  values:
+                  - production
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - api-gateway
+                    - auth-service
+                    - bidding-service
+                topologyKey: kubernetes.io/hostname
+
+  # Add security context
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          runAsUser: 1000
+          fsGroup: 2000
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext
+        value:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+
+# Additional production resources
+resources:
+  - hpa-production.yaml
+  - pdb-production.yaml
+  - networkpolicy-production.yaml
+  - monitoring.yaml
+
