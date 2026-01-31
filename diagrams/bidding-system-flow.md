@@ -1,5 +1,50 @@
 # 🎯 Bidding System Flow Diagram
+```mermaid
+   graph TB
+    subgraph Clients
+        PWA[📱 PWA / Mobile App]
+    end
 
+    subgraph API_Layer [Edge Layer]
+        GW[🚪 API Gateway]
+    end
+
+    subgraph Core_Services [Logic Layer]
+        Order[📋 Order Service]
+        Bidding[🎯 Bidding Service]
+        Notif[📢 Notification Service]
+    end
+
+    subgraph Data_Messaging [Infrastructure Layer]
+        Redis[⚡ Redis Event Bus]
+        WS[🔄 WebSocket Server]
+        DB[(🗃️ Primary DB)]
+    end
+
+    subgraph External [External Integrations]
+        SMS[📲 SMS Provider]
+        Email[📧 Email Provider]
+    end
+
+    %% Relationships
+    PWA -->|HTTPS| GW
+    GW --> Order
+    GW --> Bidding
+    
+    Order --> DB
+    Order -.->|Publish Event| Redis
+    
+    Bidding --> DB
+    Bidding -.->|Publish Event| Redis
+    Bidding --> WS
+    
+    Redis -.->|Subscribe| Notif
+    Notif --> DB
+    Notif --> SMS
+    Notif --> Email
+    
+    WS -.->|Push Update| PWA
+```
 ```mermaid
 sequenceDiagram
     participant Customer as 👤 Customer
