@@ -95,6 +95,29 @@ graph TB
 ## 📢 Notification Event Flow
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF4757',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF6B81',
+    'lineColor': '#2ED573',
+    'secondaryColor': '#1E90FF',
+    'tertiaryColor': '#FFA502',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#1E293B',
+    'actorBkg': '#FF4757',
+    'actorBorder': '#FF6B81',
+    'actorTextColor': '#FFFFFF',
+    'activationBkgColor': '#2ED573',
+    'activationBorderColor': '#FFFFFF',
+    'noteBkgColor': '#FFA502',
+    'noteTextColor': '#000000'
+  }
+}}%%
+
 sequenceDiagram
     participant Service as 🔧 Any Service
     participant Queue as 📨 Redis Queue
