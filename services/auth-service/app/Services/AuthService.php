@@ -3,20 +3,19 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Models\Otp;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class AuthService
 {
-    private SmsService $smsService;
+    private OtpService $otpService;
     
-    public function __construct(SmsService $smsService)
+    public function __construct(OtpService $otpService)
     {
-        $this->smsService = $smsService;
+        $this->otpService = $otpService;
     }
     
     /**
@@ -32,19 +31,26 @@ class AuthService
                 throw new \Exception('Phone number already registered');
             }
             
+            if (isset($userData['email']) && User::where('email', $userData['email'])->exists()) {
+                throw new \Exception('Email already registered');
+            }
+            
             // Create user
             $user = User::create([
                 'name' => $userData['name'],
                 'email' => $userData['email'] ?? null,
                 'phone' => $userData['phone'],
                 'password' => Hash::make($userData['password']),
-                'type' => $userData['type'], // customer, merchant, admin
-                'verified' => false
+                'type' => $userData['type'] ?? 'customer', // customer, merchant, admin
+                'phone_verified_at' => null
             ]);
             
-            // Generate and send OTP
-            $otpCode = $this->generateOtp($user->id, 'phone_verification');
-            $this->smsService->sendOtp($user->phone, $otpCode);
+            // Send OTP for phone verification
+            $otpResult = $this->otpService->sendOtp($userData['phone']);
+            
+            if (!$otpResult['success']) {
+                throw new \Exception('Failed to send verification code');
+            }
             
             DB::commit();
             
@@ -52,7 +58,8 @@ class AuthService
                 'success' => true,
                 'user_id' => $user->id,
                 'message' => 'Registration successful. OTP sent to your phone.',
-                'requires_verification' => true
+                'requires_verification' => true,
+                'expires_at' => $otpResult['expires_at']
             ];
             
         } catch (\Exception $e) {
@@ -67,19 +74,22 @@ class AuthService
     }
     
     /**
-     * Verify OTP and complete registration
+     * Verify OTP and complete registration/login
      */
-    public function verifyOtp(int $userId, string $otpCode, string $type = 'phone_verification'): array
+    public function verifyOtp(int $userId, string $otpCode): array
     {
         try {
-            $otp = Otp::where('user_id', $userId)
-                ->where('code', $otpCode)
-                ->where('type', $type)
-                ->where('expires_at', '>', now())
-                ->where('used', false)
-                ->first();
-                
-            if (!$otp) {
+            $user = User::find($userId);
+            
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'message' => 'User not found'
+                ];
+            }
+            
+            // Verify OTP using OtpService
+            if (!$this->otpService->verifyOtp($user->phone, $otpCode)) {
                 return [
                     'success' => false,
                     'message' => 'Invalid or expired OTP'
@@ -88,32 +98,23 @@ class AuthService
             
             DB::beginTransaction();
             
-            // Mark OTP as used
-            $otp->update(['used' => true]);
-            
             // Update user verification status
-            $user = User::find($userId);
-            if ($type === 'phone_verification') {
-                $user->update([
-                    'verified' => true,
-                    'phone_verified_at' => now()
-                ]);
-            }
+            $user->update([
+                'phone_verified_at' => now(),
+                'email_verified_at' => $user->email ? now() : null
+            ]);
             
-            // Generate JWT token
-            $token = JWTAuth::fromUser($user);
-            $refreshToken = $this->generateRefreshToken($user);
+            // Generate Sanctum token
+            $token = $user->createToken('auth-token', ['*'], now()->addDays(30))->plainTextToken;
             
             DB::commit();
             
             return [
                 'success' => true,
                 'message' => 'Verification successful',
-                'user' => $user->load('profile'),
+                'user' => $user->fresh(),
                 'access_token' => $token,
-                'refresh_token' => $refreshToken,
-                'token_type' => 'bearer',
-                'expires_in' => config('jwt.ttl') * 60
+                'token_type' => 'Bearer'
             ];
             
         } catch (\Exception $e) {
@@ -142,22 +143,21 @@ class AuthService
                 ];
             }
             
-            if (!$user->verified) {
+            if (!$user->phone_verified_at) {
                 // Resend OTP for unverified users
-                $otpCode = $this->generateOtp($user->id, 'phone_verification');
-                $this->smsService->sendOtp($user->phone, $otpCode);
+                $otpResult = $this->otpService->sendOtp($user->phone);
                 
                 return [
                     'success' => false,
                     'message' => 'Phone number not verified. OTP sent.',
                     'requires_verification' => true,
-                    'user_id' => $user->id
+                    'user_id' => $user->id,
+                    'expires_at' => $otpResult['expires_at'] ?? null
                 ];
             }
             
-            // Generate tokens
-            $token = JWTAuth::fromUser($user);
-            $refreshToken = $this->generateRefreshToken($user);
+            // Generate Sanctum token
+            $token = $user->createToken('auth-token', ['*'], now()->addDays(30))->plainTextToken;
             
             // Update last login
             $user->update(['last_login_at' => now()]);
@@ -165,11 +165,9 @@ class AuthService
             return [
                 'success' => true,
                 'message' => 'Login successful',
-                'user' => $user->load('profile'),
+                'user' => $user->fresh(),
                 'access_token' => $token,
-                'refresh_token' => $refreshToken,
-                'token_type' => 'bearer',
-                'expires_in' => config('jwt.ttl') * 60
+                'token_type' => 'Bearer'
             ];
             
         } catch (\Exception $e) {
@@ -183,38 +181,78 @@ class AuthService
     }
     
     /**
-     * Generate OTP code
+     * Logout user (revoke current token)
      */
-    private function generateOtp(int $userId, string $type): string
+    public function logout(User $user): array
     {
-        // Invalidate existing OTPs
-        Otp::where('user_id', $userId)
-            ->where('type', $type)
-            ->update(['used' => true]);
+        try {
+            // Revoke current access token
+            $user->currentAccessToken()->delete();
             
-        // Generate new OTP
-        $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        
-        Otp::create([
-            'user_id' => $userId,
-            'code' => $code,
-            'type' => $type,
-            'expires_at' => now()->addMinutes(10) // 10 minutes expiry
-        ]);
-        
-        return $code;
+            return [
+                'success' => true,
+                'message' => 'Logged out successfully'
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Logout failed: ' . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'message' => 'Logout failed'
+            ];
+        }
     }
     
     /**
-     * Generate refresh token
+     * Revoke all tokens for user
      */
-    private function generateRefreshToken(User $user): string
+    public function logoutAll(User $user): array
     {
-        return base64_encode(json_encode([
-            'user_id' => $user->id,
-            'expires_at' => now()->addDays(30)->timestamp,
-            'token' => bin2hex(random_bytes(32))
-        ]));
+        try {
+            // Revoke all tokens
+            $user->tokens()->delete();
+            
+            return [
+                'success' => true,
+                'message' => 'Logged out from all devices successfully'
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Logout all failed: ' . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'message' => 'Logout failed'
+            ];
+        }
+    }
+    
+    /**
+     * Refresh token (create new token and revoke old one)
+     */
+    public function refreshToken(User $user): array
+    {
+        try {
+            // Revoke current token
+            $user->currentAccessToken()->delete();
+            
+            // Create new token
+            $token = $user->createToken('auth-token', ['*'], now()->addDays(30))->plainTextToken;
+            
+            return [
+                'success' => true,
+                'access_token' => $token,
+                'token_type' => 'Bearer'
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Token refresh failed: ' . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'message' => 'Token refresh failed'
+            ];
+        }
     }
 }
-

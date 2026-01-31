@@ -14,36 +14,24 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('email')->unique()->nullable();
-            $table->string('phone', 20)->unique();
+            $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->timestamp('phone_verified_at')->nullable();
             $table->string('password');
-            $table->enum('type', ['customer', 'merchant', 'admin'])->default('customer');
-            $table->enum('status', ['active', 'inactive', 'suspended', 'banned'])->default('active');
-            
-            // Two-factor authentication
-            $table->boolean('two_factor_enabled')->default(false);
-            $table->text('two_factor_secret')->nullable();
-            $table->text('two_factor_recovery_codes')->nullable();
-            
-            // Login tracking
+            $table->string('phone')->nullable()->unique();
+            $table->timestamp('phone_verified_at')->nullable();
+            $table->enum('role', ['customer', 'merchant', 'admin'])->default('customer');
+            $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
+            $table->string('language', 5)->default('en');
+            $table->string('timezone')->default('Asia/Riyadh');
+            $table->json('preferences')->nullable();
             $table->timestamp('last_login_at')->nullable();
-            $table->ipAddress('last_login_ip')->nullable();
-            $table->unsignedInteger('login_count')->default(0);
-            
-            // Additional data
-            $table->json('metadata')->nullable();
+            $table->string('last_login_ip')->nullable();
             $table->rememberToken();
             $table->timestamps();
-            $table->softDeletes();
             
-            // Indexes
-            $table->index(['email', 'deleted_at']);
-            $table->index(['phone', 'deleted_at']);
-            $table->index(['type', 'status']);
-            $table->index('status');
-            $table->index('last_login_at');
+            $table->index(['email', 'status']);
+            $table->index(['phone', 'status']);
+            $table->index('role');
         });
     }
 

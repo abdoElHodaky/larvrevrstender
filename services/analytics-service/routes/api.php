@@ -1,78 +1,42 @@
 <?php
 
+use App\Http\Controllers\HealthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AnalyticsController;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
 */
 
-Route::prefix('v1')->group(function () {
-    
-    // Analytics routes (require authentication)
-    Route::middleware('auth:sanctum')->prefix('analytics')->group(function () {
-        
-        // Event tracking
-        Route::post('/events', [AnalyticsController::class, 'trackEvent']);
-        Route::get('/users/{userId}', [AnalyticsController::class, 'getUserAnalytics']);
-        
-        // Business metrics
-        Route::get('/metrics', [AnalyticsController::class, 'getBusinessMetrics']);
-        Route::get('/dashboard', [AnalyticsController::class, 'getDashboardOverview']);
-        Route::get('/realtime', [AnalyticsController::class, 'getRealTimeMetrics']);
-        
-        // Conversion and funnel analysis
-        Route::get('/funnel', [AnalyticsController::class, 'getConversionFunnel']);
-        
-        // Custom reports
-        Route::post('/reports', [AnalyticsController::class, 'generateReport']);
-        
-        // Admin-only routes
-        Route::middleware('admin')->group(function () {
-            Route::get('/users', [AnalyticsController::class, 'getAllUserAnalytics']);
-            Route::get('/export/{type}', [AnalyticsController::class, 'exportData']);
-            Route::delete('/events/{eventId}', [AnalyticsController::class, 'deleteEvent']);
-            Route::post('/metrics/recalculate', [AnalyticsController::class, 'recalculateMetrics']);
-        });
-    });
-    
-    // Health check
-    Route::get('/health', function () {
-        return response()->json([
-            'status' => 'healthy',
-            'service' => 'analytics-service',
-            'timestamp' => now()->toISOString(),
-            'version' => config('app.version', '1.0.0')
-        ]);
-    });
-    
-    // Service info
-    Route::get('/info', function () {
-        return response()->json([
-            'service' => 'analytics-service',
-            'description' => 'Analytics and reporting microservice for Reverse Tender Platform',
-            'version' => config('app.version', '1.0.0'),
-            'endpoints' => [
-                'POST /api/v1/analytics/events' => 'Track user events',
-                'GET /api/v1/analytics/users/{userId}' => 'Get user analytics',
-                'GET /api/v1/analytics/metrics' => 'Get business metrics',
-                'GET /api/v1/analytics/dashboard' => 'Get dashboard overview',
-                'GET /api/v1/analytics/realtime' => 'Get real-time metrics',
-                'GET /api/v1/analytics/funnel' => 'Get conversion funnel',
-                'POST /api/v1/analytics/reports' => 'Generate custom reports'
-            ]
-        ]);
-    });
-});
+// Health check routes
+Route::get('/health', [HealthController::class, 'check']);
+Route::get('/up', [HealthController::class, 'up']);
 
-// Fallback route
-Route::fallback(function () {
+// Service info route
+Route::get('/info', function () {
     return response()->json([
-        'message' => 'Endpoint not found',
-        'service' => 'analytics-service'
-    ], 404);
+        'service' => 'analytics-service',
+        'version' => config('app.version', '1.0.0'),
+        'environment' => config('app.env'),
+        'timestamp' => now()->toISOString(),
+    ]);
 });
 
+// AnalyticsService routes
+Route::prefix('analytics')->group(function () {
+    // TODO: Add analytics specific routes
+});
+
+// Protected routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+});

@@ -1,0 +1,167 @@
+# Auth Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: reverse-tender
+  labels:
+    app: auth-service
+    service: auth
+spec:
+  selector:
+    app: auth-service
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP
+
+---
+# User Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: reverse-tender
+  labels:
+    app: user-service
+    service: user
+spec:
+  selector:
+    app: user-service
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Bidding Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: bidding-service
+  namespace: reverse-tender
+  labels:
+    app: bidding-service
+    service: bidding
+spec:
+  selector:
+    app: bidding-service
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  - name: websocket
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Order Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: reverse-tender
+  labels:
+    app: order-service
+    service: order
+spec:
+  selector:
+    app: order-service
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Payment Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: reverse-tender
+  labels:
+    app: payment-service
+    service: payment
+spec:
+  selector:
+    app: payment-service
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Analytics Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytics-service
+  namespace: reverse-tender
+  labels:
+    app: analytics-service
+    service: analytics
+spec:
+  selector:
+    app: analytics-service
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP
+
+---
+# VIN OCR Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: vin-ocr-service
+  namespace: reverse-tender
+  labels:
+    app: vin-ocr-service
+    service: vin-ocr
+spec:
+  selector:
+    app: vin-ocr-service
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Nginx Gateway Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-gateway
+  namespace: reverse-tender
+  labels:
+    app: nginx-gateway
+    service: gateway
+spec:
+  selector:
+    app: nginx-gateway
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 443
+    protocol: TCP
+  type: LoadBalancer
+
