@@ -233,6 +233,35 @@ services:
     networks:
       - reverse_tender_network
 
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: notification_service
+    restart: unless-stopped
+    ports:
+      - "8007:8000"
+    environment:
+      - APP_NAME=Notification Service
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://localhost:8007
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=notification_service
+      - DB_USERNAME=root
+      - DB_PASSWORD=root_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - mysql
+      - redis
+    volumes:
+      - ./services/notification-service:/var/www/html
+    networks:
+      - reverse_tender_network
+
   # API Gateway (Nginx)
   nginx:
     image: nginx:alpine
@@ -253,6 +282,7 @@ services:
       - payment-service
       - analytics-service
       - vin-ocr-service
+      - notification-service
     networks:
       - reverse_tender_network
 
@@ -284,4 +314,3 @@ volumes:
 networks:
   reverse_tender_network:
     driver: bridge
-

@@ -61,5 +61,29 @@ return [
         'redirect' => env('GITHUB_REDIRECT_URI'),
     ],
 
-];
+    // Microservice URLs for inter-service communication
+    'user_service' => [
+        'url' => env('USER_SERVICE_URL', 'http://user-service:8000'),
+    ],
 
+    'bidding_service' => [
+        'url' => env('BIDDING_SERVICE_URL', 'http://bidding-service:8000'),
+    ],
+
+    'order_service' => [
+        'url' => env('ORDER_SERVICE_URL', 'http://order-service:8000'),
+    ],
+
+    'payment_service' => [
+        'url' => env('PAYMENT_SERVICE_URL', 'http://payment-service:8000'),
+    ],
+
+    'analytics_service' => [
+        'url' => env('ANALYTICS_SERVICE_URL', 'http://analytics-service:8000'),
+    ],
+
+    'vin_ocr_service' => [
+        'url' => env('VIN_OCR_SERVICE_URL', 'http://vin-ocr-service:8000'),
+    ],
+
+];
