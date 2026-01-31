@@ -1,0 +1,392 @@
+version: '3.8'
+
+# Base Docker Compose Configuration for Reverse Tender Platform
+# This file contains the core service definitions that are common across all environments
+
+services:
+  # API Gateway - Central entry point
+  api-gateway:
+    image: reversetender/api-gateway:${APP_VERSION:-latest}
+    container_name: rt_api_gateway
+    ports:
+      - "${API_GATEWAY_PORT:-8000}:8000"
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_URL=${APP_URL:-https://reversetender.com}
+      - DB_HOST=${DB_HOST:-mysql-primary}
+      - DB_DATABASE=${DB_DATABASE:-reverse_tender}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis-primary}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+    volumes:
+      - ./logs/api-gateway:/var/www/storage/logs
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Auth Service - Authentication and authorization
+  auth-service:
+    image: reversetender/auth-service:${APP_VERSION:-latest}
+    container_name: rt_auth_service
+    ports:
+      - "${AUTH_SERVICE_PORT:-8001}:8001"
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - DB_HOST=${DB_HOST:-mysql-primary}
+      - DB_DATABASE=${AUTH_DB_DATABASE:-reverse_tender_auth}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis-primary}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_TTL=${JWT_TTL:-900}
+      - REFRESH_TTL=${REFRESH_TTL:-43200}
+      - OTP_EXPIRY=${OTP_EXPIRY:-300}
+      - TWILIO_SID=${TWILIO_SID}
+      - TWILIO_TOKEN=${TWILIO_TOKEN}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+    volumes:
+      - ./logs/auth-service:/var/www/storage/logs
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Bidding Service - Real-time bidding system with Laravel Reverb
+  bidding-service:
+    image: reversetender/bidding-service:${APP_VERSION:-latest}
+    container_name: rt_bidding_service
+    ports:
+      - "${BIDDING_SERVICE_PORT:-8002}:8002"
+      - "${REVERB_PORT:-8080}:8080"  # Laravel Reverb WebSocket port
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - DB_HOST=${DB_HOST:-mysql-primary}
+      - DB_DATABASE=${BIDDING_DB_DATABASE:-reverse_tender_bidding}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis-primary}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - BROADCAST_DRIVER=reverb
+      - REVERB_APP_ID=${REVERB_APP_ID:-reverse-tender}
+      - REVERB_APP_KEY=${REVERB_APP_KEY:-reverse-tender-key}
+      - REVERB_APP_SECRET=${REVERB_APP_SECRET:-reverse-tender-secret}
+      - REVERB_HOST=0.0.0.0
+      - REVERB_PORT=8080
+      - REVERB_SCHEME=${REVERB_SCHEME:-http}
+    volumes:
+      - ./logs/bidding-service:/var/www/storage/logs
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # User Service - User and profile management
+  user-service:
+    image: reversetender/user-service:${APP_VERSION:-latest}
+    container_name: rt_user_service
+    ports:
+      - "${USER_SERVICE_PORT:-8003}:8003"
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - DB_HOST=${DB_HOST:-mysql-primary}
+      - DB_DATABASE=${USER_DB_DATABASE:-reverse_tender_users}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis-primary}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - S3_BUCKET=${S3_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_REGION=${S3_REGION}
+    volumes:
+      - ./logs/user-service:/var/www/storage/logs
+      - ./uploads:/var/www/storage/uploads
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Order Service - Order and request management
+  order-service:
+    image: reversetender/order-service:${APP_VERSION:-latest}
+    container_name: rt_order_service
+    ports:
+      - "${ORDER_SERVICE_PORT:-8004}:8004"
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - DB_HOST=${DB_HOST:-mysql-primary}
+      - DB_DATABASE=${ORDER_DB_DATABASE:-reverse_tender_orders}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis-primary}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - S3_BUCKET=${S3_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+    volumes:
+      - ./logs/order-service:/var/www/storage/logs
+      - ./uploads:/var/www/storage/uploads
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Notification Service - Multi-channel notifications
+  notification-service:
+    image: reversetender/notification-service:${APP_VERSION:-latest}
+    container_name: rt_notification_service
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT:-8005}:8005"
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - DB_HOST=${DB_HOST:-mysql-primary}
+      - DB_DATABASE=${NOTIFICATION_DB_DATABASE:-reverse_tender_notifications}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis-primary}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - FCM_SERVER_KEY=${FCM_SERVER_KEY}
+      - APNS_KEY_ID=${APNS_KEY_ID}
+      - APNS_TEAM_ID=${APNS_TEAM_ID}
+      - TWILIO_SID=${TWILIO_SID}
+      - TWILIO_TOKEN=${TWILIO_TOKEN}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+    volumes:
+      - ./logs/notification-service:/var/www/storage/logs
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Payment Service - Payment processing and ZATCA
+  payment-service:
+    image: reversetender/payment-service:${APP_VERSION:-latest}
+    container_name: rt_payment_service
+    ports:
+      - "${PAYMENT_SERVICE_PORT:-8006}:8006"
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - DB_HOST=${DB_HOST:-mysql-primary}
+      - DB_DATABASE=${PAYMENT_DB_DATABASE:-reverse_tender_payments}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis-primary}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - ZATCA_API_URL=${ZATCA_API_URL}
+      - ZATCA_API_KEY=${ZATCA_API_KEY}
+      - ZATCA_CERTIFICATE=${ZATCA_CERTIFICATE}
+      - PAYMENT_GATEWAY_URL=${PAYMENT_GATEWAY_URL}
+      - PAYMENT_GATEWAY_KEY=${PAYMENT_GATEWAY_KEY}
+    volumes:
+      - ./logs/payment-service:/var/www/storage/logs
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Analytics Service - Business intelligence
+  analytics-service:
+    image: reversetender/analytics-service:${APP_VERSION:-latest}
+    container_name: rt_analytics_service
+    ports:
+      - "${ANALYTICS_SERVICE_PORT:-8007}:8007"
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - DB_HOST=${DB_HOST:-mysql-primary}
+      - DB_DATABASE=${ANALYTICS_DB_DATABASE:-reverse_tender_analytics}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis-primary}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - ./logs/analytics-service:/var/www/storage/logs
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # VIN OCR Service - Vehicle identification
+  vin-ocr-service:
+    image: reversetender/vin-ocr-service:${APP_VERSION:-latest}
+    container_name: rt_vin_ocr_service
+    ports:
+      - "${VIN_OCR_SERVICE_PORT:-8008}:8008"
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - DB_HOST=${DB_HOST:-mysql-primary}
+      - DB_DATABASE=${VIN_OCR_DB_DATABASE:-reverse_tender_vehicles}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis-primary}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - GOOGLE_CLOUD_VISION_KEY=${GOOGLE_CLOUD_VISION_KEY}
+      - TESSERACT_ENABLED=${TESSERACT_ENABLED:-true}
+      - S3_BUCKET=${S3_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+    volumes:
+      - ./logs/vin-ocr-service:/var/www/storage/logs
+      - ./uploads:/var/www/storage/uploads
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MySQL Primary Database
+  mysql-primary:
+    image: mysql:8.0
+    container_name: rt_mysql_primary
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE:-reverse_tender}
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - mysql_primary_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d
+      - ./database/config/mysql.cnf:/etc/mysql/conf.d/custom.cnf
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Primary Cache
+  redis-primary:
+    image: redis:7.0-alpine
+    container_name: rt_redis_primary
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - redis_primary_data:/data
+      - ./database/config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: rt_nginx
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/sites:/etc/nginx/conf.d
+      - ./ssl:/etc/ssl/certs
+      - ./logs/nginx:/var/log/nginx
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  mysql_primary_data:
+    driver: local
+  redis_primary_data:
+    driver: local
+
+networks:
+  reverse-tender-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${NETWORK_SUBNET:-172.20.0.0/16}
+
