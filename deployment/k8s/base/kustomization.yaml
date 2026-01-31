@@ -1,0 +1,130 @@
+# Kustomize Base Configuration for Reverse Tender Platform
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: reverse-tender-base
+
+# Namespace for all resources
+namespace: reverse-tender
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/name: reverse-tender
+  app.kubernetes.io/part-of: reverse-tender-platform
+
+# Common annotations applied to all resources
+commonAnnotations:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/version: "1.0.0"
+
+# Resources to include
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - deployments.yaml
+  - services.yaml
+  - ingress.yaml
+  - hpa.yaml
+  - pdb.yaml
+  - networkpolicy.yaml
+  - serviceaccount.yaml
+  - rbac.yaml
+
+# Images to use (can be overridden in overlays)
+images:
+  - name: reversetender/api-gateway
+    newTag: latest
+  - name: reversetender/auth-service
+    newTag: latest
+  - name: reversetender/bidding-service
+    newTag: latest
+  - name: reversetender/user-service
+    newTag: latest
+  - name: reversetender/order-service
+    newTag: latest
+  - name: reversetender/notification-service
+    newTag: latest
+  - name: reversetender/payment-service
+    newTag: latest
+  - name: reversetender/analytics-service
+    newTag: latest
+  - name: reversetender/vin-ocr-service
+    newTag: latest
+
+# ConfigMap generator for environment variables
+configMapGenerator:
+  - name: app-config
+    literals:
+      - APP_NAME=Reverse Tender Platform
+      - APP_TIMEZONE=UTC
+      - APP_LOCALE=en
+      - DB_CONNECTION=mysql
+      - DB_PORT=3306
+      - REDIS_PORT=6379
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      - BROADCAST_DRIVER=reverb
+      - LOG_CHANNEL=stack
+      - API_RATE_LIMIT=60
+      - JWT_ALGO=RS256
+      - JWT_TTL=900
+      - REFRESH_TTL=43200
+      - OTP_EXPIRY=300
+      - DEFAULT_PAGE_SIZE=20
+      - MAX_PAGE_SIZE=100
+      - HEALTH_CHECK_INTERVAL=30s
+      - HEALTH_CHECK_TIMEOUT=10s
+      - HEALTH_CHECK_RETRIES=3
+
+# Secret generator for sensitive data
+secretGenerator:
+  - name: app-secrets
+    type: Opaque
+    literals:
+      - JWT_SECRET=placeholder
+      - APP_KEY=placeholder
+      - DB_PASSWORD=placeholder
+      - REDIS_PASSWORD=placeholder
+      - MYSQL_ROOT_PASSWORD=placeholder
+
+# Patches to apply
+patches:
+  # Add resource limits to all containers
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+# Replicas for each service (can be overridden)
+replicas:
+  - name: api-gateway
+    count: 2
+  - name: auth-service
+    count: 2
+  - name: bidding-service
+    count: 3
+  - name: user-service
+    count: 2
+  - name: order-service
+    count: 2
+  - name: notification-service
+    count: 2
+  - name: payment-service
+    count: 2
+  - name: analytics-service
+    count: 1
+  - name: vin-ocr-service
+    count: 2
+

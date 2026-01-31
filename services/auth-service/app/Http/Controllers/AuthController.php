@@ -260,15 +260,7 @@ class AuthController extends Controller
         return response()->success(null, 'All sessions revoked successfully');
     }
 
-    /**
-     * Logout user (revoke current token)
-     */
-    public function logout(Request $request): JsonResponse
-    {
-        $request->user()->currentAccessToken()->delete();
 
-        return response()->success(null, 'Logged out successfully');
-    }
 
     /**
      * Get all users (Admin only)

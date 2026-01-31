@@ -1,0 +1,14 @@
+# Namespace for Reverse Tender Platform
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reverse-tender
+  labels:
+    name: reverse-tender
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/part-of: reverse-tender-platform
+  annotations:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/description: "Namespace for Reverse Tender Platform microservices"
+

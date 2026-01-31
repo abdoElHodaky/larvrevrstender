@@ -1,0 +1,200 @@
+version: '3.8'
+
+# Development Environment Overrides for Reverse Tender Platform
+# This file contains development-specific configurations for local development
+
+services:
+  # API Gateway - Development configuration
+  api-gateway:
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - LOG_LEVEL=debug
+      - APP_URL=http://localhost:8000
+    volumes:
+      - ../../services/api-gateway:/var/www:cached
+      - ./logs/api-gateway:/var/www/storage/logs
+    ports:
+      - "8000:8000"
+
+  # Auth Service - Development configuration
+  auth-service:
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - LOG_LEVEL=debug
+    volumes:
+      - ../../services/auth-service:/var/www:cached
+      - ./logs/auth-service:/var/www/storage/logs
+    ports:
+      - "8001:8001"
+
+  # Bidding Service - Development configuration
+  bidding-service:
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - LOG_LEVEL=debug
+      - REVERB_SCHEME=http
+    volumes:
+      - ../../services/bidding-service:/var/www:cached
+      - ./logs/bidding-service:/var/www/storage/logs
+    ports:
+      - "8002:8002"
+      - "8080:8080"
+
+  # User Service - Development configuration
+  user-service:
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - LOG_LEVEL=debug
+    volumes:
+      - ../../services/user-service:/var/www:cached
+      - ./logs/user-service:/var/www/storage/logs
+    ports:
+      - "8003:8003"
+
+  # Order Service - Development configuration
+  order-service:
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - LOG_LEVEL=debug
+    volumes:
+      - ../../services/order-service:/var/www:cached
+      - ./logs/order-service:/var/www/storage/logs
+    ports:
+      - "8004:8004"
+
+  # Notification Service - Development configuration
+  notification-service:
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - LOG_LEVEL=debug
+    volumes:
+      - ../../services/notification-service:/var/www:cached
+      - ./logs/notification-service:/var/www/storage/logs
+    ports:
+      - "8005:8005"
+
+  # Payment Service - Development configuration
+  payment-service:
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - LOG_LEVEL=debug
+    volumes:
+      - ../../services/payment-service:/var/www:cached
+      - ./logs/payment-service:/var/www/storage/logs
+    ports:
+      - "8006:8006"
+
+  # Analytics Service - Development configuration
+  analytics-service:
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - LOG_LEVEL=debug
+    volumes:
+      - ../../services/analytics-service:/var/www:cached
+      - ./logs/analytics-service:/var/www/storage/logs
+    ports:
+      - "8007:8007"
+
+  # VIN OCR Service - Development configuration
+  vin-ocr-service:
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - LOG_LEVEL=debug
+    volumes:
+      - ../../services/vin-ocr-service:/var/www:cached
+      - ./logs/vin-ocr-service:/var/www/storage/logs
+    ports:
+      - "8008:8008"
+
+  # MySQL Primary - Development configuration
+  mysql-primary:
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=reverse_tender_dev
+      - MYSQL_USER=developer
+      - MYSQL_PASSWORD=developer
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d
+      - ./database/config/mysql-dev.cnf:/etc/mysql/conf.d/custom.cnf
+
+  # Redis Primary - Development configuration
+  redis-primary:
+    environment:
+      - REDIS_PASSWORD=redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+      - ./database/config/redis-dev.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass redis
+
+  # Nginx - Development configuration
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx-dev.conf:/etc/nginx/nginx.conf
+      - ./nginx/sites-dev:/etc/nginx/conf.d
+      - ./logs/nginx:/var/log/nginx
+
+  # Development Tools - MailHog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: rt_mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+
+  # Development Tools - phpMyAdmin
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: rt_phpmyadmin
+    environment:
+      - PMA_HOST=mysql-primary
+      - PMA_USER=developer
+      - PMA_PASSWORD=developer
+      - MYSQL_ROOT_PASSWORD=root
+    ports:
+      - "8080:80"
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+    restart: unless-stopped
+
+  # Development Tools - Redis Commander
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: rt_redis_commander
+    environment:
+      - REDIS_HOSTS=local:redis-primary:6379:0:redis
+    ports:
+      - "8081:8081"
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - redis-primary
+    restart: unless-stopped
+
+volumes:
+  mysql_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+
