@@ -29,14 +29,31 @@ Route::get('/info', function () {
     ]);
 });
 
-// VinOcrService routes
-Route::prefix('vin-ocr')->group(function () {
-    // TODO: Add vin-ocr specific routes
+// Inter-service Routes
+Route::middleware('service.auth')->group(function () {
+    Route::post('/ocr/process', [App\Http\Controllers\OcrController::class, 'processOcr']);
+    Route::get('/ocr/results/{requestId}', [App\Http\Controllers\OcrController::class, 'getOcrResult']);
+    Route::get('/users/{userId}/usage', [App\Http\Controllers\OcrController::class, 'getUserUsage']);
+    Route::post('/ocr/batch', [App\Http\Controllers\OcrController::class, 'processBatch']);
 });
 
-// Protected routes
+// External API Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
+    });
+
+    Route::prefix('ocr')->group(function () {
+        Route::post('/upload', [App\Http\Controllers\OcrController::class, 'upload']);
+        Route::get('/results', [App\Http\Controllers\OcrController::class, 'index']);
+        Route::get('/results/{result}', [App\Http\Controllers\OcrController::class, 'show']);
+        Route::delete('/results/{result}', [App\Http\Controllers\OcrController::class, 'destroy']);
+        Route::get('/history', [App\Http\Controllers\OcrController::class, 'getHistory']);
+    });
+
+    Route::prefix('usage')->group(function () {
+        Route::get('/', [App\Http\Controllers\UsageController::class, 'show']);
+        Route::get('/statistics', [App\Http\Controllers\UsageController::class, 'getStatistics']);
+        Route::get('/limits', [App\Http\Controllers\UsageController::class, 'getLimits']);
     });
 });

@@ -29,14 +29,32 @@ Route::get('/info', function () {
     ]);
 });
 
-// AnalyticsService routes
-Route::prefix('analytics')->group(function () {
-    // TODO: Add analytics specific routes
+// Inter-service Routes
+Route::middleware('service.auth')->group(function () {
+    Route::post('/metrics', [App\Http\Controllers\AnalyticsController::class, 'collectMetric']);
+    Route::post('/reports/{reportType}', [App\Http\Controllers\AnalyticsController::class, 'getReport']);
+    Route::get('/health/services', [App\Http\Controllers\AnalyticsController::class, 'getServiceHealth']);
+    Route::post('/events', [App\Http\Controllers\AnalyticsController::class, 'trackEvent']);
 });
 
-// Protected routes
+// External API Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
+    });
+
+    Route::prefix('analytics')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\AnalyticsController::class, 'getDashboard']);
+        Route::get('/reports', [App\Http\Controllers\ReportController::class, 'index']);
+        Route::post('/reports', [App\Http\Controllers\ReportController::class, 'generate']);
+        Route::get('/reports/{report}', [App\Http\Controllers\ReportController::class, 'show']);
+        Route::get('/reports/{report}/download', [App\Http\Controllers\ReportController::class, 'download']);
+    });
+
+    Route::prefix('metrics')->group(function () {
+        Route::get('/', [App\Http\Controllers\MetricsController::class, 'index']);
+        Route::get('/summary', [App\Http\Controllers\MetricsController::class, 'getSummary']);
+        Route::get('/trends', [App\Http\Controllers\MetricsController::class, 'getTrends']);
+        Route::get('/performance', [App\Http\Controllers\MetricsController::class, 'getPerformance']);
     });
 });
