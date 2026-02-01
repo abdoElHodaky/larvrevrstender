@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\KYCVerificationSubmitted;
+use App\Events\UserProfileUpdated;
 use App\Models\CustomerProfile;
 use App\Services\UserProfileService;
-use App\Events\UserProfileUpdated;
-use App\Events\KYCVerificationSubmitted;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class UserProfileController extends Controller
@@ -22,10 +22,10 @@ class UserProfileController extends Controller
     public function show(Request $request): JsonResponse
     {
         $profile = $this->userProfileService->getProfile($request->user()->id);
-        
+
         return response()->json([
             'success' => true,
-            'data' => $profile
+            'data' => $profile,
         ]);
     }
 
@@ -42,7 +42,7 @@ class UserProfileController extends Controller
                 CustomerProfile::SIZE_SMALL,
                 CustomerProfile::SIZE_MEDIUM,
                 CustomerProfile::SIZE_LARGE,
-                CustomerProfile::SIZE_ENTERPRISE
+                CustomerProfile::SIZE_ENTERPRISE,
             ])],
             'annual_budget' => 'nullable|numeric|min:0',
             'preferred_categories' => 'nullable|array',
@@ -54,7 +54,7 @@ class UserProfileController extends Controller
             'delivery_addresses.*.is_primary' => 'boolean',
             'payment_terms' => 'nullable|string|max:500',
             'preferences' => 'nullable|array',
-            'metadata' => 'nullable|array'
+            'metadata' => 'nullable|array',
         ]);
 
         $profile = $this->userProfileService->createOrUpdateProfile(
@@ -67,7 +67,7 @@ class UserProfileController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Profile updated successfully',
-            'data' => $profile
+            'data' => $profile,
         ]);
     }
 
@@ -80,7 +80,7 @@ class UserProfileController extends Controller
             'address' => 'required|string|max:500',
             'city' => 'required|string|max:100',
             'postal_code' => 'required|string|max:20',
-            'is_primary' => 'boolean'
+            'is_primary' => 'boolean',
         ]);
 
         $profile = $this->userProfileService->addDeliveryAddress(
@@ -91,7 +91,7 @@ class UserProfileController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Delivery address added successfully',
-            'data' => $profile
+            'data' => $profile,
         ]);
     }
 
@@ -106,7 +106,7 @@ class UserProfileController extends Controller
             'preferences.email_updates' => 'boolean',
             'preferences.sms_updates' => 'boolean',
             'preferences.language' => 'string|in:en,ar',
-            'preferences.currency' => 'string|in:SAR,USD,EUR'
+            'preferences.currency' => 'string|in:SAR,USD,EUR',
         ]);
 
         $profile = $this->userProfileService->updatePreferences(
@@ -117,7 +117,7 @@ class UserProfileController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Preferences updated successfully',
-            'data' => $profile
+            'data' => $profile,
         ]);
     }
 
@@ -130,7 +130,7 @@ class UserProfileController extends Controller
             'documents' => 'required|array',
             'documents.*.type' => 'required|string|in:commercial_register,tax_certificate,bank_statement,id_copy',
             'documents.*.file_path' => 'required|string',
-            'documents.*.file_name' => 'required|string'
+            'documents.*.file_name' => 'required|string',
         ]);
 
         $profile = $this->userProfileService->submitKYCVerification(
@@ -143,7 +143,7 @@ class UserProfileController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'KYC verification documents submitted successfully',
-            'data' => $profile
+            'data' => $profile,
         ]);
     }
 
@@ -153,15 +153,15 @@ class UserProfileController extends Controller
     public function verificationStatus(Request $request): JsonResponse
     {
         $profile = $this->userProfileService->getProfile($request->user()->id);
-        
+
         return response()->json([
             'success' => true,
             'data' => [
                 'verification_status' => $profile->verification_status,
                 'is_verified' => $profile->isVerified(),
                 'verification_documents' => $profile->verification_documents,
-                'submitted_at' => $profile->updated_at
-            ]
+                'submitted_at' => $profile->updated_at,
+            ],
         ]);
     }
 
@@ -171,7 +171,7 @@ class UserProfileController extends Controller
     public function addPreferredCategory(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'category' => 'required|string|max:100'
+            'category' => 'required|string|max:100',
         ]);
 
         $profile = $this->userProfileService->addPreferredCategory(
@@ -182,7 +182,7 @@ class UserProfileController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Preferred category added successfully',
-            'data' => $profile
+            'data' => $profile,
         ]);
     }
 
@@ -192,7 +192,7 @@ class UserProfileController extends Controller
     public function removePreferredCategory(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'category' => 'required|string|max:100'
+            'category' => 'required|string|max:100',
         ]);
 
         $profile = $this->userProfileService->removePreferredCategory(
@@ -203,8 +203,7 @@ class UserProfileController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Preferred category removed successfully',
-            'data' => $profile
+            'data' => $profile,
         ]);
     }
 }
-

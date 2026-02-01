@@ -2,9 +2,9 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,17 +15,17 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register service-specific bindings
         $this->app->singleton('auth.service', function ($app) {
-            return new \App\Services\AuthService();
+            return new \App\Services\AuthService;
         });
 
         // Register JWT service
         $this->app->singleton('jwt.service', function ($app) {
-            return new \App\Services\JWTService();
+            return new \App\Services\JWTService;
         });
 
         // Register OTP service
         $this->app->singleton('otp.service', function ($app) {
-            return new \App\Services\OTPService();
+            return new \App\Services\OTPService;
         });
     }
 
@@ -63,4 +63,3 @@ class AppServiceProvider extends ServiceProvider
         // Add event listeners here
     }
 }
-

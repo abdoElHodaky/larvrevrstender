@@ -63,7 +63,7 @@ class Brand extends Model
      */
     public function scopeSearch($query, string $search)
     {
-        return $query->where('name', 'like', '%' . $search . '%');
+        return $query->where('name', 'like', '%'.$search.'%');
     }
 
     /**
@@ -98,4 +98,3 @@ class Brand extends Model
         return $this->activeVehicleModels()->count();
     }
 }
-

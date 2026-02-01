@@ -51,14 +51,14 @@ class CustomerProfile extends Model
     public function getLocationCoordinates(): ?array
     {
         $location = $this->default_location;
-        
-        if (!$location || !isset($location['latitude'], $location['longitude'])) {
+
+        if (! $location || ! isset($location['latitude'], $location['longitude'])) {
             return null;
         }
-        
+
         return [
             'latitude' => $location['latitude'],
-            'longitude' => $location['longitude']
+            'longitude' => $location['longitude'],
         ];
     }
 
@@ -69,7 +69,7 @@ class CustomerProfile extends Model
     {
         $currentPreferences = $this->preferences ?? [];
         $updatedPreferences = array_merge($currentPreferences, $preferences);
-        
+
         $this->update(['preferences' => $updatedPreferences]);
     }
 
@@ -86,7 +86,7 @@ class CustomerProfile extends Model
      */
     public function hasValidNationalId(): bool
     {
-        return !empty($this->national_id) && strlen($this->national_id) >= 10;
+        return ! empty($this->national_id) && strlen($this->national_id) >= 10;
     }
 
     /**
@@ -97,4 +97,3 @@ class CustomerProfile extends Model
         return $this->national_address;
     }
 }
-

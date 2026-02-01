@@ -84,8 +84,8 @@ class Trim extends Model
      */
     public function getFullNameAttribute(): string
     {
-        return $this->vehicleModel->brand->name . ' ' . 
-               $this->vehicleModel->name . ' ' . 
+        return $this->vehicleModel->brand->name.' '.
+               $this->vehicleModel->name.' '.
                $this->name;
     }
 
@@ -108,11 +108,11 @@ class Trim extends Model
     public function matchesSpecifications(array $specs): bool
     {
         foreach ($specs as $key => $value) {
-            if ($this->$key !== $value) {
+            if ($value !== $this->$key) {
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -122,24 +122,23 @@ class Trim extends Model
     public function getFormattedSpecsAttribute(): string
     {
         $specs = [];
-        
+
         if ($this->engine_type) {
             $specs[] = $this->engine_type;
         }
-        
+
         if ($this->transmission_type) {
             $specs[] = $this->transmission_type;
         }
-        
+
         if ($this->fuel_type) {
             $specs[] = $this->fuel_type;
         }
-        
+
         if ($this->body_style) {
             $specs[] = $this->body_style;
         }
-        
+
         return implode(' • ', $specs);
     }
 }
-

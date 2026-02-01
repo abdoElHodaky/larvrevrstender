@@ -2,9 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\CustomerProfile;
 use App\Events\UserProfileUpdated;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Models\CustomerProfile;
 
 class UserProfileService
 {
@@ -36,7 +35,7 @@ class UserProfileService
     {
         $profile = $this->getProfile($userId);
         $profile->addDeliveryAddress($addressData);
-        
+
         return $profile->fresh();
     }
 
@@ -47,9 +46,9 @@ class UserProfileService
     {
         $profile = $this->getProfile($userId);
         $profile->updatePreferences($preferences);
-        
+
         event(new UserProfileUpdated($profile));
-        
+
         return $profile->fresh();
     }
 
@@ -59,12 +58,12 @@ class UserProfileService
     public function submitKYCVerification(int $userId, array $documents): CustomerProfile
     {
         $profile = $this->getProfile($userId);
-        
+
         $profile->update([
             'verification_documents' => $documents,
-            'verification_status' => CustomerProfile::STATUS_PENDING
+            'verification_status' => CustomerProfile::STATUS_PENDING,
         ]);
-        
+
         return $profile->fresh();
     }
 
@@ -74,11 +73,11 @@ class UserProfileService
     public function updateVerificationStatus(int $userId, string $status): CustomerProfile
     {
         $profile = $this->getProfile($userId);
-        
+
         $profile->update([
-            'verification_status' => $status
+            'verification_status' => $status,
         ]);
-        
+
         return $profile->fresh();
     }
 
@@ -89,7 +88,7 @@ class UserProfileService
     {
         $profile = $this->getProfile($userId);
         $profile->addPreferredCategory($category);
-        
+
         return $profile->fresh();
     }
 
@@ -100,7 +99,7 @@ class UserProfileService
     {
         $profile = $this->getProfile($userId);
         $profile->removePreferredCategory($category);
-        
+
         return $profile->fresh();
     }
 
@@ -157,8 +156,8 @@ class UserProfileService
                 'email_updates' => true,
                 'sms_updates' => false,
                 'language' => 'en',
-                'currency' => 'SAR'
-            ]
+                'currency' => 'SAR',
+            ],
         ];
 
         $profileData = array_merge($defaultData, $userData);
@@ -166,4 +165,3 @@ class UserProfileService
         return CustomerProfile::create($profileData);
     }
 }
-

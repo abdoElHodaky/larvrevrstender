@@ -19,9 +19,10 @@ class HandleUserRegisteredFromAuth
         try {
             // Extract user data from the event
             $userData = is_array($eventData) ? $eventData : json_decode($eventData, true);
-            
-            if (!isset($userData['user_id'])) {
+
+            if (! isset($userData['user_id'])) {
                 Log::warning('User registered event missing user_id', ['data' => $userData]);
+
                 return;
             }
 
@@ -36,15 +37,14 @@ class HandleUserRegisteredFromAuth
 
             Log::info('User profile created from auth service registration', [
                 'user_id' => $userData['user_id'],
-                'profile_id' => $profile->id
+                'profile_id' => $profile->id,
             ]);
 
         } catch (\Exception $e) {
             Log::error('Failed to handle user registered event from auth service', [
                 'error' => $e->getMessage(),
-                'event_data' => $eventData
+                'event_data' => $eventData,
             ]);
         }
     }
 }
-

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Auth\Repositories;
 
 use App\Domain\Auth\Models\User;
-use App\Domain\Auth\ValueObjects\UserId;
 use App\Domain\Auth\ValueObjects\Email;
+use App\Domain\Auth\ValueObjects\UserId;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface UserRepositoryInterface
@@ -35,4 +35,3 @@ interface UserRepositoryInterface
 
     public function findRecentlyActive(int $days = 30): LengthAwarePaginator;
 }
-

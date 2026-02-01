@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('password');
             $table->enum('type', ['customer', 'merchant', 'admin'])->default('customer');
             $table->enum('status', ['active', 'inactive', 'suspended', 'banned'])->default('active');
-            
+
             // Social authentication fields
             $table->string('google_id')->nullable();
             $table->string('facebook_id')->nullable();
@@ -29,24 +29,24 @@ return new class extends Migration
             $table->string('github_id')->nullable();
             $table->string('avatar')->nullable();
             $table->string('provider')->nullable();
-            
+
             // Two-factor authentication
             $table->boolean('two_factor_enabled')->default(false);
             $table->text('two_factor_secret')->nullable();
             $table->text('two_factor_recovery_codes')->nullable();
-            
+
             // Login tracking
             $table->timestamp('last_login_at')->nullable();
             $table->string('last_login_ip')->nullable();
             $table->integer('login_count')->default(0);
-            
+
             // Additional metadata
             $table->json('metadata')->nullable();
-            
+
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Indexes
             $table->index(['email', 'phone']);
             $table->index(['type', 'status']);
@@ -62,4 +62,3 @@ return new class extends Migration
         Schema::dropIfExists('users');
     }
 };
-

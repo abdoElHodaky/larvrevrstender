@@ -74,17 +74,17 @@ class VehicleModel extends Model
     /**
      * Scope for models by year range.
      */
-    public function scopeByYearRange($query, int $startYear, int $endYear = null)
+    public function scopeByYearRange($query, int $startYear, ?int $endYear = null)
     {
         $query->where('year_start', '<=', $startYear);
-        
+
         if ($endYear) {
             $query->where(function ($q) use ($endYear) {
                 $q->whereNull('year_end')
-                  ->orWhere('year_end', '>=', $endYear);
+                    ->orWhere('year_end', '>=', $endYear);
             });
         }
-        
+
         return $query;
     }
 
@@ -94,10 +94,10 @@ class VehicleModel extends Model
     public function scopeAvailableInYear($query, int $year)
     {
         return $query->where('year_start', '<=', $year)
-                    ->where(function ($q) use ($year) {
-                        $q->whereNull('year_end')
-                          ->orWhere('year_end', '>=', $year);
-                    });
+            ->where(function ($q) use ($year) {
+                $q->whereNull('year_end')
+                    ->orWhere('year_end', '>=', $year);
+            });
     }
 
     /**
@@ -113,7 +113,7 @@ class VehicleModel extends Model
      */
     public function wasAvailableInYear(int $year): bool
     {
-        return $this->year_start <= $year && 
+        return $this->year_start <= $year &&
                ($this->year_end === null || $this->year_end >= $year);
     }
 
@@ -122,7 +122,7 @@ class VehicleModel extends Model
      */
     public function getFullNameAttribute(): string
     {
-        return $this->brand->name . ' ' . $this->name;
+        return $this->brand->name.' '.$this->name;
     }
 
     /**
@@ -131,10 +131,10 @@ class VehicleModel extends Model
     public function getYearRangeAttribute(): string
     {
         if ($this->year_end) {
-            return $this->year_start . '-' . $this->year_end;
+            return $this->year_start.'-'.$this->year_end;
         }
-        
-        return $this->year_start . '-Present';
+
+        return $this->year_start.'-Present';
     }
 
     /**
@@ -145,4 +145,3 @@ class VehicleModel extends Model
         return $this->trims()->count();
     }
 }
-

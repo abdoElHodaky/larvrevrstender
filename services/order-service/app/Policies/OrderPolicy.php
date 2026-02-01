@@ -8,7 +8,7 @@ use Illuminate\Auth\Access\HandlesAuthorization;
 
 /**
  * Order Policy
- * 
+ *
  * Defines authorization rules for order operations
  * Implements role-based access control for customers, merchants, and admins
  */
@@ -91,8 +91,8 @@ class OrderPolicy
         }
 
         // Customers can delete their own draft orders
-        if ($user->isCustomer() && 
-            $order->customer_id === $user->customer_profile->id && 
+        if ($user->isCustomer() &&
+            $order->customer_id === $user->customer_profile->id &&
             $order->status === Order::STATUS_DRAFT) {
             return true;
         }
@@ -106,7 +106,7 @@ class OrderPolicy
     public function publish(User $user, Order $order): bool
     {
         // Only the order owner can publish
-        if (!$user->isCustomer() || $order->customer_id !== $user->customer_profile->id) {
+        if (! $user->isCustomer() || $order->customer_id !== $user->customer_profile->id) {
             return false;
         }
 
@@ -125,7 +125,7 @@ class OrderPolicy
         }
 
         // Customers can cancel their own orders (except completed ones)
-        if ($user->isCustomer() && 
+        if ($user->isCustomer() &&
             $order->customer_id === $user->customer_profile->id &&
             $order->status !== Order::STATUS_COMPLETED) {
             return true;
@@ -140,7 +140,7 @@ class OrderPolicy
     public function uploadImages(User $user, Order $order): bool
     {
         // Only the order owner can upload images
-        if (!$user->isCustomer() || $order->customer_id !== $user->customer_profile->id) {
+        if (! $user->isCustomer() || $order->customer_id !== $user->customer_profile->id) {
             return false;
         }
 
@@ -154,7 +154,7 @@ class OrderPolicy
     public function bid(User $user, Order $order): bool
     {
         // Only verified merchants can bid
-        if (!$user->isMerchant() || !$user->merchant_profile->verified) {
+        if (! $user->isMerchant() || ! $user->merchant_profile->verified) {
             return false;
         }
 
@@ -188,7 +188,7 @@ class OrderPolicy
     public function award(User $user, Order $order): bool
     {
         // Only the order owner can award
-        if (!$user->isCustomer() || $order->customer_id !== $user->customer_profile->id) {
+        if (! $user->isCustomer() || $order->customer_id !== $user->customer_profile->id) {
             return false;
         }
 
@@ -207,7 +207,7 @@ class OrderPolicy
         }
 
         // Order owner can complete awarded orders
-        if ($user->isCustomer() && 
+        if ($user->isCustomer() &&
             $order->customer_id === $user->customer_profile->id &&
             $order->status === Order::STATUS_AWARDED) {
             return true;
@@ -216,6 +216,7 @@ class OrderPolicy
         // Winning merchant can mark as completed (with customer confirmation)
         if ($user->isMerchant() && $order->status === Order::STATUS_AWARDED) {
             $award = $order->award;
+
             return $award && $award->merchant_id === $user->merchant_profile->id;
         }
 
@@ -240,6 +241,7 @@ class OrderPolicy
         // Can view awarded orders where they're the winner
         if ($order->status === Order::STATUS_AWARDED) {
             $award = $order->award;
+
             return $award && $award->merchant_id === $user->merchant_profile->id;
         }
 

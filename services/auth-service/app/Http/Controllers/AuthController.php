@@ -5,15 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\AuthService;
 use App\Services\SocialAuthService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
     private AuthService $authService;
+
     private SocialAuthService $socialAuthService;
 
     public function __construct(AuthService $authService, SocialAuthService $socialAuthService)
@@ -41,14 +41,14 @@ class AuthController extends Controller
 
         $result = $this->authService->register($request->all());
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->error($result['message'], null, 400);
         }
 
         return response()->success([
             'user_id' => $result['user_id'],
             'requires_verification' => $result['requires_verification'],
-            'expires_at' => $result['expires_at'] ?? null
+            'expires_at' => $result['expires_at'] ?? null,
         ], $result['message'], 201);
     }
 
@@ -68,14 +68,15 @@ class AuthController extends Controller
 
         $result = $this->authService->login($request->phone, $request->password);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             $statusCode = isset($result['requires_verification']) ? 202 : 401;
+
             return response()->json([
                 'success' => false,
                 'message' => $result['message'],
                 'requires_verification' => $result['requires_verification'] ?? false,
                 'user_id' => $result['user_id'] ?? null,
-                'expires_at' => $result['expires_at'] ?? null
+                'expires_at' => $result['expires_at'] ?? null,
             ], $statusCode);
         }
 
@@ -102,7 +103,7 @@ class AuthController extends Controller
 
         $result = $this->authService->verifyOtp($request->user_id, $request->otp);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->error($result['message'], null, 400);
         }
 
@@ -120,7 +121,7 @@ class AuthController extends Controller
     {
         $result = $this->authService->logout($request->user());
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->error($result['message'], null, 500);
         }
 
@@ -134,7 +135,7 @@ class AuthController extends Controller
     {
         $result = $this->authService->logoutAll($request->user());
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->error($result['message'], null, 500);
         }
 
@@ -148,7 +149,7 @@ class AuthController extends Controller
     {
         $result = $this->authService->refreshToken($request->user());
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->error($result['message'], null, 500);
         }
 
@@ -172,13 +173,13 @@ class AuthController extends Controller
     public function updateProfile(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // Check authorization using policy
         $this->authorize('update', $user);
 
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
-            'phone' => 'sometimes|string|saudi_phone|unique:users,phone,' . $user->id,
+            'phone' => 'sometimes|string|saudi_phone|unique:users,phone,'.$user->id,
         ]);
 
         if ($validator->fails()) {
@@ -196,13 +197,13 @@ class AuthController extends Controller
     public function deleteAccount(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // Check authorization using policy
         $this->authorize('delete', $user);
 
         // Revoke all tokens
         $user->tokens()->delete();
-        
+
         // Soft delete the user
         $user->delete();
 
@@ -215,7 +216,7 @@ class AuthController extends Controller
     public function getSessions(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // Check authorization using policy
         $this->authorize('manageSessions', $user);
 
@@ -230,13 +231,13 @@ class AuthController extends Controller
     public function revokeSession(Request $request, $sessionId): JsonResponse
     {
         $user = $request->user();
-        
+
         // Check authorization using policy
         $this->authorize('revokeSessions', $user);
 
         $token = $user->tokens()->where('id', $sessionId)->first();
 
-        if (!$token) {
+        if (! $token) {
             return response()->error('Session not found', null, 404);
         }
 
@@ -251,7 +252,7 @@ class AuthController extends Controller
     public function revokeAllSessions(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // Check authorization using policy
         $this->authorize('revokeSessions', $user);
 
@@ -260,15 +261,13 @@ class AuthController extends Controller
         return response()->success(null, 'All sessions revoked successfully');
     }
 
-
-
     /**
      * Get all users (Admin only)
      */
     public function getUsers(Request $request): JsonResponse
     {
         // Check authorization using gate
-        if (!Gate::allows('manage-users')) {
+        if (! Gate::allows('manage-users')) {
             return response()->error('Unauthorized', null, 403);
         }
 
@@ -284,7 +283,7 @@ class AuthController extends Controller
     public function getUser(Request $request, $userId): JsonResponse
     {
         $targetUser = User::findOrFail($userId);
-        
+
         // Check authorization using policy
         $this->authorize('view', $targetUser);
 
@@ -297,7 +296,7 @@ class AuthController extends Controller
     public function updateUserStatus(Request $request, $userId): JsonResponse
     {
         $targetUser = User::findOrFail($userId);
-        
+
         // Check authorization using policy
         $this->authorize('changeStatus', $targetUser);
 
@@ -320,13 +319,13 @@ class AuthController extends Controller
     public function deleteUser(Request $request, $userId): JsonResponse
     {
         $targetUser = User::findOrFail($userId);
-        
+
         // Check authorization using policy
         $this->authorize('delete', $targetUser);
 
         // Revoke all user tokens
         $targetUser->tokens()->delete();
-        
+
         // Soft delete the user
         $targetUser->delete();
 
@@ -339,7 +338,7 @@ class AuthController extends Controller
     public function getAllSessions(Request $request): JsonResponse
     {
         // Check authorization using gate
-        if (!Gate::allows('admin-access')) {
+        if (! Gate::allows('admin-access')) {
             return response()->error('Unauthorized', null, 403);
         }
 
@@ -357,7 +356,7 @@ class AuthController extends Controller
     public function revokeUserSession(Request $request, $sessionId): JsonResponse
     {
         // Check authorization using gate
-        if (!Gate::allows('admin-access')) {
+        if (! Gate::allows('admin-access')) {
             return response()->error('Unauthorized', null, 403);
         }
 
@@ -373,9 +372,9 @@ class AuthController extends Controller
     public function enableTwoFactor(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // Check authorization using gate
-        if (!Gate::allows('manage-2fa', $user)) {
+        if (! Gate::allows('manage-2fa', $user)) {
             return response()->error('Unauthorized', null, 403);
         }
 
@@ -391,9 +390,9 @@ class AuthController extends Controller
     public function disableTwoFactor(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // Check authorization using gate
-        if (!Gate::allows('manage-2fa', $user)) {
+        if (! Gate::allows('manage-2fa', $user)) {
             return response()->error('Unauthorized', null, 403);
         }
 
@@ -408,17 +407,17 @@ class AuthController extends Controller
      */
     public function socialRedirect(string $provider): JsonResponse
     {
-        if (!in_array($provider, $this->socialAuthService->getSupportedProviders())) {
+        if (! in_array($provider, $this->socialAuthService->getSupportedProviders())) {
             return response()->error('Unsupported provider', null, 400);
         }
 
         try {
             $redirectUrl = $this->socialAuthService->getRedirectUrl($provider);
-            
+
             return response()->success([
-                'redirect_url' => $redirectUrl
+                'redirect_url' => $redirectUrl,
             ], 'Redirect URL generated');
-            
+
         } catch (\Exception $e) {
             return response()->error('Failed to generate redirect URL', null, 500);
         }
@@ -429,7 +428,7 @@ class AuthController extends Controller
      */
     public function socialCallback(string $provider): JsonResponse
     {
-        if (!in_array($provider, $this->socialAuthService->getSupportedProviders())) {
+        if (! in_array($provider, $this->socialAuthService->getSupportedProviders())) {
             return response()->error('Unsupported provider', null, 400);
         }
 
@@ -437,7 +436,7 @@ class AuthController extends Controller
             $socialUser = Socialite::driver($provider)->user();
             $result = $this->socialAuthService->handleSocialAuth($provider, $socialUser);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 return response()->error($result['message'], null, 400);
             }
 

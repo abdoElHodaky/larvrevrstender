@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Log;
 abstract class BaseServiceClient
 {
     protected string $baseUrl;
+
     protected int $timeout;
+
     protected array $defaultHeaders;
 
     public function __construct(string $baseUrl, int $timeout = 30)
@@ -67,10 +69,10 @@ abstract class BaseServiceClient
      */
     protected function makeRequest(string $method, string $endpoint, array $options = []): Response
     {
-        $url = $this->baseUrl . '/' . ltrim($endpoint, '/');
-        
+        $url = $this->baseUrl.'/'.ltrim($endpoint, '/');
+
         $startTime = microtime(true);
-        
+
         try {
             $response = Http::withHeaders($this->defaultHeaders)
                 ->timeout($this->timeout)
@@ -84,9 +86,9 @@ abstract class BaseServiceClient
             return $response;
         } catch (\Exception $e) {
             $duration = microtime(true) - $startTime;
-            
+
             $this->logError($method, $url, $options, $e, $duration);
-            
+
             throw $e;
         }
     }
@@ -101,7 +103,7 @@ abstract class BaseServiceClient
             'method' => $method,
             'url' => $url,
             'status' => $response->status(),
-            'duration' => round($duration * 1000, 2) . 'ms',
+            'duration' => round($duration * 1000, 2).'ms',
             'request_id' => $this->defaultHeaders['X-Request-ID'],
         ]);
     }
@@ -116,7 +118,7 @@ abstract class BaseServiceClient
             'method' => $method,
             'url' => $url,
             'error' => $e->getMessage(),
-            'duration' => round($duration * 1000, 2) . 'ms',
+            'duration' => round($duration * 1000, 2).'ms',
             'request_id' => $this->defaultHeaders['X-Request-ID'],
         ]);
     }
@@ -136,6 +138,7 @@ abstract class BaseServiceClient
     {
         try {
             $response = $this->get('/health');
+
             return $response->successful();
         } catch (\Exception $e) {
             return false;
@@ -149,10 +152,10 @@ abstract class BaseServiceClient
     {
         try {
             $response = $this->get('/info');
+
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
             return null;
         }
     }
 }
-

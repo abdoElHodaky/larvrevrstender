@@ -6,8 +6,8 @@ namespace App\Infrastructure\Database;
 
 use App\Domain\Auth\Models\User;
 use App\Domain\Auth\Repositories\UserRepositoryInterface;
-use App\Domain\Auth\ValueObjects\UserId;
 use App\Domain\Auth\ValueObjects\Email;
+use App\Domain\Auth\ValueObjects\UserId;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
 
@@ -50,7 +50,7 @@ final class UserRepository implements UserRepositoryInterface
         }
 
         $user->update($data);
-        
+
         return $user->fresh();
     }
 
@@ -97,4 +97,3 @@ final class UserRepository implements UserRepositoryInterface
             ->paginate(15);
     }
 }
-

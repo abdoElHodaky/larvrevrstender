@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Carbon\Carbon;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -38,7 +37,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'twitter_id',
         'github_id',
         'avatar',
-        'provider'
+        'provider',
     ];
 
     /**
@@ -69,15 +68,20 @@ class User extends Authenticatable implements MustVerifyEmail
      * User types
      */
     const TYPE_CUSTOMER = 'customer';
+
     const TYPE_MERCHANT = 'merchant';
+
     const TYPE_ADMIN = 'admin';
 
     /**
      * User statuses
      */
     const STATUS_ACTIVE = 'active';
+
     const STATUS_INACTIVE = 'inactive';
+
     const STATUS_SUSPENDED = 'suspended';
+
     const STATUS_BANNED = 'banned';
 
     /**
@@ -86,11 +90,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function createToken(string $name, array $abilities = ['*'], $expiresAt = null)
     {
         $token = parent::createToken($name, $abilities);
-        
+
         if ($expiresAt) {
             $token->accessToken->update(['expires_at' => $expiresAt]);
         }
-        
+
         return $token;
     }
 
@@ -100,24 +104,24 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getTokenAbilities(): array
     {
         $abilities = ['*'];
-        
+
         if ($this->isAdmin()) {
             $abilities = array_merge($abilities, [
                 'admin:read', 'admin:write', 'admin:delete',
-                'users:manage', 'system:manage'
+                'users:manage', 'system:manage',
             ]);
         } elseif ($this->isMerchant()) {
             $abilities = array_merge($abilities, [
                 'merchant:read', 'merchant:write',
-                'bids:create', 'bids:update', 'orders:view'
+                'bids:create', 'bids:update', 'orders:view',
             ]);
         } else {
             $abilities = array_merge($abilities, [
                 'customer:read', 'customer:write',
-                'orders:create', 'orders:update', 'bids:view'
+                'orders:create', 'orders:update', 'bids:view',
             ]);
         }
-        
+
         return $abilities;
     }
 
@@ -143,7 +147,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function scopeVerified($query)
     {
         return $query->whereNotNull('email_verified_at')
-                    ->whereNotNull('phone_verified_at');
+            ->whereNotNull('phone_verified_at');
     }
 
     /**
@@ -159,7 +163,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function isVerified(): bool
     {
-        return !is_null($this->email_verified_at) && !is_null($this->phone_verified_at);
+        return ! is_null($this->email_verified_at) && ! is_null($this->phone_verified_at);
     }
 
     /**
@@ -299,11 +303,11 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $words = explode(' ', $this->name);
         $initials = '';
-        
+
         foreach ($words as $word) {
             $initials .= strtoupper(substr($word, 0, 1));
         }
-        
+
         return substr($initials, 0, 2);
     }
 
@@ -320,7 +324,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getLastSeenAttribute(): ?string
     {
-        if (!$this->last_login_at) {
+        if (! $this->last_login_at) {
             return null;
         }
 

@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
+use Laravel\Socialite\Facades\Socialite;
 
 class SocialAuthService
 {
@@ -17,14 +17,14 @@ class SocialAuthService
         try {
             // Find existing user by email or social provider ID
             $user = User::where('email', $socialUser->getEmail())
-                       ->orWhere("{$provider}_id", $socialUser->getId())
-                       ->first();
+                ->orWhere("{$provider}_id", $socialUser->getId())
+                ->first();
 
             if ($user) {
                 // Update social provider ID if not set
-                if (!$user->{$provider . '_id'}) {
+                if (! $user->{$provider.'_id'}) {
                     $user->update([
-                        $provider . '_id' => $socialUser->getId()
+                        $provider.'_id' => $socialUser->getId(),
                     ]);
                 }
             } else {
@@ -34,7 +34,7 @@ class SocialAuthService
                     'email' => $socialUser->getEmail(),
                     'email_verified_at' => now(),
                     'password' => Hash::make(Str::random(32)),
-                    $provider . '_id' => $socialUser->getId(),
+                    $provider.'_id' => $socialUser->getId(),
                     'avatar' => $socialUser->getAvatar(),
                     'provider' => $provider,
                 ]);
@@ -47,13 +47,13 @@ class SocialAuthService
                 'success' => true,
                 'user' => $user,
                 'token' => $token,
-                'token_type' => 'Bearer'
+                'token_type' => 'Bearer',
             ];
 
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Social authentication failed: ' . $e->getMessage()
+                'message' => 'Social authentication failed: '.$e->getMessage(),
             ];
         }
     }
@@ -74,4 +74,3 @@ class SocialAuthService
         return ['google', 'facebook', 'twitter', 'github'];
     }
 }
-

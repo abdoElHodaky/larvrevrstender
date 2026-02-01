@@ -3,12 +3,7 @@
 namespace App\Services;
 
 use App\Models\Vehicle;
-use App\Models\Brand;
-use App\Models\VehicleModel;
-use App\Models\Trim;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class EnhancedVinOcrService
@@ -27,7 +22,7 @@ class EnhancedVinOcrService
     {
         $results = [];
         $engines = ['google_vision', 'aws_textract', 'azure_vision', 'tesseract'];
-        
+
         foreach ($engines as $engine) {
             try {
                 $result = $this->processWithEngine($image, $engine);
@@ -38,25 +33,25 @@ class EnhancedVinOcrService
                 Log::warning("VIN OCR engine {$engine} failed", ['error' => $e->getMessage()]);
             }
         }
-        
+
         if (empty($results)) {
             return [
                 'success' => false,
                 'error' => 'All OCR engines failed to extract VIN',
-                'engines_tried' => $engines
+                'engines_tried' => $engines,
             ];
         }
-        
+
         // Find consensus VIN or highest confidence result
         $consensusResult = $this->findConsensusVin($results);
-        
+
         // Enhanced vehicle information lookup
         if ($consensusResult['success']) {
             $consensusResult['enhanced_vehicle_info'] = $this->getEnhancedVehicleInfo($consensusResult['vin']);
             $consensusResult['market_data'] = $this->getVehicleMarketData($consensusResult['vin']);
             $consensusResult['recall_info'] = $this->getRecallInformation($consensusResult['vin']);
         }
-        
+
         return $consensusResult;
     }
 
@@ -87,13 +82,13 @@ class EnhancedVinOcrService
         // Simulate Google Vision API call
         $confidence = rand(85, 98) / 100;
         $vins = ['1HGBH41JXMN109186', '2FMDK3GC4DBA12345', 'JH4KA7561PC123456'];
-        
+
         return [
             'success' => true,
             'vin' => $vins[array_rand($vins)],
             'confidence' => $confidence,
             'engine' => 'google_vision',
-            'processing_time' => rand(800, 1500)
+            'processing_time' => rand(800, 1500),
         ];
     }
 
@@ -105,13 +100,13 @@ class EnhancedVinOcrService
         // Simulate AWS Textract call
         $confidence = rand(80, 95) / 100;
         $vins = ['1G1ZT51826F123456', 'WBAVB13596PT12345', '5NPE34AF4HH123456'];
-        
+
         return [
             'success' => true,
             'vin' => $vins[array_rand($vins)],
             'confidence' => $confidence,
             'engine' => 'aws_textract',
-            'processing_time' => rand(1000, 2000)
+            'processing_time' => rand(1000, 2000),
         ];
     }
 
@@ -123,13 +118,13 @@ class EnhancedVinOcrService
         // Simulate Azure Vision call
         $confidence = rand(82, 96) / 100;
         $vins = ['KMHD84LF5JU123456', '3VWD17AJ4EM123456', 'YV4A22RK1N1123456'];
-        
+
         return [
             'success' => true,
             'vin' => $vins[array_rand($vins)],
             'confidence' => $confidence,
             'engine' => 'azure_vision',
-            'processing_time' => rand(900, 1800)
+            'processing_time' => rand(900, 1800),
         ];
     }
 
@@ -141,13 +136,13 @@ class EnhancedVinOcrService
         // Simulate Tesseract processing
         $confidence = rand(70, 88) / 100;
         $vins = ['1FTFW1ET5DFC12345', 'WDDGF4HB1DR123456', '1C4RJFAG4EC123456'];
-        
+
         return [
             'success' => true,
             'vin' => $vins[array_rand($vins)],
             'confidence' => $confidence,
             'engine' => 'tesseract',
-            'processing_time' => rand(2000, 4000)
+            'processing_time' => rand(2000, 4000),
         ];
     }
 
@@ -159,39 +154,39 @@ class EnhancedVinOcrService
         if (count($results) === 1) {
             return $results[0];
         }
-        
+
         // Group by VIN
         $vinGroups = [];
         foreach ($results as $result) {
             $vin = $result['vin'];
-            if (!isset($vinGroups[$vin])) {
+            if (! isset($vinGroups[$vin])) {
                 $vinGroups[$vin] = [];
             }
             $vinGroups[$vin][] = $result;
         }
-        
+
         // Find VIN with most consensus or highest confidence
         $bestVin = null;
         $bestScore = 0;
-        
+
         foreach ($vinGroups as $vin => $group) {
             $consensusCount = count($group);
             $avgConfidence = array_sum(array_column($group, 'confidence')) / $consensusCount;
             $score = $consensusCount * 0.6 + $avgConfidence * 0.4;
-            
+
             if ($score > $bestScore) {
                 $bestScore = $score;
                 $bestVin = $vin;
             }
         }
-        
+
         $bestGroup = $vinGroups[$bestVin];
         $bestResult = $bestGroup[0]; // Take first result from best group
-        
+
         return array_merge($bestResult, [
             'consensus_count' => count($bestGroup),
             'engines_agreed' => array_column($bestGroup, 'engine'),
-            'consensus_score' => $bestScore
+            'consensus_score' => $bestScore,
         ]);
     }
 
@@ -201,7 +196,7 @@ class EnhancedVinOcrService
     private function getEnhancedVehicleInfo(string $vin): array
     {
         $baseInfo = $this->baseVinService->decodeVin($vin);
-        
+
         // Add enhanced information
         return array_merge($baseInfo, [
             'detailed_specs' => $this->getDetailedSpecs($vin),
@@ -209,7 +204,7 @@ class EnhancedVinOcrService
             'fuel_economy' => $this->getFuelEconomy($vin),
             'standard_features' => $this->getStandardFeatures($vin),
             'optional_packages' => $this->getOptionalPackages($vin),
-            'warranty_info' => $this->getWarrantyInfo($vin)
+            'warranty_info' => $this->getWarrantyInfo($vin),
         ]);
     }
 
@@ -224,25 +219,25 @@ class EnhancedVinOcrService
                 'cylinders' => 4,
                 'horsepower' => 158,
                 'torque' => '138 lb-ft',
-                'fuel_system' => 'Direct Injection'
+                'fuel_system' => 'Direct Injection',
             ],
             'transmission' => [
                 'type' => 'CVT',
                 'speeds' => 'Continuously Variable',
-                'drive_type' => 'FWD'
+                'drive_type' => 'FWD',
             ],
             'dimensions' => [
                 'length' => '182.3 in',
                 'width' => '70.8 in',
                 'height' => '55.7 in',
                 'wheelbase' => '106.3 in',
-                'curb_weight' => '2,762 lbs'
+                'curb_weight' => '2,762 lbs',
             ],
             'capacity' => [
                 'seating' => 5,
                 'cargo_volume' => '15.1 cu ft',
-                'fuel_tank' => '12.4 gal'
-            ]
+                'fuel_tank' => '12.4 gal',
+            ],
         ];
     }
 
@@ -262,8 +257,8 @@ class EnhancedVinOcrService
                 'Collision Mitigation Braking',
                 'Road Departure Mitigation',
                 'Adaptive Cruise Control',
-                'Lane Keeping Assist'
-            ]
+                'Lane Keeping Assist',
+            ],
         ];
     }
 
@@ -278,7 +273,7 @@ class EnhancedVinOcrService
             'combined_mpg' => 36,
             'annual_fuel_cost' => '$1,200',
             'co2_emissions' => '247 g/mi',
-            'smog_rating' => 7
+            'smog_rating' => 7,
         ];
     }
 
@@ -292,20 +287,20 @@ class EnhancedVinOcrService
                 'LED Headlights',
                 'Power Side Mirrors',
                 '16-inch Alloy Wheels',
-                'Dual Exhaust'
+                'Dual Exhaust',
             ],
             'interior' => [
                 '7-inch Display Audio',
                 'Apple CarPlay/Android Auto',
                 'Dual-Zone Climate Control',
-                'Power Driver Seat'
+                'Power Driver Seat',
             ],
             'safety' => [
                 'Honda Sensing',
                 'Multi-Angle Rearview Camera',
                 'Vehicle Stability Assist',
-                'Tire Pressure Monitoring'
-            ]
+                'Tire Pressure Monitoring',
+            ],
         ];
     }
 
@@ -317,16 +312,16 @@ class EnhancedVinOcrService
         return [
             'Honda Sensing Suite' => [
                 'price' => '$1,000',
-                'features' => ['Adaptive Cruise Control', 'Lane Keeping Assist']
+                'features' => ['Adaptive Cruise Control', 'Lane Keeping Assist'],
             ],
             'Premium Audio Package' => [
                 'price' => '$800',
-                'features' => ['10-Speaker Audio', 'Subwoofer']
+                'features' => ['10-Speaker Audio', 'Subwoofer'],
             ],
             'Navigation Package' => [
                 'price' => '$1,200',
-                'features' => ['GPS Navigation', '8-inch Display']
-            ]
+                'features' => ['GPS Navigation', '8-inch Display'],
+            ],
         ];
     }
 
@@ -340,7 +335,7 @@ class EnhancedVinOcrService
             'powertrain' => '5 years / 60,000 miles',
             'corrosion' => '5 years / unlimited miles',
             'roadside_assistance' => '3 years / 36,000 miles',
-            'emissions' => '8 years / 80,000 miles'
+            'emissions' => '8 years / 80,000 miles',
         ];
     }
 
@@ -358,7 +353,7 @@ class EnhancedVinOcrService
             'resale_value_5_years' => '$14,200',
             'market_demand' => 'High',
             'days_on_market_average' => 28,
-            'price_trend' => 'Stable'
+            'price_trend' => 'Stable',
         ];
     }
 
@@ -374,17 +369,17 @@ class EnhancedVinOcrService
                     'recall_number' => '20V-123',
                     'date' => '2020-03-15',
                     'description' => 'Fuel pump replacement',
-                    'status' => 'Completed'
-                ]
+                    'status' => 'Completed',
+                ],
             ],
             'service_bulletins' => [
                 [
                     'bulletin_number' => 'SB-21-001',
                     'date' => '2021-01-10',
-                    'description' => 'Software update for infotainment system'
-                ]
+                    'description' => 'Software update for infotainment system',
+                ],
             ],
-            'last_checked' => now()->toDateString()
+            'last_checked' => now()->toDateString(),
         ];
     }
 
@@ -396,32 +391,32 @@ class EnhancedVinOcrService
         $results = [];
         $totalProcessed = 0;
         $successfulExtractions = 0;
-        
+
         foreach ($images as $index => $image) {
             try {
                 $result = $this->processVinWithMultipleEngines($image, $customerId);
                 $results[$index] = $result;
                 $totalProcessed++;
-                
+
                 if ($result['success']) {
                     $successfulExtractions++;
                 }
             } catch (\Exception $e) {
                 $results[$index] = [
                     'success' => false,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ];
                 $totalProcessed++;
             }
         }
-        
+
         return [
             'results' => $results,
             'summary' => [
                 'total_processed' => $totalProcessed,
                 'successful_extractions' => $successfulExtractions,
-                'success_rate' => $totalProcessed > 0 ? ($successfulExtractions / $totalProcessed) * 100 : 0
-            ]
+                'success_rate' => $totalProcessed > 0 ? ($successfulExtractions / $totalProcessed) * 100 : 0,
+            ],
         ];
     }
 
@@ -437,29 +432,29 @@ class EnhancedVinOcrService
                 'total_processed_month' => rand(1200, 4000),
                 'success_rate_today' => rand(85, 98),
                 'average_confidence' => rand(88, 96),
-                'average_processing_time' => rand(1200, 2500)
+                'average_processing_time' => rand(1200, 2500),
             ],
             'engine_performance' => [
                 'google_vision' => [
                     'success_rate' => 94,
                     'average_confidence' => 92,
-                    'average_time' => 1200
+                    'average_time' => 1200,
                 ],
                 'aws_textract' => [
                     'success_rate' => 91,
                     'average_confidence' => 89,
-                    'average_time' => 1500
+                    'average_time' => 1500,
                 ],
                 'azure_vision' => [
                     'success_rate' => 88,
                     'average_confidence' => 87,
-                    'average_time' => 1300
+                    'average_time' => 1300,
                 ],
                 'tesseract' => [
                     'success_rate' => 78,
                     'average_confidence' => 82,
-                    'average_time' => 3000
-                ]
+                    'average_time' => 3000,
+                ],
             ],
             'brand_distribution' => [
                 'Honda' => 18,
@@ -470,7 +465,7 @@ class EnhancedVinOcrService
                 'Audi' => 7,
                 'Lexus' => 6,
                 'Acura' => 5,
-                'Others' => 19
+                'Others' => 19,
             ],
             'error_analysis' => [
                 'image_quality_issues' => 25,
@@ -478,9 +473,8 @@ class EnhancedVinOcrService
                 'damaged_vin_plate' => 15,
                 'lighting_issues' => 12,
                 'angle_issues' => 10,
-                'other' => 18
-            ]
+                'other' => 18,
+            ],
         ];
     }
 }
-

@@ -37,7 +37,7 @@ Route::prefix('auth')->group(function () {
     // Route::post('/logout', [AuthController::class, 'logout']);
     // Route::post('/refresh', [AuthController::class, 'refresh']);
     // Route::get('/me', [AuthController::class, 'me']);
-    
+
     // OTP routes
     // Route::post('/otp/send', [OTPController::class, 'send']);
     // Route::post('/otp/verify', [OTPController::class, 'verify']);
@@ -49,4 +49,3 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 });
-

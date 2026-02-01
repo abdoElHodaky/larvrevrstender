@@ -4,7 +4,7 @@ namespace App\Services\Contracts;
 
 /**
  * Vehicle Service Interface
- * 
+ *
  * Defines the contract for vehicle service implementations
  * Handles vehicle-related operations and ownership validation
  */

@@ -34,7 +34,7 @@ return new class extends Migration
             $table->decimal('highest_bid', 10, 2)->nullable();
             $table->json('metadata')->nullable(); // Additional request metadata
             $table->timestamps();
-            
+
             // Indexes for performance
             $table->index(['customer_id', 'status']);
             $table->index(['part_category', 'status']);
@@ -52,4 +52,3 @@ return new class extends Migration
         Schema::dropIfExists('part_requests');
     }
 };
-

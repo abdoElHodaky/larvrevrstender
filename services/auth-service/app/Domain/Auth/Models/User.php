@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Auth\Models;
 
-use App\Domain\Auth\ValueObjects\UserId;
 use App\Domain\Auth\ValueObjects\Email;
+use App\Domain\Auth\ValueObjects\UserId;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -15,7 +15,7 @@ use Tymon\JWTAuth\Contracts\JWTSubject;
 
 final class User extends Authenticatable implements JWTSubject
 {
-    use HasApiTokens, HasFactory, Notifiable, HasUuids;
+    use HasApiTokens, HasFactory, HasUuids, Notifiable;
 
     protected $fillable = [
         'id',
@@ -100,4 +100,3 @@ final class User extends Authenticatable implements JWTSubject
         $this->update(['preferences' => array_merge($this->preferences ?? [], $preferences)]);
     }
 }
-

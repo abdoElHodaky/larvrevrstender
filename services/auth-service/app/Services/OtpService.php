@@ -9,6 +9,7 @@ use Twilio\Rest\Client;
 class OtpService
 {
     private $twilioClient;
+
     private $fromNumber;
 
     public function __construct()
@@ -28,39 +29,39 @@ class OtpService
         try {
             $otp = $this->generateOtp();
             $key = $this->getCacheKey($phoneNumber);
-            
+
             // Store OTP in cache for 5 minutes
             Cache::put($key, $otp, now()->addMinutes(5));
-            
+
             // Send SMS
             $message = $this->twilioClient->messages->create(
                 $phoneNumber,
                 [
                     'from' => $this->fromNumber,
-                    'body' => "Your verification code is: {$otp}. Valid for 5 minutes."
+                    'body' => "Your verification code is: {$otp}. Valid for 5 minutes.",
                 ]
             );
 
             Log::info('OTP sent successfully', [
                 'phone' => $phoneNumber,
-                'message_sid' => $message->sid
+                'message_sid' => $message->sid,
             ]);
 
             return [
                 'success' => true,
                 'message' => 'OTP sent successfully',
-                'expires_at' => now()->addMinutes(5)->toISOString()
+                'expires_at' => now()->addMinutes(5)->toISOString(),
             ];
 
         } catch (\Exception $e) {
             Log::error('Failed to send OTP', [
                 'phone' => $phoneNumber,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Failed to send OTP'
+                'message' => 'Failed to send OTP',
             ];
         }
     }
@@ -73,12 +74,13 @@ class OtpService
         $key = $this->getCacheKey($phoneNumber);
         $storedOtp = Cache::get($key);
 
-        if (!$storedOtp) {
+        if (! $storedOtp) {
             return false;
         }
 
         if ($storedOtp === $otp) {
             Cache::forget($key);
+
             return true;
         }
 
@@ -98,7 +100,6 @@ class OtpService
      */
     private function getCacheKey(string $phoneNumber): string
     {
-        return 'otp:' . md5($phoneNumber);
+        return 'otp:'.md5($phoneNumber);
     }
 }
-

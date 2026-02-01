@@ -33,17 +33,17 @@ return new class extends Migration
             $table->json('terms_conditions')->nullable(); // Additional terms
             $table->json('metadata')->nullable();
             $table->timestamps();
-            
+
             // Foreign key constraints
             $table->foreign('part_request_id')->references('id')->on('part_requests')->onDelete('cascade');
-            
+
             // Indexes for performance
             $table->index(['part_request_id', 'status']);
             $table->index(['merchant_id', 'status']);
             $table->index(['amount', 'status']);
             $table->index('expires_at');
             $table->index('created_at');
-            
+
             // Unique constraint to prevent duplicate bids from same merchant
             $table->unique(['part_request_id', 'merchant_id']);
         });
@@ -57,4 +57,3 @@ return new class extends Migration
         Schema::dropIfExists('bids');
     }
 };
-

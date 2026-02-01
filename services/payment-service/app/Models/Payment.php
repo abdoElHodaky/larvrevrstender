@@ -88,26 +88,37 @@ class Payment extends Model
      * Status constants
      */
     const STATUS_PENDING = 'pending';
+
     const STATUS_PROCESSING = 'processing';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_FAILED = 'failed';
+
     const STATUS_CANCELLED = 'cancelled';
+
     const STATUS_REFUNDED = 'refunded';
+
     const STATUS_PARTIALLY_REFUNDED = 'partially_refunded';
 
     /**
      * Type constants
      */
     const TYPE_PAYMENT = 'payment';
+
     const TYPE_REFUND = 'refund';
+
     const TYPE_PARTIAL_REFUND = 'partial_refund';
 
     /**
      * Payment method constants
      */
     const METHOD_CARD = 'card';
+
     const METHOD_BANK_TRANSFER = 'bank_transfer';
+
     const METHOD_WALLET = 'wallet';
+
     const METHOD_CASH = 'cash';
 
     /**
@@ -116,9 +127,9 @@ class Payment extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($payment) {
-            if (!$payment->payment_reference) {
+            if (! $payment->payment_reference) {
                 $payment->payment_reference = $payment->generatePaymentReference();
             }
         });
@@ -225,7 +236,7 @@ class Payment extends Model
      */
     public function canBeRefunded(): bool
     {
-        return $this->isSuccessful() && 
+        return $this->isSuccessful() &&
                $this->type === self::TYPE_PAYMENT &&
                $this->refunded_amount < $this->amount;
     }
@@ -235,7 +246,7 @@ class Payment extends Model
      */
     public function getStatusDisplayAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             self::STATUS_PENDING => 'Pending',
             self::STATUS_PROCESSING => 'Processing',
             self::STATUS_COMPLETED => 'Completed',
@@ -252,7 +263,7 @@ class Payment extends Model
      */
     public function getStatusColorAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             self::STATUS_PENDING => 'yellow',
             self::STATUS_PROCESSING => 'blue',
             self::STATUS_COMPLETED => 'green',
@@ -269,7 +280,7 @@ class Payment extends Model
      */
     public function getPaymentMethodDisplayAttribute(): string
     {
-        return match($this->payment_method) {
+        return match ($this->payment_method) {
             self::METHOD_CARD => 'Credit/Debit Card',
             self::METHOD_BANK_TRANSFER => 'Bank Transfer',
             self::METHOD_WALLET => 'Digital Wallet',
@@ -283,11 +294,11 @@ class Payment extends Model
      */
     public function getMaskedCardNumberAttribute(): ?string
     {
-        if (!$this->card_last_four) {
+        if (! $this->card_last_four) {
             return null;
         }
-        
-        return '**** **** **** ' . $this->card_last_four;
+
+        return '**** **** **** '.$this->card_last_four;
     }
 
     /**
@@ -306,8 +317,8 @@ class Payment extends Model
         $prefix = 'PAY';
         $timestamp = now()->format('ymdHis');
         $random = strtoupper(Str::random(4));
-        
-        return $prefix . '-' . $timestamp . '-' . $random;
+
+        return $prefix.'-'.$timestamp.'-'.$random;
     }
 
     /**
@@ -317,29 +328,29 @@ class Payment extends Model
     {
         $this->update([
             'status' => self::STATUS_PROCESSING,
-            'processed_at' => now()
+            'processed_at' => now(),
         ]);
     }
 
     /**
      * Mark payment as completed.
      */
-    public function markAsCompleted(array $gatewayResponse = null): void
+    public function markAsCompleted(?array $gatewayResponse = null): void
     {
         $updateData = [
             'status' => self::STATUS_COMPLETED,
-            'completed_at' => now()
+            'completed_at' => now(),
         ];
-        
+
         if ($gatewayResponse) {
             $updateData['gateway_response'] = $gatewayResponse;
         }
-        
+
         // Calculate net amount after fees
         $updateData['net_amount'] = $this->amount - $this->gateway_fee - $this->platform_fee;
-        
+
         $this->update($updateData);
-        
+
         // Mark associated invoice as paid
         if ($this->invoice && $this->type === self::TYPE_PAYMENT) {
             $this->invoice->markAsPaid($this->payment_reference);
@@ -349,48 +360,48 @@ class Payment extends Model
     /**
      * Mark payment as failed.
      */
-    public function markAsFailed(string $reason, string $code = null, string $message = null): void
+    public function markAsFailed(string $reason, ?string $code = null, ?string $message = null): void
     {
         $this->update([
             'status' => self::STATUS_FAILED,
             'failed_at' => now(),
             'failure_reason' => $reason,
             'failure_code' => $code,
-            'failure_message' => $message
+            'failure_message' => $message,
         ]);
     }
 
     /**
      * Cancel payment.
      */
-    public function cancel(string $reason = null): void
+    public function cancel(?string $reason = null): void
     {
-        if (!$this->isPending()) {
+        if (! $this->isPending()) {
             throw new \Exception('Only pending payments can be cancelled');
         }
-        
+
         $this->update([
             'status' => self::STATUS_CANCELLED,
             'metadata' => array_merge($this->metadata ?? [], [
                 'cancelled_at' => now()->toISOString(),
-                'cancel_reason' => $reason
-            ])
+                'cancel_reason' => $reason,
+            ]),
         ]);
     }
 
     /**
      * Process refund.
      */
-    public function processRefund(float $amount, string $reason = null): self
+    public function processRefund(float $amount, ?string $reason = null): self
     {
-        if (!$this->canBeRefunded()) {
+        if (! $this->canBeRefunded()) {
             throw new \Exception('Payment cannot be refunded');
         }
-        
+
         if ($amount > $this->refundable_amount) {
             throw new \Exception('Refund amount exceeds refundable amount');
         }
-        
+
         // Create refund payment record
         $refund = self::create([
             'invoice_id' => $this->invoice_id,
@@ -407,32 +418,32 @@ class Payment extends Model
             'refund_reason' => $reason,
             'metadata' => [
                 'original_payment_id' => $this->id,
-                'original_payment_reference' => $this->payment_reference
-            ]
+                'original_payment_reference' => $this->payment_reference,
+            ],
         ]);
-        
+
         // Update original payment
         $newRefundedAmount = $this->refunded_amount + $amount;
         $newStatus = $newRefundedAmount >= $this->amount ? self::STATUS_REFUNDED : self::STATUS_PARTIALLY_REFUNDED;
-        
+
         $this->update([
             'refunded_amount' => $newRefundedAmount,
             'refunded_at' => now(),
-            'status' => $newStatus
+            'status' => $newStatus,
         ]);
-        
+
         return $refund;
     }
 
     /**
      * Mark as reconciled.
      */
-    public function markAsReconciled(string $reconciliationReference = null): void
+    public function markAsReconciled(?string $reconciliationReference = null): void
     {
         $this->update([
             'reconciled' => true,
             'reconciled_at' => now(),
-            'reconciliation_reference' => $reconciliationReference
+            'reconciliation_reference' => $reconciliationReference,
         ]);
     }
 
@@ -443,9 +454,9 @@ class Payment extends Model
     {
         $existingData = $this->webhook_data ?? [];
         $existingData[] = array_merge($webhookData, [
-            'received_at' => now()->toISOString()
+            'received_at' => now()->toISOString(),
         ]);
-        
+
         $this->update(['webhook_data' => $existingData]);
     }
 
@@ -454,10 +465,10 @@ class Payment extends Model
      */
     public function getProcessingTimeAttribute(): ?int
     {
-        if (!$this->initiated_at || !$this->completed_at) {
+        if (! $this->initiated_at || ! $this->completed_at) {
             return null;
         }
-        
+
         return $this->completed_at->diffInSeconds($this->initiated_at);
     }
 
@@ -482,11 +493,11 @@ class Payment extends Model
      */
     public function get3dsStatusDisplayAttribute(): ?string
     {
-        if (!$this->requires_3ds) {
+        if (! $this->requires_3ds) {
             return null;
         }
-        
-        return match($this->{'3ds_status'}) {
+
+        return match ($this->{'3ds_status'}) {
             'authenticated' => 'Authenticated',
             'attempted' => 'Attempted',
             'failed' => 'Failed',
@@ -495,4 +506,3 @@ class Payment extends Model
         };
     }
 }
-

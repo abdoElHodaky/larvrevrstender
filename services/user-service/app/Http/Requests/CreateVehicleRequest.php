@@ -23,7 +23,7 @@ class CreateVehicleRequest extends FormRequest
             'brand_id' => 'required|integer|exists:brands,id',
             'model_id' => 'required|integer|exists:vehicle_models,id',
             'trim_id' => 'nullable|integer|exists:trims,id',
-            'year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
+            'year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
             'vin' => 'nullable|string|size:17|regex:/^[A-HJ-NPR-Z0-9]{17}$/|unique:vehicles,vin',
             'is_primary' => 'nullable|boolean',
             'custom_name' => 'nullable|string|max:100',
@@ -91,34 +91,33 @@ class CreateVehicleRequest extends FormRequest
             // Validate brand and model relationship
             if ($this->has(['brand_id', 'model_id'])) {
                 $model = \App\Models\VehicleModel::where('id', $this->model_id)
-                                                ->where('brand_id', $this->brand_id)
-                                                ->first();
-                
-                if (!$model) {
+                    ->where('brand_id', $this->brand_id)
+                    ->first();
+
+                if (! $model) {
                     $validator->errors()->add('model_id', 'The selected model does not belong to the selected brand.');
                 }
             }
-            
+
             // Validate trim and model relationship
             if ($this->has(['model_id', 'trim_id']) && $this->trim_id) {
                 $trim = \App\Models\Trim::where('id', $this->trim_id)
-                                       ->where('model_id', $this->model_id)
-                                       ->first();
-                
-                if (!$trim) {
+                    ->where('model_id', $this->model_id)
+                    ->first();
+
+                if (! $trim) {
                     $validator->errors()->add('trim_id', 'The selected trim does not belong to the selected model.');
                 }
             }
-            
+
             // Validate year against model availability
             if ($this->has(['model_id', 'year'])) {
                 $model = \App\Models\VehicleModel::find($this->model_id);
-                
-                if ($model && !$model->wasAvailableInYear($this->year)) {
-                    $validator->errors()->add('year', 'The selected model was not available in ' . $this->year . '.');
+
+                if ($model && ! $model->wasAvailableInYear($this->year)) {
+                    $validator->errors()->add('year', 'The selected model was not available in '.$this->year.'.');
                 }
             }
         });
     }
 }
-

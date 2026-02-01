@@ -5,4 +5,3 @@ return [
     App\Providers\EventServiceProvider::class,
     Tymon\JWTAuth\Providers\LaravelServiceProvider::class,
 ];
-

@@ -2,12 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Invoice;
 use App\Events\InvoiceCreated;
 use App\Events\InvoiceStatusChanged;
-use App\Events\InvoicePaid;
+use App\Models\Invoice;
 use Illuminate\Support\Collection;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class InvoiceService
 {
@@ -25,8 +23,8 @@ class InvoiceService
     public function getInvoiceByNumber(string $invoiceNumber): Invoice
     {
         return Invoice::with(['payments'])
-                     ->where('invoice_number', $invoiceNumber)
-                     ->firstOrFail();
+            ->where('invoice_number', $invoiceNumber)
+            ->firstOrFail();
     }
 
     /**
@@ -35,21 +33,21 @@ class InvoiceService
     public function getCustomerInvoices(int $customerId, array $filters = []): Collection
     {
         $query = Invoice::byCustomer($customerId)
-                       ->orderBy('created_at', 'desc');
-        
+            ->orderBy('created_at', 'desc');
+
         // Apply filters
         if (isset($filters['status'])) {
             $query->byStatus($filters['status']);
         }
-        
+
         if (isset($filters['date_from'])) {
             $query->where('invoice_date', '>=', $filters['date_from']);
         }
-        
+
         if (isset($filters['date_to'])) {
             $query->where('invoice_date', '<=', $filters['date_to']);
         }
-        
+
         return $query->get();
     }
 
@@ -59,21 +57,21 @@ class InvoiceService
     public function getMerchantInvoices(int $merchantId, array $filters = []): Collection
     {
         $query = Invoice::byMerchant($merchantId)
-                       ->orderBy('created_at', 'desc');
-        
+            ->orderBy('created_at', 'desc');
+
         // Apply filters
         if (isset($filters['status'])) {
             $query->byStatus($filters['status']);
         }
-        
+
         if (isset($filters['date_from'])) {
             $query->where('invoice_date', '>=', $filters['date_from']);
         }
-        
+
         if (isset($filters['date_to'])) {
             $query->where('invoice_date', '<=', $filters['date_to']);
         }
-        
+
         return $query->get();
     }
 
@@ -84,10 +82,10 @@ class InvoiceService
     {
         // Validate order data
         $validation = $this->validateOrderData($orderData);
-        if (!$validation['valid']) {
-            throw new \Exception('Order data validation failed: ' . implode(', ', $validation['errors']));
+        if (! $validation['valid']) {
+            throw new \Exception('Order data validation failed: '.implode(', ', $validation['errors']));
         }
-        
+
         $invoiceData = [
             'order_id' => $orderData['order_id'],
             'customer_id' => $orderData['customer_id'],
@@ -110,19 +108,19 @@ class InvoiceService
             'line_items' => $this->createLineItemsFromOrder($orderData),
             'notes' => $orderData['notes'] ?? null,
         ];
-        
+
         $invoice = Invoice::create($invoiceData);
-        
+
         // Calculate tax and total
         $invoice->recalculateTotal();
-        
+
         // Submit to ZATCA if merchant has tax number
         if ($invoice->merchant_tax_number) {
             $invoice->submitToZatca();
         }
-        
+
         event(new InvoiceCreated($invoice));
-        
+
         return $invoice;
     }
 
@@ -132,7 +130,7 @@ class InvoiceService
     private function createLineItemsFromOrder(array $orderData): array
     {
         $lineItems = [];
-        
+
         // Main part item
         $lineItems[] = [
             'id' => \Illuminate\Support\Str::uuid(),
@@ -145,7 +143,7 @@ class InvoiceService
             'total_price' => $orderData['part_cost'],
             'warranty_months' => $orderData['warranty_months'] ?? null,
         ];
-        
+
         // Delivery fee as separate line item if applicable
         if (isset($orderData['delivery_cost']) && $orderData['delivery_cost'] > 0) {
             $lineItems[] = [
@@ -158,7 +156,7 @@ class InvoiceService
                 'estimated_delivery' => $orderData['estimated_delivery'] ?? null,
             ];
         }
-        
+
         return $lineItems;
     }
 
@@ -168,19 +166,19 @@ class InvoiceService
     public function updateInvoice(int $invoiceId, array $data): Invoice
     {
         $invoice = $this->getInvoice($invoiceId);
-        
+
         // Don't allow updates to paid or cancelled invoices
         if (in_array($invoice->status, [Invoice::STATUS_PAID, Invoice::STATUS_CANCELLED])) {
             throw new \Exception('Cannot update paid or cancelled invoice');
         }
-        
+
         $invoice->update($data);
-        
+
         // Recalculate totals if financial data changed
         if (array_intersect_key($data, array_flip(['subtotal', 'delivery_fee', 'platform_fee', 'discount_amount']))) {
             $invoice->recalculateTotal();
         }
-        
+
         return $invoice->fresh();
     }
 
@@ -190,15 +188,15 @@ class InvoiceService
     public function sendInvoice(int $invoiceId, array $sendOptions = []): Invoice
     {
         $invoice = $this->getInvoice($invoiceId);
-        
+
         if ($invoice->status !== Invoice::STATUS_DRAFT) {
             throw new \Exception('Only draft invoices can be sent');
         }
-        
+
         // Here you would integrate with email service
         // For now, we'll simulate sending
         $emailSent = $this->simulateEmailSending($invoice, $sendOptions);
-        
+
         if ($emailSent) {
             $invoice->markAsSent();
             $invoice->addEmailHistory('invoice_sent', $invoice->customer_email ?? 'N/A', true);
@@ -206,9 +204,9 @@ class InvoiceService
             $invoice->addEmailHistory('invoice_sent', $invoice->customer_email ?? 'N/A', false, 'Email sending failed');
             throw new \Exception('Failed to send invoice email');
         }
-        
+
         event(new InvoiceStatusChanged($invoice, Invoice::STATUS_DRAFT, Invoice::STATUS_SENT));
-        
+
         return $invoice->fresh();
     }
 
@@ -222,7 +220,7 @@ class InvoiceService
         // 2. Send email with PDF attachment
         // 3. Include payment link
         // 4. Track email delivery
-        
+
         return true; // Simulate successful sending
     }
 
@@ -232,29 +230,29 @@ class InvoiceService
     public function markAsViewed(int $invoiceId): Invoice
     {
         $invoice = $this->getInvoice($invoiceId);
-        
+
         if ($invoice->status === Invoice::STATUS_SENT) {
             $oldStatus = $invoice->status;
             $invoice->markAsViewed();
-            
+
             event(new InvoiceStatusChanged($invoice, $oldStatus, Invoice::STATUS_VIEWED));
         }
-        
+
         return $invoice->fresh();
     }
 
     /**
      * Cancel invoice.
      */
-    public function cancelInvoice(int $invoiceId, string $reason = null): Invoice
+    public function cancelInvoice(int $invoiceId, ?string $reason = null): Invoice
     {
         $invoice = $this->getInvoice($invoiceId);
         $oldStatus = $invoice->status;
-        
+
         $invoice->cancel($reason);
-        
+
         event(new InvoiceStatusChanged($invoice, $oldStatus, Invoice::STATUS_CANCELLED));
-        
+
         return $invoice->fresh();
     }
 
@@ -264,7 +262,7 @@ class InvoiceService
     public function getInvoiceStats(int $invoiceId): array
     {
         $invoice = $this->getInvoice($invoiceId);
-        
+
         return [
             'invoice_number' => $invoice->invoice_number,
             'status_display' => $invoice->status_display,
@@ -291,7 +289,7 @@ class InvoiceService
     public function getCustomerInvoiceStats(int $customerId): array
     {
         $invoices = Invoice::byCustomer($customerId);
-        
+
         return [
             'total_invoices' => $invoices->count(),
             'draft_invoices' => $invoices->byStatus(Invoice::STATUS_DRAFT)->count(),
@@ -304,7 +302,7 @@ class InvoiceService
             'total_outstanding' => $invoices->whereIn('status', [
                 Invoice::STATUS_SENT,
                 Invoice::STATUS_VIEWED,
-                Invoice::STATUS_OVERDUE
+                Invoice::STATUS_OVERDUE,
             ])->sum('total_amount'),
             'average_payment_time' => $this->calculateAveragePaymentTime($customerId),
         ];
@@ -316,7 +314,7 @@ class InvoiceService
     public function getMerchantInvoiceStats(int $merchantId): array
     {
         $invoices = Invoice::byMerchant($merchantId);
-        
+
         return [
             'total_invoices' => $invoices->count(),
             'draft_invoices' => $invoices->byStatus(Invoice::STATUS_DRAFT)->count(),
@@ -337,19 +335,19 @@ class InvoiceService
     private function calculateAveragePaymentTime(int $customerId): ?float
     {
         $paidInvoices = Invoice::byCustomer($customerId)
-                              ->paid()
-                              ->whereNotNull('sent_at')
-                              ->whereNotNull('paid_at')
-                              ->get();
-        
+            ->paid()
+            ->whereNotNull('sent_at')
+            ->whereNotNull('paid_at')
+            ->get();
+
         if ($paidInvoices->isEmpty()) {
             return null;
         }
-        
+
         $totalDays = $paidInvoices->sum(function ($invoice) {
             return $invoice->sent_at->diffInDays($invoice->paid_at);
         });
-        
+
         return round($totalDays / $paidInvoices->count(), 1);
     }
 
@@ -359,22 +357,22 @@ class InvoiceService
     private function calculatePaymentCollectionRate(int $merchantId): float
     {
         $totalInvoices = Invoice::byMerchant($merchantId)
-                               ->whereIn('status', [
-                                   Invoice::STATUS_SENT,
-                                   Invoice::STATUS_VIEWED,
-                                   Invoice::STATUS_PAID,
-                                   Invoice::STATUS_OVERDUE
-                               ])
-                               ->count();
-        
+            ->whereIn('status', [
+                Invoice::STATUS_SENT,
+                Invoice::STATUS_VIEWED,
+                Invoice::STATUS_PAID,
+                Invoice::STATUS_OVERDUE,
+            ])
+            ->count();
+
         if ($totalInvoices === 0) {
             return 0.0;
         }
-        
+
         $paidInvoices = Invoice::byMerchant($merchantId)
-                              ->paid()
-                              ->count();
-        
+            ->paid()
+            ->count();
+
         return round(($paidInvoices / $totalInvoices) * 100, 2);
     }
 
@@ -384,9 +382,9 @@ class InvoiceService
     public function getOverdueInvoices(): Collection
     {
         return Invoice::overdue()
-                     ->with(['customer', 'merchant'])
-                     ->orderBy('due_date', 'asc')
-                     ->get();
+            ->with(['customer', 'merchant'])
+            ->orderBy('due_date', 'asc')
+            ->get();
     }
 
     /**
@@ -398,27 +396,27 @@ class InvoiceService
             'marked_overdue' => 0,
             'auto_cancelled' => 0,
         ];
-        
+
         // Mark invoices as overdue
         $overdueInvoices = Invoice::whereIn('status', [Invoice::STATUS_SENT, Invoice::STATUS_VIEWED])
-                                 ->where('due_date', '<', now()->toDateString())
-                                 ->get();
-        
+            ->where('due_date', '<', now()->toDateString())
+            ->get();
+
         foreach ($overdueInvoices as $invoice) {
             $invoice->updateStatus(Invoice::STATUS_OVERDUE, 'Automatically marked as overdue');
             $results['marked_overdue']++;
         }
-        
+
         // Auto-cancel very old overdue invoices (after 30 days)
         $veryOverdueInvoices = Invoice::overdue()
-                                     ->where('due_date', '<', now()->subDays(30)->toDateString())
-                                     ->get();
-        
+            ->where('due_date', '<', now()->subDays(30)->toDateString())
+            ->get();
+
         foreach ($veryOverdueInvoices as $invoice) {
             $invoice->cancel('Automatically cancelled - overdue for 30+ days');
             $results['auto_cancelled']++;
         }
-        
+
         return $results;
     }
 
@@ -428,7 +426,7 @@ class InvoiceService
     public function generateInvoicePdfData(int $invoiceId): array
     {
         $invoice = $this->getInvoice($invoiceId);
-        
+
         return [
             'invoice' => $invoice->toArray(),
             'company_info' => [
@@ -449,43 +447,43 @@ class InvoiceService
     public function searchInvoices(array $filters): Collection
     {
         $query = Invoice::with(['payments']);
-        
+
         if (isset($filters['invoice_number'])) {
-            $query->where('invoice_number', 'like', '%' . $filters['invoice_number'] . '%');
+            $query->where('invoice_number', 'like', '%'.$filters['invoice_number'].'%');
         }
-        
+
         if (isset($filters['customer_id'])) {
             $query->byCustomer($filters['customer_id']);
         }
-        
+
         if (isset($filters['merchant_id'])) {
             $query->byMerchant($filters['merchant_id']);
         }
-        
+
         if (isset($filters['status'])) {
             $query->byStatus($filters['status']);
         }
-        
+
         if (isset($filters['date_from'])) {
             $query->where('invoice_date', '>=', $filters['date_from']);
         }
-        
+
         if (isset($filters['date_to'])) {
             $query->where('invoice_date', '<=', $filters['date_to']);
         }
-        
+
         if (isset($filters['amount_min'])) {
             $query->where('total_amount', '>=', $filters['amount_min']);
         }
-        
+
         if (isset($filters['amount_max'])) {
             $query->where('total_amount', '<=', $filters['amount_max']);
         }
-        
+
         if (isset($filters['zatca_status'])) {
             $query->where('zatca_status', $filters['zatca_status']);
         }
-        
+
         return $query->orderBy('created_at', 'desc')->get();
     }
 
@@ -495,37 +493,37 @@ class InvoiceService
     private function validateOrderData(array $orderData): array
     {
         $errors = [];
-        
+
         // Required fields
         $requiredFields = ['order_id', 'customer_id', 'merchant_id', 'part_cost', 'customer_name', 'merchant_name'];
-        
+
         foreach ($requiredFields as $field) {
             if (empty($orderData[$field])) {
                 $errors[] = "Field '{$field}' is required";
             }
         }
-        
+
         // Validate amounts
         if (isset($orderData['part_cost']) && $orderData['part_cost'] <= 0) {
             $errors[] = 'Part cost must be greater than zero';
         }
-        
+
         if (isset($orderData['delivery_cost']) && $orderData['delivery_cost'] < 0) {
             $errors[] = 'Delivery cost cannot be negative';
         }
-        
+
         if (isset($orderData['platform_fee']) && $orderData['platform_fee'] < 0) {
             $errors[] = 'Platform fee cannot be negative';
         }
-        
+
         // Validate email format if provided
-        if (isset($orderData['customer_email']) && !filter_var($orderData['customer_email'], FILTER_VALIDATE_EMAIL)) {
+        if (isset($orderData['customer_email']) && ! filter_var($orderData['customer_email'], FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Invalid customer email format';
         }
-        
+
         return [
             'valid' => empty($errors),
-            'errors' => $errors
+            'errors' => $errors,
         ];
     }
 
@@ -535,22 +533,21 @@ class InvoiceService
     public function resendInvoice(int $invoiceId): Invoice
     {
         $invoice = $this->getInvoice($invoiceId);
-        
-        if (!in_array($invoice->status, [Invoice::STATUS_SENT, Invoice::STATUS_VIEWED, Invoice::STATUS_OVERDUE])) {
+
+        if (! in_array($invoice->status, [Invoice::STATUS_SENT, Invoice::STATUS_VIEWED, Invoice::STATUS_OVERDUE])) {
             throw new \Exception('Invoice cannot be resent in current status');
         }
-        
+
         // Simulate resending
         $emailSent = $this->simulateEmailSending($invoice, ['type' => 'resend']);
-        
+
         if ($emailSent) {
             $invoice->addEmailHistory('invoice_resent', $invoice->customer_email ?? 'N/A', true);
         } else {
             $invoice->addEmailHistory('invoice_resent', $invoice->customer_email ?? 'N/A', false, 'Email resending failed');
             throw new \Exception('Failed to resend invoice email');
         }
-        
+
         return $invoice->fresh();
     }
 }
-

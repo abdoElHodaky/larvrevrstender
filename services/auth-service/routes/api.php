@@ -36,15 +36,15 @@ Route::prefix('auth')->group(function () {
     Route::post('/logout', [App\Http\Controllers\AuthController::class, 'logout'])->middleware('auth:sanctum');
     Route::post('/refresh', [App\Http\Controllers\AuthController::class, 'refresh'])->middleware('auth:sanctum');
     Route::get('/me', [App\Http\Controllers\AuthController::class, 'me'])->middleware('auth:sanctum');
-    
+
     // OTP routes
     Route::post('/otp/send', [App\Http\Controllers\AuthController::class, 'sendOtp']);
     Route::post('/otp/verify', [App\Http\Controllers\AuthController::class, 'verifyOtp']);
-    
+
     // Social authentication routes
     Route::get('/social/{provider}/redirect', [App\Http\Controllers\AuthController::class, 'socialRedirect']);
     Route::get('/social/{provider}/callback', [App\Http\Controllers\AuthController::class, 'socialCallback']);
-    
+
     // Session management
     Route::get('/sessions', [App\Http\Controllers\AuthController::class, 'getSessions'])->middleware('auth:sanctum');
     Route::delete('/sessions/{sessionId}', [App\Http\Controllers\AuthController::class, 'revokeSession'])->middleware('auth:sanctum');

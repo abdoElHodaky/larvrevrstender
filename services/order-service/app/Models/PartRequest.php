@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Carbon\Carbon;
 
 class PartRequest extends Model
 {
@@ -57,24 +56,33 @@ class PartRequest extends Model
      * Status constants
      */
     const STATUS_DRAFT = 'draft';
+
     const STATUS_ACTIVE = 'active';
+
     const STATUS_CLOSED = 'closed';
+
     const STATUS_CANCELLED = 'cancelled';
 
     /**
      * Urgency constants
      */
     const URGENCY_LOW = 'low';
+
     const URGENCY_MEDIUM = 'medium';
+
     const URGENCY_HIGH = 'high';
+
     const URGENCY_URGENT = 'urgent';
 
     /**
      * Condition constants
      */
     const CONDITION_NEW = 'new';
+
     const CONDITION_USED = 'used';
+
     const CONDITION_REFURBISHED = 'refurbished';
+
     const CONDITION_ANY = 'any';
 
     /**
@@ -136,13 +144,13 @@ class PartRequest extends Model
     /**
      * Scope for requests within budget range.
      */
-    public function scopeWithinBudget($query, float $minBudget, float $maxBudget = null)
+    public function scopeWithinBudget($query, float $minBudget, ?float $maxBudget = null)
     {
         $query->where(function ($q) use ($minBudget, $maxBudget) {
             $q->where('budget_min', '<=', $maxBudget ?? $minBudget)
-              ->where('budget_max', '>=', $minBudget);
+                ->where('budget_max', '>=', $minBudget);
         });
-        
+
         return $query;
     }
 
@@ -153,7 +161,7 @@ class PartRequest extends Model
     {
         return $query->where(function ($q) {
             $q->whereNull('expires_at')
-              ->orWhere('expires_at', '>', now());
+                ->orWhere('expires_at', '>', now());
         });
     }
 
@@ -162,7 +170,7 @@ class PartRequest extends Model
      */
     public function isActive(): bool
     {
-        return $this->status === self::STATUS_ACTIVE && !$this->isExpired();
+        return $this->status === self::STATUS_ACTIVE && ! $this->isExpired();
     }
 
     /**
@@ -178,7 +186,7 @@ class PartRequest extends Model
      */
     public function canReceiveBids(): bool
     {
-        return $this->isActive() && !$this->hasWinningBid();
+        return $this->isActive() && ! $this->hasWinningBid();
     }
 
     /**
@@ -194,19 +202,19 @@ class PartRequest extends Model
      */
     public function getBudgetRangeAttribute(): string
     {
-        if (!$this->budget_min && !$this->budget_max) {
+        if (! $this->budget_min && ! $this->budget_max) {
             return 'Not specified';
         }
-        
+
         if ($this->budget_min && $this->budget_max) {
-            return number_format($this->budget_min, 2) . ' - ' . number_format($this->budget_max, 2) . ' SAR';
+            return number_format($this->budget_min, 2).' - '.number_format($this->budget_max, 2).' SAR';
         }
-        
+
         if ($this->budget_min) {
-            return 'From ' . number_format($this->budget_min, 2) . ' SAR';
+            return 'From '.number_format($this->budget_min, 2).' SAR';
         }
-        
-        return 'Up to ' . number_format($this->budget_max, 2) . ' SAR';
+
+        return 'Up to '.number_format($this->budget_max, 2).' SAR';
     }
 
     /**
@@ -214,7 +222,7 @@ class PartRequest extends Model
      */
     public function getUrgencyColorAttribute(): string
     {
-        return match($this->urgency) {
+        return match ($this->urgency) {
             self::URGENCY_LOW => 'green',
             self::URGENCY_MEDIUM => 'yellow',
             self::URGENCY_HIGH => 'orange',
@@ -228,14 +236,14 @@ class PartRequest extends Model
      */
     public function getTimeRemainingAttribute(): ?string
     {
-        if (!$this->expires_at) {
+        if (! $this->expires_at) {
             return null;
         }
-        
+
         if ($this->isExpired()) {
             return 'Expired';
         }
-        
+
         return $this->expires_at->diffForHumans();
     }
 
@@ -245,7 +253,7 @@ class PartRequest extends Model
     public function updateBidStats(): void
     {
         $activeBids = $this->activeBids;
-        
+
         $this->update([
             'bid_count' => $activeBids->count(),
             'lowest_bid' => $activeBids->min('amount'),
@@ -256,28 +264,28 @@ class PartRequest extends Model
     /**
      * Close the request.
      */
-    public function close(string $reason = null): void
+    public function close(?string $reason = null): void
     {
         $this->update([
             'status' => self::STATUS_CLOSED,
             'metadata' => array_merge($this->metadata ?? [], [
                 'closed_at' => now()->toISOString(),
-                'close_reason' => $reason
-            ])
+                'close_reason' => $reason,
+            ]),
         ]);
     }
 
     /**
      * Cancel the request.
      */
-    public function cancel(string $reason = null): void
+    public function cancel(?string $reason = null): void
     {
         $this->update([
             'status' => self::STATUS_CANCELLED,
             'metadata' => array_merge($this->metadata ?? [], [
                 'cancelled_at' => now()->toISOString(),
-                'cancel_reason' => $reason
-            ])
+                'cancel_reason' => $reason,
+            ]),
         ]);
     }
 
@@ -286,11 +294,10 @@ class PartRequest extends Model
      */
     public function extendExpiration(int $days): void
     {
-        $newExpiration = $this->expires_at 
+        $newExpiration = $this->expires_at
             ? $this->expires_at->addDays($days)
             : now()->addDays($days);
-            
+
         $this->update(['expires_at' => $newExpiration]);
     }
 }
-

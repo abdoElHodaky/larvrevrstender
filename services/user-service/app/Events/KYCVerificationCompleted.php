@@ -12,6 +12,7 @@ class KYCVerificationCompleted
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public CustomerProfile $profile;
+
     public string $status;
 
     /**
@@ -35,8 +36,7 @@ class KYCVerificationCompleted
             'verification_status' => $this->status,
             'is_verified' => $this->status === CustomerProfile::STATUS_VERIFIED,
             'completed_at' => now()->toISOString(),
-            'event_type' => 'user.kyc.completed'
+            'event_type' => 'user.kyc.completed',
         ];
     }
 }
-

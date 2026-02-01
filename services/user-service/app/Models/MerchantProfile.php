@@ -85,6 +85,7 @@ class MerchantProfile extends Model
     public function specializesIn(string $category): bool
     {
         $specializations = $this->specializations ?? [];
+
         return in_array($category, $specializations);
     }
 
@@ -94,8 +95,8 @@ class MerchantProfile extends Model
     public function addSpecialization(string $specialization): void
     {
         $specializations = $this->specializations ?? [];
-        
-        if (!in_array($specialization, $specializations)) {
+
+        if (! in_array($specialization, $specializations)) {
             $specializations[] = $specialization;
             $this->update(['specializations' => $specializations]);
         }
@@ -107,6 +108,7 @@ class MerchantProfile extends Model
     public function servesArea(string $area): bool
     {
         $serviceAreas = $this->service_areas ?? [];
+
         return in_array($area, $serviceAreas);
     }
 
@@ -116,8 +118,8 @@ class MerchantProfile extends Model
     public function addServiceArea(string $area): void
     {
         $serviceAreas = $this->service_areas ?? [];
-        
-        if (!in_array($area, $serviceAreas)) {
+
+        if (! in_array($area, $serviceAreas)) {
             $serviceAreas[] = $area;
             $this->update(['service_areas' => $serviceAreas]);
         }
@@ -130,13 +132,13 @@ class MerchantProfile extends Model
     {
         $totalReviews = $this->total_reviews;
         $currentRating = $this->rating;
-        
+
         $newTotalReviews = $totalReviews + 1;
         $newAverageRating = (($currentRating * $totalReviews) + $newRating) / $newTotalReviews;
-        
+
         $this->update([
             'rating' => round($newAverageRating, 2),
-            'total_reviews' => $newTotalReviews
+            'total_reviews' => $newTotalReviews,
         ]);
     }
 
@@ -145,7 +147,7 @@ class MerchantProfile extends Model
      */
     public function hasValidTaxNumber(): bool
     {
-        return !empty($this->tax_number) && strlen($this->tax_number) >= 10;
+        return ! empty($this->tax_number) && strlen($this->tax_number) >= 10;
     }
 
     /**
@@ -154,6 +156,7 @@ class MerchantProfile extends Model
     public function getBusinessHours(string $day): ?array
     {
         $hours = $this->business_hours ?? [];
+
         return $hours[strtolower($day)] ?? null;
     }
 
@@ -163,11 +166,11 @@ class MerchantProfile extends Model
     public function isOpenAt(string $day, string $time): bool
     {
         $hours = $this->getBusinessHours($day);
-        
-        if (!$hours || !isset($hours['open'], $hours['close'])) {
+
+        if (! $hours || ! isset($hours['open'], $hours['close'])) {
             return false;
         }
-        
+
         return $time >= $hours['open'] && $time <= $hours['close'];
     }
 
@@ -176,7 +179,6 @@ class MerchantProfile extends Model
      */
     public function getFormattedRatingAttribute(): string
     {
-        return number_format($this->rating, 1) . '/5.0 (' . $this->total_reviews . ' reviews)';
+        return number_format($this->rating, 1).'/5.0 ('.$this->total_reviews.' reviews)';
     }
 }
-

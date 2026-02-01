@@ -28,7 +28,7 @@ return new class extends Migration
             $table->string('last_login_ip')->nullable();
             $table->rememberToken();
             $table->timestamps();
-            
+
             $table->index(['email', 'status']);
             $table->index(['phone', 'status']);
             $table->index('role');
@@ -43,4 +43,3 @@ return new class extends Migration
         Schema::dropIfExists('users');
     }
 };
-

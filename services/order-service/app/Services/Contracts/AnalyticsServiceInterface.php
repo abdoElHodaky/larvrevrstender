@@ -7,7 +7,7 @@ use App\Models\User;
 
 /**
  * Analytics Service Interface
- * 
+ *
  * Defines the contract for analytics service implementations
  * Handles event tracking and metrics collection
  */

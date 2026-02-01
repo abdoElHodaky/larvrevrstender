@@ -67,4 +67,3 @@ class Kernel extends HttpKernel
         'sanctum' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
     ];
 }
-
