@@ -126,6 +126,230 @@ stateDiagram-v2
         NotificationSent --> NotificationExpired: TTL expired
     }
 ```
+```mermaid
+
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#1e293b',
+    'primaryTextColor': '#f8fafc',
+    'primaryBorderColor': '#38bdf8',
+    'lineColor': '#94a3b8',
+    'secondaryColor': '#0f172a',
+    'tertiaryColor': '#1e293b',
+    'mainBkg': '#0f172a',
+    'nodeBorder': '#38bdf8',
+    'clusterBkg': '#1e293b',
+    'clusterBorder': '#7dd3fc',
+    'titleColor': '#f1f5f9',
+    'edgeLabelBackground':'#1e293b',
+    'nodeTextColor': '#f8fafc'
+  }
+}}%%
+
+stateDiagram-v2
+    direction TB
+    [*] --> Draft: 📦 Create Order
+    
+    state "📦 Order Lifecycle" as OrderStates {
+        Draft --> Published: 🌐 Publish
+        Published --> Bidding: 📥 First bid
+        Bidding --> Bidding: 📈 New bids
+        Bidding --> Awarded: 🏆 Select winner
+        Bidding --> Expired: ⏰ Deadline
+        Awarded --> InProgress: 🛠️ Start
+        InProgress --> Completed: ✅ Finish
+        InProgress --> Disputed: ⚠️ Dispute
+        Disputed --> Resolved: 🤝 Resolve
+        Disputed --> Cancelled: 🚫 Cancel
+        Resolved --> Completed: 🏗️ Resume
+        Expired --> Republished: 🔄 Republish
+        Republished --> Published: ✨ Active
+        
+        state "🌐 Published" as SubPublished {
+            [*] --> WaitingForBids
+            WaitingForBids --> HasBids: 📥 Bid in
+        }
+        
+        state "📈 Bidding" as SubBidding {
+            [*] --> ActiveBidding
+            ActiveBidding --> BiddingClosed: 🔒 Closing
+        }
+        
+        state "🛠️ InProgress" as SubInProgress {
+            [*] --> WorkStarted
+            WorkStarted --> PartOrdered: ⚙️ Parts
+            PartOrdered --> PartReceived: 🚚 Delivery
+            PartReceived --> WorkInProgress: 🔧 Install
+            WorkInProgress --> WorkCompleted: 🏁 Done
+            WorkCompleted --> CustomerReview: 👀 Review
+        }
+    }
+    
+    state "🤝 Bid Lifecycle" as BidStates {
+        [*] --> BidDraft: ✍️ Draft
+        BidDraft --> BidSubmitted: 📤 Submit
+        BidSubmitted --> BidActive: ⚡ Live
+        BidActive --> BidUpdated: ✏️ Edit
+        BidActive --> BidAwarded: 🎯 Won
+        BidActive --> BidRejected: ❌ Lost
+        BidActive --> BidWithdrawn: 🔙 Retract
+        BidActive --> BidExpired: ⏳ Close
+        
+        state "⚡ BidActive" as SubBidActive {
+            [*] --> Competing
+            Competing --> Leading: 🥇 Top
+            Leading --> Competing: 📉 Outbid
+        }
+    }
+    
+    state "💰 Payment Lifecycle" as PaymentStates {
+        [*] --> PaymentPending: ⏳ Awarded
+        PaymentPending --> PaymentProcessing: 💳 Pay
+        PaymentProcessing --> PaymentCompleted: 💎 Success
+        PaymentProcessing --> PaymentFailed: 🛑 Fail
+        PaymentCompleted --> InvoiceGenerated: 📝 ZATCA Calc
+        InvoiceGenerated --> InvoiceSubmitted: 📡 ZATCA Sync
+        InvoiceSubmitted --> InvoiceApproved: ✅ Approved
+        InvoiceRejected --> InvoiceGenerated: 🔄 Regen
+        
+        PaymentCompleted --> RefundRequested: ↩️ Refund
+        RefundProcessing --> RefundCompleted: 💸 Done
+    }
+    
+    state "👤 User Account" as UserStates {
+        [*] --> Unverified: 🆕 Reg
+        Unverified --> PhoneVerified: 📱 OTP
+        PhoneVerified --> EmailVerified: 📧 Mail
+        EmailVerified --> Active: ✅ Verified
+        
+        state "✅ Active" as SubUserActive {
+            [*] --> Customer
+            Customer --> MerchantApplication: 📝 Apply
+            MerchantPending --> Merchant: 🎖️ OK
+        }
+    }
+```
+```mermaid
+
+
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#1a1a2e',
+    'primaryTextColor': '#ffffff',
+    'primaryBorderColor': '#00d1ff',
+    'lineColor': '#7f8c8d',
+    'secondaryColor': '#0f3460',
+    'tertiaryColor': '#16213e',
+    'mainBkg': '#0a0a12',
+    'nodeBorder': '#00d1ff',
+    'clusterBkg': '#16213e',
+    'clusterBorder': '#4ecdc4',
+    'titleColor': '#f7d794',
+    'edgeLabelBackground':'#1a1a2e'
+  }
+}}%%
+
+stateDiagram-v2
+    direction LR
+
+    %% --- GLOBAL VIEW: THE FIVE PILLARS --- %%
+
+    state "📦 ORDER MANAGEMENT" as OrderSystem {
+        direction TB
+        [*] --> Draft
+        Draft --> Published
+        Published --> Bidding
+        Bidding --> Awarded
+        Awarded --> InProgress
+        InProgress --> Completed
+        Completed --> [*]
+        Bidding --> Expired
+        Expired --> Republished
+        Republished --> Bidding
+
+        state InProgress {
+            [*] --> WorkStarted
+            WorkStarted --> PartsHandling
+            PartsHandling --> Testing
+            Testing --> [*]
+        }
+    }
+
+    state "🤝 BIDDING ENGINE" as BidSystem {
+        direction TB
+        [*] --> BidDraft
+        BidDraft --> BidSubmitted
+        BidSubmitted --> BidActive
+        BidActive --> BidWon
+        BidActive --> BidLost
+        BidWon --> [*]
+        BidLost --> [*]
+
+        state BidActive {
+            [*] --> Competing
+            Competing --> Leading
+            Leading --> Outbid
+            Outbid --> Competing
+        }
+    }
+
+    state "💰 FINANCIAL LEDGER" as PaymentSystem {
+        direction TB
+        [*] --> EscrowPending
+        EscrowPending --> EscrowHeld
+        EscrowHeld --> PayoutReleased
+        PayoutReleased --> [*]
+        EscrowHeld --> Refunded
+        Refunded --> [*]
+
+        state ZATCA_Flow {
+            [*] --> Calc
+            Calc --> Sync
+            Sync --> Approved
+            Approved --> [*]
+        }
+        EscrowHeld --> ZATCA_Flow
+        ZATCA_Flow --> PayoutReleased
+    }
+
+    state "👤 IDENTITY & ACCESS" as UserSystem {
+        direction TB
+        [*] --> Guest
+        Guest --> VerifiedUser
+        VerifiedUser --> Suspended
+        Suspended --> [*]
+
+        state VerifiedUser {
+            [*] --> CustomerRole
+            [*] --> MerchantRole
+            CustomerRole --> [*]
+            MerchantRole --> [*]
+        }
+    }
+
+    state "🔔 EVENT NOTIFICATIONS" as NotifySystem {
+        direction TB
+        [*] --> Triggered
+        Triggered --> Queued
+        Queued --> Dispatched
+        Dispatched --> Delivered
+        Delivered --> [*]
+    }
+
+    %% --- INTER-SYSTEM CONNECTIONS (The "Zoom Out" Links) --- %%
+    OrderSystem --> BidSystem : "Triggers Bidding"
+    BidSystem --> PaymentSystem : "Winning Bid creates Escrow"
+    PaymentSystem --> OrderSystem : "Payment unlocks Work"
+    UserSystem --> OrderSystem : "Owner of Record"
+    OrderSystem --> NotifySystem : "Status Updates"
+    PaymentSystem --> NotifySystem : "Transaction Alerts"
+
+
+```
+
+
 
 ## 🔄 State Transition Rules
 
