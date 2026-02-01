@@ -65,8 +65,9 @@ return [
         ],
 
         RequestReceived::class => [
-            ...Octane::prepareApplicationForNextOperation(),
-            ...Octane::prepareApplicationForNextRequest(),
+            // Note: Octane facade calls moved to runtime to avoid bootstrap issues
+            // ...Octane::prepareApplicationForNextOperation(),
+            // ...Octane::prepareApplicationForNextRequest(),
         ],
 
         RequestHandled::class => [
@@ -78,7 +79,8 @@ return [
         ],
 
         TaskReceived::class => [
-            ...Octane::prepareApplicationForNextOperation(),
+            // Note: Octane facade calls moved to runtime to avoid bootstrap issues
+            // ...Octane::prepareApplicationForNextOperation(),
         ],
 
         TaskTerminated::class => [
@@ -86,7 +88,8 @@ return [
         ],
 
         TickReceived::class => [
-            ...Octane::prepareApplicationForNextOperation(),
+            // Note: Octane facade calls moved to runtime to avoid bootstrap issues
+            // ...Octane::prepareApplicationForNextOperation(),
         ],
 
         TickTerminated::class => [
@@ -115,11 +118,13 @@ return [
     */
 
     'warm' => [
-        ...Octane::defaultServicesToWarm(),
+        // Note: Octane facade calls moved to runtime to avoid bootstrap issues
+        // ...Octane::defaultServicesToWarm(),
     ],
 
     'flush' => [
-        ...Octane::defaultServicesToFlush(),
+        // Note: Octane facade calls moved to runtime to avoid bootstrap issues
+        // ...Octane::defaultServicesToFlush(),
     ],
 
     /*
