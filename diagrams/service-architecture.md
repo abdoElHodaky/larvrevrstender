@@ -100,52 +100,97 @@ graph TB
 ## 🔐 Authentication & Authorization Flow
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#00ff88',
+    'primaryTextColor': '#ffffff',
+    'lineColor': '#00d4ff',
+    'secondaryColor': '#7000ff',
+    'tertiaryColor': '#ff0077',
+    'mainBkg': '#0a0a0f',
+    'nodeBorder': '#00d4ff',
+    'activationBkgColor': '#1a1a2e',
+    'sequenceNumberColor': '#00ff88',
+    'noteBkgColor': '#11111b',
+    'noteTextColor': '#00ff88'
+  }
+}}%%
+
 sequenceDiagram
-    participant C as 🌐 Client
-    participant G as 🚪 API Gateway
-    participant A as 🔐 Auth Service
-    participant O as 📋 Order Service
-    participant U as 👥 User Service
-    participant R as 🔴 Redis
-    
-    Note over C,R: User Authentication Flow
-    
-    C->>G: POST /auth/login
-    G->>A: Forward login request
-    A->>A: Validate credentials
-    A->>R: Store session
-    A->>G: Return JWT token
-    G->>C: Return authenticated response
-    
-    Note over C,R: Authorized Request Flow
-    
-    C->>G: GET /orders (with JWT)
-    G->>G: Validate JWT token
-    G->>A: Verify token validity
-    A->>R: Check session
-    A->>G: Token valid
-    G->>O: Forward request
-    O->>O: Check OrderPolicy::viewAny()
-    O->>U: Get user profile
-    U->>O: Return user data
-    O->>O: Apply business logic
-    O->>G: Return filtered orders
-    G->>C: Return response
-    
-    Note over C,R: Policy-based Authorization
-    
-    C->>G: POST /orders/123/publish
-    G->>O: Forward request
-    O->>O: Check OrderPolicy::publish()
-    O->>O: Validate order ownership
-    O->>O: Check order status
-    alt Policy allows
-        O->>O: Execute business logic
-        O->>G: Success response
-    else Policy denies
-        O->>G: 403 Forbidden
+    autonumber
+    participant C as 💎 Terminal_Client
+    participant G as ⚡ Edge_Gateway
+    participant A as 🗝️ Vault_Auth
+    participant O as 📦 Core_Orders
+    participant U as 👥 Profile_DB
+    participant R as 🔋 Turbo_Redis
+
+    Note over C,R: 🟢 [ST-01] SECURE IDENTITY HANDSHAKE
+
+    C->>+G: 📨 POST /auth/login
+    G->>+A: ⛓️ Forward Payload
+    rect rgb(10, 30, 25)
+        A->>A: 🔍 Verify Credentials
+        A->>R: 💾 Map Session Data
     end
-    G->>C: Return response
+    A-->>-G: 🎫 Issued JWT
+    G-->>-C: 200 OK (Token)
+
+    Note over C,R: 🔵 [ST-02] CONTEXTUAL AUTHORIZATION
+
+    C->>+G: 📨 GET /orders
+    G->>G: 🛡️ Signature Audit
+    G->>+A: ⚖️ Claim Validation
+    A->>R: 🔎 Query Session
+    A-->>-G: Status: Valid
+    G->>+O: 🚀 Route Context
+    O->>+U: 👥 Fetch Roles
+    U-->>-O: Role_Set Response
+    O-->>-G: Filtered Dataset
+    G-->>-C: 200 OK
+
+    Note over C,R: 🛡️ [ST-03] POLICY ENFORCEMENT GUARDRAIL
+
+    C->>+G: 📨 POST /publish
+    G->>+O: ⛓️ Dispatch Mutation
+    rect rgb(35, 10, 30)
+        Note right of O: ⚖️ ABAC Policy Logic
+        O->>O: Match Owner_ID
+        O->>O: Verify State_Code
+    end
+    
+    alt ✅ Permission_Granted
+        O-->>G: 202 Accepted
+    else ❌ Permission_Denied
+        O-->>G: 403 Forbidden
+    end
+    G-->>-C: Final Result
+
+    Note over C,R: 🌋 [ST-04] SESSION REVOCATION
+
+    C->>+G: 📨 DELETE /session
+    G->>+A: ⛓️ Termination Req
+    A->>R: 🗑️ Evict Cache Key
+    A-->>-G: Success
+    G-->>-C: 204 No Content
+
+    Note over C,R: 🛸 [ST-05] EVENT SYNCHRONIZATION
+
+    rect rgb(15, 20, 50)
+        O->>+R: ⚡ Refresh Cache
+        R-->>-O: ACK
+    end
+    O-)G: 📡 Emit: Order_Lifecycle
+    G-)C: 🔔 Push: WebSocket
+
+    Note over C,R: 📜 [ST-06] COMPLIANCE AUDIT TRAIL
+
+    rect rgb(25, 25, 25)
+        A->>A: 📓 Log Security_Trail
+        O->>O: 📓 Log Business_Trail
+    end
+    Note right of O: 🗄️ Immutable Archive
 ```
 
 ## 🎯 Real-time Bidding Architecture
