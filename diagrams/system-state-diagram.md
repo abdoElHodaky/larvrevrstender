@@ -345,11 +345,7 @@ stateDiagram-v2
     UserSystem --> OrderSystem : "Owner of Record"
     OrderSystem --> NotifySystem : "Status Updates"
     PaymentSystem --> NotifySystem : "Transaction Alerts"
-
-
 ```
-
-
 
 ## 🔄 State Transition Rules
 
