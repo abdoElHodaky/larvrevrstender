@@ -38,9 +38,15 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-# Check if docker-compose is available
-if ! command -v docker-compose &> /dev/null; then
-    print_error "docker-compose is not installed. Please install it and try again."
+# Check if docker-compose or docker compose is available
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE="docker-compose"
+    print_status "Using docker-compose (standalone)"
+elif docker compose version &> /dev/null; then
+    DOCKER_COMPOSE="docker compose"
+    print_status "Using docker compose (integrated)"
+else
+    print_error "Neither docker-compose nor docker compose is available. Please install Docker Compose and try again."
     exit 1
 fi
 
@@ -67,7 +73,7 @@ done
 print_status "Backed up service configurations to $BACKUP_DIR"
 
 print_info "Step 2: Stopping current services..."
-docker-compose down
+$DOCKER_COMPOSE down
 print_status "Services stopped"
 
 print_info "Step 3: Validating Laravel 12 compatibility..."
@@ -84,7 +90,7 @@ for service in services/*/; do
         fi
         
         # Check for old PHP versions
-        if grep -q "php.*7\." "$service/composer.json"; then
+        if grep -q '"php".*".*7\.' "$service/composer.json"; then
             print_error "$service_name requires PHP 7.x which is not compatible with Laravel 12"
             exit 1
         fi
@@ -120,14 +126,14 @@ done
 print_info "Step 5: Building new Docker images with Octane support..."
 
 # Build all services with new Dockerfiles
-docker-compose -f docker-compose.octane.yml build --no-cache
+$DOCKER_COMPOSE -f docker-compose.octane.yml build --no-cache
 
 print_status "Docker images built successfully"
 
 print_info "Step 6: Starting services with Octane..."
 
 # Start services with Octane configuration
-docker-compose -f docker-compose.octane.yml up -d
+$DOCKER_COMPOSE -f docker-compose.octane.yml up -d
 
 print_status "Services started with Octane"
 
@@ -246,7 +252,7 @@ If issues occur, rollback using:
 
 \`\`\`bash
 # Stop Octane services
-docker-compose -f docker-compose.octane.yml down
+$DOCKER_COMPOSE -f docker-compose.octane.yml down
 
 # Restore backup
 cp $BACKUP_DIR/docker-compose.yml ./
@@ -256,14 +262,14 @@ for service in services/*/; do
 done
 
 # Start original services
-docker-compose up -d
+$DOCKER_COMPOSE up -d
 \`\`\`
 
 ## Monitoring
 
 - Octane Monitor: http://localhost:9000
 - Service Health Checks: Available on each service /up endpoint
-- Logs: \`docker-compose -f docker-compose.octane.yml logs [service-name]\`
+- Logs: \`$DOCKER_COMPOSE -f docker-compose.octane.yml logs [service-name]\`
 
 EOF
 
@@ -289,4 +295,3 @@ print_info "For rollback instructions, see the generated upgrade report"
 
 echo ""
 echo "🚀 Enjoy the performance boost!"
-
