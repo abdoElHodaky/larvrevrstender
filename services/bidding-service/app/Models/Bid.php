@@ -1,0 +1,47 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Bid extends Model
+{
+    use HasFactory;
+
+    /**
+     * The attributes that are mass assignable.
+     */
+    protected $fillable = [
+        'auction_id',
+        'user_id',
+        'amount',
+        'status',
+        'submitted_at',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     */
+    protected $casts = [
+        'amount' => 'decimal:2',
+        'submitted_at' => 'datetime',
+    ];
+
+    /**
+     * Get the auction that owns the bid.
+     */
+    public function auction(): BelongsTo
+    {
+        return $this->belongsTo(Auction::class);
+    }
+
+    /**
+     * Get the user that owns the bid.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}

@@ -12,15 +12,23 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // API middleware stack with Sanctum for stateful requests
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
-        $middleware->alias([
-            'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
+        // Laravel 12 enhanced security middleware
+        $middleware->throttleApi();
+        $middleware->validateCsrfTokens(except: [
+            'api/*', // Exclude API routes from CSRF
         ]);
 
-        //
+        // Middleware aliases
+        $middleware->alias([
+            'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+            'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
+            'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
