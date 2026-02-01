@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   # Database Services
   mysql:
@@ -26,12 +28,12 @@ services:
     networks:
       - reverse_tender_network
 
-  # Microservices with Laravel Octane + FrankenPHP
+  # Microservices
   auth-service:
     build:
       context: ./services/auth-service
       dockerfile: Dockerfile
-    container_name: auth_service_octane
+    container_name: auth_service
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -48,28 +50,19 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - OCTANE_SERVER=frankenphp
-      - OCTANE_WORKERS=4
-      - OCTANE_MAX_REQUESTS=500
-      - OCTANE_MAX_EXECUTION_TIME=30
     depends_on:
       - mysql
       - redis
     volumes:
-      - ./services/auth-service:/app
+      - ./services/auth-service:/var/www/html
     networks:
       - reverse_tender_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   user-service:
     build:
       context: ./services/user-service
       dockerfile: Dockerfile
-    container_name: user_service_octane
+    container_name: user_service
     restart: unless-stopped
     ports:
       - "8001:8000"
@@ -86,28 +79,19 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - OCTANE_SERVER=frankenphp
-      - OCTANE_WORKERS=4
-      - OCTANE_MAX_REQUESTS=500
-      - OCTANE_MAX_EXECUTION_TIME=30
     depends_on:
       - mysql
       - redis
     volumes:
-      - ./services/user-service:/app
+      - ./services/user-service:/var/www/html
     networks:
       - reverse_tender_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   bidding-service:
     build:
       context: ./services/bidding-service
       dockerfile: Dockerfile
-    container_name: bidding_service_octane
+    container_name: bidding_service
     restart: unless-stopped
     ports:
       - "8002:8000"
@@ -125,28 +109,19 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - BROADCAST_CONNECTION=pusher
-      - OCTANE_SERVER=frankenphp
-      - OCTANE_WORKERS=6
-      - OCTANE_MAX_REQUESTS=1000
-      - OCTANE_MAX_EXECUTION_TIME=60
     depends_on:
       - mysql
       - redis
     volumes:
-      - ./services/bidding-service:/app
+      - ./services/bidding-service:/var/www/html
     networks:
       - reverse_tender_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   order-service:
     build:
       context: ./services/order-service
       dockerfile: Dockerfile
-    container_name: order_service_octane
+    container_name: order_service
     restart: unless-stopped
     ports:
       - "8003:8000"
@@ -163,28 +138,19 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - OCTANE_SERVER=frankenphp
-      - OCTANE_WORKERS=4
-      - OCTANE_MAX_REQUESTS=500
-      - OCTANE_MAX_EXECUTION_TIME=30
     depends_on:
       - mysql
       - redis
     volumes:
-      - ./services/order-service:/app
+      - ./services/order-service:/var/www/html
     networks:
       - reverse_tender_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   payment-service:
     build:
       context: ./services/payment-service
       dockerfile: Dockerfile
-    container_name: payment_service_octane
+    container_name: payment_service
     restart: unless-stopped
     ports:
       - "8004:8000"
@@ -201,28 +167,19 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - OCTANE_SERVER=frankenphp
-      - OCTANE_WORKERS=4
-      - OCTANE_MAX_REQUESTS=500
-      - OCTANE_MAX_EXECUTION_TIME=30
     depends_on:
       - mysql
       - redis
     volumes:
-      - ./services/payment-service:/app
+      - ./services/payment-service:/var/www/html
     networks:
       - reverse_tender_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   analytics-service:
     build:
       context: ./services/analytics-service
       dockerfile: Dockerfile
-    container_name: analytics_service_octane
+    container_name: analytics_service
     restart: unless-stopped
     ports:
       - "8005:8000"
@@ -239,28 +196,19 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - OCTANE_SERVER=frankenphp
-      - OCTANE_WORKERS=4
-      - OCTANE_MAX_REQUESTS=500
-      - OCTANE_MAX_EXECUTION_TIME=30
     depends_on:
       - mysql
       - redis
     volumes:
-      - ./services/analytics-service:/app
+      - ./services/analytics-service:/var/www/html
     networks:
       - reverse_tender_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   vin-ocr-service:
     build:
       context: ./services/vin-ocr-service
       dockerfile: Dockerfile
-    container_name: vin_ocr_service_octane
+    container_name: vin_ocr_service
     restart: unless-stopped
     ports:
       - "8006:8000"
@@ -277,28 +225,19 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - OCTANE_SERVER=frankenphp
-      - OCTANE_WORKERS=4
-      - OCTANE_MAX_REQUESTS=500
-      - OCTANE_MAX_EXECUTION_TIME=30
     depends_on:
       - mysql
       - redis
     volumes:
-      - ./services/vin-ocr-service:/app
+      - ./services/vin-ocr-service:/var/www/html
     networks:
       - reverse_tender_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   notification-service:
     build:
       context: ./services/notification-service
       dockerfile: Dockerfile
-    container_name: notification_service_octane
+    container_name: notification_service
     restart: unless-stopped
     ports:
       - "8007:8000"
@@ -315,27 +254,18 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - OCTANE_SERVER=frankenphp
-      - OCTANE_WORKERS=4
-      - OCTANE_MAX_REQUESTS=500
-      - OCTANE_MAX_EXECUTION_TIME=30
     depends_on:
       - mysql
       - redis
     volumes:
-      - ./services/notification-service:/app
+      - ./services/notification-service:/var/www/html
     networks:
       - reverse_tender_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
-  # API Gateway (Nginx) - Updated for Octane
+  # API Gateway (Nginx)
   nginx:
     image: nginx:alpine
-    container_name: reverse_tender_gateway_octane
+    container_name: reverse_tender_gateway
     restart: unless-stopped
     ports:
       - "80:80"
@@ -356,53 +286,12 @@ services:
     networks:
       - reverse_tender_network
 
-  # Shared Octane Monitoring Service
-  octane-monitor:
-    image: dunglas/frankenphp:php8.3
-    container_name: octane_monitor
-    restart: unless-stopped
-    ports:
-      - "9000:9000"
-    environment:
-      - MONITOR_SERVICES=auth-service:8000,user-service:8001,bidding-service:8002,order-service:8003,payment-service:8004,analytics-service:8005,vin-ocr-service:8006,notification-service:8007
-    volumes:
-      - ./monitoring:/app
-    networks:
-      - reverse_tender_network
-    command: >
-      sh -c "
-        echo 'Creating Octane monitoring dashboard...' &&
-        mkdir -p /app &&
-        echo '<?php
-        header(\"Content-Type: application/json\");
-        \$$services = explode(\",\", \$$_ENV[\"MONITOR_SERVICES\"] ?? \"\");
-        \$$status = [];
-        foreach (\$$services as \$$service) {
-          list(\$$name, \$$port) = explode(\":\", \$$service);
-          \$$url = \"http://\" . \$$name . \":8000/up\";
-          \$$ch = curl_init(\$$url);
-          curl_setopt(\$$ch, CURLOPT_RETURNTRANSFER, true);
-          curl_setopt(\$$ch, CURLOPT_TIMEOUT, 5);
-          \$$response = curl_exec(\$$ch);
-          \$$httpCode = curl_getinfo(\$$ch, CURLINFO_HTTP_CODE);
-          curl_close(\$$ch);
-          \$$status[\$$name] = [
-            \"status\" => \$$httpCode === 200 ? \"healthy\" : \"unhealthy\",
-            \"port\" => \$$port,
-            \"response_time\" => curl_getinfo(\$$ch, CURLINFO_TOTAL_TIME)
-          ];
-        }
-        echo json_encode([\"services\" => \$$status, \"timestamp\" => date(\"c\")]);
-        ?>' > /app/index.php &&
-        php -S 0.0.0.0:9000 -t /app
-      "
-
-  # Queue Workers with Horizon
+  # Queue Workers
   horizon:
     build:
       context: ./services/auth-service
       dockerfile: Dockerfile
-    container_name: reverse_tender_horizon_octane
+    container_name: reverse_tender_horizon
     restart: unless-stopped
     command: php artisan horizon
     environment:
@@ -412,7 +301,7 @@ services:
     depends_on:
       - redis
     volumes:
-      - ./services/auth-service:/app
+      - ./services/auth-service:/var/www/html
     networks:
       - reverse_tender_network
 
