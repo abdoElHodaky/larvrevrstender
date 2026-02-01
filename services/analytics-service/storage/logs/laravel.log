@@ -11,3 +11,29 @@
 #8 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
 #9 {main}
 "} 
+[2026-02-01 16:07:46] production.ERROR: A facade root has not been set. {"exception":"[object] (RuntimeException(code: 0): A facade root has not been set. at /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:358)
+[stacktrace]
+#0 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/config/octane.php(69): Illuminate\\Support\\Facades\\Facade::__callStatic()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(97): require('...')
+#2 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(97): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->Illuminate\\Foundation\\Bootstrap\\{closure}()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(78): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->loadConfigurationFile()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(39): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->loadConfigurationFiles()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(342): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->bootstrap()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(474): Illuminate\\Foundation\\Application->bootstrapWith()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(196): Illuminate\\Foundation\\Console\\Kernel->bootstrap()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
+#9 {main}
+"} 
+[2026-02-01 16:07:53] production.ERROR: A facade root has not been set. {"exception":"[object] (RuntimeException(code: 0): A facade root has not been set. at /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:358)
+[stacktrace]
+#0 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/config/octane.php(69): Illuminate\\Support\\Facades\\Facade::__callStatic()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(97): require('...')
+#2 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(97): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->Illuminate\\Foundation\\Bootstrap\\{closure}()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(78): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->loadConfigurationFile()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(39): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->loadConfigurationFiles()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(342): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->bootstrap()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(474): Illuminate\\Foundation\\Application->bootstrapWith()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(196): Illuminate\\Foundation\\Console\\Kernel->bootstrap()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/analytics-service/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
+#9 {main}
+"} 
