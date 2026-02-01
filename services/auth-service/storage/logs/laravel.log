@@ -57,3 +57,16 @@
 #29 /tmp/abdoElHodaky/larvrevrstender/services/auth-service/artisan(51): Illuminate\\Foundation\\Console\\Kernel->terminate()
 #30 {main}
 "} 
+[2026-02-01 15:51:23] production.ERROR: A facade root has not been set. {"exception":"[object] (RuntimeException(code: 0): A facade root has not been set. at /tmp/abdoElHodaky/larvrevrstender/services/auth-service/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php:360)
+[stacktrace]
+#0 /tmp/abdoElHodaky/larvrevrstender/services/auth-service/config/octane.php(69): Illuminate\\Support\\Facades\\Facade::__callStatic()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/auth-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(115): require('...')
+#2 /tmp/abdoElHodaky/larvrevrstender/services/auth-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(115): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->Illuminate\\Foundation\\Bootstrap\\{closure}()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/auth-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(96): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->loadConfigurationFile()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/auth-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(55): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->loadConfigurationFiles()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/auth-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(342): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->bootstrap()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/auth-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(494): Illuminate\\Foundation\\Application->bootstrapWith()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/auth-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(196): Illuminate\\Foundation\\Console\\Kernel->bootstrap()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/auth-service/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
+#9 {main}
+"} 
