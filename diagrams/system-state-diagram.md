@@ -126,8 +126,8 @@ stateDiagram-v2
         NotificationSent --> NotificationExpired: TTL expired
     }
 ```
-```mermaid
 
+```mermaid
 %%{init: {
   'theme': 'base',
   'themeVariables': {
@@ -231,8 +231,6 @@ stateDiagram-v2
     }
 ```
 ```mermaid
-
-
 %%{init: {
   'theme': 'base',
   'themeVariables': {
