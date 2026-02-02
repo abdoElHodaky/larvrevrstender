@@ -145,19 +145,44 @@ services:
       - REVERB_HOST=0.0.0.0
       - REVERB_PORT=8080
       - REVERB_SCHEME=${REVERB_SCHEME:-http}
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
+      - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
+      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-512M}
+      # FrankenPHP Configuration
+      - FRANKENPHP_WORKER_MODE=${FRANKENPHP_WORKER_MODE:-true}
+      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-4}
+      # Performance Optimization
+      - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-256}
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
       - ./logs/bidding-service:/var/www/storage/logs
+      - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
     depends_on:
       - mysql-primary
       - redis-primary
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '1.5'
+        reservations:
+          memory: 768M
+          cpus: '0.75'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8002/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   # User Service - User and profile management
   user-service:
@@ -178,20 +203,45 @@ services:
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - S3_REGION=${S3_REGION}
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
+      - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
+      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-512M}
+      # FrankenPHP Configuration
+      - FRANKENPHP_WORKER_MODE=${FRANKENPHP_WORKER_MODE:-true}
+      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-4}
+      # Performance Optimization
+      - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-256}
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
       - ./logs/user-service:/var/www/storage/logs
       - ./uploads:/var/www/storage/uploads
+      - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
     depends_on:
       - mysql-primary
       - redis-primary
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8003/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   # Order Service - Order and request management
   order-service:
@@ -211,20 +261,45 @@ services:
       - S3_BUCKET=${S3_BUCKET}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
+      - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
+      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-512M}
+      # FrankenPHP Configuration
+      - FRANKENPHP_WORKER_MODE=${FRANKENPHP_WORKER_MODE:-true}
+      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-4}
+      # Performance Optimization
+      - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-256}
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
       - ./logs/order-service:/var/www/storage/logs
       - ./uploads:/var/www/storage/uploads
+      - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
     depends_on:
       - mysql-primary
       - redis-primary
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8004/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   # Notification Service - Multi-channel notifications
   notification-service:
@@ -247,19 +322,44 @@ services:
       - TWILIO_SID=${TWILIO_SID}
       - TWILIO_TOKEN=${TWILIO_TOKEN}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
+      - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
+      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-512M}
+      # FrankenPHP Configuration
+      - FRANKENPHP_WORKER_MODE=${FRANKENPHP_WORKER_MODE:-true}
+      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-4}
+      # Performance Optimization
+      - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-256}
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
       - ./logs/notification-service:/var/www/storage/logs
+      - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
     depends_on:
       - mysql-primary
       - redis-primary
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8005/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   # Payment Service - Payment processing and ZATCA
   payment-service:
@@ -281,19 +381,44 @@ services:
       - ZATCA_CERTIFICATE=${ZATCA_CERTIFICATE}
       - PAYMENT_GATEWAY_URL=${PAYMENT_GATEWAY_URL}
       - PAYMENT_GATEWAY_KEY=${PAYMENT_GATEWAY_KEY}
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
+      - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
+      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-512M}
+      # FrankenPHP Configuration
+      - FRANKENPHP_WORKER_MODE=${FRANKENPHP_WORKER_MODE:-true}
+      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-4}
+      # Performance Optimization
+      - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-256}
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
       - ./logs/payment-service:/var/www/storage/logs
+      - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
     depends_on:
       - mysql-primary
       - redis-primary
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8006/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   # Analytics Service - Business intelligence
   analytics-service:
@@ -310,19 +435,44 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=${REDIS_HOST:-redis-primary}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
+      - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
+      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-512M}
+      # FrankenPHP Configuration
+      - FRANKENPHP_WORKER_MODE=${FRANKENPHP_WORKER_MODE:-true}
+      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-4}
+      # Performance Optimization
+      - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-256}
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
       - ./logs/analytics-service:/var/www/storage/logs
+      - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
     depends_on:
       - mysql-primary
       - redis-primary
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8007/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   # VIN OCR Service - Vehicle identification
   vin-ocr-service:
@@ -344,20 +494,45 @@ services:
       - S3_BUCKET=${S3_BUCKET}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
+      - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
+      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-512M}
+      # FrankenPHP Configuration
+      - FRANKENPHP_WORKER_MODE=${FRANKENPHP_WORKER_MODE:-true}
+      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-4}
+      # Performance Optimization
+      - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-256}
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
       - ./logs/vin-ocr-service:/var/www/storage/logs
       - ./uploads:/var/www/storage/uploads
+      - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
     depends_on:
       - mysql-primary
       - redis-primary
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '1.5'
+        reservations:
+          memory: 768M
+          cpus: '0.75'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8008/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8008/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   # MySQL Primary Database
   mysql-primary:
