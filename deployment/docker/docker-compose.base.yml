@@ -22,19 +22,44 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
+      - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
+      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-512M}
+      # FrankenPHP Configuration
+      - FRANKENPHP_WORKER_MODE=${FRANKENPHP_WORKER_MODE:-true}
+      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-4}
+      # Performance Optimization
+      - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-256}
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
       - ./logs/api-gateway:/var/www/storage/logs
+      - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
     depends_on:
       - mysql-primary
       - redis-primary
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   # Auth Service - Authentication and authorization
   auth-service:
@@ -58,19 +83,44 @@ services:
       - TWILIO_SID=${TWILIO_SID}
       - TWILIO_TOKEN=${TWILIO_TOKEN}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
+      - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
+      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-512M}
+      # FrankenPHP Configuration
+      - FRANKENPHP_WORKER_MODE=${FRANKENPHP_WORKER_MODE:-true}
+      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-4}
+      # Performance Optimization
+      - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-256}
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
       - ./logs/auth-service:/var/www/storage/logs
+      - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
     depends_on:
       - mysql-primary
       - redis-primary
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8001/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   # Bidding Service - Real-time bidding system with Laravel Reverb
   bidding-service:
@@ -389,4 +439,3 @@ networks:
     ipam:
       config:
         - subnet: ${NETWORK_SUBNET:-172.20.0.0/16}
-

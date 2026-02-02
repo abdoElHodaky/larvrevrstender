@@ -2,23 +2,31 @@
 # This file orchestrates the deployment across different cloud providers
 
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.6"
   required_providers {
     digitalocean = {
       source  = "digitalocean/digitalocean"
-      version = "~> 2.0"
+      version = "~> 2.40"
     }
     linode = {
       source  = "linode/linode"
-      version = "~> 2.0"
+      version = "~> 2.21"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.0"
+      version = "~> 2.24"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.0"
+      version = "~> 2.12"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
     }
   }
 }
@@ -215,4 +223,3 @@ module "monitoring" {
   
   depends_on = [module.kubernetes_apps]
 }
-
