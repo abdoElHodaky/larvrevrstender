@@ -344,6 +344,22 @@ sequenceDiagram
 ### 🎯 Bidding System Flow
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 stateDiagram-v2
     [*] --> RequestCreated: العميل ينشئ طلب<br/>Customer Creates Request
     
@@ -389,6 +405,22 @@ stateDiagram-v2
 ### 📡 Real-time Notification Architecture
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph LR
     subgraph "Event Triggers"
         E1[طلب جديد<br/>New Request]
