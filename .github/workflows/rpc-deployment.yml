@@ -1,0 +1,373 @@
+name: RPC Services Deployment Pipeline
+
+on:
+  push:
+    branches: [ rpc, main ]
+    paths:
+      - 'services/**'
+      - 'deployment/**'
+      - '.github/workflows/rpc-deployment.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'services/**'
+      - 'deployment/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Test RPC Services
+  test-rpc-services:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [
+          shared-service,
+          auth-service,
+          user-service,
+          analytics-service,
+          order-service,
+          payment-service,
+          bidding-service,
+          notification-service,
+          vin-ocr-service
+        ]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, mysql, redis
+        coverage: xdebug
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-
+
+    - name: Install dependencies
+      run: |
+        cd services/${{ matrix.service }}
+        composer install --prefer-dist --no-progress
+
+    - name: Run PHPUnit tests
+      run: |
+        cd services/${{ matrix.service }}
+        php artisan test --coverage-clover coverage.xml
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: services/${{ matrix.service }}/coverage.xml
+        flags: ${{ matrix.service }}
+
+  # Build and Push Docker Images
+  build-and-push:
+    needs: test-rpc-services
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main'
+    
+    strategy:
+      matrix:
+        service: [
+          shared-service,
+          auth-service,
+          user-service,
+          analytics-service,
+          order-service,
+          payment-service,
+          bidding-service,
+          notification-service,
+          vin-ocr-service
+        ]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=rpc-latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: services/${{ matrix.service }}
+        file: deployment/docker/Dockerfile.rpc
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          SERVICE_NAME=${{ matrix.service }}
+
+  # Performance Testing
+  performance-test:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/rpc'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: deployment/scripts/package.json
+
+    - name: Install dependencies
+      run: |
+        cd deployment/scripts
+        npm install
+
+    - name: Start pilot environment
+      run: |
+        cd deployment/scripts
+        chmod +x pilot-quickstart.sh
+        ./pilot-quickstart.sh --ci-mode
+
+    - name: Run performance tests
+      run: |
+        cd deployment/scripts
+        chmod +x pilot-performance-test.sh
+        ./pilot-performance-test.sh --output-format json > performance-results.json
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-results
+        path: deployment/scripts/performance-results.json
+
+    - name: Performance regression check
+      run: |
+        cd deployment/scripts
+        node -e "
+        const results = require('./performance-results.json');
+        const rpcAvg = results.rpc.average_response_time;
+        const restAvg = results.rest.average_response_time;
+        const improvement = ((restAvg - rpcAvg) / restAvg) * 100;
+        
+        console.log(\`RPC vs REST Performance:\`);
+        console.log(\`RPC Average: \${rpcAvg}ms\`);
+        console.log(\`REST Average: \${restAvg}ms\`);
+        console.log(\`Improvement: \${improvement.toFixed(2)}%\`);
+        
+        if (improvement < 40) {
+          console.error('❌ Performance improvement target not met (40% minimum)');
+          process.exit(1);
+        } else {
+          console.log('✅ Performance improvement target achieved');
+        }
+        "
+
+  # Security Scanning
+  security-scan:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run TruffleHog secrets scan
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+  # Deploy to Staging
+  deploy-staging:
+    needs: [performance-test, security-scan]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/rpc'
+    environment: staging
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy to staging
+      run: |
+        cd deployment/scripts
+        chmod +x deploy-rpc-production.sh
+        ./deploy-rpc-production.sh \
+          --version ${{ github.sha }} \
+          --namespace reversetender-staging \
+          --context staging
+
+    - name: Run staging health checks
+      run: |
+        cd deployment/scripts
+        chmod +x staging-health-check.sh
+        ./staging-health-check.sh
+
+    - name: Run staging integration tests
+      run: |
+        cd deployment/scripts
+        npm test -- --env=staging
+
+  # Deploy to Production
+  deploy-production:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy to production
+      run: |
+        cd deployment/scripts
+        chmod +x deploy-rpc-production.sh
+        ./deploy-rpc-production.sh \
+          --version ${{ github.sha }} \
+          --namespace reversetender-prod \
+          --context production
+
+    - name: Run production health checks
+      run: |
+        cd deployment/scripts
+        chmod +x production-health-check.sh
+        ./production-health-check.sh
+
+    - name: Update deployment status
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.repos.createDeploymentStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            deployment_id: context.payload.deployment.id,
+            state: 'success',
+            environment_url: 'https://api.reversetender.com',
+            description: 'RPC services deployed successfully'
+          });
+
+  # Rollback on Failure
+  rollback-on-failure:
+    needs: [deploy-staging, deploy-production]
+    runs-on: ubuntu-latest
+    if: failure() && (github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+          export NAMESPACE=reversetender-prod
+        else
+          echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+          export NAMESPACE=reversetender-staging
+        fi
+        export KUBECONFIG=kubeconfig
+
+    - name: Rollback deployment
+      run: |
+        cd deployment/scripts
+        chmod +x deploy-rpc-production.sh
+        ./deploy-rpc-production.sh --rollback --namespace $NAMESPACE
+
+    - name: Notify team of rollback
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🚨 **Deployment Rollback Executed**\n\nThe RPC deployment failed and has been automatically rolled back. Please check the logs and fix the issues before redeploying.'
+          });
+
+  # Cleanup
+  cleanup:
+    needs: [deploy-staging, deploy-production, rollback-on-failure]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Cleanup artifacts
+      run: |
+        echo "Cleaning up temporary files and artifacts"
+        rm -f kubeconfig performance-results.json trivy-results.sarif
+
+    - name: Update metrics
+      run: |
+        echo "Updating deployment metrics and dashboards"
+        # Add metrics update logic here
