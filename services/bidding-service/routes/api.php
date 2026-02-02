@@ -29,14 +29,36 @@ Route::get('/info', function () {
     ]);
 });
 
-// BiddingService routes
-Route::prefix('bidding')->group(function () {
-    // TODO: Add bidding specific routes
+// Inter-service Routes
+Route::middleware('service.auth')->group(function () {
+    Route::post('/bids', [App\Http\Controllers\BiddingController::class, 'placeBid']);
+    Route::get('/bids/{bidId}', [App\Http\Controllers\BiddingController::class, 'getBid']);
+    Route::get('/users/{userId}/bids', [App\Http\Controllers\BiddingController::class, 'getUserBids']);
+    Route::get('/auctions/{auctionId}/bids', [App\Http\Controllers\BiddingController::class, 'getAuctionBids']);
+    Route::put('/bids/{bidId}/status', [App\Http\Controllers\BiddingController::class, 'updateBidStatus']);
 });
 
-// Protected routes
+// External API Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
+    });
+
+    Route::prefix('bids')->group(function () {
+        Route::get('/', [App\Http\Controllers\BiddingController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\BiddingController::class, 'store']);
+        Route::get('/{bid}', [App\Http\Controllers\BiddingController::class, 'show']);
+        Route::put('/{bid}', [App\Http\Controllers\BiddingController::class, 'update']);
+        Route::delete('/{bid}', [App\Http\Controllers\BiddingController::class, 'cancel']);
+    });
+
+    Route::prefix('auctions')->group(function () {
+        Route::get('/', [App\Http\Controllers\AuctionController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\AuctionController::class, 'store']);
+        Route::get('/{auction}', [App\Http\Controllers\AuctionController::class, 'show']);
+        Route::put('/{auction}', [App\Http\Controllers\AuctionController::class, 'update']);
+        Route::delete('/{auction}', [App\Http\Controllers\AuctionController::class, 'destroy']);
+        Route::get('/{auction}/bids', [App\Http\Controllers\AuctionController::class, 'getBids']);
+        Route::post('/{auction}/close', [App\Http\Controllers\AuctionController::class, 'close']);
     });
 });
