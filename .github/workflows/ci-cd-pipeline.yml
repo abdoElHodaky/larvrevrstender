@@ -61,7 +61,7 @@ jobs:
             # Create bootstrap/cache directory if it doesn't exist
             mkdir -p bootstrap/cache
             chmod 755 bootstrap/cache
-            COMPOSER_ALLOW_SUPERUSER=1 composer install --no-progress --prefer-dist --optimize-autoloader
+            COMPOSER_ALLOW_SUPERUSER=1 composer install --no-progress --prefer-dist --optimize-autoloader --no-scripts
             cd - > /dev/null
             COMPLETE_SERVICES=$((COMPLETE_SERVICES + 1))
           else
