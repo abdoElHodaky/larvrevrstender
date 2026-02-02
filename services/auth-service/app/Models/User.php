@@ -3,7 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -196,6 +199,69 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isCustomer(): bool
     {
         return $this->type === self::TYPE_CUSTOMER;
+    }
+
+    /**
+     * Get the roles assigned to the user.
+     */
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'user_roles')
+            ->withPivot(['assigned_at', 'assigned_by', 'expires_at'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the permissions assigned directly to the user.
+     */
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'user_permissions')
+            ->withPivot(['granted_at', 'granted_by', 'expires_at'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the activity logs for the user.
+     */
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
+
+    /**
+     * Check if user has a specific role.
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->roles()->where('slug', $role)->exists();
+    }
+
+    /**
+     * Check if user has a specific permission (directly or through roles).
+     */
+    public function hasPermission(string $permission): bool
+    {
+        // Check direct permissions
+        if ($this->permissions()->where('slug', $permission)->exists()) {
+            return true;
+        }
+
+        // Check permissions through roles
+        return $this->roles()->whereHas('permissions', function ($query) use ($permission) {
+            $query->where('slug', $permission);
+        })->exists();
+    }
+
+    /**
+     * Get all permissions for the user (direct + through roles).
+     */
+    public function getAllPermissions(): Collection
+    {
+        $directPermissions = $this->permissions;
+        $rolePermissions = $this->roles->flatMap->permissions;
+
+        return $directPermissions->merge($rolePermissions)->unique('id');
     }
 
     /**
