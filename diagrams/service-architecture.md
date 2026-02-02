@@ -421,28 +421,36 @@ stateDiagram-v2
 
 graph TB
     %% Request Flow
-    Request[🌐 Incoming Request]
+    Request["🌐 Incoming Request"]
     
     %% Middleware Stack
-    RateLimit[🚦 Rate Limiting<br/>Throttle Middleware]
-    Auth[🔐 Authentication<br/>Sanctum Middleware]
-    CORS[🌍 CORS<br/>Cross-Origin]
-    Validation[✅ Input Validation<br/>Form Requests]
+    RateLimit["🚦 Rate Limiting<br/>Throttle Middleware"]
+    Auth["🔐 Authentication<br/>Sanctum Middleware"]
+    CORS["🌍 CORS<br/>Cross-Origin"]
+    Validation["✅ Input Validation<br/>Form Requests"]
     
     %% Authorization Layer
-    Gates[🚪 Gates<br/>System-wide Permissions]
-    Policies[📋 Policies<br/>Resource-specific Rules]
+    Gates["🚪 Gates<br/>System-wide Permissions"]
+    Policies["📋 Policies<br/>Resource-specific Rules"]
     
     %% Service Layer
-    Controller[🎮 Controller<br/>HTTP Layer]
-    Service[⚙️ Service Layer<br/>Business Logic]
+    Controller["🎮 Controller<br/>HTTP Layer"]
+    Service["⚙️ Service Layer<br/>Business Logic"]
     
     %% Security Components
-    JWT[🎫 JWT Tokens<br/>Stateless Auth]
-    Session[🔒 Session Store<br/>Redis-based]
-    Encryption[🔐 Encryption<br/>Laravel Crypt]
+    JWT["🎫 JWT Tokens<br/>Stateless Auth"]
+    Session["🔒 Session Store<br/>Redis-based"]
+    Encryption["🔐 Encryption<br/>Laravel Crypt"]
     
-    %% Request flow
+    %% Policy Examples
+    OrderPolicy["📋 OrderPolicy<br/>• viewAny()<br/>• view()<br/>• create()<br/>• update()<br/>• publish()<br/>• cancel()"]
+    UserPolicy["👥 UserPolicy<br/>• view()<br/>• update()<br/>• delete()<br/>• verify()"]
+    
+    %% Gate Examples
+    AdminGate["🔑 Admin Gate<br/>• admin-access<br/>• system-config<br/>• user-management"]
+    MerchantGate["🏪 Merchant Gate<br/>• merchant-verified<br/>• can-bid<br/>• view-analytics"]
+    
+    %% Main Request Flow
     Request --> RateLimit
     RateLimit --> Auth
     Auth --> CORS
@@ -452,26 +460,18 @@ graph TB
     Policies --> Controller
     Controller --> Service
     
-    %% Security integrations
+    %% Security Integrations
     Auth --> JWT
     Auth --> Session
     Service --> Encryption
     
-    %% Policy examples
-    OrderPolicy[📋 OrderPolicy<br/>• viewAny()<br/>• view()<br/>• create()<br/>• update()<br/>• publish()<br/>• cancel()]
-    UserPolicy[👥 UserPolicy<br/>• view()<br/>• update()<br/>• delete()<br/>• verify()]
-    
+    %% Policy & Gate Connections
     Policies --> OrderPolicy
     Policies --> UserPolicy
-    
-    %% Gate examples
-    AdminGate[🔑 Admin Gate<br/>• admin-access<br/>• system-config<br/>• user-management]
-    MerchantGate[🏪 Merchant Gate<br/>• merchant-verified<br/>• can-bid<br/>• view-analytics]
-    
     Gates --> AdminGate
     Gates --> MerchantGate
     
-    %% 🎨 Distinguished Eye-Catching Styling
+    %% Styling Definitions
     classDef requestStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
     classDef middlewareStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
     classDef authStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
@@ -479,13 +479,13 @@ graph TB
     classDef securityStyle fill:#A55EEA,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
     classDef policyStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
     
-    %% Apply Component Styling
+    %% Apply Styling
     class Request requestStyle
     class RateLimit,Auth,CORS,Validation middlewareStyle
     class Gates,Policies authStyle
-    class OrderPolicy,UserPolicy,AdminGate,MerchantGate policyStyle
     class Controller,Service serviceStyle
     class JWT,Session,Encryption securityStyle
+    class OrderPolicy,UserPolicy,AdminGate,MerchantGate policyStyle
 ```
 
 ## 📊 Data Flow Architecture
