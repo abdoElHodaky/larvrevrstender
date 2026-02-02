@@ -1,0 +1,147 @@
+# RBAC configuration for Reverse Tender Platform
+# Defines roles and permissions for service accounts
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: reverse-tender-role
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: rbac
+rules:
+  # Allow reading pods and services for health checks
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  
+  # Allow reading configmaps and secrets
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  
+  # Allow creating events for logging
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: reverse-tender-rolebinding
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: rbac
+subjects:
+  - kind: ServiceAccount
+    name: reverse-tender-sa
+    namespace: reverse-tender
+roleRef:
+  kind: Role
+  name: reverse-tender-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Monitoring role for Prometheus and Grafana
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: monitoring-role
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: rbac
+rules:
+  # Allow reading all resources for monitoring
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints", "nodes", "namespaces"]
+    verbs: ["get", "list", "watch"]
+  
+  # Allow reading metrics
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+  
+  # Allow reading deployments and replicasets
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  
+  # Allow reading HPA
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: monitoring-rolebinding
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: rbac
+subjects:
+  - kind: ServiceAccount
+    name: monitoring-sa
+    namespace: reverse-tender
+roleRef:
+  kind: Role
+  name: monitoring-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Deployment role for CI/CD operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deployment-role
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: rbac
+rules:
+  # Allow managing deployments
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Allow managing services
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Allow managing configmaps and secrets
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Allow managing ingress
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Allow managing HPA
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Allow managing PDB
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deployment-rolebinding
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: rbac
+subjects:
+  - kind: ServiceAccount
+    name: deployment-sa
+    namespace: reverse-tender
+roleRef:
+  kind: Role
+  name: deployment-role
+  apiGroup: rbac.authorization.k8s.io
+

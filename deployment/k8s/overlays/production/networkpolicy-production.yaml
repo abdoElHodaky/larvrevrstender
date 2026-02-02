@@ -1,0 +1,215 @@
+# Production-specific Network Policy configuration
+# Enhanced security policies for production environment
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: production-strict-ingress
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: security
+    app.kubernetes.io/environment: production
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: reverse-tender
+  policyTypes:
+    - Ingress
+  ingress:
+    # Only allow traffic from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 8080
+
+---
+# Production egress restrictions
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: production-egress-restrictions
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: security
+    app.kubernetes.io/environment: production
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: reverse-tender
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    
+    # Allow database access (specific IPs in production)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: mysql
+      ports:
+        - protocol: TCP
+          port: 3306
+    
+    # Allow Redis access
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    
+    # Allow HTTPS to external APIs only
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+    
+    # Block HTTP to external (force HTTPS)
+    # - to: []
+    #   ports:
+    #     - protocol: TCP
+    #       port: 80
+
+---
+# Payment service additional security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: payment-service-security
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: security
+    app.kubernetes.io/environment: production
+spec:
+  podSelector:
+    matchLabels:
+      app: payment-service
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Only allow from API gateway and order service
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+        - podSelector:
+            matchLabels:
+              app: order-service
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow payment gateway APIs (HTTPS only)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow database access
+    - to:
+        - podSelector:
+            matchLabels:
+              app: mysql
+      ports:
+        - protocol: TCP
+          port: 3306
+    # Allow Redis access
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # DNS
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+
+---
+# Monitoring network isolation
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-isolation
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: security
+    app.kubernetes.io/environment: production
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: monitoring
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow access from monitoring namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 3000
+  egress:
+    # Allow scraping metrics from all services
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: reverse-tender
+      ports:
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 8080
+    # DNS
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+
+---
+# Database access restrictions
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: database-access-restrictions
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: security
+    app.kubernetes.io/environment: production
+spec:
+  podSelector:
+    matchLabels:
+      app: mysql
+  policyTypes:
+    - Ingress
+  ingress:
+    # Only allow from application services
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: reverse-tender
+      ports:
+        - protocol: TCP
+          port: 3306
+

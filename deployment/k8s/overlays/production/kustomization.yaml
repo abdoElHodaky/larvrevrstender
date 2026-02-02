@@ -80,6 +80,19 @@ configMapGenerator:
       - BACKUP_ENABLED=true
       - MONITORING_ENABLED=true
       - SSL_ENABLED=true
+      # Production Octane Configuration
+      - OCTANE_WORKERS=4
+      - OCTANE_TASK_WORKERS=6
+      - OCTANE_MAX_REQUESTS=500
+      - OCTANE_MEMORY_LIMIT=512M
+      - OCTANE_WATCH=false
+      - FRANKENPHP_NUM_THREADS=4
+      - FRANKENPHP_DEBUG=false
+      - PHP_OPCACHE_ENABLE=1
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=256
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=20000
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
+      - PHP_OPCACHE_REVALIDATE_FREQ=0
 
 # Production-specific secrets
 secretGenerator:
@@ -212,4 +225,3 @@ resources:
   - pdb-production.yaml
   - networkpolicy-production.yaml
   - monitoring.yaml
-

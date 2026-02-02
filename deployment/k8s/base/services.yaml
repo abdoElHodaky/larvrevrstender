@@ -179,7 +179,7 @@ metadata:
     service.beta.kubernetes.io/do-loadbalancer-name: "reverse-tender-lb"
     service.beta.kubernetes.io/do-loadbalancer-protocol: "http"
     service.beta.kubernetes.io/do-loadbalancer-algorithm: "round_robin"
-    service.beta.kubernetes.io/do-loadbalancer-health-check-path: "/health"
+    service.beta.kubernetes.io/do-loadbalancer-health-check-path: "/octane/health"
     service.beta.kubernetes.io/do-loadbalancer-health-check-protocol: "http"
     service.beta.kubernetes.io/do-loadbalancer-health-check-interval-seconds: "30"
     service.beta.kubernetes.io/do-loadbalancer-health-check-response-timeout-seconds: "5"
@@ -198,4 +198,3 @@ spec:
     name: https
   selector:
     app: api-gateway
-

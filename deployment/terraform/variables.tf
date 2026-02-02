@@ -345,6 +345,87 @@ variable "sendgrid_api_key" {
   sensitive   = true
 }
 
+# Laravel Octane Configuration
+variable "octane_server" {
+  description = "Octane server type (frankenphp, swoole, roadrunner)"
+  type        = string
+  default     = "frankenphp"
+  validation {
+    condition     = contains(["frankenphp", "swoole", "roadrunner"], var.octane_server)
+    error_message = "Octane server must be one of: frankenphp, swoole, roadrunner."
+  }
+}
+
+variable "octane_workers_per_service" {
+  description = "Default number of Octane workers per service"
+  type        = map(number)
+  default = {
+    development = 2
+    staging     = 3
+    production  = 4
+  }
+}
+
+variable "octane_task_workers_per_service" {
+  description = "Default number of Octane task workers per service"
+  type        = map(number)
+  default = {
+    development = 2
+    staging     = 4
+    production  = 6
+  }
+}
+
+variable "octane_max_requests" {
+  description = "Maximum requests per Octane worker before restart"
+  type        = map(number)
+  default = {
+    development = 100
+    staging     = 250
+    production  = 500
+  }
+}
+
+variable "octane_memory_limit" {
+  description = "Memory limit per Octane worker"
+  type        = map(string)
+  default = {
+    development = "256M"
+    staging     = "384M"
+    production  = "512M"
+  }
+}
+
+variable "frankenphp_num_threads" {
+  description = "Number of FrankenPHP threads per environment"
+  type        = map(number)
+  default = {
+    development = 2
+    staging     = 3
+    production  = 4
+  }
+}
+
+variable "php_opcache_memory" {
+  description = "PHP OPcache memory consumption in MB per environment"
+  type        = map(number)
+  default = {
+    development = 128
+    staging     = 192
+    production  = 256
+  }
+}
+
+variable "php_opcache_max_files" {
+  description = "Maximum number of files in OPcache per environment"
+  type        = map(number)
+  default = {
+    development = 10000
+    staging     = 15000
+    production  = 20000
+  }
+}
+
 # Cloud Provider Tokens
 variable "digitalocean_token" {
   description = "DigitalOcean API token"
@@ -359,4 +440,3 @@ variable "linode_token" {
   default     = ""
   sensitive   = true
 }
-

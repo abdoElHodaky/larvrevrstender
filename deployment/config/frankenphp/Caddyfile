@@ -1,0 +1,122 @@
+# FrankenPHP Caddyfile for Laravel 12 + Octane
+# Optimized for Reverse Tender Platform microservices
+
+{
+    # Global options
+    auto_https off
+    admin off
+    
+    # FrankenPHP specific options
+    frankenphp {
+        worker_mode on
+        num_threads {$FRANKENPHP_NUM_THREADS:4}
+    }
+    
+    # Logging configuration
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+# Main server block
+:8000 {
+    # Root directory
+    root /app/public
+    
+    # Enable FrankenPHP
+    php_server
+    
+    # Laravel-specific configurations
+    try_files {path} {path}/ /index.php?{query}
+    
+    # Security headers
+    header {
+        # Security headers
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+        
+        # Performance headers
+        Cache-Control "public, max-age=31536000" {
+            path *.css *.js *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2
+        }
+        
+        # Remove server information
+        -Server
+    }
+    
+    # Handle PHP files
+    php_fastcgi unix//var/run/php/php8.3-fpm.sock {
+        trusted_proxies private_ranges
+    }
+    
+    # Static file handling
+    @static {
+        file
+        path *.css *.js *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+    }
+    handle @static {
+        header Cache-Control "public, max-age=31536000, immutable"
+        file_server
+    }
+    
+    # Health check endpoint
+    handle /octane/health {
+        respond "OK" 200
+    }
+    
+    # Metrics endpoint for monitoring
+    handle /octane/metrics {
+        respond "Metrics endpoint" 200
+    }
+    
+    # Handle all other requests through Laravel
+    handle {
+        try_files {path} {path}/ /index.php?{query}
+    }
+    
+    # Error handling
+    handle_errors {
+        @5xx expression `{http.error.status_code} >= 500`
+        handle @5xx {
+            respond "Internal Server Error" 500
+        }
+        
+        @4xx expression `{http.error.status_code} >= 400 && {http.error.status_code} < 500`
+        handle @4xx {
+            respond "Not Found" 404
+        }
+    }
+    
+    # Logging
+    log {
+        output file /var/log/frankenphp/access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+# WebSocket server for Laravel Reverb (Bidding Service)
+:8080 {
+    reverse_proxy localhost:8080 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    
+    log {
+        output file /var/log/frankenphp/websocket.log {
+            roll_size 100mb
+            roll_keep 5
+        }
+        format json
+    }
+}
+

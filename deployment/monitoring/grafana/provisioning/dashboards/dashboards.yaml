@@ -1,0 +1,61 @@
+# Grafana dashboard provisioning configuration
+# Automatically loads dashboards from the dashboards directory
+
+apiVersion: 1
+
+providers:
+  # Octane-specific dashboards
+  - name: 'octane-dashboards'
+    orgId: 1
+    folder: 'Laravel Octane'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/octane
+
+  # Service performance dashboards
+  - name: 'service-dashboards'
+    orgId: 1
+    folder: 'Services'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/services
+
+  # Infrastructure dashboards
+  - name: 'infrastructure-dashboards'
+    orgId: 1
+    folder: 'Infrastructure'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/infrastructure
+
+  # Business metrics dashboards
+  - name: 'business-dashboards'
+    orgId: 1
+    folder: 'Business Metrics'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/business
+
+  # Alert dashboards
+  - name: 'alert-dashboards'
+    orgId: 1
+    folder: 'Alerts'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/alerts
+

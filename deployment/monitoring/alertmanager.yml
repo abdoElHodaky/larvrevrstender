@@ -1,0 +1,157 @@
+# Alertmanager Configuration for Laravel 12 + Octane
+# Reverse Tender Platform Alert Routing
+
+global:
+  smtp_smarthost: '${SMTP_HOST:-localhost:587}'
+  smtp_from: '${ALERT_FROM_EMAIL:-alerts@reversetender.com}'
+  smtp_auth_username: '${SMTP_USERNAME}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+
+# Templates for alert notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route configuration
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      repeat_interval: 5m
+    
+    # Warning alerts - grouped notifications
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      repeat_interval: 30m
+    
+    # Octane-specific alerts
+    - match_re:
+        alertname: '^Octane.*'
+      receiver: 'octane-alerts'
+      group_wait: 15s
+      repeat_interval: 15m
+
+# Inhibition rules - suppress alerts when others are firing
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']
+
+# Receivers configuration
+receivers:
+  - name: 'web.hook'
+    webhook_configs:
+      - url: '${WEBHOOK_URL:-http://localhost:9093/webhook}'
+        send_resolved: true
+
+  - name: 'critical-alerts'
+    email_configs:
+      - to: '${CRITICAL_ALERT_EMAIL:-admin@reversetender.com}'
+        subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }} - {{ .GroupLabels.service }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt }}
+          {{ end }}
+        headers:
+          Priority: 'high'
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts-critical'
+        title: '🚨 Critical Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Service:* {{ .Labels.service }}
+          *Description:* {{ .Annotations.description }}
+          *Time:* {{ .StartsAt }}
+          {{ end }}
+        send_resolved: true
+
+  - name: 'warning-alerts'
+    email_configs:
+      - to: '${WARNING_ALERT_EMAIL:-devops@reversetender.com}'
+        subject: '⚠️ WARNING: {{ .GroupLabels.alertname }} - {{ .GroupLabels.service }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt }}
+          {{ end }}
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts-warning'
+        title: '⚠️ Warning: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Service:* {{ .Labels.service }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+  - name: 'octane-alerts'
+    email_configs:
+      - to: '${OCTANE_ALERT_EMAIL:-octane-team@reversetender.com}'
+        subject: '🚀 Octane Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          Laravel Octane Alert Details:
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Instance: {{ .Labels.instance }}
+          Time: {{ .StartsAt }}
+          
+          Octane Worker Status: Check /octane/health endpoint
+          Metrics: Check /octane/metrics endpoint
+          {{ end }}
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#octane-monitoring'
+        title: '🚀 Octane Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Service:* {{ .Labels.service }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Instance:* {{ .Labels.instance }}
+          
+          *Quick Actions:*
+          • Check health: `curl {{ .Labels.instance }}/octane/health`
+          • Check metrics: `curl {{ .Labels.instance }}/octane/metrics`
+          • Restart workers: `./deployment/scripts/octane-management.sh restart {{ .Labels.service }}`
+          {{ end }}
+        send_resolved: true
+
+# Silence configuration
+silences:
+  # Example: Silence maintenance windows
+  # - matchers:
+  #     - name: alertname
+  #       value: MaintenanceMode
+  #   startsAt: "2026-02-02T10:00:00Z"
+  #   endsAt: "2026-02-02T12:00:00Z"
+  #   createdBy: "admin@reversetender.com"
+  #   comment: "Scheduled maintenance window"
+

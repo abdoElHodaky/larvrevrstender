@@ -51,6 +51,33 @@ spec:
             secretKeyRef:
               name: app-secrets
               key: JWT_SECRET
+        # Laravel Octane Configuration
+        - name: OCTANE_SERVER
+          value: "frankenphp"
+        - name: OCTANE_HTTPS
+          value: "true"
+        - name: OCTANE_WORKERS
+          value: "4"
+        - name: OCTANE_TASK_WORKERS
+          value: "6"
+        - name: OCTANE_MAX_REQUESTS
+          value: "500"
+        - name: OCTANE_MEMORY_LIMIT
+          value: "512M"
+        # FrankenPHP Configuration
+        - name: FRANKENPHP_WORKER_MODE
+          value: "true"
+        - name: FRANKENPHP_NUM_THREADS
+          value: "4"
+        # Performance Optimization
+        - name: PHP_OPCACHE_ENABLE
+          value: "1"
+        - name: PHP_OPCACHE_MEMORY_CONSUMPTION
+          value: "256"
+        - name: PHP_OPCACHE_MAX_ACCELERATED_FILES
+          value: "20000"
+        - name: PHP_OPCACHE_VALIDATE_TIMESTAMPS
+          value: "0"
         livenessProbe:
           httpGet:
             path: /health
@@ -504,4 +531,3 @@ spec:
           limits:
             memory: "1Gi"
             cpu: "1000m"
-
