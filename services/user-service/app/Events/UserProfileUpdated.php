@@ -35,8 +35,7 @@ class UserProfileUpdated
             'verification_status' => $this->profile->verification_status,
             'is_verified' => $this->profile->isVerified(),
             'updated_at' => $this->profile->updated_at->toISOString(),
-            'event_type' => 'user.profile.updated'
+            'event_type' => 'user.profile.updated',
         ];
     }
 }
-

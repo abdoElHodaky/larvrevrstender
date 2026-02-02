@@ -75,4 +75,3 @@ class CreateCustomerProfileRequest extends FormRequest
         ];
     }
 }
-

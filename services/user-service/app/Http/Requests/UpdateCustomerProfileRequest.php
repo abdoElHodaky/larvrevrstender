@@ -21,14 +21,14 @@ class UpdateCustomerProfileRequest extends FormRequest
     public function rules(): array
     {
         $userId = $this->user()->id;
-        
+
         return [
             'national_id' => [
                 'nullable',
                 'string',
                 'min:10',
                 'max:20',
-                Rule::unique('customer_profiles', 'national_id')->ignore($userId, 'user_id')
+                Rule::unique('customer_profiles', 'national_id')->ignore($userId, 'user_id'),
             ],
             'national_address' => 'nullable|string|max:1000',
             'default_location' => 'nullable|array',
@@ -84,4 +84,3 @@ class UpdateCustomerProfileRequest extends FormRequest
         ];
     }
 }
-

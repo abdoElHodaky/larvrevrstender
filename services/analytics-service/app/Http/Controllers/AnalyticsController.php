@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Services\AnalyticsService;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class AnalyticsController extends Controller
 {
@@ -28,14 +28,14 @@ class AnalyticsController extends Controller
             'event_data' => 'nullable|array',
             'session_id' => 'nullable|string|max:255',
             'ip_address' => 'nullable|ip',
-            'user_agent' => 'nullable|string|max:500'
+            'user_agent' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -52,13 +52,13 @@ class AnalyticsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Event tracked successfully',
-                'data' => $event
+                'data' => $event,
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to track event',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -72,14 +72,14 @@ class AnalyticsController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'event_types' => 'nullable|array',
-            'event_types.*' => 'string'
+            'event_types.*' => 'string',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -96,13 +96,13 @@ class AnalyticsController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $analytics
+                'data' => $analytics,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get user analytics',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -116,14 +116,14 @@ class AnalyticsController extends Controller
             'metric_type' => 'nullable|string|in:orders,bids,revenue,users,conversion',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
-            'group_by' => 'nullable|string|in:day,week,month'
+            'group_by' => 'nullable|string|in:day,week,month',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -140,13 +140,13 @@ class AnalyticsController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $metrics
+                'data' => $metrics,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get business metrics',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -161,13 +161,13 @@ class AnalyticsController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $overview
+                'data' => $overview,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get dashboard overview',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -180,14 +180,14 @@ class AnalyticsController extends Controller
         $validator = Validator::make($request->all(), [
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
-            'user_type' => 'nullable|string|in:customer,merchant'
+            'user_type' => 'nullable|string|in:customer,merchant',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -203,13 +203,13 @@ class AnalyticsController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $funnel
+                'data' => $funnel,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get conversion funnel',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -224,13 +224,13 @@ class AnalyticsController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $metrics
+                'data' => $metrics,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get real-time metrics',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -245,14 +245,14 @@ class AnalyticsController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'filters' => 'nullable|array',
-            'format' => 'nullable|string|in:json,csv,pdf'
+            'format' => 'nullable|string|in:json,csv,pdf',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -267,15 +267,14 @@ class AnalyticsController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $report
+                'data' => $report,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to generate report',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 }
-

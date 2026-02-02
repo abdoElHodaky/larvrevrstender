@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Analytics Service
- * 
+ *
  * Handles communication with the analytics service
  * for event tracking and metrics collection
  */
@@ -36,7 +36,7 @@ class AnalyticsService implements AnalyticsServiceInterface
             'customer_id' => $order->customer_id,
             'status' => $order->status,
             'data' => $data,
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ]);
     }
 
@@ -51,7 +51,7 @@ class AnalyticsService implements AnalyticsServiceInterface
             'user_id' => $user->id,
             'user_type' => $user->user_type,
             'data' => $data,
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ]);
     }
 
@@ -64,7 +64,7 @@ class AnalyticsService implements AnalyticsServiceInterface
             'metric' => $metric,
             'value' => $value,
             'tags' => $tags,
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ]);
     }
 
@@ -83,14 +83,14 @@ class AnalyticsService implements AnalyticsServiceInterface
 
             Log::warning('Failed to get order analytics', [
                 'filters' => $filters,
-                'response' => $response->body()
+                'response' => $response->body(),
             ]);
 
             return [];
         } catch (\Exception $e) {
             Log::error('Order analytics error', [
                 'filters' => $filters,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [];
@@ -115,7 +115,7 @@ class AnalyticsService implements AnalyticsServiceInterface
         } catch (\Exception $e) {
             Log::error('User behavior analytics error', [
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [];
@@ -130,7 +130,7 @@ class AnalyticsService implements AnalyticsServiceInterface
         try {
             $params = [
                 'metrics' => $metrics,
-                'date_range' => $dateRange
+                'date_range' => $dateRange,
             ];
 
             $response = Http::timeout(15)
@@ -144,7 +144,7 @@ class AnalyticsService implements AnalyticsServiceInterface
         } catch (\Exception $e) {
             Log::error('Business metrics error', [
                 'metrics' => $metrics,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [];
@@ -169,7 +169,7 @@ class AnalyticsService implements AnalyticsServiceInterface
             Log::error('Report generation error', [
                 'report_type' => $reportType,
                 'parameters' => $parameters,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return ['error' => $e->getMessage()];
@@ -185,16 +185,16 @@ class AnalyticsService implements AnalyticsServiceInterface
             $response = Http::timeout(5)
                 ->post("{$this->analyticsServiceUrl}/api/events", $eventData);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning('Failed to send analytics event', [
                     'event_data' => $eventData,
-                    'response' => $response->body()
+                    'response' => $response->body(),
                 ]);
             }
         } catch (\Exception $e) {
             Log::error('Analytics event error', [
                 'event_data' => $eventData,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -208,16 +208,16 @@ class AnalyticsService implements AnalyticsServiceInterface
             $response = Http::timeout(5)
                 ->post("{$this->analyticsServiceUrl}/api/metrics", $metricData);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning('Failed to send analytics metric', [
                     'metric_data' => $metricData,
-                    'response' => $response->body()
+                    'response' => $response->body(),
                 ]);
             }
         } catch (\Exception $e) {
             Log::error('Analytics metric error', [
                 'metric_data' => $metricData,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }

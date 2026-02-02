@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Vehicle Service
- * 
+ *
  * Handles communication with the user service for vehicle-related operations
  */
 class VehicleService implements VehicleServiceInterface
@@ -28,18 +28,19 @@ class VehicleService implements VehicleServiceInterface
         try {
             $response = Http::timeout(10)
                 ->get("{$this->userServiceUrl}/api/internal/vehicles/{$vehicleId}/owner", [
-                    'customer_id' => $customerId
+                    'customer_id' => $customerId,
                 ]);
 
             if ($response->successful()) {
                 $data = $response->json();
+
                 return $data['is_owner'] ?? false;
             }
 
             Log::warning('Failed to validate vehicle ownership', [
                 'vehicle_id' => $vehicleId,
                 'customer_id' => $customerId,
-                'response' => $response->body()
+                'response' => $response->body(),
             ]);
 
             return false;
@@ -47,7 +48,7 @@ class VehicleService implements VehicleServiceInterface
             Log::error('Vehicle service error', [
                 'vehicle_id' => $vehicleId,
                 'customer_id' => $customerId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw new \Exception('Unable to validate vehicle ownership');
@@ -71,7 +72,7 @@ class VehicleService implements VehicleServiceInterface
         } catch (\Exception $e) {
             Log::error('Failed to get vehicle details', [
                 'vehicle_id' => $vehicleId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return null;
@@ -95,7 +96,7 @@ class VehicleService implements VehicleServiceInterface
         } catch (\Exception $e) {
             Log::error('Failed to get customer vehicles', [
                 'customer_id' => $customerId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [];
@@ -132,7 +133,7 @@ class VehicleService implements VehicleServiceInterface
         } catch (\Exception $e) {
             Log::error('Failed to get vehicle specs by VIN', [
                 'vin' => $vin,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return null;

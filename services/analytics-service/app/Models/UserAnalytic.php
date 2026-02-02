@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\Carbon;
 
 class UserAnalytic extends Model
 {
@@ -18,13 +18,13 @@ class UserAnalytic extends Model
         'session_id',
         'ip_address',
         'user_agent',
-        'created_at'
+        'created_at',
     ];
 
     protected $casts = [
         'event_data' => 'array',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     /**
@@ -73,8 +73,8 @@ class UserAnalytic extends Model
     public function scopeGroupedByType($query)
     {
         return $query->selectRaw('event_type, COUNT(*) as count')
-                    ->groupBy('event_type')
-                    ->orderBy('count', 'desc');
+            ->groupBy('event_type')
+            ->orderBy('count', 'desc');
     }
 
     /**
@@ -82,7 +82,7 @@ class UserAnalytic extends Model
      */
     public function scopeGroupedByDate($query, string $groupBy = 'day')
     {
-        $dateFormat = match($groupBy) {
+        $dateFormat = match ($groupBy) {
             'hour' => '%Y-%m-%d %H:00:00',
             'day' => '%Y-%m-%d',
             'week' => '%Y-%u',
@@ -92,8 +92,8 @@ class UserAnalytic extends Model
         };
 
         return $query->selectRaw("DATE_FORMAT(created_at, '{$dateFormat}') as date, COUNT(*) as count")
-                    ->groupBy('date')
-                    ->orderBy('date');
+            ->groupBy('date')
+            ->orderBy('date');
     }
 
     /**
@@ -131,7 +131,7 @@ class UserAnalytic extends Model
         'page_view' => 'Page View',
         'button_click' => 'Button Click',
         'form_submission' => 'Form Submission',
-        'error_occurred' => 'Error Occurred'
+        'error_occurred' => 'Error Occurred',
     ];
 
     /**
@@ -151,7 +151,7 @@ class UserAnalytic extends Model
             'user_registration',
             'order_created',
             'bid_placed',
-            'payment_completed'
+            'payment_completed',
         ];
 
         return in_array($this->event_type, $conversionEvents);
@@ -175,4 +175,3 @@ class UserAnalytic extends Model
         $this->event_data = $eventData;
     }
 }
-

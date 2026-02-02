@@ -21,20 +21,20 @@ class UpdateMerchantProfileRequest extends FormRequest
     public function rules(): array
     {
         $userId = $this->user()->id;
-        
+
         return [
             'business_name' => [
                 'nullable',
                 'string',
                 'max:255',
-                Rule::unique('merchant_profiles', 'business_name')->ignore($userId, 'user_id')
+                Rule::unique('merchant_profiles', 'business_name')->ignore($userId, 'user_id'),
             ],
             'business_license' => 'nullable|string|max:100',
             'tax_number' => [
                 'nullable',
                 'string',
                 'max:50',
-                Rule::unique('merchant_profiles', 'tax_number')->ignore($userId, 'user_id')
+                Rule::unique('merchant_profiles', 'tax_number')->ignore($userId, 'user_id'),
             ],
             'specializations' => 'nullable|array',
             'specializations.*' => 'string|max:100',
@@ -93,7 +93,7 @@ class UpdateMerchantProfileRequest extends FormRequest
                     if (isset($hours['open'], $hours['close'])) {
                         $openTime = strtotime($hours['open']);
                         $closeTime = strtotime($hours['close']);
-                        
+
                         if ($openTime >= $closeTime) {
                             $validator->errors()->add(
                                 "business_hours.{$index}.close",
@@ -106,4 +106,3 @@ class UpdateMerchantProfileRequest extends FormRequest
         });
     }
 }
-

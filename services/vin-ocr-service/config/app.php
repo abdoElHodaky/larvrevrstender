@@ -1,8 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Facade;
-use Illuminate\Support\ServiceProvider;
-
 return [
     'name' => env('APP_NAME', 'VIN OCR Service'),
     'env' => env('APP_ENV', 'production'),
@@ -24,4 +21,3 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 ];
-

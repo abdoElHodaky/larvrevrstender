@@ -68,4 +68,3 @@ class UpdatePreferencesRequest extends FormRequest
         ];
     }
 }
-

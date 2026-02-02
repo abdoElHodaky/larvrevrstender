@@ -81,7 +81,7 @@ class CreateMerchantProfileRequest extends FormRequest
                     if (isset($hours['open'], $hours['close'])) {
                         $openTime = strtotime($hours['open']);
                         $closeTime = strtotime($hours['close']);
-                        
+
                         if ($openTime >= $closeTime) {
                             $validator->errors()->add(
                                 "business_hours.{$index}.close",
@@ -94,4 +94,3 @@ class CreateMerchantProfileRequest extends FormRequest
         });
     }
 }
-

@@ -33,8 +33,7 @@ class KYCVerificationSubmitted
             'verification_status' => $this->profile->verification_status,
             'documents_count' => count($this->profile->verification_documents ?? []),
             'submitted_at' => $this->profile->updated_at->toISOString(),
-            'event_type' => 'user.kyc.submitted'
+            'event_type' => 'user.kyc.submitted',
         ];
     }
 }
-

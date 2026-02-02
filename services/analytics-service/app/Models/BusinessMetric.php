@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class BusinessMetric extends Model
 {
@@ -15,7 +15,7 @@ class BusinessMetric extends Model
         'metric_type',
         'value',
         'breakdown',
-        'created_at'
+        'created_at',
     ];
 
     protected $casts = [
@@ -23,7 +23,7 @@ class BusinessMetric extends Model
         'value' => 'decimal:2',
         'breakdown' => 'array',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     /**
@@ -56,8 +56,8 @@ class BusinessMetric extends Model
     public function scopeGroupedByType($query)
     {
         return $query->selectRaw('metric_type, SUM(value) as total_value, COUNT(*) as count')
-                    ->groupBy('metric_type')
-                    ->orderBy('total_value', 'desc');
+            ->groupBy('metric_type')
+            ->orderBy('total_value', 'desc');
     }
 
     /**
@@ -81,7 +81,7 @@ class BusinessMetric extends Model
         'customer_acquisition' => 'Customer Acquisition',
         'merchant_acquisition' => 'Merchant Acquisition',
         'order_completion_rate' => 'Order Completion Rate',
-        'bid_success_rate' => 'Bid Success Rate'
+        'bid_success_rate' => 'Bid Success Rate',
     ];
 
     /**
@@ -120,7 +120,7 @@ class BusinessMetric extends Model
             ->orderBy('metric_date', 'desc')
             ->first();
 
-        if (!$previousMetric || $previousMetric->value == 0) {
+        if (! $previousMetric || $previousMetric->value == 0) {
             return null;
         }
 
@@ -133,17 +133,17 @@ class BusinessMetric extends Model
     public function getTrendDirection(): string
     {
         $change = $this->getPercentageChange();
-        
+
         if ($change === null) {
             return 'neutral';
         }
-        
+
         if ($change > 0) {
             return 'up';
         } elseif ($change < 0) {
             return 'down';
         }
-        
+
         return 'neutral';
     }
 
@@ -152,11 +152,10 @@ class BusinessMetric extends Model
      */
     public function getFormattedValueAttribute(): string
     {
-        return match($this->metric_type) {
-            'revenue', 'avg_order_value' => number_format($this->value, 2) . ' SAR',
-            'conversion', 'order_completion_rate', 'bid_success_rate' => number_format($this->value, 2) . '%',
+        return match ($this->metric_type) {
+            'revenue', 'avg_order_value' => number_format($this->value, 2).' SAR',
+            'conversion', 'order_completion_rate', 'bid_success_rate' => number_format($this->value, 2).'%',
             default => number_format($this->value)
         };
     }
 }
-

@@ -99,14 +99,14 @@ class Vehicle extends Model
     /**
      * Scope for vehicles by year range.
      */
-    public function scopeByYearRange($query, int $startYear, int $endYear = null)
+    public function scopeByYearRange($query, int $startYear, ?int $endYear = null)
     {
         $query->where('year', '>=', $startYear);
-        
+
         if ($endYear) {
             $query->where('year', '<=', $endYear);
         }
-        
+
         return $query;
     }
 
@@ -141,9 +141,9 @@ class Vehicle extends Model
     {
         // Unset other primary vehicles for this customer
         Vehicle::where('customer_id', $this->customer_id)
-               ->where('id', '!=', $this->id)
-               ->update(['is_primary' => false]);
-        
+            ->where('id', '!=', $this->id)
+            ->update(['is_primary' => false]);
+
         // Set this vehicle as primary
         $this->update(['is_primary' => true]);
     }
@@ -153,10 +153,10 @@ class Vehicle extends Model
      */
     public function validateVin(): bool
     {
-        if (!$this->vin || strlen($this->vin) !== 17) {
+        if (! $this->vin || strlen($this->vin) !== 17) {
             return false;
         }
-        
+
         // Basic VIN validation (simplified)
         return preg_match('/^[A-HJ-NPR-Z0-9]{17}$/', $this->vin);
     }
@@ -169,13 +169,13 @@ class Vehicle extends Model
         if ($this->custom_name) {
             return $this->custom_name;
         }
-        
-        $name = $this->year . ' ' . $this->brand->name . ' ' . $this->vehicleModel->name;
-        
+
+        $name = $this->year.' '.$this->brand->name.' '.$this->vehicleModel->name;
+
         if ($this->trim) {
-            $name .= ' ' . $this->trim->name;
+            $name .= ' '.$this->trim->name;
         }
-        
+
         return $name;
     }
 
@@ -204,7 +204,7 @@ class Vehicle extends Model
     public function getVinConfidenceLevelAttribute(): string
     {
         $confidence = $this->vin_confidence;
-        
+
         if ($confidence >= 0.9) {
             return 'Very High';
         } elseif ($confidence >= 0.8) {
@@ -231,11 +231,10 @@ class Vehicle extends Model
      */
     public function getFormattedMileageAttribute(): string
     {
-        if (!$this->mileage) {
+        if (! $this->mileage) {
             return 'Not specified';
         }
-        
-        return number_format($this->mileage) . ' km';
+
+        return number_format($this->mileage).' km';
     }
 }
-

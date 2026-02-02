@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamp('expires_at');
             $table->integer('attempts')->default(0);
             $table->timestamps();
-            
+
             $table->index(['identifier', 'type', 'purpose']);
             $table->index(['code', 'expires_at']);
         });
@@ -36,4 +36,3 @@ return new class extends Migration
         Schema::dropIfExists('otp_verifications');
     }
 };
-

@@ -15,7 +15,7 @@ class PaymentGatewayService
     {
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . config('services.stripe.secret'),
+                'Authorization' => 'Bearer '.config('services.stripe.secret'),
                 'Content-Type' => 'application/x-www-form-urlencoded',
             ])->post('https://api.stripe.com/v1/payment_intents', [
                 'amount' => $payment->amount * 100, // Convert to cents
@@ -73,11 +73,11 @@ class PaymentGatewayService
             $tokenResponse = Http::withBasicAuth(
                 config('services.paypal.client_id'),
                 config('services.paypal.client_secret')
-            )->asForm()->post(config('services.paypal.base_url') . '/v1/oauth2/token', [
+            )->asForm()->post(config('services.paypal.base_url').'/v1/oauth2/token', [
                 'grant_type' => 'client_credentials',
             ]);
 
-            if (!$tokenResponse->successful()) {
+            if (! $tokenResponse->successful()) {
                 throw new \Exception('Failed to get PayPal access token');
             }
 
@@ -85,7 +85,7 @@ class PaymentGatewayService
 
             // Create payment
             $paymentResponse = Http::withToken($accessToken)
-                ->post(config('services.paypal.base_url') . '/v2/checkout/orders', [
+                ->post(config('services.paypal.base_url').'/v2/checkout/orders', [
                     'intent' => 'CAPTURE',
                     'purchase_units' => [
                         [
@@ -95,16 +95,16 @@ class PaymentGatewayService
                                 'value' => number_format($payment->amount, 2, '.', ''),
                             ],
                             'custom_id' => $payment->payment_reference,
-                        ]
+                        ],
                     ],
                     'payment_source' => [
                         'paypal' => [
                             'experience_context' => [
-                                'return_url' => config('app.url') . '/payment/success',
-                                'cancel_url' => config('app.url') . '/payment/cancel',
-                            ]
-                        ]
-                    ]
+                                'return_url' => config('app.url').'/payment/success',
+                                'cancel_url' => config('app.url').'/payment/cancel',
+                            ],
+                        ],
+                    ],
                 ]);
 
             $result = $paymentResponse->json();
@@ -146,9 +146,9 @@ class PaymentGatewayService
     {
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . config('services.mada.api_key'),
+                'Authorization' => 'Bearer '.config('services.mada.api_key'),
                 'Content-Type' => 'application/json',
-            ])->post(config('services.mada.endpoint') . '/payments', [
+            ])->post(config('services.mada.endpoint').'/payments', [
                 'merchant_id' => config('services.mada.merchant_id'),
                 'amount' => $payment->amount,
                 'currency' => $payment->currency,
@@ -158,7 +158,7 @@ class PaymentGatewayService
                 'expiry_year' => $paymentData['expiry_year'],
                 'cvv' => $paymentData['cvv'],
                 'cardholder_name' => $paymentData['cardholder_name'],
-                'callback_url' => config('app.url') . '/webhooks/mada',
+                'callback_url' => config('app.url').'/webhooks/mada',
             ]);
 
             $result = $response->json();
@@ -201,16 +201,16 @@ class PaymentGatewayService
     {
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . config('services.stc_pay.api_key'),
+                'Authorization' => 'Bearer '.config('services.stc_pay.api_key'),
                 'Content-Type' => 'application/json',
-            ])->post(config('services.stc_pay.endpoint') . '/payment/request', [
+            ])->post(config('services.stc_pay.endpoint').'/payment/request', [
                 'merchant_id' => config('services.stc_pay.merchant_id'),
                 'amount' => $payment->amount,
                 'currency' => $payment->currency,
                 'reference_number' => $payment->payment_reference,
                 'mobile_number' => $paymentData['mobile_number'],
                 'description' => 'Reverse Tender Platform Payment',
-                'callback_url' => config('app.url') . '/webhooks/stc-pay',
+                'callback_url' => config('app.url').'/webhooks/stc-pay',
             ]);
 
             $result = $response->json();
@@ -253,9 +253,9 @@ class PaymentGatewayService
     {
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . config('services.stc_pay.api_key'),
+                'Authorization' => 'Bearer '.config('services.stc_pay.api_key'),
                 'Content-Type' => 'application/json',
-            ])->post(config('services.stc_pay.endpoint') . '/payment/confirm', [
+            ])->post(config('services.stc_pay.endpoint').'/payment/confirm', [
                 'session_id' => $sessionId,
                 'otp' => $otp,
             ]);
@@ -321,7 +321,7 @@ class PaymentGatewayService
     {
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . config('services.stripe.secret'),
+                'Authorization' => 'Bearer '.config('services.stripe.secret'),
                 'Content-Type' => 'application/x-www-form-urlencoded',
             ])->post('https://api.stripe.com/v1/refunds', [
                 'payment_intent' => $payment->provider_transaction_id,
@@ -371,10 +371,10 @@ class PaymentGatewayService
     {
         // Similar implementation for PayPal refunds
         // ... (implementation details)
-        
+
         return [
             'success' => true,
-            'refund_id' => 'PAYPAL_REFUND_' . uniqid(),
+            'refund_id' => 'PAYPAL_REFUND_'.uniqid(),
             'status' => 'completed',
             'amount' => $amount,
         ];
@@ -387,10 +387,10 @@ class PaymentGatewayService
     {
         // Implementation for Mada refunds
         // ... (implementation details)
-        
+
         return [
             'success' => true,
-            'refund_id' => 'MADA_REFUND_' . uniqid(),
+            'refund_id' => 'MADA_REFUND_'.uniqid(),
             'status' => 'completed',
             'amount' => $amount,
         ];
@@ -403,13 +403,12 @@ class PaymentGatewayService
     {
         // Implementation for STC Pay refunds
         // ... (implementation details)
-        
+
         return [
             'success' => true,
-            'refund_id' => 'STC_REFUND_' . uniqid(),
+            'refund_id' => 'STC_REFUND_'.uniqid(),
             'status' => 'completed',
             'amount' => $amount,
         ];
     }
 }
-

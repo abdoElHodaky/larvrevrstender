@@ -3,7 +3,6 @@
 namespace App\Policies;
 
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class UserPolicy
 {
@@ -119,9 +118,9 @@ class UserPolicy
      */
     public function impersonate(User $user, User $model): bool
     {
-        return $user->isAdmin() && 
-               $user->id !== $model->id && 
-               !$model->isAdmin();
+        return $user->isAdmin() &&
+               $user->id !== $model->id &&
+               ! $model->isAdmin();
     }
 
     /**
@@ -148,4 +147,3 @@ class UserPolicy
         return $user->isAdmin() && $user->id !== $model->id;
     }
 }
-

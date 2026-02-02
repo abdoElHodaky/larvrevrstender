@@ -9,16 +9,21 @@ use Intervention\Image\Facades\Image;
 
 /**
  * Image Processing Service
- * 
+ *
  * Handles image upload, processing, and optimization for orders
  */
 class ImageProcessingService implements ImageProcessingServiceInterface
 {
     protected array $config;
+
     protected array $allowedTypes;
+
     protected int $maxFileSize;
+
     protected int $thumbnailSize;
+
     protected int $largeSize;
+
     protected int $quality;
 
     public function __construct(array $storageConfig, array $processingConfig)
@@ -41,7 +46,7 @@ class ImageProcessingService implements ImageProcessingServiceInterface
 
         // Generate unique filename
         $filename = $this->generateFilename($file);
-        
+
         // Create different sizes
         $originalPath = $this->storeOriginal($file, $filename, $imageType);
         $thumbnailPath = $this->createThumbnail($file, $filename, $imageType);
@@ -54,7 +59,7 @@ class ImageProcessingService implements ImageProcessingServiceInterface
             'path' => $originalPath,
             'thumbnail_path' => $thumbnailPath,
             'large_path' => $largePath,
-            'metadata' => $metadata
+            'metadata' => $metadata,
         ];
     }
 
@@ -65,6 +70,7 @@ class ImageProcessingService implements ImageProcessingServiceInterface
     {
         try {
             $this->validateImageInternal($file);
+
             return true;
         } catch (\Exception $e) {
             return false;
@@ -83,12 +89,12 @@ class ImageProcessingService implements ImageProcessingServiceInterface
 
         // Check file type
         $extension = strtolower($file->getClientOriginalExtension());
-        if (!in_array($extension, $this->allowedTypes)) {
-            throw new \Exception("File type '{$extension}' is not allowed. Allowed types: " . implode(', ', $this->allowedTypes));
+        if (! in_array($extension, $this->allowedTypes)) {
+            throw new \Exception("File type '{$extension}' is not allowed. Allowed types: ".implode(', ', $this->allowedTypes));
         }
 
         // Check if file is actually an image
-        if (!getimagesize($file->getPathname())) {
+        if (! getimagesize($file->getPathname())) {
             throw new \Exception('File is not a valid image');
         }
     }
@@ -99,7 +105,8 @@ class ImageProcessingService implements ImageProcessingServiceInterface
     protected function generateFilename(UploadedFile $file): string
     {
         $extension = strtolower($file->getClientOriginalExtension());
-        return uniqid() . '_' . time() . '.' . $extension;
+
+        return uniqid().'_'.time().'.'.$extension;
     }
 
     /**
@@ -109,6 +116,7 @@ class ImageProcessingService implements ImageProcessingServiceInterface
     {
         $path = "orders/{$imageType}/original/{$filename}";
         Storage::disk('s3')->putFileAs("orders/{$imageType}/original", $file, $filename);
+
         return $path;
     }
 
@@ -121,11 +129,11 @@ class ImageProcessingService implements ImageProcessingServiceInterface
             ->fit($this->thumbnailSize, $this->thumbnailSize)
             ->encode('jpg', $this->quality);
 
-        $thumbnailFilename = 'thumb_' . pathinfo($filename, PATHINFO_FILENAME) . '.jpg';
+        $thumbnailFilename = 'thumb_'.pathinfo($filename, PATHINFO_FILENAME).'.jpg';
         $path = "orders/{$imageType}/thumbnails/{$thumbnailFilename}";
-        
+
         Storage::disk('s3')->put($path, $image->stream());
-        
+
         return $path;
     }
 
@@ -141,11 +149,11 @@ class ImageProcessingService implements ImageProcessingServiceInterface
             })
             ->encode('jpg', $this->quality);
 
-        $largeFilename = 'large_' . pathinfo($filename, PATHINFO_FILENAME) . '.jpg';
+        $largeFilename = 'large_'.pathinfo($filename, PATHINFO_FILENAME).'.jpg';
         $path = "orders/{$imageType}/large/{$largeFilename}";
-        
+
         Storage::disk('s3')->put($path, $image->stream());
-        
+
         return $path;
     }
 
@@ -155,14 +163,14 @@ class ImageProcessingService implements ImageProcessingServiceInterface
     protected function extractMetadata(UploadedFile $file): array
     {
         $imageInfo = getimagesize($file->getPathname());
-        
+
         return [
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
             'width' => $imageInfo[0] ?? null,
             'height' => $imageInfo[1] ?? null,
-            'uploaded_at' => now()->toISOString()
+            'uploaded_at' => now()->toISOString(),
         ];
     }
 

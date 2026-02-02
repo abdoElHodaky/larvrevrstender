@@ -1,0 +1,9 @@
+{
+    frankenphp
+    order php_server before file_server
+}
+
+:8000 {
+    root * public
+    php_server
+}

@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\VinOcrLog;
 use App\Services\OcrService;
 use App\Services\VinValidationService;
-use App\Models\VinOcrLog;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class VinOcrController extends Controller
 {
     protected OcrService $ocrService;
+
     protected VinValidationService $vinValidationService;
 
     public function __construct(OcrService $ocrService, VinValidationService $vinValidationService)
@@ -32,14 +33,14 @@ class VinOcrController extends Controller
             'vehicle_id' => 'nullable|integer',
             'user_id' => 'required|integer',
             'preprocessing' => 'nullable|boolean',
-            'confidence_threshold' => 'nullable|numeric|min:0|max:1'
+            'confidence_threshold' => 'nullable|numeric|min:0|max:1',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -53,7 +54,7 @@ class VinOcrController extends Controller
                 'vehicle_id' => $request->vehicle_id,
                 'user_id' => $request->user_id,
                 'original_image_path' => $imagePath,
-                'status' => 'processing'
+                'status' => 'processing',
             ]);
 
             // Process the image with OCR
@@ -69,17 +70,17 @@ class VinOcrController extends Controller
                 'confidence_score' => $result['confidence'],
                 'ocr_metadata' => $result['metadata'],
                 'processed_image_path' => $result['processed_image_path'] ?? null,
-                'status' => $result['vin'] ? 'completed' : 'failed'
+                'status' => $result['vin'] ? 'completed' : 'failed',
             ]);
 
             // Validate VIN if extracted
             $validationResult = null;
             if ($result['vin']) {
                 $validationResult = $this->vinValidationService->validateVin($result['vin']);
-                
+
                 // Update log with validation results
                 $ocrLog->update([
-                    'validation_result' => $validationResult
+                    'validation_result' => $validationResult,
                 ]);
             }
 
@@ -92,8 +93,8 @@ class VinOcrController extends Controller
                     'confidence_score' => $result['confidence'],
                     'validation_result' => $validationResult,
                     'status' => $ocrLog->status,
-                    'metadata' => $result['metadata']
-                ]
+                    'metadata' => $result['metadata'],
+                ],
             ], 200);
 
         } catch (\Exception $e) {
@@ -101,14 +102,14 @@ class VinOcrController extends Controller
             if (isset($ocrLog)) {
                 $ocrLog->update([
                     'status' => 'failed',
-                    'error_message' => $e->getMessage()
+                    'error_message' => $e->getMessage(),
                 ]);
             }
 
             return response()->json([
                 'success' => false,
                 'message' => 'VIN processing failed',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -130,15 +131,15 @@ class VinOcrController extends Controller
                     'confidence_score' => $ocrLog->confidence_score,
                     'validation_result' => $ocrLog->validation_result,
                     'created_at' => $ocrLog->created_at,
-                    'updated_at' => $ocrLog->updated_at
-                ]
+                    'updated_at' => $ocrLog->updated_at,
+                ],
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'OCR log not found',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 404);
         }
     }
@@ -153,14 +154,14 @@ class VinOcrController extends Controller
             'vehicle_id' => 'nullable|integer',
             'status' => 'nullable|string|in:processing,completed,failed',
             'limit' => 'nullable|integer|min:1|max:100',
-            'page' => 'nullable|integer|min:1'
+            'page' => 'nullable|integer|min:1',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -180,18 +181,18 @@ class VinOcrController extends Controller
             }
 
             $logs = $query->orderBy('created_at', 'desc')
-                         ->paginate($request->input('limit', 20));
+                ->paginate($request->input('limit', 20));
 
             return response()->json([
                 'success' => true,
-                'data' => $logs
+                'data' => $logs,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get OCR history',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -202,14 +203,14 @@ class VinOcrController extends Controller
     public function validateVin(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'vin' => 'required|string|size:17'
+            'vin' => 'required|string|size:17',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -218,14 +219,14 @@ class VinOcrController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $validationResult
+                'data' => $validationResult,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'VIN validation failed',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -236,14 +237,14 @@ class VinOcrController extends Controller
     public function getVehicleInfo(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'vin' => 'required|string|size:17'
+            'vin' => 'required|string|size:17',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -252,14 +253,14 @@ class VinOcrController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $vehicleInfo
+                'data' => $vehicleInfo,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get vehicle information',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -275,7 +276,7 @@ class VinOcrController extends Controller
             if ($ocrLog->status === 'processing') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'OCR is already processing'
+                    'message' => 'OCR is already processing',
                 ], 400);
             }
 
@@ -295,7 +296,7 @@ class VinOcrController extends Controller
                 'confidence_score' => $result['confidence'],
                 'ocr_metadata' => $result['metadata'],
                 'processed_image_path' => $result['processed_image_path'] ?? null,
-                'status' => $result['vin'] ? 'completed' : 'failed'
+                'status' => $result['vin'] ? 'completed' : 'failed',
             ]);
 
             // Validate VIN if extracted
@@ -313,15 +314,15 @@ class VinOcrController extends Controller
                     'extracted_vin' => $result['vin'],
                     'confidence_score' => $result['confidence'],
                     'validation_result' => $validationResult,
-                    'status' => $ocrLog->status
-                ]
+                    'status' => $ocrLog->status,
+                ],
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'OCR reprocessing failed',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -331,11 +332,11 @@ class VinOcrController extends Controller
      */
     private function storeImage($image): string
     {
-        $filename = Str::uuid() . '.' . $image->getClientOriginalExtension();
-        $path = 'vin-images/' . date('Y/m/d') . '/' . $filename;
-        
+        $filename = Str::uuid().'.'.$image->getClientOriginalExtension();
+        $path = 'vin-images/'.date('Y/m/d').'/'.$filename;
+
         Storage::disk('public')->put($path, file_get_contents($image));
-        
+
         return $path;
     }
 
@@ -347,14 +348,14 @@ class VinOcrController extends Controller
         $validator = Validator::make($request->all(), [
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
-            'user_id' => 'nullable|integer'
+            'user_id' => 'nullable|integer',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -379,7 +380,7 @@ class VinOcrController extends Controller
                 'failed' => $query->where('status', 'failed')->count(),
                 'processing' => $query->where('status', 'processing')->count(),
                 'average_confidence' => $query->where('status', 'completed')->avg('confidence_score'),
-                'success_rate' => 0
+                'success_rate' => 0,
             ];
 
             if ($statistics['total_processed'] > 0) {
@@ -388,16 +389,15 @@ class VinOcrController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $statistics
+                'data' => $statistics,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get OCR statistics',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 }
-

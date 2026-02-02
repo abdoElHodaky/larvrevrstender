@@ -2,12 +2,12 @@
 
 namespace App\Providers;
 
-use App\Events\UserProfileUpdated;
-use App\Events\KYCVerificationSubmitted;
 use App\Events\KYCVerificationCompleted;
-use App\Listeners\BroadcastUserProfileUpdated;
-use App\Listeners\BroadcastKYCVerificationSubmitted;
+use App\Events\KYCVerificationSubmitted;
+use App\Events\UserProfileUpdated;
 use App\Listeners\BroadcastKYCVerificationCompleted;
+use App\Listeners\BroadcastKYCVerificationSubmitted;
+use App\Listeners\BroadcastUserProfileUpdated;
 use App\Listeners\HandleUserRegisteredFromAuth;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
@@ -25,17 +25,17 @@ class EventServiceProvider extends ServiceProvider
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
-        
+
         // User Profile Events
         UserProfileUpdated::class => [
             BroadcastUserProfileUpdated::class,
         ],
-        
+
         // KYC Verification Events
         KYCVerificationSubmitted::class => [
             BroadcastKYCVerificationSubmitted::class,
         ],
-        
+
         KYCVerificationCompleted::class => [
             BroadcastKYCVerificationCompleted::class,
         ],
@@ -58,4 +58,3 @@ class EventServiceProvider extends ServiceProvider
         return false;
     }
 }
-

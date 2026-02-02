@@ -54,9 +54,13 @@ class Bid extends Model
      * Status constants
      */
     const STATUS_PENDING = 'pending';
+
     const STATUS_ACCEPTED = 'accepted';
+
     const STATUS_REJECTED = 'rejected';
+
     const STATUS_WITHDRAWN = 'withdrawn';
+
     const STATUS_EXPIRED = 'expired';
 
     /**
@@ -102,14 +106,14 @@ class Bid extends Model
     /**
      * Scope for bids within amount range.
      */
-    public function scopeWithinAmountRange($query, float $minAmount, float $maxAmount = null)
+    public function scopeWithinAmountRange($query, float $minAmount, ?float $maxAmount = null)
     {
         $query->where('amount', '>=', $minAmount);
-        
+
         if ($maxAmount) {
             $query->where('amount', '<=', $maxAmount);
         }
-        
+
         return $query;
     }
 
@@ -120,7 +124,7 @@ class Bid extends Model
     {
         return $query->where(function ($q) {
             $q->whereNull('expires_at')
-              ->orWhere('expires_at', '>', now());
+                ->orWhere('expires_at', '>', now());
         });
     }
 
@@ -129,7 +133,7 @@ class Bid extends Model
      */
     public function isPending(): bool
     {
-        return $this->status === self::STATUS_PENDING && !$this->isExpired();
+        return $this->status === self::STATUS_PENDING && ! $this->isExpired();
     }
 
     /**
@@ -177,23 +181,23 @@ class Bid extends Model
      */
     public function getWarrantyDisplayAttribute(): string
     {
-        if (!$this->warranty_months) {
+        if (! $this->warranty_months) {
             return 'No warranty';
         }
-        
+
         if ($this->warranty_months < 12) {
-            return $this->warranty_months . ' month' . ($this->warranty_months > 1 ? 's' : '');
+            return $this->warranty_months.' month'.($this->warranty_months > 1 ? 's' : '');
         }
-        
+
         $years = floor($this->warranty_months / 12);
         $remainingMonths = $this->warranty_months % 12;
-        
-        $display = $years . ' year' . ($years > 1 ? 's' : '');
-        
+
+        $display = $years.' year'.($years > 1 ? 's' : '');
+
         if ($remainingMonths > 0) {
-            $display .= ' ' . $remainingMonths . ' month' . ($remainingMonths > 1 ? 's' : '');
+            $display .= ' '.$remainingMonths.' month'.($remainingMonths > 1 ? 's' : '');
         }
-        
+
         return $display;
     }
 
@@ -202,27 +206,27 @@ class Bid extends Model
      */
     public function getDeliveryTimeDisplayAttribute(): string
     {
-        if (!$this->delivery_days) {
+        if (! $this->delivery_days) {
             return 'Not specified';
         }
-        
+
         if ($this->delivery_days === 1) {
             return 'Next day';
         }
-        
+
         if ($this->delivery_days <= 7) {
-            return $this->delivery_days . ' days';
+            return $this->delivery_days.' days';
         }
-        
+
         $weeks = floor($this->delivery_days / 7);
         $remainingDays = $this->delivery_days % 7;
-        
-        $display = $weeks . ' week' . ($weeks > 1 ? 's' : '');
-        
+
+        $display = $weeks.' week'.($weeks > 1 ? 's' : '');
+
         if ($remainingDays > 0) {
-            $display .= ' ' . $remainingDays . ' day' . ($remainingDays > 1 ? 's' : '');
+            $display .= ' '.$remainingDays.' day'.($remainingDays > 1 ? 's' : '');
         }
-        
+
         return $display;
     }
 
@@ -231,27 +235,27 @@ class Bid extends Model
      */
     public function accept(): void
     {
-        if (!$this->canBeAccepted()) {
+        if (! $this->canBeAccepted()) {
             throw new \Exception('Bid cannot be accepted');
         }
-        
+
         // Update bid status
         $this->update([
             'status' => self::STATUS_ACCEPTED,
             'metadata' => array_merge($this->metadata ?? [], [
-                'accepted_at' => now()->toISOString()
-            ])
+                'accepted_at' => now()->toISOString(),
+            ]),
         ]);
-        
+
         // Reject all other bids for this request
         $this->partRequest->bids()
             ->where('id', '!=', $this->id)
             ->where('status', self::STATUS_PENDING)
             ->update([
                 'status' => self::STATUS_REJECTED,
-                'rejection_reason' => 'Another bid was accepted'
+                'rejection_reason' => 'Another bid was accepted',
             ]);
-        
+
         // Close the part request
         $this->partRequest->close('Winning bid selected');
     }
@@ -259,34 +263,34 @@ class Bid extends Model
     /**
      * Reject the bid.
      */
-    public function reject(string $reason = null): void
+    public function reject(?string $reason = null): void
     {
         $this->update([
             'status' => self::STATUS_REJECTED,
             'rejection_reason' => $reason,
             'metadata' => array_merge($this->metadata ?? [], [
-                'rejected_at' => now()->toISOString()
-            ])
+                'rejected_at' => now()->toISOString(),
+            ]),
         ]);
     }
 
     /**
      * Withdraw the bid.
      */
-    public function withdraw(string $reason = null): void
+    public function withdraw(?string $reason = null): void
     {
-        if (!$this->canBeWithdrawn()) {
+        if (! $this->canBeWithdrawn()) {
             throw new \Exception('Bid cannot be withdrawn');
         }
-        
+
         $this->update([
             'status' => self::STATUS_WITHDRAWN,
             'metadata' => array_merge($this->metadata ?? [], [
                 'withdrawn_at' => now()->toISOString(),
-                'withdraw_reason' => $reason
-            ])
+                'withdraw_reason' => $reason,
+            ]),
         ]);
-        
+
         // Update part request bid statistics
         $this->partRequest->updateBidStats();
     }
@@ -297,21 +301,21 @@ class Bid extends Model
     public function isWithinBudget(): bool
     {
         $request = $this->partRequest;
-        
-        if (!$request->budget_min && !$request->budget_max) {
+
+        if (! $request->budget_min && ! $request->budget_max) {
             return true; // No budget constraints
         }
-        
+
         $totalCost = $this->total_cost;
-        
+
         if ($request->budget_min && $totalCost < $request->budget_min) {
             return false;
         }
-        
+
         if ($request->budget_max && $totalCost > $request->budget_max) {
             return false;
         }
-        
+
         return true;
     }
 
@@ -321,8 +325,7 @@ class Bid extends Model
     public function getCompetitiveRankingAttribute(): int
     {
         return $this->partRequest->activeBids()
-                   ->where('amount', '<', $this->amount)
-                   ->count() + 1;
+            ->where('amount', '<', $this->amount)
+            ->count() + 1;
     }
 }
-

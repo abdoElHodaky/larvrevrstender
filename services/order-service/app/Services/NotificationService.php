@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Notification Service
- * 
+ *
  * Handles communication with the notification service
  * for sending order-related notifications
  */
@@ -36,9 +36,9 @@ class NotificationService implements NotificationServiceInterface
             'data' => [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
-                'status' => $order->status
+                'status' => $order->status,
             ],
-            'channels' => ['push', 'email']
+            'channels' => ['push', 'email'],
         ]);
     }
 
@@ -56,9 +56,9 @@ class NotificationService implements NotificationServiceInterface
             'data' => [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
-                'deadline' => $order->deadline?->toISOString()
+                'deadline' => $order->deadline?->toISOString(),
             ],
-            'channels' => ['push', 'email']
+            'channels' => ['push', 'email'],
         ]);
 
         // Notify relevant merchants
@@ -78,9 +78,9 @@ class NotificationService implements NotificationServiceInterface
             'data' => [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
-                'status' => $order->status
+                'status' => $order->status,
             ],
-            'channels' => ['push', 'email']
+            'channels' => ['push', 'email'],
         ]);
 
         // Notify merchants who bid on this order
@@ -95,21 +95,21 @@ class NotificationService implements NotificationServiceInterface
         $messages = [
             'new_order' => [
                 'title' => 'New Order Available',
-                'message' => "A new order matching your services is available: {$order->title}"
+                'message' => "A new order matching your services is available: {$order->title}",
             ],
             'bid_accepted' => [
                 'title' => 'Bid Accepted',
-                'message' => "Your bid on order #{$order->order_number} has been accepted!"
+                'message' => "Your bid on order #{$order->order_number} has been accepted!",
             ],
             'bid_rejected' => [
                 'title' => 'Bid Not Selected',
-                'message' => "Your bid on order #{$order->order_number} was not selected."
-            ]
+                'message' => "Your bid on order #{$order->order_number} was not selected.",
+            ],
         ];
 
         $messageData = $messages[$type] ?? [
             'title' => 'Order Update',
-            'message' => "Order #{$order->order_number} has been updated."
+            'message' => "Order #{$order->order_number} has been updated.",
         ];
 
         $this->sendNotification([
@@ -120,9 +120,9 @@ class NotificationService implements NotificationServiceInterface
             'data' => [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
-                'status' => $order->status
+                'status' => $order->status,
             ],
-            'channels' => ['push', 'email']
+            'channels' => ['push', 'email'],
         ]);
     }
 
@@ -135,17 +135,17 @@ class NotificationService implements NotificationServiceInterface
             $response = Http::timeout(10)
                 ->post("{$this->notificationServiceUrl}/api/notifications", $data);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning('Failed to send notification', [
                     'data' => $data,
                     'response' => $response->body(),
-                    'status' => $response->status()
+                    'status' => $response->status(),
                 ]);
             }
         } catch (\Exception $e) {
             Log::error('Notification service error', [
                 'data' => $data,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -166,24 +166,24 @@ class NotificationService implements NotificationServiceInterface
                         'description' => $order->description,
                         'budget_max' => $order->budget_max,
                         'deadline' => $order->deadline?->toISOString(),
-                        'urgent' => $order->urgent
+                        'urgent' => $order->urgent,
                     ],
                     'filters' => [
                         'service_areas' => $order->delivery_location,
-                        'specializations' => $order->part_details
-                    ]
+                        'specializations' => $order->part_details,
+                    ],
                 ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning('Failed to notify merchants', [
                     'order_id' => $order->id,
-                    'response' => $response->body()
+                    'response' => $response->body(),
                 ]);
             }
         } catch (\Exception $e) {
             Log::error('Merchant notification error', [
                 'order_id' => $order->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -198,19 +198,19 @@ class NotificationService implements NotificationServiceInterface
                 ->post("{$this->notificationServiceUrl}/api/notifications/bidding-merchants", [
                     'type' => $type,
                     'order_id' => $order->id,
-                    'message' => "Order #{$order->order_number} has been cancelled."
+                    'message' => "Order #{$order->order_number} has been cancelled.",
                 ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning('Failed to notify bidding merchants', [
                     'order_id' => $order->id,
-                    'response' => $response->body()
+                    'response' => $response->body(),
                 ]);
             }
         } catch (\Exception $e) {
             Log::error('Bidding merchant notification error', [
                 'order_id' => $order->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -224,19 +224,19 @@ class NotificationService implements NotificationServiceInterface
             $response = Http::timeout(10)
                 ->post("{$this->notificationServiceUrl}/api/notifications/bulk", [
                     'user_ids' => $userIds,
-                    'notification_data' => $notificationData
+                    'notification_data' => $notificationData,
                 ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning('Failed to send bulk notification', [
                     'user_ids' => $userIds,
-                    'response' => $response->body()
+                    'response' => $response->body(),
                 ]);
             }
         } catch (\Exception $e) {
             Log::error('Bulk notification error', [
                 'user_ids' => $userIds,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -258,7 +258,7 @@ class NotificationService implements NotificationServiceInterface
         } catch (\Exception $e) {
             Log::error('Failed to get notification status', [
                 'notification_id' => $notificationId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return ['status' => 'error', 'error' => $e->getMessage()];

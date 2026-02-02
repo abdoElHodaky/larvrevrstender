@@ -7,7 +7,7 @@ use App\Models\User;
 
 /**
  * Notification Service Interface
- * 
+ *
  * Defines the contract for notification service implementations
  * Prevents circular dependencies by providing abstraction layer
  */

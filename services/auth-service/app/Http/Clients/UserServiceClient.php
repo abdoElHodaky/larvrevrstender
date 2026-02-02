@@ -16,6 +16,7 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->get("/users/{$userId}");
+
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
             return null;
@@ -29,6 +30,7 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->post('/users', $userData);
+
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
             return null;
@@ -42,6 +44,7 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->put("/users/{$userId}", $userData);
+
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
             return null;
@@ -55,6 +58,7 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->get('/users/by-email', ['email' => $email]);
+
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
             return null;
@@ -68,10 +72,10 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->get("/users/{$userId}/kyc-status");
+
             return $response->successful() && $response->json('verified', false);
         } catch (\Exception $e) {
             return false;
         }
     }
 }
-

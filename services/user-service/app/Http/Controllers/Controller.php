@@ -85,4 +85,3 @@ abstract class Controller extends BaseController
         return $this->errorResponse($message, 500);
     }
 }
-

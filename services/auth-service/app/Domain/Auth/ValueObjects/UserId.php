@@ -21,7 +21,7 @@ final readonly class UserId
 
     public static function fromString(string $value): self
     {
-        if (!Uuid::isValid($value)) {
+        if (! Uuid::isValid($value)) {
             throw new InvalidArgumentException("Invalid UUID format: {$value}");
         }
 
@@ -43,4 +43,3 @@ final readonly class UserId
         return $this->toString();
     }
 }
-

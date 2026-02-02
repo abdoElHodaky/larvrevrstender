@@ -45,11 +45,11 @@ class HealthController extends Controller
         $memoryUsage = memory_get_usage(true);
         $memoryLimit = $this->parseMemoryLimit(ini_get('memory_limit'));
         $memoryPercentage = ($memoryUsage / $memoryLimit) * 100;
-        
+
         $checks['memory'] = [
             'usage' => $this->formatBytes($memoryUsage),
             'limit' => $this->formatBytes($memoryLimit),
-            'percentage' => round($memoryPercentage, 2) . '%'
+            'percentage' => round($memoryPercentage, 2).'%',
         ];
 
         if ($memoryPercentage > 90) {
@@ -60,11 +60,11 @@ class HealthController extends Controller
         $diskFree = disk_free_space('/');
         $diskTotal = disk_total_space('/');
         $diskUsagePercentage = (($diskTotal - $diskFree) / $diskTotal) * 100;
-        
+
         $checks['disk'] = [
             'free' => $this->formatBytes($diskFree),
             'total' => $this->formatBytes($diskTotal),
-            'usage_percentage' => round($diskUsagePercentage, 2) . '%'
+            'usage_percentage' => round($diskUsagePercentage, 2).'%',
         ];
 
         if ($diskUsagePercentage > 90) {
@@ -118,7 +118,6 @@ class HealthController extends Controller
             $bytes /= 1024;
         }
 
-        return round($bytes, $precision) . ' ' . $units[$i];
+        return round($bytes, $precision).' '.$units[$i];
     }
 }
-

@@ -2,10 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\MerchantProfile;
 use App\Events\MerchantProfileUpdated;
 use App\Events\MerchantVerificationStatusChanged;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Models\MerchantProfile;
 use Illuminate\Support\Collection;
 
 class MerchantService
@@ -24,9 +23,9 @@ class MerchantService
     public function createProfile(array $data): MerchantProfile
     {
         $profile = MerchantProfile::create($data);
-        
+
         event(new MerchantProfileUpdated($profile));
-        
+
         return $profile;
     }
 
@@ -37,9 +36,9 @@ class MerchantService
     {
         $profile = $this->getProfile($userId);
         $profile->update($data);
-        
+
         event(new MerchantProfileUpdated($profile));
-        
+
         return $profile->fresh();
     }
 
@@ -49,18 +48,18 @@ class MerchantService
     public function updateVerificationStatus(int $userId, bool $verified, array $documents = []): MerchantProfile
     {
         $profile = $this->getProfile($userId);
-        
+
         $oldStatus = $profile->verified;
-        
+
         $profile->update([
             'verified' => $verified,
-            'verification_documents' => $documents ?: $profile->verification_documents
+            'verification_documents' => $documents ?: $profile->verification_documents,
         ]);
-        
+
         if ($oldStatus !== $verified) {
             event(new MerchantVerificationStatusChanged($profile, $oldStatus, $verified));
         }
-        
+
         return $profile->fresh();
     }
 
@@ -71,9 +70,9 @@ class MerchantService
     {
         $profile = $this->getProfile($userId);
         $profile->addSpecialization($specialization);
-        
+
         event(new MerchantProfileUpdated($profile));
-        
+
         return $profile->fresh();
     }
 
@@ -84,9 +83,9 @@ class MerchantService
     {
         $profile = $this->getProfile($userId);
         $profile->addServiceArea($area);
-        
+
         event(new MerchantProfileUpdated($profile));
-        
+
         return $profile->fresh();
     }
 
@@ -96,11 +95,11 @@ class MerchantService
     public function updateBusinessHours(int $userId, array $businessHours): MerchantProfile
     {
         $profile = $this->getProfile($userId);
-        
+
         $profile->update(['business_hours' => $businessHours]);
-        
+
         event(new MerchantProfileUpdated($profile));
-        
+
         return $profile->fresh();
     }
 
@@ -111,9 +110,9 @@ class MerchantService
     {
         $profile = $this->getProfile($userId);
         $profile->updateRating($rating);
-        
+
         event(new MerchantProfileUpdated($profile));
-        
+
         return $profile->fresh();
     }
 
@@ -155,27 +154,27 @@ class MerchantService
     public function searchMerchants(array $filters): Collection
     {
         $query = MerchantProfile::query();
-        
+
         if (isset($filters['verified']) && $filters['verified']) {
             $query->verified();
         }
-        
+
         if (isset($filters['specialization'])) {
             $query->bySpecialization($filters['specialization']);
         }
-        
+
         if (isset($filters['min_rating'])) {
             $query->byMinRating($filters['min_rating']);
         }
-        
+
         if (isset($filters['service_area'])) {
             $query->servingArea($filters['service_area']);
         }
-        
+
         if (isset($filters['business_name'])) {
-            $query->where('business_name', 'like', '%' . $filters['business_name'] . '%');
+            $query->where('business_name', 'like', '%'.$filters['business_name'].'%');
         }
-        
+
         return $query->get();
     }
 
@@ -193,24 +192,24 @@ class MerchantService
     public function validateForZATCA(int $userId): array
     {
         $profile = $this->getProfile($userId);
-        
+
         $errors = [];
-        
-        if (!$profile->hasValidTaxNumber()) {
+
+        if (! $profile->hasValidTaxNumber()) {
             $errors[] = 'Valid tax number is required for ZATCA compliance';
         }
-        
-        if (!$profile->business_name) {
+
+        if (! $profile->business_name) {
             $errors[] = 'Business name is required for ZATCA compliance';
         }
-        
-        if (!$profile->verified) {
+
+        if (! $profile->verified) {
             $errors[] = 'Merchant must be verified for ZATCA compliance';
         }
-        
+
         return [
             'valid' => empty($errors),
-            'errors' => $errors
+            'errors' => $errors,
         ];
     }
 
@@ -220,6 +219,7 @@ class MerchantService
     public function isAvailableAt(int $userId, string $day, string $time): bool
     {
         $profile = $this->getProfile($userId);
+
         return $profile->isOpenAt($day, $time);
     }
 
@@ -229,15 +229,15 @@ class MerchantService
     public function getMerchantStats(int $userId): array
     {
         $profile = $this->getProfile($userId);
-        
+
         return [
             'rating' => $profile->rating,
             'total_reviews' => $profile->total_reviews,
             'verified' => $profile->verified,
             'specializations_count' => count($profile->specializations ?? []),
             'service_areas_count' => count($profile->service_areas ?? []),
-            'has_business_hours' => !empty($profile->business_hours),
-            'zatca_compliant' => $this->validateForZATCA($userId)['valid']
+            'has_business_hours' => ! empty($profile->business_hours),
+            'zatca_compliant' => $this->validateForZATCA($userId)['valid'],
         ];
     }
 
@@ -266,7 +266,7 @@ class MerchantService
     public function deleteProfile(int $userId): bool
     {
         $profile = $this->getProfile($userId);
+
         return $profile->delete();
     }
 }
-

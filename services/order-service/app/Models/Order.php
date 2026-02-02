@@ -71,13 +71,21 @@ class Order extends Model
      * Status constants
      */
     const STATUS_PENDING_PAYMENT = 'pending_payment';
+
     const STATUS_PAYMENT_CONFIRMED = 'payment_confirmed';
+
     const STATUS_PROCESSING = 'processing';
+
     const STATUS_SHIPPED = 'shipped';
+
     const STATUS_DELIVERED = 'delivered';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_CANCELLED = 'cancelled';
+
     const STATUS_REFUNDED = 'refunded';
+
     const STATUS_DISPUTED = 'disputed';
 
     /**
@@ -86,9 +94,9 @@ class Order extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($order) {
-            if (!$order->order_number) {
+            if (! $order->order_number) {
                 $order->order_number = $order->generateOrderNumber();
             }
         });
@@ -148,7 +156,7 @@ class Order extends Model
     public function scopeOverduePayment($query)
     {
         return $query->where('status', self::STATUS_PENDING_PAYMENT)
-                    ->where('payment_due_at', '<', now());
+            ->where('payment_due_at', '<', now());
     }
 
     /**
@@ -159,7 +167,7 @@ class Order extends Model
         return $query->whereIn('status', [
             self::STATUS_PAYMENT_CONFIRMED,
             self::STATUS_PROCESSING,
-            self::STATUS_SHIPPED
+            self::STATUS_SHIPPED,
         ]);
     }
 
@@ -168,7 +176,7 @@ class Order extends Model
      */
     public function isPaid(): bool
     {
-        return !is_null($this->paid_at);
+        return ! is_null($this->paid_at);
     }
 
     /**
@@ -176,8 +184,8 @@ class Order extends Model
      */
     public function isPaymentOverdue(): bool
     {
-        return $this->status === self::STATUS_PENDING_PAYMENT 
-               && $this->payment_due_at 
+        return $this->status === self::STATUS_PENDING_PAYMENT
+               && $this->payment_due_at
                && $this->payment_due_at->isPast();
     }
 
@@ -189,7 +197,7 @@ class Order extends Model
         return in_array($this->status, [
             self::STATUS_PENDING_PAYMENT,
             self::STATUS_PAYMENT_CONFIRMED,
-            self::STATUS_PROCESSING
+            self::STATUS_PROCESSING,
         ]);
     }
 
@@ -206,7 +214,7 @@ class Order extends Model
      */
     public function getStatusDisplayAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             self::STATUS_PENDING_PAYMENT => 'Pending Payment',
             self::STATUS_PAYMENT_CONFIRMED => 'Payment Confirmed',
             self::STATUS_PROCESSING => 'Processing',
@@ -225,7 +233,7 @@ class Order extends Model
      */
     public function getStatusColorAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             self::STATUS_PENDING_PAYMENT => 'yellow',
             self::STATUS_PAYMENT_CONFIRMED => 'blue',
             self::STATUS_PROCESSING => 'purple',
@@ -247,64 +255,64 @@ class Order extends Model
         $prefix = 'ORD';
         $timestamp = now()->format('ymd');
         $random = strtoupper(Str::random(4));
-        
-        return $prefix . '-' . $timestamp . '-' . $random;
+
+        return $prefix.'-'.$timestamp.'-'.$random;
     }
 
     /**
      * Update order status with history tracking.
      */
-    public function updateStatus(string $newStatus, string $note = null): void
+    public function updateStatus(string $newStatus, ?string $note = null): void
     {
         $oldStatus = $this->status;
-        
+
         // Add to status history
         $statusHistory = $this->status_history ?? [];
         $statusHistory[] = [
             'from_status' => $oldStatus,
             'to_status' => $newStatus,
             'changed_at' => now()->toISOString(),
-            'note' => $note
+            'note' => $note,
         ];
-        
+
         $this->update([
             'status' => $newStatus,
-            'status_history' => $statusHistory
+            'status_history' => $statusHistory,
         ]);
     }
 
     /**
      * Confirm payment.
      */
-    public function confirmPayment(string $paymentMethod, string $paymentReference = null): void
+    public function confirmPayment(string $paymentMethod, ?string $paymentReference = null): void
     {
         $this->update([
             'status' => self::STATUS_PAYMENT_CONFIRMED,
             'payment_method' => $paymentMethod,
             'payment_reference' => $paymentReference,
-            'paid_at' => now()
+            'paid_at' => now(),
         ]);
-        
+
         $this->updateStatus(self::STATUS_PAYMENT_CONFIRMED, 'Payment confirmed');
     }
 
     /**
      * Mark as shipped.
      */
-    public function markAsShipped(string $trackingNumber = null, \DateTime $estimatedDelivery = null): void
+    public function markAsShipped(?string $trackingNumber = null, ?\DateTime $estimatedDelivery = null): void
     {
         $updateData = ['status' => self::STATUS_SHIPPED];
-        
+
         if ($trackingNumber) {
             $updateData['tracking_number'] = $trackingNumber;
         }
-        
+
         if ($estimatedDelivery) {
             $updateData['estimated_delivery'] = $estimatedDelivery;
         }
-        
+
         $this->update($updateData);
-        $this->updateStatus(self::STATUS_SHIPPED, 'Order shipped' . ($trackingNumber ? " with tracking: $trackingNumber" : ''));
+        $this->updateStatus(self::STATUS_SHIPPED, 'Order shipped'.($trackingNumber ? " with tracking: $trackingNumber" : ''));
     }
 
     /**
@@ -314,9 +322,9 @@ class Order extends Model
     {
         $this->update([
             'status' => self::STATUS_DELIVERED,
-            'actual_delivery' => now()
+            'actual_delivery' => now(),
         ]);
-        
+
         $this->updateStatus(self::STATUS_DELIVERED, 'Order delivered');
     }
 
@@ -331,42 +339,42 @@ class Order extends Model
     /**
      * Cancel the order.
      */
-    public function cancel(string $reason = null): void
+    public function cancel(?string $reason = null): void
     {
-        if (!$this->canBeCancelled()) {
+        if (! $this->canBeCancelled()) {
             throw new \Exception('Order cannot be cancelled in current status');
         }
-        
+
         $this->updateStatus(self::STATUS_CANCELLED, $reason ?? 'Order cancelled');
     }
 
     /**
      * Add customer rating and feedback.
      */
-    public function addCustomerRating(int $rating, string $feedback = null): void
+    public function addCustomerRating(int $rating, ?string $feedback = null): void
     {
-        if (!$this->canBeRated()) {
+        if (! $this->canBeRated()) {
             throw new \Exception('Order cannot be rated in current status');
         }
-        
+
         $this->update([
             'customer_rating' => $rating,
-            'customer_feedback' => $feedback
+            'customer_feedback' => $feedback,
         ]);
     }
 
     /**
      * Add merchant rating and feedback.
      */
-    public function addMerchantRating(int $rating, string $feedback = null): void
+    public function addMerchantRating(int $rating, ?string $feedback = null): void
     {
-        if (!$this->canBeRated()) {
+        if (! $this->canBeRated()) {
             throw new \Exception('Order cannot be rated in current status');
         }
-        
+
         $this->update([
             'merchant_rating' => $rating,
-            'merchant_feedback' => $feedback
+            'merchant_feedback' => $feedback,
         ]);
     }
 
@@ -379,9 +387,9 @@ class Order extends Model
         $notes[] = [
             'note' => $note,
             'author' => $author,
-            'created_at' => now()->toISOString()
+            'created_at' => now()->toISOString(),
         ];
-        
+
         $this->update(['notes' => $notes]);
     }
 
@@ -399,6 +407,7 @@ class Order extends Model
     public function calculateTaxAmount(): float
     {
         $taxableAmount = $this->part_cost + $this->delivery_cost;
+
         return round($taxableAmount * 0.15, 2);
     }
 
@@ -410,8 +419,7 @@ class Order extends Model
         $this->update([
             'platform_fee' => $this->calculatePlatformFee(),
             'tax_amount' => $this->calculateTaxAmount(),
-            'total_amount' => $this->part_cost + $this->delivery_cost + $this->calculatePlatformFee() + $this->calculateTaxAmount()
+            'total_amount' => $this->part_cost + $this->delivery_cost + $this->calculatePlatformFee() + $this->calculateTaxAmount(),
         ]);
     }
 }
-

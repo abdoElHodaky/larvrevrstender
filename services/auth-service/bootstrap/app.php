@@ -12,19 +12,27 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // API middleware stack with Sanctum for stateful requests
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
-        $middleware->alias([
-            'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-            'jwt.auth' => \Tymon\JWTAuth\Http\Middleware\Authenticate::class,
-            'jwt.refresh' => \Tymon\JWTAuth\Http\Middleware\RefreshToken::class,
+        // Laravel 12 enhanced security middleware
+        $middleware->throttleApi();
+        $middleware->validateCsrfTokens(except: [
+            'api/*', // Exclude API routes from CSRF
         ]);
 
-        //
+        // Middleware aliases
+        $middleware->alias([
+            'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+            'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
+            'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+            'jwt.auth' => \Tymon\JWTAuth\Http\Middleware\Authenticate::class,
+            'jwt.refresh' => \Tymon\JWTAuth\Http\Middleware\RefreshToken::class,
+            'service.auth' => \App\Http\Middleware\ServiceAuthentication::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
-

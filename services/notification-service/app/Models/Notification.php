@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
 class Notification extends Model
 {
@@ -75,42 +74,64 @@ class Notification extends Model
      * Status constants
      */
     const STATUS_PENDING = 'pending';
+
     const STATUS_SENT = 'sent';
+
     const STATUS_DELIVERED = 'delivered';
+
     const STATUS_READ = 'read';
+
     const STATUS_FAILED = 'failed';
+
     const STATUS_CANCELLED = 'cancelled';
 
     /**
      * Priority constants
      */
     const PRIORITY_LOW = 'low';
+
     const PRIORITY_MEDIUM = 'medium';
+
     const PRIORITY_HIGH = 'high';
+
     const PRIORITY_URGENT = 'urgent';
 
     /**
      * Channel constants
      */
     const CHANNEL_EMAIL = 'email';
+
     const CHANNEL_SMS = 'sms';
+
     const CHANNEL_PUSH = 'push';
+
     const CHANNEL_IN_APP = 'in_app';
 
     /**
      * Notification type constants
      */
     const TYPE_BID_RECEIVED = 'bid_received';
+
     const TYPE_BID_ACCEPTED = 'bid_accepted';
+
     const TYPE_BID_REJECTED = 'bid_rejected';
+
     const TYPE_ORDER_CREATED = 'order_created';
+
     const TYPE_ORDER_STATUS_CHANGED = 'order_status_changed';
+
     const TYPE_PAYMENT_REMINDER = 'payment_reminder';
+
     const TYPE_PAYMENT_RECEIVED = 'payment_received';
+
     const TYPE_INVOICE_SENT = 'invoice_sent';
+
     const TYPE_PART_REQUEST_EXPIRING = 'part_request_expiring';
+
     const TYPE_NEW_PART_REQUEST = 'new_part_request';
+
     const TYPE_SYSTEM_MAINTENANCE = 'system_maintenance';
+
     const TYPE_PROMOTIONAL = 'promotional';
 
     /**
@@ -119,9 +140,9 @@ class Notification extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($notification) {
-            if (!$notification->notification_id) {
+            if (! $notification->notification_id) {
                 $notification->notification_id = Str::uuid();
             }
         });
@@ -173,14 +194,14 @@ class Notification extends Model
     public function scopeReadyToSend($query)
     {
         return $query->where('status', self::STATUS_PENDING)
-                    ->where(function ($q) {
-                        $q->whereNull('scheduled_at')
-                          ->orWhere('scheduled_at', '<=', now());
-                    })
-                    ->where(function ($q) {
-                        $q->whereNull('expires_at')
-                          ->orWhere('expires_at', '>', now());
-                    });
+            ->where(function ($q) {
+                $q->whereNull('scheduled_at')
+                    ->orWhere('scheduled_at', '<=', now());
+            })
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            });
     }
 
     /**
@@ -189,11 +210,11 @@ class Notification extends Model
     public function scopeReadyForRetry($query)
     {
         return $query->where('status', self::STATUS_FAILED)
-                    ->where('delivery_attempts', '<', 'max_attempts')
-                    ->where(function ($q) {
-                        $q->whereNull('next_retry_at')
-                          ->orWhere('next_retry_at', '<=', now());
-                    });
+            ->where('delivery_attempts', '<', 'max_attempts')
+            ->where(function ($q) {
+                $q->whereNull('next_retry_at')
+                    ->orWhere('next_retry_at', '<=', now());
+            });
     }
 
     /**
@@ -210,7 +231,7 @@ class Notification extends Model
     public function scopeExpired($query)
     {
         return $query->whereNotNull('expires_at')
-                    ->where('expires_at', '<', now());
+            ->where('expires_at', '<', now());
     }
 
     /**
@@ -258,9 +279,9 @@ class Notification extends Model
      */
     public function canBeRetried(): bool
     {
-        return $this->isFailed() && 
+        return $this->isFailed() &&
                $this->delivery_attempts < $this->max_attempts &&
-               !$this->isExpired();
+               ! $this->isExpired();
     }
 
     /**
@@ -268,7 +289,7 @@ class Notification extends Model
      */
     public function getStatusDisplayAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             self::STATUS_PENDING => 'Pending',
             self::STATUS_SENT => 'Sent',
             self::STATUS_DELIVERED => 'Delivered',
@@ -284,7 +305,7 @@ class Notification extends Model
      */
     public function getPriorityDisplayAttribute(): string
     {
-        return match($this->priority) {
+        return match ($this->priority) {
             self::PRIORITY_LOW => 'Low',
             self::PRIORITY_MEDIUM => 'Medium',
             self::PRIORITY_HIGH => 'High',
@@ -298,7 +319,7 @@ class Notification extends Model
      */
     public function getPriorityColorAttribute(): string
     {
-        return match($this->priority) {
+        return match ($this->priority) {
             self::PRIORITY_LOW => 'green',
             self::PRIORITY_MEDIUM => 'blue',
             self::PRIORITY_HIGH => 'orange',
@@ -314,29 +335,29 @@ class Notification extends Model
     {
         $this->update([
             'status' => self::STATUS_SENT,
-            'sent_at' => now()
+            'sent_at' => now(),
         ]);
     }
 
     /**
      * Mark notification as delivered.
      */
-    public function markAsDelivered(string $channel = null): void
+    public function markAsDelivered(?string $channel = null): void
     {
         $updateData = [
             'status' => self::STATUS_DELIVERED,
-            'delivered_at' => now()
+            'delivered_at' => now(),
         ];
-        
+
         if ($channel) {
             $channelStatus = $this->channel_status ?? [];
             $channelStatus[$channel] = [
                 'status' => 'delivered',
-                'delivered_at' => now()->toISOString()
+                'delivered_at' => now()->toISOString(),
             ];
             $updateData['channel_status'] = $channelStatus;
         }
-        
+
         $this->update($updateData);
     }
 
@@ -345,10 +366,10 @@ class Notification extends Model
      */
     public function markAsRead(): void
     {
-        if (!$this->isRead()) {
+        if (! $this->isRead()) {
             $this->update([
                 'status' => self::STATUS_READ,
-                'read_at' => now()
+                'read_at' => now(),
             ]);
         }
     }
@@ -356,49 +377,49 @@ class Notification extends Model
     /**
      * Mark notification as failed.
      */
-    public function markAsFailed(string $error = null, string $channel = null): void
+    public function markAsFailed(?string $error = null, ?string $channel = null): void
     {
         $failureReasons = $this->failure_reasons ?? [];
-        
+
         if ($channel) {
             $failureReasons[$channel] = [
                 'error' => $error,
                 'failed_at' => now()->toISOString(),
-                'attempt' => $this->delivery_attempts + 1
+                'attempt' => $this->delivery_attempts + 1,
             ];
-            
+
             $channelStatus = $this->channel_status ?? [];
             $channelStatus[$channel] = [
                 'status' => 'failed',
                 'error' => $error,
-                'failed_at' => now()->toISOString()
+                'failed_at' => now()->toISOString(),
             ];
         } else {
             $failureReasons['general'] = [
                 'error' => $error,
                 'failed_at' => now()->toISOString(),
-                'attempt' => $this->delivery_attempts + 1
+                'attempt' => $this->delivery_attempts + 1,
             ];
         }
-        
+
         $updateData = [
             'status' => self::STATUS_FAILED,
             'failed_at' => now(),
             'delivery_attempts' => $this->delivery_attempts + 1,
             'failure_reasons' => $failureReasons,
-            'last_error' => $error
+            'last_error' => $error,
         ];
-        
+
         if ($channel) {
             $updateData['channel_status'] = $channelStatus;
         }
-        
+
         // Set next retry time if retries are available
         if ($this->delivery_attempts + 1 < $this->max_attempts) {
             $retryDelay = $this->calculateRetryDelay($this->delivery_attempts + 1);
             $updateData['next_retry_at'] = now()->addMinutes($retryDelay);
         }
-        
+
         $this->update($updateData);
     }
 
@@ -414,14 +435,14 @@ class Notification extends Model
     /**
      * Cancel notification.
      */
-    public function cancel(string $reason = null): void
+    public function cancel(?string $reason = null): void
     {
         $this->update([
             'status' => self::STATUS_CANCELLED,
             'metadata' => array_merge($this->metadata ?? [], [
                 'cancelled_at' => now()->toISOString(),
-                'cancel_reason' => $reason
-            ])
+                'cancel_reason' => $reason,
+            ]),
         ]);
     }
 
@@ -433,9 +454,9 @@ class Notification extends Model
         $trackingData = $this->tracking_data ?? [];
         $trackingData[] = array_merge($data, [
             'event' => $event,
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ]);
-        
+
         $this->update(['tracking_data' => $trackingData]);
     }
 
@@ -445,11 +466,11 @@ class Notification extends Model
     public function getChannelSuccessRate(string $channel): ?float
     {
         $channelStatus = $this->channel_status[$channel] ?? null;
-        
-        if (!$channelStatus) {
+
+        if (! $channelStatus) {
             return null;
         }
-        
+
         return $channelStatus['status'] === 'delivered' ? 100.0 : 0.0;
     }
 
@@ -466,14 +487,14 @@ class Notification extends Model
      */
     public function getTimeUntilScheduledAttribute(): ?string
     {
-        if (!$this->scheduled_at) {
+        if (! $this->scheduled_at) {
             return null;
         }
-        
+
         if ($this->scheduled_at->isPast()) {
             return 'Overdue';
         }
-        
+
         return $this->scheduled_at->diffForHumans();
     }
 
@@ -482,14 +503,14 @@ class Notification extends Model
      */
     public function getTimeUntilExpirationAttribute(): ?string
     {
-        if (!$this->expires_at) {
+        if (! $this->expires_at) {
             return null;
         }
-        
+
         if ($this->expires_at->isPast()) {
             return 'Expired';
         }
-        
+
         return $this->expires_at->diffForHumans();
     }
 
@@ -514,10 +535,10 @@ class Notification extends Model
      */
     public function getSuccessfulChannelsAttribute(): array
     {
-        if (!$this->channel_status) {
+        if (! $this->channel_status) {
             return [];
         }
-        
+
         return array_keys(array_filter($this->channel_status, function ($status) {
             return $status['status'] === 'delivered';
         }));
@@ -528,13 +549,12 @@ class Notification extends Model
      */
     public function getFailedChannelsAttribute(): array
     {
-        if (!$this->channel_status) {
+        if (! $this->channel_status) {
             return [];
         }
-        
+
         return array_keys(array_filter($this->channel_status, function ($status) {
             return $status['status'] === 'failed';
         }));
     }
 }
-

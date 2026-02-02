@@ -22,31 +22,45 @@ Route::get('/up', [HealthController::class, 'up']);
 // Service info route
 Route::get('/info', function () {
     return response()->json([
-        'service' => 'auth-service',
+        'service' => 'notification-service',
         'version' => config('app.version', '1.0.0'),
         'environment' => config('app.env'),
         'timestamp' => now()->toISOString(),
     ]);
 });
 
-// Authentication routes will be added here
-Route::prefix('auth')->group(function () {
-    // TODO: Add authentication routes
-    // Route::post('/login', [AuthController::class, 'login']);
-    // Route::post('/register', [AuthController::class, 'register']);
-    // Route::post('/logout', [AuthController::class, 'logout']);
-    // Route::post('/refresh', [AuthController::class, 'refresh']);
-    // Route::get('/me', [AuthController::class, 'me']);
-    
-    // OTP routes
-    // Route::post('/otp/send', [OTPController::class, 'send']);
-    // Route::post('/otp/verify', [OTPController::class, 'verify']);
+// Inter-service Routes
+Route::middleware('service.auth')->group(function () {
+    Route::post('/notifications', [App\Http\Controllers\NotificationController::class, 'sendNotification']);
+    Route::post('/notifications/bulk', [App\Http\Controllers\NotificationController::class, 'sendBulkNotification']);
+    Route::get('/notifications/{notificationId}', [App\Http\Controllers\NotificationController::class, 'getNotificationStatus']);
+    Route::post('/templates', [App\Http\Controllers\TemplateController::class, 'createTemplate']);
 });
 
-// Protected routes
+// External API Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-});
 
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [App\Http\Controllers\NotificationController::class, 'index']);
+        Route::get('/{notification}', [App\Http\Controllers\NotificationController::class, 'show']);
+        Route::put('/{notification}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
+        Route::delete('/{notification}', [App\Http\Controllers\NotificationController::class, 'destroy']);
+        Route::post('/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllAsRead']);
+    });
+
+    Route::prefix('templates')->group(function () {
+        Route::get('/', [App\Http\Controllers\TemplateController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\TemplateController::class, 'store']);
+        Route::get('/{template}', [App\Http\Controllers\TemplateController::class, 'show']);
+        Route::put('/{template}', [App\Http\Controllers\TemplateController::class, 'update']);
+        Route::delete('/{template}', [App\Http\Controllers\TemplateController::class, 'destroy']);
+    });
+
+    Route::prefix('preferences')->group(function () {
+        Route::get('/', [App\Http\Controllers\PreferencesController::class, 'show']);
+        Route::put('/', [App\Http\Controllers\PreferencesController::class, 'update']);
+    });
+});

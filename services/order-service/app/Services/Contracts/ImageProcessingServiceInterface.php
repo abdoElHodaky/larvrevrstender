@@ -6,7 +6,7 @@ use Illuminate\Http\UploadedFile;
 
 /**
  * Image Processing Service Interface
- * 
+ *
  * Defines the contract for image processing service implementations
  * Handles image upload, processing, and optimization
  */

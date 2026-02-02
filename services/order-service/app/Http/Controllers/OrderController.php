@@ -3,23 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Services\OrderService;
 use App\Services\NotificationService;
-use Illuminate\Http\Request;
+use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Order Controller
- * 
+ *
  * Handles all order-related operations including CRUD, status management,
  * and image uploads for the reverse tender platform
  */
 class OrderController extends Controller
 {
     protected OrderService $orderService;
+
     protected NotificationService $notificationService;
 
     public function __construct(
@@ -37,7 +37,7 @@ class OrderController extends Controller
     public function index(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'status' => 'sometimes|in:' . implode(',', Order::getStatuses()),
+            'status' => 'sometimes|in:'.implode(',', Order::getStatuses()),
             'urgent' => 'sometimes|boolean',
             'customer_id' => 'sometimes|integer',
             'per_page' => 'sometimes|integer|min:1|max:100',
@@ -49,7 +49,7 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -81,14 +81,14 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $orders,
-                'message' => 'Orders retrieved successfully'
+                'message' => 'Orders retrieved successfully',
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve orders',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -118,7 +118,7 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -128,7 +128,7 @@ class OrderController extends Controller
             $orderData = $request->only([
                 'customer_id', 'vehicle_id', 'title', 'description',
                 'part_details', 'budget_min', 'budget_max', 'delivery_location',
-                'urgent', 'priority_score', 'deadline'
+                'urgent', 'priority_score', 'deadline',
             ]);
 
             $order = $this->orderService->createOrder($orderData);
@@ -146,15 +146,16 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $order->load(['orderImages', 'statusHistory']),
-                'message' => 'Order created successfully'
+                'message' => 'Order created successfully',
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create order',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -171,14 +172,14 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $order,
-                'message' => 'Order retrieved successfully'
+                'message' => 'Order retrieved successfully',
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Order not found',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 404);
         }
     }
@@ -204,7 +205,7 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -213,16 +214,16 @@ class OrderController extends Controller
             $order = Order::findOrFail($id);
 
             // Check if order can be updated
-            if (!in_array($order->status, [Order::STATUS_DRAFT, Order::STATUS_PUBLISHED])) {
+            if (! in_array($order->status, [Order::STATUS_DRAFT, Order::STATUS_PUBLISHED])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Order cannot be updated in current status'
+                    'message' => 'Order cannot be updated in current status',
                 ], 422);
             }
 
             $updateData = $request->only([
                 'title', 'description', 'part_details', 'budget_min',
-                'budget_max', 'delivery_location', 'urgent', 'priority_score', 'deadline'
+                'budget_max', 'delivery_location', 'urgent', 'priority_score', 'deadline',
             ]);
 
             $order = $this->orderService->updateOrder($order, $updateData);
@@ -232,15 +233,16 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $order->load(['orderImages', 'statusHistory']),
-                'message' => 'Order updated successfully'
+                'message' => 'Order updated successfully',
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update order',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -254,10 +256,10 @@ class OrderController extends Controller
         try {
             $order = Order::findOrFail($id);
 
-            if (!$order->canBePublished()) {
+            if (! $order->canBePublished()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Order cannot be published. Check required fields.'
+                    'message' => 'Order cannot be published. Check required fields.',
                 ], 422);
             }
 
@@ -271,15 +273,16 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $order,
-                'message' => 'Order published successfully'
+                'message' => 'Order published successfully',
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to publish order',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -297,7 +300,7 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -308,7 +311,7 @@ class OrderController extends Controller
             if ($order->status === Order::STATUS_COMPLETED) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot cancel completed order'
+                    'message' => 'Cannot cancel completed order',
                 ], 422);
             }
 
@@ -322,15 +325,16 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $order,
-                'message' => 'Order cancelled successfully'
+                'message' => 'Order cancelled successfully',
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to cancel order',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -350,7 +354,7 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -366,14 +370,14 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $uploadedImages,
-                'message' => 'Images uploaded successfully'
+                'message' => 'Images uploaded successfully',
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to upload images',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -389,14 +393,14 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $stats,
-                'message' => 'Statistics retrieved successfully'
+                'message' => 'Statistics retrieved successfully',
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve statistics',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -416,7 +420,7 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -430,14 +434,14 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $results,
-                'message' => 'Search completed successfully'
+                'message' => 'Search completed successfully',
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Search failed',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
