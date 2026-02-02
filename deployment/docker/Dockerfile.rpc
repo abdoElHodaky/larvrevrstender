@@ -1,0 +1,80 @@
+FROM php:8.2-cli-alpine
+
+# Install system dependencies for Octane and FrankenPHP
+RUN apk add --no-cache \
+    git \
+    curl \
+    libpng-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    mysql-client \
+    supervisor \
+    nodejs \
+    npm \
+    ca-certificates
+
+# Install PHP extensions required for Octane
+RUN docker-php-ext-install \
+    pdo_mysql \
+    mysqli \
+    xml \
+    gd \
+    opcache \
+    pcntl \
+    sockets
+
+# Install Redis extension
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del .build-deps
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Set working directory
+WORKDIR /app
+
+# Copy composer files
+COPY composer.json composer.lock ./
+
+# Install PHP dependencies including Octane and Sajya
+RUN composer install --no-dev --optimize-autoloader --no-scripts
+
+# Install Laravel Octane with FrankenPHP
+RUN composer require laravel/octane sajya/server sajya/client --no-scripts
+
+# Copy application code
+COPY . .
+
+# Set permissions
+RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
+
+# Copy Octane configuration
+COPY deployment/config/octane/octane.php /app/config/octane.php
+COPY deployment/config/php/octane.ini /usr/local/etc/php/conf.d/octane.ini
+COPY deployment/config/supervisor/octane-supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Create log directories
+RUN mkdir -p /app/storage/logs /var/log/supervisor
+
+# Install FrankenPHP binary
+RUN curl -L https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-linux-x86_64 -o /usr/local/bin/frankenphp \
+    && chmod +x /usr/local/bin/frankenphp
+
+# Generate application key and optimize
+RUN php artisan key:generate --no-interaction \
+    && php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache
+
+# Expose ports (HTTP and RPC)
+EXPOSE 8000 6010 6011
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Start supervisor with Octane
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
