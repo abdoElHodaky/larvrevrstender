@@ -7,13 +7,27 @@ use App\Services\AuthService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
-use Sajya\Server\Exceptions\RuntimeException;
+// Conditionally use RuntimeException if Sajya is available
+if (class_exists('Sajya\Server\Exceptions\RuntimeException')) {
+    use Sajya\Server\Exceptions\RuntimeException;
+}
 
 class AuthProcedure extends BaseProcedure
 {
     public function __construct(
         private AuthService $authService
     ) {}
+
+    /**
+     * Create a runtime exception conditionally based on Sajya availability
+     */
+    private function createRuntimeException(string $message, int $code = -32603, array $data = []): \Exception
+    {
+        if (class_exists('Sajya\Server\Exceptions\RuntimeException')) {
+            return new \Sajya\Server\Exceptions\RuntimeException($message, $code, $data);
+        }
+        return new \Exception($message, $code);
+    }
 
     /**
      * Authenticate user credentials
@@ -34,7 +48,7 @@ class AuthProcedure extends BaseProcedure
             // Rate limiting
             $key = 'auth_attempt:' . $params['email'];
             if (RateLimiter::tooManyAttempts($key, 5)) {
-                throw new RuntimeException(
+                throw $this->createRuntimeException(
                     'Too many authentication attempts. Please try again later.',
                     -32007,
                     ['retry_after' => RateLimiter::availableIn($key)]
@@ -64,7 +78,7 @@ class AuthProcedure extends BaseProcedure
                 // Increment rate limiting on failed authentication
                 RateLimiter::hit($key, 300); // 5 minutes
                 
-                throw new RuntimeException(
+                throw $this->createRuntimeException(
                     'Authentication failed',
                     -32001,
                     ['email' => $params['email'], 'reason' => 'Invalid credentials']
@@ -153,7 +167,7 @@ class AuthProcedure extends BaseProcedure
                 ];
                 
             } catch (\Exception $e) {
-                throw new RuntimeException(
+                throw $this->createRuntimeException(
                     'Token refresh failed',
                     -32003,
                     ['reason' => 'Invalid or expired refresh token']
@@ -195,7 +209,7 @@ class AuthProcedure extends BaseProcedure
                 ];
                 
             } catch (\Exception $e) {
-                throw new RuntimeException(
+                throw $this->createRuntimeException(
                     'Logout failed',
                     -32004,
                     ['reason' => 'Invalid token or user not found']
@@ -224,7 +238,7 @@ class AuthProcedure extends BaseProcedure
             // Rate limiting for registration
             $key = 'register_attempt:' . request()->ip();
             if (RateLimiter::tooManyAttempts($key, 3)) {
-                throw new RuntimeException(
+                throw $this->createRuntimeException(
                     'Too many registration attempts. Please try again later.',
                     -32008,
                     ['retry_after' => RateLimiter::availableIn($key)]
@@ -253,7 +267,7 @@ class AuthProcedure extends BaseProcedure
                 // Increment rate limiting on failed registration
                 RateLimiter::hit($key, 600); // 10 minutes
                 
-                throw new RuntimeException(
+                throw $this->createRuntimeException(
                     'Registration failed: ' . $e->getMessage(),
                     -32009,
                     ['email' => $params['email']]
@@ -292,7 +306,7 @@ class AuthProcedure extends BaseProcedure
                 ];
                 
             } catch (\Exception $e) {
-                throw new RuntimeException(
+                throw $this->createRuntimeException(
                     'Password change failed: ' . $e->getMessage(),
                     -32010,
                     ['reason' => 'Invalid current password or token']
@@ -325,7 +339,7 @@ class AuthProcedure extends BaseProcedure
                 ];
                 
             } catch (\Exception $e) {
-                throw new RuntimeException(
+                throw $this->createRuntimeException(
                     'Profile retrieval failed',
                     -32011,
                     ['reason' => 'Invalid token or user not found']
