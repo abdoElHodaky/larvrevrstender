@@ -1,6 +1,24 @@
 # 📢 Real-time Notification Architecture Diagram
 
+## 🌟 Distinguished Multi-Channel Notification System with Eye-Catching Styling
+
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TB
     %% Event Sources
     AUTH[🔐 Auth Service<br/>Login/Register Events]
@@ -429,4 +447,3 @@ class NotificationPreference extends Model
 - **Delivery Optimization**: Best channel selection
 
 This notification architecture ensures users stay informed about all important events while respecting their preferences and providing a seamless real-time experience.
-
