@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-version: ['8.2', '8.3', '8.4']
+        php-version: ['8.2', '8.3']
       fail-fast: false
     outputs:
       services-exist: ${{ steps.check-services.outputs.exists }}
@@ -179,7 +179,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-version: ['8.2', '8.3', '8.4']
+        php-version: ['8.2', '8.3']
       fail-fast: false
     needs: code-quality
     if: needs.code-quality.outputs.services-exist == 'true'
@@ -448,7 +448,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-version: ['8.2', '8.3', '8.4']
+        php-version: ['8.2', '8.3']
       fail-fast: false
     needs: [backend-tests, frontend-tests]
     if: always() && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-tests.result == 'success' || needs.frontend-tests.result == 'skipped') && (needs.code-quality.outputs.services-exist == 'true' || needs.frontend-tests.outputs.frontend-exist == 'true')
