@@ -2,7 +2,25 @@
 
 ## 🔄 Service Dependency Architecture
 
+## 🌟 Distinguished Service Dependencies with Eye-Catching Styling
+
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TB
     %% External Systems
     Client[🌐 Client Applications<br/>Web/Mobile/API]
@@ -85,35 +103,56 @@ graph TB
     UserSvc --> S3
     VinOcrSvc --> S3
     
-    %% Styling
-    classDef serviceBox fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
-    classDef dataBox fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000
-    classDef externalBox fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
-    classDef clientBox fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000
+    %% 🎨 Distinguished Eye-Catching Styling
+    classDef clientStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef gatewayStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef authStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef coreServiceStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef supportServiceStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:4px,color:#000000,font-weight:bold
+    classDef externalStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef governmentStyle fill:#00D2D3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef aiStyle fill:#A55EEA,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
     
-    class AuthSvc,UserSvc,OrderSvc,BiddingSvc,NotificationSvc,PaymentSvc,VinOcrSvc,AnalyticsSvc serviceBox
-    class MainDB,Redis,S3 dataBox
-    class ZATCA,PaymentGW,SMSProvider,EmailProvider externalBox
-    class Client,Gateway clientBox
+    %% Apply Component Styling
+    class Client clientStyle
+    class Gateway gatewayStyle
+    class AuthSvc authStyle
+    class UserSvc,OrderSvc,BiddingSvc,PaymentSvc coreServiceStyle
+    class NotificationSvc,AnalyticsSvc supportServiceStyle
+    class VinOcrSvc aiStyle
+    class MainDB,Redis,S3 dataStyle
+    class ZATCA governmentStyle
+    class PaymentGW,SMSProvider,EmailProvider externalStyle
 ```
 
 ## 🔐 Authentication & Authorization Flow
+
+## 🌟 Distinguished Security Flow with Eye-Catching Styling
 
 ```mermaid
 %%{init: {
   'theme': 'dark',
   'themeVariables': {
-    'primaryColor': '#00ff88',
-    'primaryTextColor': '#ffffff',
-    'lineColor': '#00d4ff',
-    'secondaryColor': '#7000ff',
-    'tertiaryColor': '#ff0077',
-    'mainBkg': '#0a0a0f',
-    'nodeBorder': '#00d4ff',
-    'activationBkgColor': '#1a1a2e',
-    'sequenceNumberColor': '#00ff88',
-    'noteBkgColor': '#11111b',
-    'noteTextColor': '#00ff88'
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'actorBkg': '#4ECDC4',
+    'actorBorder': '#7ED6D1',
+    'actorTextColor': '#FFFFFF',
+    'activationBkgColor': '#45B7D1',
+    'activationBorderColor': '#6BC5E8',
+    'noteBkgColor': '#FECA57',
+    'noteTextColor': '#000000',
+    'noteBorderColor': '#FED876',
+    'sequenceNumberColor': '#FFFFFF'
   }
 }}%%
 
@@ -195,7 +234,25 @@ sequenceDiagram
 
 ## 🎯 Real-time Bidding Architecture
 
+## 🌟 Distinguished Real-time System with Eye-Catching Styling
+
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TB
     %% Client Layer
     CustomerApp[👤 Customer App<br/>React/Vue SPA]
@@ -243,21 +300,49 @@ graph TB
     BiddingSvc --> AutoBidEngine
     AutoBidEngine --> BiddingSvc
     
-    %% Styling
-    classDef appBox fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef serviceBox fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef dataBox fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef realtimeBox fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    %% 🎨 Distinguished Eye-Catching Styling
+    classDef clientStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef coreServiceStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef supportServiceStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:4px,color:#000000,font-weight:bold
+    classDef realtimeStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef aiStyle fill:#A55EEA,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
     
-    class CustomerApp,MerchantApp appBox
-    class BiddingSvc,OrderSvc,NotificationSvc serviceBox
-    class BidDB,Cache dataBox
-    class Reverb,EventBus,Queue,AutoBidEngine realtimeBox
+    %% Apply Component Styling
+    class CustomerApp,MerchantApp clientStyle
+    class BiddingSvc,OrderSvc coreServiceStyle
+    class NotificationSvc supportServiceStyle
+    class BidDB,Cache dataStyle
+    class Reverb,EventBus,Queue realtimeStyle
+    class AutoBidEngine aiStyle
 ```
 
 ## 🔄 Order Lifecycle State Machine
 
+## 🌟 Distinguished State Management with Eye-Catching Styling
+
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'stateBkg': '#1E293B',
+    'stateBorder': '#4ECDC4',
+    'stateTextColor': '#FFFFFF',
+    'transitionColor': '#4ECDC4',
+    'transitionLabelColor': '#FFFFFF'
+  }
+}}%%
+
 stateDiagram-v2
     [*] --> Draft: Customer creates order
     
@@ -315,7 +400,25 @@ stateDiagram-v2
 
 ## 🛡️ Security & Middleware Architecture
 
+## 🌟 Distinguished Security Stack with Eye-Catching Styling
+
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TB
     %% Request Flow
     Request[🌐 Incoming Request]
@@ -368,21 +471,44 @@ graph TB
     Gates --> AdminGate
     Gates --> MerchantGate
     
-    %% Styling
-    classDef middlewareBox fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef authBox fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef serviceBox fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef securityBox fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    %% 🎨 Distinguished Eye-Catching Styling
+    classDef requestStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef middlewareStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef authStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef serviceStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef securityStyle fill:#A55EEA,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef policyStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
     
-    class RateLimit,Auth,CORS,Validation middlewareBox
-    class Gates,Policies,OrderPolicy,UserPolicy,AdminGate,MerchantGate authBox
-    class Controller,Service serviceBox
-    class JWT,Session,Encryption securityBox
+    %% Apply Component Styling
+    class Request requestStyle
+    class RateLimit,Auth,CORS,Validation middlewareStyle
+    class Gates,Policies authStyle
+    class OrderPolicy,UserPolicy,AdminGate,MerchantGate policyStyle
+    class Controller,Service serviceStyle
+    class JWT,Session,Encryption securityStyle
 ```
 
 ## 📊 Data Flow Architecture
 
+## 🌟 Distinguished Data Processing with Eye-Catching Styling
+
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph LR
     %% Input Sources
     WebApp[🌐 Web Application]
@@ -466,23 +592,48 @@ graph LR
     PaymentSvc --> PaymentGW
     NotificationSvc --> SMSProvider
     
-    %% Styling
-    classDef clientBox fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef serviceBox fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef dataBox fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef externalBox fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef processingBox fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    %% 🎨 Distinguished Eye-Catching Styling
+    classDef clientStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef gatewayStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef coreServiceStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef supportServiceStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:4px,color:#000000,font-weight:bold
+    classDef externalStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef governmentStyle fill:#00D2D3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef processingStyle fill:#A55EEA,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
     
-    class WebApp,MobileApp,API,Gateway clientBox
-    class AuthSvc,OrderSvc,BiddingSvc,PaymentSvc,NotificationSvc serviceBox
-    class PrimaryDB,AnalyticsDB,CacheLayer,FileStorage dataBox
-    class ZATCA,PaymentGW,SMSProvider externalBox
-    class EventProcessor,AnalyticsEngine,ReportGenerator processingBox
+    %% Apply Component Styling
+    class WebApp,MobileApp,API clientStyle
+    class Gateway gatewayStyle
+    class AuthSvc,OrderSvc,BiddingSvc,PaymentSvc coreServiceStyle
+    class NotificationSvc supportServiceStyle
+    class PrimaryDB,AnalyticsDB,CacheLayer,FileStorage dataStyle
+    class ZATCA governmentStyle
+    class PaymentGW,SMSProvider externalStyle
+    class EventProcessor,AnalyticsEngine,ReportGenerator processingStyle
 ```
 
 ## 🔄 Event-Driven Architecture
 
+## 🌟 Distinguished Event System with Eye-Catching Styling
+
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TB
     %% Event Sources
     OrderSvc[📋 Order Service<br/>Event Publisher]
@@ -542,14 +693,21 @@ graph TB
     AuditHandler --> AuditLog[(📝 Audit Log)]
     IntegrationHandler --> ExternalAPIs[🌍 External APIs]
     
-    %% Styling
-    classDef serviceBox fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef eventBox fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef handlerBox fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef outputBox fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    %% 🎨 Distinguished Eye-Catching Styling
+    classDef coreServiceStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef eventBusStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef eventStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef handlerStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef outputServiceStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:4px,color:#000000,font-weight:bold
+    classDef externalStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
     
-    class OrderSvc,BiddingSvc,PaymentSvc,UserSvc serviceBox
-    class EventBus,OrderEvents,BidEvents,PaymentEvents,UserEvents eventBox
-    class NotificationHandler,AnalyticsHandler,AuditHandler,IntegrationHandler handlerBox
-    class NotificationSvc,AnalyticsSvc,AuditLog,ExternalAPIs outputBox
+    %% Apply Component Styling
+    class OrderSvc,BiddingSvc,PaymentSvc,UserSvc coreServiceStyle
+    class EventBus eventBusStyle
+    class OrderEvents,BidEvents,PaymentEvents,UserEvents eventStyle
+    class NotificationHandler,AnalyticsHandler,AuditHandler,IntegrationHandler handlerStyle
+    class NotificationSvc,AnalyticsSvc outputServiceStyle
+    class AuditLog dataStyle
+    class ExternalAPIs externalStyle
 ```
