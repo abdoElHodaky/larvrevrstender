@@ -10,68 +10,68 @@ This diagram showcases our modernized microservices architecture implementing **
 %%{init: {
   'theme': 'dark',
   'themeVariables': {
-    'primaryColor': '#ff6b6b',
-    'primaryTextColor': '#ffffff',
-    'primaryBorderColor': '#ff6b6b',
-    'lineColor': '#4ecdc4',
-    'secondaryColor': '#4ecdc4',
-    'tertiaryColor': '#45b7d1',
-    'background': '#1a1a2e',
-    'mainBkg': '#16213e',
-    'secondBkg': '#0f3460',
-    'tertiaryBkg': '#533483'
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
   }
 }}%%
 
 graph TB
     %% 🌐 Client Layer - Modern Frontend Applications
-    subgraph "🌐 CLIENT LAYER"
-        PWA["🚀 PWA Client<br/>⚡ Vue.js 3 + Composition API<br/>🔥 Vite + TypeScript<br/>📱 Progressive Web App"]
-        ADMIN["🎛️ Admin Dashboard<br/>⚡ Vue.js 3 + Quasar<br/>📊 Real-time Analytics<br/>🔐 Role-based Access"]
-        MOBILE["📱 Mobile Apps<br/>⚡ React Native + Expo<br/>🔔 Push Notifications<br/>📍 Geolocation"]
+    subgraph "🌐 CLIENT APPLICATIONS"
+        PWA["🚀 PWA Client<br/>⚡ Vue.js 3 + Composition API<br/>🔥 Vite + TypeScript<br/>📱 Progressive Web App<br/>🌐 Port: 3000"]
+        ADMIN["🎛️ Admin Dashboard<br/>⚡ Vue.js 3 + Quasar<br/>📊 Real-time Analytics<br/>🔐 Role-based Access<br/>🌐 Port: 3001"]
+        MOBILE["📱 Mobile Apps<br/>⚡ React Native + Expo<br/>🔔 Push Notifications<br/>📍 Geolocation<br/>📦 App Store Ready"]
     end
     
     %% 🔀 Infrastructure Layer
-    subgraph "🔀 INFRASTRUCTURE LAYER"
-        LB["⚖️ Load Balancer<br/>🚀 Nginx + HAProxy<br/>🛡️ SSL Termination<br/>📈 Auto-scaling"]
-        GATEWAY["🚪 API Gateway<br/>🔥 Laravel 12+ Gateway<br/>🛡️ Rate Limiting + Auth<br/>📊 Request Analytics<br/>🌐 Port: 8000"]
+    subgraph "🔀 INFRASTRUCTURE GATEWAY"
+        LB["⚖️ Load Balancer<br/>🚀 Nginx + HAProxy<br/>🛡️ SSL Termination + WAF<br/>📈 Auto-scaling + Health Checks<br/>🌐 Port: 80/443"]
+        GATEWAY["🚪 API Gateway<br/>🔥 Laravel 12+ Gateway<br/>🛡️ Rate Limiting + JWT Auth<br/>📊 Request Analytics + Logging<br/>🌐 Port: 8000"]
     end
     
     %% 🎯 Core Business Services - Domain-Driven Design
     subgraph "🎯 CORE BUSINESS SERVICES"
-        AUTH["🔐 Auth Service<br/>🔥 Laravel 12+ DDD<br/>🛡️ JWT + OAuth2 + OTP<br/>🏗️ Hexagonal Architecture<br/>🌐 Port: 8001"]
-        USER["👥 User Service<br/>🔥 Laravel 12+ DDD<br/>👤 Profiles + KYC + Verification<br/>🎭 Role-based Permissions<br/>🌐 Port: 8003"]
-        ORDER["📋 Order Service<br/>🔥 Laravel 12+ DDD<br/>📝 Request Management + Workflow<br/>🔄 Event Sourcing + CQRS<br/>🌐 Port: 8004"]
-        BIDDING["🎯 Bidding Service<br/>🔥 Laravel 12+ DDD<br/>⚡ Real-time Auctions + WebSockets<br/>🏆 Smart Matching Algorithm<br/>🌐 Port: 8002"]
+        AUTH["🔐 Authentication Service<br/>🔥 Laravel 12+ DDD + Octane<br/>🛡️ JWT + OAuth2 + MFA<br/>🏗️ Hexagonal Architecture<br/>🌐 Port: 8001"]
+        USER["👥 User Management Service<br/>🔥 Laravel 12+ DDD + Octane<br/>👤 Profiles + KYC + Verification<br/>🎭 RBAC + Permission System<br/>🌐 Port: 8003"]
+        ORDER["📋 Order Management Service<br/>🔥 Laravel 12+ DDD + Octane<br/>📝 Request Workflow + State Machine<br/>🔄 Event Sourcing + CQRS<br/>🌐 Port: 8004"]
+        BIDDING["🎯 Bidding Engine Service<br/>🔥 Laravel 12+ DDD + Octane<br/>⚡ Real-time Auctions + WebSockets<br/>🏆 Smart Matching + AI Scoring<br/>🌐 Port: 8002"]
     end
     
     %% 🔧 Supporting Services
     subgraph "🔧 SUPPORTING SERVICES"
-        NOTIFICATION["📢 Notification Service<br/>🔥 Laravel 12+ DDD<br/>📱 Push + SMS + Email + WhatsApp<br/>🎯 Smart Targeting + Templates<br/>🌐 Port: 8005"]
-        PAYMENT["💳 Payment Service<br/>🔥 Laravel 12+ DDD<br/>💰 Multi-gateway + ZATCA Integration<br/>🔒 PCI DSS Compliant<br/>🌐 Port: 8006"]
-        ANALYTICS["📊 Analytics Service<br/>🔥 Laravel 12+ DDD<br/>📈 BI + Real-time Reporting<br/>🤖 ML-powered Insights<br/>🌐 Port: 8007"]
-        VIN_OCR["🔍 VIN OCR Service<br/>🔥 Laravel 12+ DDD<br/>🚗 AI Vehicle Recognition<br/>📸 Computer Vision + OCR<br/>🌐 Port: 8008"]
+        NOTIFICATION["📢 Notification Service<br/>🔥 Laravel 12+ DDD + Octane<br/>📱 Multi-Channel Delivery<br/>🎯 Smart Templates + Targeting<br/>🌐 Port: 8005"]
+        PAYMENT["💳 Payment Service<br/>🔥 Laravel 12+ DDD + Octane<br/>💰 Multi-Gateway + ZATCA<br/>🔒 PCI DSS + Fraud Detection<br/>🌐 Port: 8006"]
+        ANALYTICS["📊 Analytics Service<br/>🔥 Laravel 12+ DDD + Octane<br/>📈 BI + Real-time Reporting<br/>🤖 ML-powered Insights + AI<br/>🌐 Port: 8007"]
+        VIN_OCR["🔍 VIN OCR Service<br/>🔥 Laravel 12+ DDD + Octane<br/>🚗 AI Vehicle Recognition<br/>📸 Multi-Engine Computer Vision<br/>🌐 Port: 8008"]
     end
     
     %% 💾 Data & Storage Layer
-    subgraph "💾 DATA & STORAGE LAYER"
-        MYSQL["🗃️ MySQL 8.0<br/>📊 Primary Database<br/>🔄 Master-Slave Replication<br/>⚡ Query Optimization"]
-        REDIS["⚡ Redis 7.0<br/>🚀 Cache + Sessions + Pub/Sub<br/>🔄 Cluster Mode<br/>💾 Persistent Storage"]
-        MINIO["📁 MinIO S3<br/>☁️ Object Storage<br/>🖼️ Images + Documents<br/>🔄 Multi-region Sync"]
+    subgraph "💾 DATA & STORAGE FOUNDATION"
+        MYSQL["🗃️ MySQL 8.0 Cluster<br/>📊 Primary + Read Replicas<br/>🔄 Master-Slave Replication<br/>⚡ Query Optimization + Indexing<br/>🔒 Encryption at Rest"]
+        REDIS["⚡ Redis 7.0 Cluster<br/>🚀 Cache + Sessions + Pub/Sub<br/>🔄 Cluster Mode + Persistence<br/>💾 Memory Optimization<br/>📊 Performance Monitoring"]
+        MINIO["📁 MinIO S3 Compatible<br/>☁️ Object Storage + CDN<br/>🖼️ Images + Documents + Assets<br/>🔄 Multi-region Sync<br/>🔒 Encryption + Versioning"]
     end
     
     %% 📨 Message & Event Layer
-    subgraph "📨 MESSAGE & EVENT LAYER"
-        QUEUE["📨 Event Bus<br/>⚡ Redis Pub/Sub + Laravel Horizon<br/>🔄 Event Sourcing<br/>📊 Dead Letter Queue"]
-        WEBSOCKET["🔌 WebSocket Server<br/>⚡ Real-time Communication<br/>🎯 Bidding Updates<br/>📱 Live Notifications"]
+    subgraph "📨 EVENT-DRIVEN MESSAGING"
+        QUEUE["📨 Event Bus System<br/>⚡ Redis Pub/Sub + Laravel Horizon<br/>🔄 Event Sourcing + CQRS<br/>📊 Dead Letter Queue + Retry Logic<br/>🎯 Message Routing + Filtering"]
+        WEBSOCKET["🔌 WebSocket Server<br/>⚡ Real-time Communication<br/>🎯 Live Bidding Updates<br/>📱 Push Notifications<br/>🔄 Connection Management"]
     end
     
     %% 🌐 External Integrations
     subgraph "🌐 EXTERNAL INTEGRATIONS"
-        ZATCA["🏛️ ZATCA API<br/>📄 E-Invoicing Compliance<br/>🇸🇦 Saudi Arabia Tax Authority<br/>🔐 Digital Signatures"]
-        SMS_PROVIDER["📱 SMS Gateway<br/>🚀 Twilio + AWS SNS<br/>🌍 Global Coverage<br/>📊 Delivery Analytics"]
-        EMAIL_PROVIDER["📧 Email Service<br/>🚀 SendGrid + AWS SES<br/>📬 Transactional + Marketing<br/>📊 Open/Click Tracking"]
-        PUSH_PROVIDER["🔔 Push Notifications<br/>🚀 FCM + APNS<br/>📱 iOS + Android<br/>🎯 Targeted Campaigns"]
+        ZATCA["🏛️ ZATCA Portal<br/>📄 E-Invoicing Compliance<br/>🇸🇦 Saudi Tax Authority API<br/>🔐 Digital Signatures + Validation<br/>📊 Compliance Reporting"]
+        SMS_PROVIDER["📱 SMS Gateway<br/>🚀 Twilio + AWS SNS + Unifonic<br/>🌍 Global Coverage + Delivery<br/>📊 Analytics + Tracking<br/>🎯 Smart Routing"]
+        EMAIL_PROVIDER["📧 Email Service<br/>🚀 SendGrid + AWS SES<br/>📬 Transactional + Marketing<br/>📊 Open/Click Tracking<br/>🎨 Template Management"]
+        PUSH_PROVIDER["🔔 Push Notifications<br/>🚀 FCM + APNS + Web Push<br/>📱 iOS + Android + PWA<br/>🎯 Targeted Campaigns<br/>📊 Engagement Analytics"]
     end
     
     %% 🌐 Client Layer Connections
@@ -134,18 +134,21 @@ graph TB
     NOTIFICATION ==>|"🔔 Push"| PUSH_PROVIDER
     PAYMENT ==>|"🏛️ E-Invoice"| ZATCA
     
-    %% 🎨 Modern Styling with Dark Theme
-    classDef clientStyle fill:#ff6b6b,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    classDef infraStyle fill:#4ecdc4,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    classDef coreStyle fill:#45b7d1,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    classDef supportStyle fill:#96ceb4,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    classDef dataStyle fill:#feca57,stroke:#ffffff,stroke-width:3px,color:#000000
-    classDef messageStyle fill:#ff9ff3,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    classDef externalStyle fill:#54a0ff,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    %% 🎨 Distinguished Eye-Catching Styling
+    classDef clientStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef infraStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef coreStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef supportStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:4px,color:#000000,font-weight:bold
+    classDef messageStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef externalStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef securityStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
     
+    %% Apply Component Styling
     class PWA,ADMIN,MOBILE clientStyle
     class LB,GATEWAY infraStyle
-    class AUTH,USER,ORDER,BIDDING coreStyle
+    class AUTH securityStyle
+    class USER,ORDER,BIDDING coreStyle
     class NOTIFICATION,PAYMENT,ANALYTICS,VIN_OCR supportStyle
     class MYSQL,REDIS,MINIO dataStyle
     class QUEUE,WEBSOCKET messageStyle
