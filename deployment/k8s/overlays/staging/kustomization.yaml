@@ -1,0 +1,210 @@
+# Staging environment overlay for Reverse Tender Platform
+# Optimized for testing and performance validation
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base configuration
+resources:
+  - ../../base
+
+# Staging-specific namespace
+namespace: reverse-tender-staging
+
+# Common labels for staging
+commonLabels:
+  app.kubernetes.io/environment: staging
+  app.kubernetes.io/version: "staging"
+
+# Name prefix for staging resources
+namePrefix: staging-
+
+# Environment-specific images
+images:
+  - name: reversetender/api-gateway
+    newTag: staging
+  - name: reversetender/auth-service
+    newTag: staging
+  - name: reversetender/user-service
+    newTag: staging
+  - name: reversetender/bidding-service
+    newTag: staging
+  - name: reversetender/order-service
+    newTag: staging
+  - name: reversetender/payment-service
+    newTag: staging
+  - name: reversetender/notification-service
+    newTag: staging
+  - name: reversetender/analytics-service
+    newTag: staging
+  - name: reversetender/vin-ocr-service
+    newTag: staging
+
+# ConfigMap generator for staging environment
+configMapGenerator:
+  - name: staging-env-config
+    literals:
+      # Staging-specific Octane configuration
+      - OCTANE_WORKERS=3
+      - OCTANE_TASK_WORKERS=4
+      - OCTANE_MAX_REQUESTS=300
+      - OCTANE_MEMORY_LIMIT=384M
+      - OCTANE_WATCH=false
+      
+      # PHP OPcache settings for staging
+      - PHP_OPCACHE_ENABLE=1
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=128
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=10000
+      - PHP_OPCACHE_REVALIDATE_FREQ=60
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=1
+      
+      # FrankenPHP settings
+      - FRANKENPHP_WORKER_MODE=true
+      - FRANKENPHP_DEBUG=false
+      - FRANKENPHP_MAX_WORKERS=3
+      
+      # Environment identification
+      - APP_ENV=staging
+      - APP_DEBUG=false
+      - LOG_LEVEL=info
+      
+      # Database settings
+      - DB_HOST=staging-mysql
+      - DB_DATABASE=reverse_tender_staging
+      
+      # Redis settings
+      - REDIS_HOST=staging-redis
+      - REDIS_DB=1
+      
+      # Cache settings
+      - CACHE_PREFIX=staging_
+      - SESSION_COOKIE=staging_session
+
+# Patches for staging-specific configurations
+patches:
+  # Reduce resource requests for staging
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 256Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 200m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 512Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 500m
+
+  # Staging replica counts
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+
+  - target:
+      kind: Deployment
+      name: bidding-service
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+
+  - target:
+      kind: Deployment
+      name: auth-service
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+
+  # Staging HPA adjustments
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: api-gateway-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 8
+      - op: replace
+        path: /spec/metrics/0/resource/target/averageUtilization
+        value: 75
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: bidding-service-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 10
+      - op: replace
+        path: /spec/metrics/0/resource/target/averageUtilization
+        value: 70
+
+  # Staging ingress configuration
+  - target:
+      kind: Ingress
+      name: reverse-tender-ingress
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: staging-api.reversetender.com
+      - op: replace
+        path: /spec/rules/1/host
+        value: staging-app.reversetender.com
+      - op: replace
+        path: /spec/rules/2/host
+        value: staging-admin.reversetender.com
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: staging-api.reversetender.com
+      - op: replace
+        path: /spec/tls/0/hosts/1
+        value: staging-app.reversetender.com
+      - op: replace
+        path: /spec/tls/0/hosts/2
+        value: staging-admin.reversetender.com
+
+  - target:
+      kind: Ingress
+      name: websocket-ingress
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: staging-ws.reversetender.com
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: staging-ws.reversetender.com
+
+  # Environment variables injection
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/envFrom/-
+        value:
+          configMapRef:
+            name: staging-env-config
+
+# Staging-specific secrets (placeholder)
+secretGenerator:
+  - name: staging-secrets
+    literals:
+      - DB_PASSWORD=staging-db-password
+      - REDIS_PASSWORD=staging-redis-password
+      - JWT_SECRET=staging-jwt-secret
+      - APP_KEY=base64:staging-app-key
+

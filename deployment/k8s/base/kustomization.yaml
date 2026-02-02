@@ -79,6 +79,10 @@ configMapGenerator:
       - HEALTH_CHECK_INTERVAL=30s
       - HEALTH_CHECK_TIMEOUT=10s
       - HEALTH_CHECK_RETRIES=3
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=frankenphp
+      - OCTANE_HTTPS=true
+      - FRANKENPHP_WORKER_MODE=true
 
 # Secret generator for sensitive data
 secretGenerator:
@@ -127,4 +131,3 @@ replicas:
     count: 1
   - name: vin-ocr-service
     count: 2
-

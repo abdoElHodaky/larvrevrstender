@@ -1,6 +1,24 @@
 # 🚀 Deployment Architecture Diagram
 
+## 🌟 Distinguished Multi-Cloud Infrastructure with Eye-Catching Styling
+
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TB
     %% Internet and CDN
     INTERNET[🌐 Internet]
@@ -133,18 +151,24 @@ graph TB
     DO_DB1 -.->|Cross-region replication| LN_DB1
     LN_DB1 -.->|Cross-region replication| DO_DB1
     
-    %% Styling
-    classDef digitalocean fill:#0080ff,color:#fff,stroke:#0066cc,stroke-width:2px
-    classDef linode fill:#00b04f,color:#fff,stroke:#009639,stroke-width:2px
-    classDef external fill:#fce4ec,stroke:#880e4f,stroke-width:2px
-    classDef monitoring fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef cicd fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    %% 🎨 Distinguished Eye-Catching Styling
+    classDef internetStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef digitaloceanStyle fill:#0080FF,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef linodeStyle fill:#00B04F,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef externalStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef monitoringStyle fill:#FECA57,stroke:#000000,stroke-width:4px,color:#000000,font-weight:bold
+    classDef cicdStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef cdnStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef governmentStyle fill:#00D2D3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
     
-    class DO_APP1,DO_APP2,DO_APP3,DO_DB1,DO_DB2,DO_CACHE1,DO_CACHE2,DO_MONITOR,LB_DO digitalocean
-    class LN_APP1,LN_APP2,LN_APP3,LN_DB1,LN_DB2,LN_CACHE1,LN_CACHE2,LN_MONITOR,LB_LINODE linode
-    class ZATCA_API,FCM,TWILIO,SENDGRID,S3_STORAGE external
-    class PROMETHEUS,GRAFANA,ELK,ALERTMANAGER monitoring
-    class GITHUB,DOCKER_REGISTRY,TERRAFORM,ANSIBLE cicd
+    %% Apply Component Styling
+    class INTERNET,CDN cdnStyle
+    class DO_APP1,DO_APP2,DO_APP3,DO_DB1,DO_DB2,DO_CACHE1,DO_CACHE2,DO_MONITOR,LB_DO digitaloceanStyle
+    class LN_APP1,LN_APP2,LN_APP3,LN_DB1,LN_DB2,LN_CACHE1,LN_CACHE2,LN_MONITOR,LB_LINODE linodeStyle
+    class ZATCA_API governmentStyle
+    class FCM,TWILIO,SENDGRID,S3_STORAGE externalStyle
+    class PROMETHEUS,GRAFANA,ELK,ALERTMANAGER monitoringStyle
+    class GITHUB,DOCKER_REGISTRY,TERRAFORM,ANSIBLE cicdStyle
 ```
 
 ## 🏗️ Infrastructure Specifications
@@ -466,4 +490,3 @@ graph LR
 - **Connection Pooling**: Efficient database connections
 
 This deployment architecture provides a robust, scalable, and highly available infrastructure for the Reverse Tender Platform with comprehensive monitoring, security, and disaster recovery capabilities.
-

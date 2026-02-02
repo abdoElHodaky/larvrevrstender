@@ -425,6 +425,124 @@ check_version() {
     fi
 }
 
+# Laravel Octane specific functions
+check_octane_health() {
+    local service_url="$1"
+    local timeout="${2:-30}"
+    
+    log_info "Checking Octane health: $service_url/octane/health"
+    
+    local health_url="${service_url}/octane/health"
+    local status_code
+    status_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$timeout" "$health_url" 2>/dev/null)
+    
+    if [[ "$status_code" == "200" ]]; then
+        log_success "Octane health check passed: $service_url"
+        return 0
+    else
+        log_error "Octane health check failed: $service_url (status: $status_code)"
+        return 1
+    fi
+}
+
+check_octane_workers() {
+    local service_url="$1"
+    local expected_workers="${2:-2}"
+    
+    log_info "Checking Octane worker status: $service_url"
+    
+    local workers_url="${service_url}/octane/workers"
+    local response
+    response=$(curl -s --max-time 10 "$workers_url" 2>/dev/null)
+    
+    if [[ $? -eq 0 ]]; then
+        local active_workers
+        active_workers=$(echo "$response" | jq -r '.active_workers // 0' 2>/dev/null || echo "0")
+        
+        if [[ "$active_workers" -ge "$expected_workers" ]]; then
+            log_success "Octane workers healthy: $active_workers/$expected_workers active"
+            return 0
+        else
+            log_warning "Octane workers below expected: $active_workers/$expected_workers active"
+            return 1
+        fi
+    else
+        log_error "Failed to check Octane worker status: $service_url"
+        return 1
+    fi
+}
+
+restart_octane_workers() {
+    local service_name="$1"
+    local namespace="${2:-reverse-tender}"
+    
+    log_info "Restarting Octane workers for service: $service_name"
+    
+    if [[ "$DRY_RUN" != "true" ]]; then
+        # Send SIGUSR1 to gracefully restart Octane workers
+        kubectl exec -n "$namespace" deployment/"$service_name" -- pkill -USR1 -f "octane:start" || {
+            log_warning "Failed to send graceful restart signal, attempting pod restart"
+            kubectl rollout restart deployment/"$service_name" -n "$namespace" || {
+                log_error "Failed to restart Octane workers for: $service_name"
+                return 1
+            }
+        }
+    fi
+    
+    log_success "Octane workers restart initiated for: $service_name"
+}
+
+validate_octane_config() {
+    local config_file="$1"
+    
+    log_info "Validating Octane configuration: $config_file"
+    
+    if [[ ! -f "$config_file" ]]; then
+        log_error "Configuration file not found: $config_file"
+        return 1
+    fi
+    
+    # Check required Octane environment variables
+    local required_vars=("OCTANE_SERVER" "OCTANE_WORKERS" "OCTANE_TASK_WORKERS")
+    local missing_vars=()
+    
+    for var in "${required_vars[@]}"; do
+        if ! grep -q "^${var}=" "$config_file"; then
+            missing_vars+=("$var")
+        fi
+    done
+    
+    if [[ ${#missing_vars[@]} -gt 0 ]]; then
+        log_error "Missing required Octane configuration variables: ${missing_vars[*]}"
+        return 1
+    fi
+    
+    log_success "Octane configuration validation passed"
+}
+
+wait_for_octane_ready() {
+    local service_url="$1"
+    local timeout="${2:-120}"
+    local interval="${3:-5}"
+    
+    log_info "Waiting for Octane service to be ready: $service_url"
+    
+    local elapsed=0
+    while [[ $elapsed -lt $timeout ]]; do
+        if check_octane_health "$service_url" 5; then
+            log_success "Octane service is ready: $service_url"
+            return 0
+        fi
+        
+        log_debug "Octane not ready yet, waiting ${interval}s... (${elapsed}/${timeout}s)"
+        sleep "$interval"
+        elapsed=$((elapsed + interval))
+    done
+    
+    log_error "Octane service not ready after ${timeout}s: $service_url"
+    return 1
+}
+
 # Export functions for use in other scripts
 export -f log_info log_success log_warning log_error log_debug log_step
 export -f check_command check_required_commands check_file_exists check_directory_exists
@@ -432,3 +550,4 @@ export -f create_directory validate_environment_variable backup_file restore_fil
 export -f process_template wait_for_service check_url docker_login docker_build_and_push
 export -f kubectl_apply kubectl_wait_for_deployment terraform_init terraform_plan terraform_apply
 export -f show_progress cleanup_temp_files handle_error set_error_handling check_version
+export -f check_octane_health check_octane_workers restart_octane_workers validate_octane_config wait_for_octane_ready

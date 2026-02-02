@@ -1,0 +1,137 @@
+# Production-specific Pod Disruption Budget configuration
+# Ensures high availability during production maintenance
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway-pdb-production
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: availability
+    app.kubernetes.io/environment: production
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: auth-service-pdb-production
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: availability
+    app.kubernetes.io/environment: production
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: auth-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: bidding-service-pdb-production
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: availability
+    app.kubernetes.io/environment: production
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app: bidding-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: user-service-pdb-production
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: availability
+    app.kubernetes.io/environment: production
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: user-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: order-service-pdb-production
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: availability
+    app.kubernetes.io/environment: production
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: order-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: payment-service-pdb-production
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: availability
+    app.kubernetes.io/environment: production
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: payment-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: notification-service-pdb-production
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: availability
+    app.kubernetes.io/environment: production
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: notification-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: analytics-service-pdb-production
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: availability
+    app.kubernetes.io/environment: production
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: analytics-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vin-ocr-service-pdb-production
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: availability
+    app.kubernetes.io/environment: production
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: vin-ocr-service
+

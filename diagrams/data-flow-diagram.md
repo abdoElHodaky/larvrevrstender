@@ -1,6 +1,24 @@
 # 🔄 Data Flow Diagram (DFD) - Reverse Tender Platform
 
+## 🌟 Distinguished Data Flow with Eye-Catching Styling
+
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TD
     %% External Entities
     CUSTOMER[👤 Customer]
@@ -314,4 +332,3 @@ graph TD
 - **Message Queue Scaling**: Redis cluster for high throughput
 
 This data flow architecture ensures efficient, scalable, and reliable data processing across all components of the Reverse Tender Platform.
-

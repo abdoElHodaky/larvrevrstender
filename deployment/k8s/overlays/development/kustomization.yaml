@@ -1,0 +1,222 @@
+# Development environment overlay for Reverse Tender Platform
+# Optimized for developer experience and rapid iteration
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base configuration
+resources:
+  - ../../base
+
+# Development-specific namespace
+namespace: reverse-tender-dev
+
+# Common labels for development
+commonLabels:
+  app.kubernetes.io/environment: development
+  app.kubernetes.io/version: "dev"
+
+# Name prefix for development resources
+namePrefix: dev-
+
+# Development images (typically latest or dev tags)
+images:
+  - name: reversetender/api-gateway
+    newTag: dev
+  - name: reversetender/auth-service
+    newTag: dev
+  - name: reversetender/user-service
+    newTag: dev
+  - name: reversetender/bidding-service
+    newTag: dev
+  - name: reversetender/order-service
+    newTag: dev
+  - name: reversetender/payment-service
+    newTag: dev
+  - name: reversetender/notification-service
+    newTag: dev
+  - name: reversetender/analytics-service
+    newTag: dev
+  - name: reversetender/vin-ocr-service
+    newTag: dev
+
+# ConfigMap generator for development environment
+configMapGenerator:
+  - name: dev-env-config
+    literals:
+      # Development-specific Octane configuration
+      - OCTANE_WORKERS=2
+      - OCTANE_TASK_WORKERS=2
+      - OCTANE_MAX_REQUESTS=100
+      - OCTANE_MEMORY_LIMIT=256M
+      - OCTANE_WATCH=true
+      
+      # PHP OPcache disabled for development
+      - PHP_OPCACHE_ENABLE=0
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=1
+      - PHP_OPCACHE_REVALIDATE_FREQ=0
+      
+      # FrankenPHP settings for development
+      - FRANKENPHP_WORKER_MODE=true
+      - FRANKENPHP_DEBUG=true
+      - FRANKENPHP_MAX_WORKERS=2
+      
+      # Environment identification
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - LOG_LEVEL=debug
+      
+      # Database settings
+      - DB_HOST=dev-mysql
+      - DB_DATABASE=reverse_tender_dev
+      
+      # Redis settings
+      - REDIS_HOST=dev-redis
+      - REDIS_DB=0
+      
+      # Cache settings (disabled for development)
+      - CACHE_DRIVER=array
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=sync
+      
+      # Development-specific settings
+      - TELESCOPE_ENABLED=true
+      - DEBUGBAR_ENABLED=true
+      - MAIL_MAILER=log
+
+# Patches for development-specific configurations
+patches:
+  # Minimal resource requirements for development
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 128Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 100m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 256Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 200m
+
+  # Single replica for development
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+
+  # Development HPA adjustments (more relaxed)
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: api-gateway-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 3
+      - op: replace
+        path: /spec/metrics/0/resource/target/averageUtilization
+        value: 80
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: bidding-service-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 3
+      - op: replace
+        path: /spec/metrics/0/resource/target/averageUtilization
+        value: 80
+
+  # Development ingress configuration
+  - target:
+      kind: Ingress
+      name: reverse-tender-ingress
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: dev-api.reversetender.local
+      - op: replace
+        path: /spec/rules/1/host
+        value: dev-app.reversetender.local
+      - op: replace
+        path: /spec/rules/2/host
+        value: dev-admin.reversetender.local
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: dev-api.reversetender.local
+      - op: replace
+        path: /spec/tls/0/hosts/1
+        value: dev-app.reversetender.local
+      - op: replace
+        path: /spec/tls/0/hosts/2
+        value: dev-admin.reversetender.local
+
+  - target:
+      kind: Ingress
+      name: websocket-ingress
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: dev-ws.reversetender.local
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: dev-ws.reversetender.local
+
+  # Environment variables injection
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/envFrom/-
+        value:
+          configMapRef:
+            name: dev-env-config
+
+  # Add volume mounts for development (code hot-reload)
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: dev-code
+          hostPath:
+            path: /host/code
+            type: DirectoryOrCreate
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: dev-code
+          mountPath: /app
+          readOnly: false
+
+  # Disable resource limits for development debugging
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: remove
+        path: /spec/template/spec/containers/0/resources/limits
+
+# Development-specific secrets (insecure for development only)
+secretGenerator:
+  - name: dev-secrets
+    literals:
+      - DB_PASSWORD=dev-password
+      - REDIS_PASSWORD=dev-password
+      - JWT_SECRET=dev-jwt-secret-not-secure
+      - APP_KEY=base64:dev-app-key-not-secure
+

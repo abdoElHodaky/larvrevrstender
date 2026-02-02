@@ -26,15 +26,18 @@ Technical_Debt_Risk: "Medium"
 
 ```mermaid
 %%{init: {
-  'theme': 'base',
+  'theme': 'dark',
   'themeVariables': {
-    'primaryColor': '#FF6F00',
-    'primaryTextColor': '#ffffff',
-    'primaryBorderColor': '#E65100',
-    'lineColor': '#FF8F00',
-    'secondaryColor': '#FFA726',
-    'tertiaryColor': '#FFE0B2',
-    'background': '#ffffff'
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
   }
 }}%%
 flowchart TB
@@ -158,15 +161,27 @@ Infrastructure:
 
 ```mermaid
 %%{init: {
-  'theme': 'base',
+  'theme': 'dark',
   'themeVariables': {
-    'primaryColor': '#6A4C93',
-    'primaryTextColor': '#ffffff',
-    'primaryBorderColor': '#4a3269',
-    'lineColor': '#9D7FFF',
-    'secondaryColor': '#E6CCFF',
-    'tertiaryColor': '#C8A2C8',
-    'background': '#ffffff'
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'actorBkg': '#4ECDC4',
+    'actorBorder': '#7ED6D1',
+    'actorTextColor': '#FFFFFF',
+    'activationBkgColor': '#45B7D1',
+    'activationBorderColor': '#6BC5E8',
+    'noteBkgColor': '#FECA57',
+    'noteTextColor': '#000000',
+    'noteBorderColor': '#FED876',
+    'sequenceNumberColor': '#FFFFFF'
   }
 }}%%
 sequenceDiagram

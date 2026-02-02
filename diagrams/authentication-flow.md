@@ -12,13 +12,24 @@ This diagram showcases our **modern authentication system** implementing **Domai
 %%{init: {
   'theme': 'dark',
   'themeVariables': {
-    'primaryColor': '#ff6b6b',
-    'primaryTextColor': '#ffffff',
-    'lineColor': '#4ecdc4',
-    'secondaryColor': '#f7d794',
-    'tertiaryColor': '#a29bfe',
-    'mainBkg': '#1a1a2e',
-    'nodeBorder': '#4ecdc4'
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'actorBkg': '#FF6B6B',
+    'actorBorder': '#FF8E8E',
+    'actorTextColor': '#FFFFFF',
+    'activationBkgColor': '#4ECDC4',
+    'activationBorderColor': '#7ED6D1',
+    'noteBkgColor': '#FECA57',
+    'noteTextColor': '#000000',
+    'noteBorderColor': '#FED876'
   }
 }}%%
 
