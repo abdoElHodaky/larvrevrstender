@@ -2,15 +2,29 @@ version: '3.8'
 
 # Development Environment Overrides for Reverse Tender Platform
 # This file contains development-specific configurations for local development
+# Includes Laravel 12 + Octane development optimizations
+
+# Global development environment variables for Octane
+x-octane-dev-env: &octane-dev-env
+  OCTANE_WORKERS: 2
+  OCTANE_TASK_WORKERS: 2
+  OCTANE_MAX_REQUESTS: 100
+  OCTANE_MEMORY_LIMIT: 256M
+  OCTANE_WATCH: true
+  FRANKENPHP_DEBUG: true
+  PHP_OPCACHE_ENABLE: 0
+  PHP_OPCACHE_VALIDATE_TIMESTAMPS: 1
+  PHP_OPCACHE_REVALIDATE_FREQ: 2
 
 services:
   # API Gateway - Development configuration
   api-gateway:
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
-      - LOG_LEVEL=debug
-      - APP_URL=http://localhost:8000
+      <<: *octane-dev-env
+      APP_ENV: local
+      APP_DEBUG: true
+      LOG_LEVEL: debug
+      APP_URL: http://localhost:8000
     volumes:
       - ../../services/api-gateway:/var/www:cached
       - ./logs/api-gateway:/var/www/storage/logs
@@ -20,9 +34,10 @@ services:
   # Auth Service - Development configuration
   auth-service:
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
-      - LOG_LEVEL=debug
+      <<: *octane-dev-env
+      APP_ENV: local
+      APP_DEBUG: true
+      LOG_LEVEL: debug
     volumes:
       - ../../services/auth-service:/var/www:cached
       - ./logs/auth-service:/var/www/storage/logs
@@ -32,10 +47,11 @@ services:
   # Bidding Service - Development configuration
   bidding-service:
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
-      - LOG_LEVEL=debug
-      - REVERB_SCHEME=http
+      <<: *octane-dev-env
+      APP_ENV: local
+      APP_DEBUG: true
+      LOG_LEVEL: debug
+      REVERB_SCHEME: http
     volumes:
       - ../../services/bidding-service:/var/www:cached
       - ./logs/bidding-service:/var/www/storage/logs
@@ -46,9 +62,10 @@ services:
   # User Service - Development configuration
   user-service:
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
-      - LOG_LEVEL=debug
+      <<: *octane-dev-env
+      APP_ENV: local
+      APP_DEBUG: true
+      LOG_LEVEL: debug
     volumes:
       - ../../services/user-service:/var/www:cached
       - ./logs/user-service:/var/www/storage/logs
@@ -58,9 +75,10 @@ services:
   # Order Service - Development configuration
   order-service:
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
-      - LOG_LEVEL=debug
+      <<: *octane-dev-env
+      APP_ENV: local
+      APP_DEBUG: true
+      LOG_LEVEL: debug
     volumes:
       - ../../services/order-service:/var/www:cached
       - ./logs/order-service:/var/www/storage/logs
@@ -70,9 +88,10 @@ services:
   # Notification Service - Development configuration
   notification-service:
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
-      - LOG_LEVEL=debug
+      <<: *octane-dev-env
+      APP_ENV: local
+      APP_DEBUG: true
+      LOG_LEVEL: debug
     volumes:
       - ../../services/notification-service:/var/www:cached
       - ./logs/notification-service:/var/www/storage/logs
@@ -82,9 +101,10 @@ services:
   # Payment Service - Development configuration
   payment-service:
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
-      - LOG_LEVEL=debug
+      <<: *octane-dev-env
+      APP_ENV: local
+      APP_DEBUG: true
+      LOG_LEVEL: debug
     volumes:
       - ../../services/payment-service:/var/www:cached
       - ./logs/payment-service:/var/www/storage/logs
@@ -94,9 +114,10 @@ services:
   # Analytics Service - Development configuration
   analytics-service:
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
-      - LOG_LEVEL=debug
+      <<: *octane-dev-env
+      APP_ENV: local
+      APP_DEBUG: true
+      LOG_LEVEL: debug
     volumes:
       - ../../services/analytics-service:/var/www:cached
       - ./logs/analytics-service:/var/www/storage/logs
@@ -106,9 +127,10 @@ services:
   # VIN OCR Service - Development configuration
   vin-ocr-service:
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
-      - LOG_LEVEL=debug
+      <<: *octane-dev-env
+      APP_ENV: local
+      APP_DEBUG: true
+      LOG_LEVEL: debug
     volumes:
       - ../../services/vin-ocr-service:/var/www:cached
       - ./logs/vin-ocr-service:/var/www/storage/logs
@@ -197,4 +219,3 @@ volumes:
     driver: local
   redis_dev_data:
     driver: local
-
