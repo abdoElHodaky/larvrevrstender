@@ -1,0 +1,99 @@
+# ConfigMap for Reverse Tender Platform
+# Contains non-sensitive configuration data for all services
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: configuration
+data:
+  # Application Configuration
+  APP_NAME: "Reverse Tender Platform"
+  APP_TIMEZONE: "UTC"
+  APP_LOCALE: "en"
+  
+  # Database Configuration
+  DB_CONNECTION: "mysql"
+  DB_PORT: "3306"
+  
+  # Redis Configuration
+  REDIS_PORT: "6379"
+  
+  # Cache and Session Configuration
+  CACHE_DRIVER: "redis"
+  SESSION_DRIVER: "redis"
+  QUEUE_CONNECTION: "redis"
+  BROADCAST_DRIVER: "reverb"
+  
+  # Logging Configuration
+  LOG_CHANNEL: "stack"
+  
+  # API Configuration
+  API_RATE_LIMIT: "60"
+  
+  # JWT Configuration
+  JWT_ALGO: "RS256"
+  JWT_TTL: "900"
+  REFRESH_TTL: "43200"
+  
+  # OTP Configuration
+  OTP_EXPIRY: "300"
+  
+  # Pagination Configuration
+  DEFAULT_PAGE_SIZE: "20"
+  MAX_PAGE_SIZE: "100"
+  
+  # Health Check Configuration
+  HEALTH_CHECK_INTERVAL: "30s"
+  HEALTH_CHECK_TIMEOUT: "10s"
+  HEALTH_CHECK_RETRIES: "3"
+  
+  # Laravel Octane Configuration
+  OCTANE_SERVER: "frankenphp"
+  OCTANE_HTTPS: "true"
+  FRANKENPHP_WORKER_MODE: "true"
+
+---
+# ConfigMap for FrankenPHP Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frankenphp-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: frankenphp
+data:
+  Caddyfile: |
+    {
+        frankenphp
+        order php_server before file_server
+    }
+    
+    :80 {
+        root * /app/public
+        
+        # Handle PHP files with FrankenPHP
+        php_server
+        
+        # Handle static files
+        file_server
+        
+        # Health check endpoint
+        handle /octane/health {
+            respond "OK" 200
+        }
+        
+        # Logging
+        log {
+            output stdout
+            format json
+        }
+        
+        # Error handling
+        handle_errors {
+            respond "{http.error.status_code} {http.error.status_text}"
+        }
+    }
+

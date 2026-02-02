@@ -1,0 +1,195 @@
+# Ingress configuration for Reverse Tender Platform
+# Handles external traffic routing to services
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: reverse-tender-ingress
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: ingress
+  annotations:
+    # NGINX Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    
+    # Rate limiting
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    
+    # CORS configuration
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    
+    # Load balancer configuration
+    nginx.ingress.kubernetes.io/load-balance: "round_robin"
+    nginx.ingress.kubernetes.io/upstream-keepalive-connections: "10"
+    
+    # Health checks
+    nginx.ingress.kubernetes.io/health-check-path: "/octane/health"
+    nginx.ingress.kubernetes.io/health-check-interval: "30s"
+    nginx.ingress.kubernetes.io/health-check-timeout: "5s"
+    
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+      add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';" always;
+
+spec:
+  # TLS configuration
+  tls:
+    - hosts:
+        - api.reversetender.com
+        - app.reversetender.com
+        - admin.reversetender.com
+      secretName: tls-secret
+  
+  rules:
+    # API Gateway routing
+    - host: api.reversetender.com
+      http:
+        paths:
+          # Authentication service
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 80
+          
+          # User management service
+          - path: /users
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 80
+          
+          # Bidding service
+          - path: /bids
+            pathType: Prefix
+            backend:
+              service:
+                name: bidding-service
+                port:
+                  number: 80
+          
+          # Order management service
+          - path: /orders
+            pathType: Prefix
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 80
+          
+          # Payment service
+          - path: /payments
+            pathType: Prefix
+            backend:
+              service:
+                name: payment-service
+                port:
+                  number: 80
+          
+          # Notification service
+          - path: /notifications
+            pathType: Prefix
+            backend:
+              service:
+                name: notification-service
+                port:
+                  number: 80
+          
+          # Analytics service
+          - path: /analytics
+            pathType: Prefix
+            backend:
+              service:
+                name: analytics-service
+                port:
+                  number: 80
+          
+          # VIN OCR service
+          - path: /vin-ocr
+            pathType: Prefix
+            backend:
+              service:
+                name: vin-ocr-service
+                port:
+                  number: 80
+          
+          # Default routing to API Gateway
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+    
+    # Frontend application routing
+    - host: app.reversetender.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+    
+    # Admin panel routing
+    - host: admin.reversetender.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+
+---
+# WebSocket Ingress for real-time features
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: websocket-ingress
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: websocket
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "bidding-service"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+
+spec:
+  tls:
+    - hosts:
+        - ws.reversetender.com
+      secretName: tls-secret
+  
+  rules:
+    - host: ws.reversetender.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bidding-service
+                port:
+                  number: 80
+

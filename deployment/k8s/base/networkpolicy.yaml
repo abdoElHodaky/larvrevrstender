@@ -1,0 +1,209 @@
+# Network Policy configuration for Reverse Tender Platform
+# Controls network traffic between pods and external networks
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: security
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# Allow ingress traffic to API Gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-gateway-ingress
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+
+---
+# Allow inter-service communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: inter-service-communication
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: reverse-tender
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: reverse-tender
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: reverse-tender
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 8080
+
+---
+# Allow database access
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: database-access
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: reverse-tender
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: mysql
+      ports:
+        - protocol: TCP
+          port: 3306
+
+---
+# Allow Redis access
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-access
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: reverse-tender
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+
+---
+# Allow external API access
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: external-api-access
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: reverse-tender
+  policyTypes:
+    - Egress
+  egress:
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+
+---
+# Allow monitoring access
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-access
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: reverse-tender
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+        - podSelector:
+            matchLabels:
+              app: grafana
+      ports:
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 8080
+
+---
+# WebSocket traffic policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: websocket-traffic
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: bidding-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 8080
+

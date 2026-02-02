@@ -1,0 +1,161 @@
+# Production-specific Horizontal Pod Autoscaler configuration
+# Optimized for high-performance production workloads
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway-hpa-production
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/environment: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70
+    # Custom metrics for production
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "100"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 600
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: bidding-service-hpa-production
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/environment: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: bidding-service
+  minReplicas: 5
+  maxReplicas: 30
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 65
+    # WebSocket connection metrics
+    - type: Pods
+      pods:
+        metric:
+          name: websocket_connections
+        target:
+          type: AverageValue
+          averageValue: "500"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 15
+      policies:
+        - type: Percent
+          value: 200
+          periodSeconds: 15
+        - type: Pods
+          value: 5
+          periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 900
+      policies:
+        - type: Percent
+          value: 5
+          periodSeconds: 60
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: payment-service-hpa-production
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/environment: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: payment-service
+  minReplicas: 3
+  maxReplicas: 12
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70
+    # Transaction processing metrics
+    - type: Pods
+      pods:
+        metric:
+          name: payment_transactions_per_minute
+        target:
+          type: AverageValue
+          averageValue: "50"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 600
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 120
+

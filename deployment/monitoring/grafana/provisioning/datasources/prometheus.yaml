@@ -1,0 +1,82 @@
+# Grafana datasource configuration for Prometheus
+# Automatically provisions Prometheus as a datasource in Grafana
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      httpMethod: POST
+      manageAlerts: true
+      prometheusType: Prometheus
+      prometheusVersion: 2.40.0
+      cacheLevel: 'High'
+      disableRecordingRules: false
+      incrementalQueryOverlapWindow: 10m
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: jaeger
+    secureJsonData: {}
+
+  - name: Jaeger
+    type: jaeger
+    uid: jaeger
+    access: proxy
+    url: http://jaeger-query:16686
+    editable: true
+    jsonData:
+      tracesToLogs:
+        datasourceUid: loki
+        tags: ['job', 'instance', 'pod', 'namespace']
+        mappedTags: [{ key: 'service.name', value: 'service' }]
+        mapTagNamesEnabled: false
+        spanStartTimeShift: '1h'
+        spanEndTimeShift: '1h'
+        filterByTraceID: false
+        filterBySpanID: false
+      tracesToMetrics:
+        datasourceUid: prometheus
+        tags: [{ key: 'service.name', value: 'service' }, { key: 'job' }]
+        queries:
+          - name: 'Sample query'
+            query: 'sum(rate(traces_spanmetrics_latency_bucket{$$__tags}[5m]))'
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      spanBar:
+        type: 'Tag'
+        tag: 'http.path'
+
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    editable: true
+    jsonData:
+      derivedFields:
+        - datasourceUid: jaeger
+          matcherRegex: "trace_id=(\\w+)"
+          name: TraceID
+          url: "$${__value.raw}"
+          urlDisplayLabel: 'View Trace'
+
+  # Additional datasource for custom metrics
+  - name: Prometheus-Custom
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    editable: true
+    jsonData:
+      httpMethod: GET
+      manageAlerts: false
+      prometheusType: Prometheus
+      exemplarTraceIdDestinations: []
+    secureJsonData: {}
+
