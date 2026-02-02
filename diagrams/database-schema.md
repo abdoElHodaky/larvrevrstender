@@ -1,21 +1,25 @@
 # 🎨 Enhanced Database Schema - Reverse Tender Platform
 
-## 🌟 Visual ERD with Eye-Catching Styling
+## 🌟 Distinguished ERD with Eye-Catching Dark Theme Styling
 
 ```mermaid
 %%{init: {
-  'theme': 'base',
+  'theme': 'dark',
   'themeVariables': {
-    'primaryColor': '#ff6b6b',
-    'primaryTextColor': '#fff',
-    'primaryBorderColor': '#ff4757',
-    'lineColor': '#5f27cd',
-    'secondaryColor': '#00d2d3',
-    'tertiaryColor': '#ff9ff3',
-    'background': '#f1f2f6',
-    'mainBkg': '#ffffff',
-    'secondBkg': '#ecf0f1',
-    'tertiaryBkg': '#bdc3c7'
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'entityBkg': '#1E293B',
+    'entityTextColor': '#FFFFFF',
+    'relationLabelColor': '#FFFFFF',
+    'relationLabelBackground': '#334155'
   }
 }}%%
 

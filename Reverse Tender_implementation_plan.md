@@ -17,6 +17,22 @@
 ### 📊 Microservices Architecture Overview
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TB
     subgraph "Frontend Layer"
         PWA[PWA Application]
@@ -74,6 +90,22 @@ graph TB
 ### 💼 Business Model Canvas
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TB
     subgraph "Value Proposition"
         VP1[أفضل سعر مضمون<br/>Best Price Guaranteed]
@@ -114,6 +146,31 @@ graph TB
 ### 🔄 Business Process Flow
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'actorBkg': '#4ECDC4',
+    'actorBorder': '#7ED6D1',
+    'actorTextColor': '#FFFFFF',
+    'activationBkgColor': '#45B7D1',
+    'activationBorderColor': '#6BC5E8',
+    'noteBkgColor': '#FECA57',
+    'noteTextColor': '#000000',
+    'noteBorderColor': '#FED876',
+    'sequenceNumberColor': '#FFFFFF'
+  }
+}}%%
+
 sequenceDiagram
     participant C as Customer<br/>العميل
     participant S as System<br/>النظام
@@ -153,6 +210,22 @@ sequenceDiagram
 ### 📈 Revenue Model Breakdown
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 pie title مصادر الإيرادات المتوقعة / Revenue Sources
     "عمولات الصفقات<br/>Transaction Fees" : 50
     "اشتراكات التجار<br/>Merchant Subscriptions" : 25
@@ -163,6 +236,22 @@ pie title مصادر الإيرادات المتوقعة / Revenue Sources
 ### 🎯 Customer Journey Map
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 journey
     title رحلة العميل / Customer Journey
     section الوعي / Awareness
@@ -194,6 +283,31 @@ journey
 ### 🔐 Authentication Flow
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'actorBkg': '#4ECDC4',
+    'actorBorder': '#7ED6D1',
+    'actorTextColor': '#FFFFFF',
+    'activationBkgColor': '#45B7D1',
+    'activationBorderColor': '#6BC5E8',
+    'noteBkgColor': '#FECA57',
+    'noteTextColor': '#000000',
+    'noteBorderColor': '#FED876',
+    'sequenceNumberColor': '#FFFFFF'
+  }
+}}%%
+
 sequenceDiagram
     participant U as User
     participant F as Frontend (PWA)
@@ -230,6 +344,22 @@ sequenceDiagram
 ### 🎯 Bidding System Flow
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 stateDiagram-v2
     [*] --> RequestCreated: العميل ينشئ طلب<br/>Customer Creates Request
     
@@ -275,6 +405,22 @@ stateDiagram-v2
 ### 📡 Real-time Notification Architecture
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph LR
     subgraph "Event Triggers"
         E1[طلب جديد<br/>New Request]

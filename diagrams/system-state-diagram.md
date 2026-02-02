@@ -1,6 +1,29 @@
 # 🔄 System State Diagram - Order & Bidding Lifecycle
 
+## 🌟 Distinguished State Management with Eye-Catching Styling
+
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'stateBkg': '#1E293B',
+    'stateBorder': '#4ECDC4',
+    'stateTextColor': '#FFFFFF',
+    'transitionColor': '#4ECDC4',
+    'transitionLabelColor': '#FFFFFF'
+  }
+}}%%
+
 stateDiagram-v2
     [*] --> Draft: Customer creates order
     
@@ -430,4 +453,3 @@ stateDiagram-v2
 - **System Bottlenecks**: Performance degradation alerts
 
 This state management system ensures proper workflow control, business rule enforcement, and comprehensive monitoring across the entire Reverse Tender Platform.
-

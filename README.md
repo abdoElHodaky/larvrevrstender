@@ -23,69 +23,105 @@ The **Reverse Tender Platform** revolutionizes the automotive parts industry in 
 
 ### 🎯 Business Model
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TB
-    %% Subgraph 1: Customer Journey
-    subgraph CJ ["<br>🚗 CUSTOMER JOURNEY"]
-        A(["<b>📝 Post Part Request</b><br/>(User Interface)"]) 
-        B(["<b>🔍 VIN OCR Extraction</b><br/>(AI Processing)"])
-        C(["<b>⚙️ Smart Part Matching</b><br/>(Catalog Sync)"])
-        D(["<b>🔔 Merchant Alerts</b><br/>(Push/SMS)"])
+    %% 🚗 Customer Journey - Electric Blue Theme
+    subgraph CJ ["🚗 CUSTOMER JOURNEY"]
+        A["📝 Post Part Request<br/>🖥️ User Interface<br/>📱 Mobile/Web App"]
+        B["🔍 VIN OCR Extraction<br/>🤖 AI Processing<br/>📸 Computer Vision"]
+        C["⚙️ Smart Part Matching<br/>🔄 Catalog Sync<br/>🎯 ML Recommendations"]
+        D["🔔 Merchant Alerts<br/>📢 Push/SMS/Email<br/>⚡ Real-time Delivery"]
         
         A ==> B ==> C ==> D
     end
     
-    %% Subgraph 2: Merchant Response
-    subgraph MR ["<br>🏪 MERCHANT RESPONSE"]
-        E(["<b>⚖️ Competitive Bidding</b><br/>(Live Auction)"])
-        F(["<b>📊 Bid Ranking</b><br/>(Logic Engine)"])
-        G(["<b>✅ Customer Selection</b><br/>(Decision)"])
+    %% 🏪 Merchant Response - Vibrant Purple Theme
+    subgraph MR ["🏪 MERCHANT RESPONSE"]
+        E["⚖️ Competitive Bidding<br/>🎯 Live Auction<br/>💰 Real-time Pricing"]
+        F["📊 Bid Ranking<br/>🧠 Logic Engine<br/>🏆 Smart Scoring"]
+        G["✅ Customer Selection<br/>🎯 Decision Making<br/>⭐ Best Value Choice"]
         
         D ==> E ==> F ==> G
     end
     
-    %% Subgraph 3: Transaction & Compliance
-    subgraph TF ["<br>💳 TRANSACTION FLOW"]
-        H(["<b>📖 Order Creation</b><br/>(Ledger Entry)"])
-        I(["<b>💰 Multi-Gateway Pay</b><br/>(Checkout)"])
-        J(["<b>🇸🇦 ZATCA Invoice</b><br/>(Tax Compliance)"])
-        K(["<b>📦 Order Fulfillment</b><br/>(Shipping)"])
+    %% 💳 Transaction & Compliance - Golden Theme
+    subgraph TF ["💳 TRANSACTION FLOW"]
+        H["📖 Order Creation<br/>📋 Ledger Entry<br/>🔐 Secure Processing"]
+        I["💰 Multi-Gateway Payment<br/>💳 Stripe/PayPal/Mada<br/>🛡️ PCI Compliant"]
+        J["🇸🇦 ZATCA E-Invoice<br/>🏛️ Tax Compliance<br/>📄 Digital Signature"]
+        K["📦 Order Fulfillment<br/>🚚 Shipping Integration<br/>📍 Real-time Tracking"]
         
         G ==> H ==> I ==> J ==> K
     end
 
-    %% Subgraph 4: Post-Sales & Analytics
-    subgraph PS ["<br>📈 POST-SALES & GROWTH"]
-        L(["<b>⭐ Rating & Review</b><br/>(Trust Layer)"])
-        M(["<b>🛑 Refunds/Disputes</b><br/>(Escrow Release)"])
-        N(["<b>🧠 AI Model Tuning</b><br/>(Feedback Loop)"])
+    %% 📈 Post-Sales & Growth - Bright Green Theme
+    subgraph PS ["📈 POST-SALES & GROWTH"]
+        L["⭐ Rating & Review<br/>🏆 Trust Building<br/>📊 Quality Metrics"]
+        M["🛑 Refunds & Disputes<br/>💼 Escrow Management<br/>⚖️ Fair Resolution"]
+        N["🧠 AI Model Tuning<br/>🔄 Feedback Loop<br/>📈 Continuous Learning"]
         
         K ==> L
         K ==> M
         L -.-> N
     end
 
-    %% External Infrastructure
-    EXT1{{🤖 AI/ML Service}} -.-> B
-    EXT1 -.-> N
-    EXT2[(🗄️ Parts DB)] -.-> C
-    EXT3{{💳 Payment}} --- I
-    EXT4{{🏛️ ZATCA}} --- J
-    EXT5{{🚚 Logistics}} --- K
-
-    %% Dark Mode Styling
-    classDef default font-family:Arial,sans-serif,font-size:13px,color:#E0E0E0,stroke-width:2px;
+    %% 🌐 External Infrastructure - Distinct Colors
+    EXT1{{🤖 AI/ML Service<br/>🧠 Machine Learning<br/>🔍 Computer Vision}}
+    EXT2[(🗄️ Parts Database<br/>📊 Catalog Management<br/>🔄 Real-time Sync)]
+    EXT3{{💳 Payment Gateways<br/>🌍 Global Processing<br/>🔒 Secure Transactions}}
+    EXT4{{🏛️ ZATCA Portal<br/>🇸🇦 Government API<br/>📋 Tax Compliance}}
+    EXT5{{🚚 Logistics Partners<br/>📦 Shipping Networks<br/>📍 Delivery Tracking}}
     
-    style CJ fill:#0D1B2A,stroke:#3A86FF,stroke-width:2px,color:#A9D1FF
-    style MR fill:#1A1625,stroke:#BE4DFF,stroke-width:2px,color:#E0B0FF
-    style TF fill:#0B1A10,stroke:#00C853,stroke-width:2px,color:#A5D6A7
-    style PS fill:#1C1912,stroke:#FFAB00,stroke-width:2px,color:#FFE082
+    %% Enhanced Connections
+    EXT1 -.->|"🤖 AI Processing"| B
+    EXT1 -.->|"📊 Model Updates"| N
+    EXT2 -.->|"📋 Part Catalog"| C
+    EXT3 -.->|"💰 Payment Processing"| I
+    EXT4 -.->|"📄 E-Invoice Generation"| J
+    EXT5 -.->|"🚚 Shipping Integration"| K
 
-    %% Specific High-Contrast Accents
-    style J fill:#3E3610,stroke:#FFD600,stroke-width:3px,color:#FFD600
-    style N fill:#004E7C,stroke:#4FC3F7,stroke-width:2px,color:#E1F5FE
-    style M fill:#2C1616,stroke:#FF5252,stroke-width:2px,color:#FF8A80
-    style EXT1 fill:#263238,stroke:#90A4AE,color:#CFD8DC
-    style EXT2 fill:#263238,stroke:#90A4AE,color:#CFD8DC
+    %% 🎨 Distinguished Eye-Catching Styling
+    classDef customerStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef merchantStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef transactionStyle fill:#FECA57,stroke:#000000,stroke-width:4px,color:#000000,font-weight:bold
+    classDef growthStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef aiStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef dataStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef paymentStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef governmentStyle fill:#00D2D3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef logisticsStyle fill:#FFA502,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    
+    %% Apply Styling
+    class A,B,C,D customerStyle
+    class E,F,G merchantStyle
+    class H,I,J,K transactionStyle
+    class L,M,N growthStyle
+    class EXT1 aiStyle
+    class EXT2 dataStyle
+    class EXT3 paymentStyle
+    class EXT4 governmentStyle
+    class EXT5 logisticsStyle
+    
+    %% Subgraph Styling
+    style CJ fill:#1E293B,stroke:#45B7D1,stroke-width:3px,color:#FFFFFF
+    style MR fill:#1E293B,stroke:#5F27CD,stroke-width:3px,color:#FFFFFF
+    style TF fill:#1E293B,stroke:#FECA57,stroke-width:3px,color:#FFFFFF
+    style PS fill:#1E293B,stroke:#2ED573,stroke-width:3px,color:#FFFFFF
 ```
 
 ---
@@ -94,154 +130,275 @@ graph TB
 
 ### 🔧 Microservices Architecture
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TB
-    subgraph "🌐 API Gateway Layer"
-        GW[Nginx Load Balancer<br/>Rate Limiting • SSL Termination<br/>Security Headers • Health Checks]
+    subgraph "🌐 API GATEWAY LAYER"
+        GW["🚪 Nginx Load Balancer<br/>⚖️ Rate Limiting & SSL Termination<br/>🛡️ Security Headers & WAF<br/>📊 Health Checks & Monitoring<br/>🌐 Port: 80/443"]
     end
     
-    subgraph "🔐 Authentication Layer"
-        AUTH[JWT Authentication<br/>Multi-Factor Auth • Session Management<br/>Role-Based Access Control]
+    subgraph "🔐 AUTHENTICATION LAYER"
+        AUTH["🔐 JWT Authentication Service<br/>🛡️ Multi-Factor Authentication<br/>🎫 Session Management & OAuth2<br/>👥 Role-Based Access Control<br/>🌐 Port: 8001"]
     end
     
-    subgraph "⚡ Core Microservices"
-        US[👤 User Service<br/>Customer & Merchant Management<br/>Profile Verification • ZATCA Integration]
-        OS[📦 Order Service<br/>Part Requests • Bidding Engine<br/>Order Management • Analytics]
-        PS[💳 Payment Service<br/>Multi-Gateway Processing<br/>Invoice Generation • Refunds]
-        NS[📱 Notification Service<br/>Multi-Channel Delivery<br/>Email • SMS • Push • In-App]
+    subgraph "⚡ CORE MICROSERVICES"
+        US["👤 User Service<br/>👥 Customer & Merchant Management<br/>✅ Profile Verification & KYC<br/>🇸🇦 ZATCA Integration<br/>🌐 Port: 8003"]
+        OS["📦 Order Service<br/>📋 Part Requests & Management<br/>🎯 Bidding Engine Integration<br/>📊 Order Analytics & Reporting<br/>🌐 Port: 8004"]
+        PS["💳 Payment Service<br/>💰 Multi-Gateway Processing<br/>📄 Invoice Generation & ZATCA<br/>🔄 Refunds & Dispute Management<br/>🌐 Port: 8006"]
+        NS["📱 Notification Service<br/>📢 Multi-Channel Delivery<br/>📧 Email • 📲 SMS • 🔔 Push • 💬 In-App<br/>🎯 Smart Targeting & Templates<br/>🌐 Port: 8005"]
     end
     
-    subgraph "🧠 Enhanced Services"
-        VIN[🔍 VIN OCR Service<br/>Multi-Engine Processing<br/>Google • AWS • Azure • Tesseract]
-        AI[🤖 AI Matching Engine<br/>Smart Part Recommendations<br/>Price Analysis • Demand Prediction]
+    subgraph "🧠 AI & ENHANCED SERVICES"
+        VIN["🔍 VIN OCR Service<br/>📸 Multi-Engine Processing<br/>🤖 Google • AWS • Azure • Tesseract<br/>🚗 Vehicle Recognition & Parsing<br/>🌐 Port: 8008"]
+        AI["🤖 AI Matching Engine<br/>🎯 Smart Part Recommendations<br/>📊 Price Analysis & Optimization<br/>📈 Demand Prediction & ML<br/>🌐 Port: 8007"]
+        BID["🎯 Bidding Service<br/>⚡ Real-time Auction Engine<br/>🏆 Smart Matching Algorithm<br/>💰 Dynamic Pricing Logic<br/>🌐 Port: 8002"]
     end
     
-    subgraph "💾 Data Layer"
-        DB[(🗄️ MySQL Cluster<br/>Primary + Read Replicas<br/>ACID Compliance)]
-        REDIS[(⚡ Redis Cluster<br/>Caching • Sessions<br/>Queue Management)]
-        S3[(☁️ AWS S3<br/>File Storage<br/>CDN Integration)]
+    subgraph "💾 DATA & STORAGE LAYER"
+        DB[("🗃️ MySQL 8.0 Cluster<br/>📊 Primary + Read Replicas<br/>🔒 ACID Compliance & Encryption<br/>⚡ Query Optimization")]
+        REDIS[("⚡ Redis 7.0 Cluster<br/>🚀 Caching & Session Store<br/>📨 Queue Management & Pub/Sub<br/>💾 Persistent Storage")]
+        S3[("☁️ AWS S3 Compatible<br/>📁 Object Storage & CDN<br/>🖼️ Images & Documents<br/>🔄 Multi-region Sync")]
     end
     
-    subgraph "🔌 External Integrations"
-        PG[💰 Payment Gateways<br/>Stripe • PayPal • Mada • STC Pay]
-        ZATCA[🏛️ ZATCA Portal<br/>Tax Compliance<br/>Invoice Submission]
-        SMS[📲 SMS Providers<br/>Unifonic • Twilio]
-        OCR[👁️ OCR Services<br/>Google Vision • AWS Textract<br/>Azure Vision • Tesseract]
+    subgraph "🔌 EXTERNAL INTEGRATIONS"
+        PG["💰 Payment Gateways<br/>💳 Stripe • PayPal • Mada<br/>📱 STC Pay • Apple Pay<br/>🛡️ PCI DSS Compliant"]
+        ZATCA["🏛️ ZATCA Portal<br/>🇸🇦 Saudi Tax Authority<br/>📄 E-Invoice Submission<br/>🔐 Digital Signatures"]
+        SMS["📲 SMS Providers<br/>🌍 Unifonic • Twilio<br/>📊 Delivery Analytics<br/>🎯 Global Coverage"]
+        OCR["👁️ OCR Services<br/>🤖 Google Vision API<br/>☁️ AWS Textract • Azure Vision<br/>🔍 Tesseract OCR"]
     end
     
-    GW --> AUTH
-    AUTH --> US
-    AUTH --> OS
-    AUTH --> PS
-    AUTH --> NS
+    %% 🔗 Primary Service Connections
+    GW ==>|"🔒 HTTPS/WSS"| AUTH
+    AUTH ==>|"🎫 Authenticated"| US
+    AUTH ==>|"🎫 Authenticated"| OS
+    AUTH ==>|"🎫 Authenticated"| PS
+    AUTH ==>|"🎫 Authenticated"| NS
+    AUTH ==>|"🎫 Authenticated"| BID
     
-    US --> VIN
-    OS --> AI
-    PS --> PG
-    PS --> ZATCA
-    NS --> SMS
-    VIN --> OCR
+    %% 🔄 Inter-Service Communication
+    US -.->|"🔍 VIN Processing"| VIN
+    OS -.->|"🤖 AI Matching"| AI
+    OS -.->|"🎯 Bidding Logic"| BID
+    PS -.->|"💰 Payment Processing"| PG
+    PS -.->|"📄 Tax Compliance"| ZATCA
+    NS -.->|"📲 SMS Delivery"| SMS
+    VIN -.->|"👁️ OCR Processing"| OCR
     
-    US --> DB
-    OS --> DB
-    PS --> DB
-    NS --> DB
+    %% 💾 Data Persistence
+    US ==>|"👤 User Data"| DB
+    OS ==>|"📦 Orders"| DB
+    PS ==>|"💳 Transactions"| DB
+    NS ==>|"📢 Messages"| DB
+    BID ==>|"🎯 Bids"| DB
+    VIN ==>|"🔍 OCR Results"| DB
+    AI ==>|"🤖 ML Models"| DB
     
-    US --> REDIS
-    OS --> REDIS
-    PS --> REDIS
-    NS --> REDIS
+    %% ⚡ Caching Layer
+    AUTH ==>|"🎫 Sessions"| REDIS
+    US ==>|"👤 Profile Cache"| REDIS
+    OS ==>|"📦 Order Cache"| REDIS
+    BID ==>|"⚡ Real-time Data"| REDIS
+    GW ==>|"🚪 Rate Limits"| REDIS
     
-    US --> S3
-    VIN --> S3
+    %% 📁 File Storage
+    US ==>|"🖼️ Avatars & Docs"| S3
+    VIN ==>|"📸 Vehicle Images"| S3
+    OS ==>|"📄 Order Documents"| S3
     
-    style GW fill:#ff6b6b,color:#fff
-    style AUTH fill:#4ecdc4,color:#fff
-    style US fill:#45b7d1,color:#fff
-    style OS fill:#96ceb4,color:#fff
-    style PS fill:#feca57,color:#fff
-    style NS fill:#ff9ff3,color:#fff
-    style VIN fill:#54a0ff,color:#fff
-    style AI fill:#5f27cd,color:#fff
+    %% 🎨 Distinguished Eye-Catching Styling
+    classDef gatewayStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef authStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef coreStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef aiStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:4px,color:#000000,font-weight:bold
+    classDef externalStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef notificationStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef biddingStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    
+    %% Apply Component Styling
+    class GW gatewayStyle
+    class AUTH authStyle
+    class US,OS,PS coreStyle
+    class NS notificationStyle
+    class VIN,AI aiStyle
+    class BID biddingStyle
+    class DB,REDIS,S3 dataStyle
+    class PG,ZATCA,SMS,OCR externalStyle
 ```
 
 ### 🚀 Multi-Cloud Deployment Architecture
 ```mermaid
-    flowchart TB
-    %% Global Styling Definitions
-    classDef default font-family:Inter,font-weight:bold,color:#fff,stroke-width:2px;
-    
-    subgraph GOVERNANCE ["🏗️ 1. GOVERNANCE & DELIVERY (THE FACTORY)"]
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
+flowchart TB
+    %% 🏗️ GOVERNANCE & DELIVERY LAYER
+    subgraph GOVERNANCE ["🏗️ GOVERNANCE & DELIVERY PIPELINE"]
         direction LR
-        subgraph SCM ["Source & Quality"]
-            GIT["GitHub Enterprise"] ==> QG["Sonar / Snyk"]
+        subgraph SCM ["📋 Source Control & Quality"]
+            GIT["📚 GitHub Enterprise<br/>🔄 Version Control<br/>🔀 Branch Protection"]
+            QG["🛡️ Quality Gates<br/>🔍 SonarQube Analysis<br/>🚨 Snyk Security Scan"]
+            GIT ==> QG
         end
-        subgraph CI ["Build & Registry"]
-            BLD["Multi-arch Docker"] ==> REG["ECR / Harbor"]
+        
+        subgraph CI ["🔨 Build & Registry"]
+            BLD["🐳 Multi-arch Docker<br/>⚡ Parallel Builds<br/>🏗️ BuildKit Optimization"]
+            REG["📦 Container Registry<br/>☁️ ECR / Harbor<br/>🔒 Image Scanning"]
+            BLD ==> REG
         end
-        subgraph CD ["GitOps Deployment"]
-            ARGO["ArgoCD / Terraform"] ==> RB["Auto-Rollback"]
+        
+        subgraph CD ["🚀 GitOps Deployment"]
+            ARGO["🔄 ArgoCD GitOps<br/>🏗️ Terraform IaC<br/>📊 Deployment Analytics"]
+            RB["🔙 Auto-Rollback<br/>🎯 Blue-Green Deploy<br/>📈 Health Monitoring"]
+            ARGO ==> RB
         end
+        
         SCM ==> CI ==> CD
     end
 
-    subgraph RUNTIME ["☸️ 2. MULTI-CLOUD RUNTIME (THE FOUNDATION)"]
+    %% ☸️ MULTI-CLOUD RUNTIME LAYER
+    subgraph RUNTIME ["☸️ MULTI-CLOUD RUNTIME FOUNDATION"]
         direction TB
         
-        subgraph CLOUD_CORE ["Compute Clusters"]
+        subgraph CLOUD_CORE ["🌐 Compute Clusters"]
             direction LR
-            subgraph AWS_PROD ["🟠 AWS (Primary)"]
-                ALB_A["ALB / WAF"] --- EKS["EKS 1.28"]
-                RDS["RDS Multi-AZ"] --- S3["S3 Assets"]
+            
+            subgraph AWS_PROD ["🟠 AWS PRIMARY PRODUCTION"]
+                ALB_A["⚖️ Application Load Balancer<br/>🛡️ AWS WAF Protection<br/>🔒 SSL/TLS Termination"]
+                EKS["☸️ EKS Cluster 1.28<br/>🚀 Auto-scaling Groups<br/>💾 EBS CSI Driver"]
+                RDS["🗃️ RDS Multi-AZ<br/>📊 Read Replicas<br/>🔄 Automated Backups"]
+                S3_AWS["☁️ S3 + CloudFront<br/>🌍 Global CDN<br/>📁 Asset Storage"]
+                
+                ALB_A --- EKS
+                RDS --- S3_AWS
             end
             
-            subgraph DO_DR ["🔵 DigitalOcean (Secondary/DR)"]
-                LB_D["DO LB"] --- DOKS["DOKS Cluster"]
-                MDB["DO Managed DB"] --- SPC["Spaces Storage"]
+            subgraph DO_DR ["🔵 DIGITALOCEAN DISASTER RECOVERY"]
+                LB_D["⚖️ DigitalOcean LB<br/>🔄 Health Checks<br/>🌍 Global Load Balancing"]
+                DOKS["☸️ DOKS Cluster<br/>🔧 Managed Kubernetes<br/>📈 Auto-scaling"]
+                MDB["🗃️ Managed Database<br/>🔄 Automated Backups<br/>📊 Performance Insights"]
+                SPC["☁️ Spaces Storage<br/>📁 Object Storage<br/>🔄 Cross-region Sync"]
+                
+                LB_D --- DOKS
+                MDB --- SPC
             end
 
-            subgraph LIN_DEV ["🟢 Linode (Dev/Test)"]
-                NB_L["NodeBalancer"] --- LKE["LKE Engine"]
-                LDB["Linode DB"] --- OBJ["Obj Storage"]
+            subgraph LIN_DEV ["🟢 LINODE DEVELOPMENT & TESTING"]
+                NB_L["⚖️ NodeBalancer<br/>🔄 Session Persistence<br/>📊 Traffic Analytics"]
+                LKE["☸️ LKE Engine<br/>🛠️ Development Tools<br/>🔧 Hot Reload Support"]
+                LDB["🗃️ Linode Database<br/>🧪 Test Data Management<br/>🔄 Snapshot Restore"]
+                OBJ["☁️ Object Storage<br/>📁 Development Assets<br/>🗂️ Artifact Storage"]
+                
+                NB_L --- LKE
+                LDB --- OBJ
             end
         end
 
-        subgraph FABRIC ["🕸️ THE MESH FABRIC"]
+        subgraph FABRIC ["🕸️ SERVICE MESH & NETWORKING"]
             direction LR
-            ISTIO["Istio Service Mesh"] <--> LNK["Linkerd mTLS"]
-            NGX["NGINX Ingress"] <--> TRF["Traefik Edge"]
+            ISTIO["🕸️ Istio Service Mesh<br/>🔒 mTLS Encryption<br/>📊 Traffic Management<br/>🎯 Canary Deployments"]
+            LNK["🔗 Linkerd Proxy<br/>⚡ Ultra-light Mesh<br/>📈 Observability<br/>🛡️ Zero-config Security"]
+            NGX["🚪 NGINX Ingress<br/>⚖️ Load Balancing<br/>🔒 SSL Termination<br/>📊 Rate Limiting"]
+            TRF["🌐 Traefik Edge<br/>🔄 Auto-discovery<br/>📋 Let's Encrypt<br/>🎯 Dynamic Routing"]
+            
+            ISTIO <--> LNK
+            NGX <--> TRF
         end
         
         CLOUD_CORE <==> FABRIC
     end
 
-    subgraph GUARDRAILS ["🛡️ 3. SECURITY & OBSERVABILITY (THE BRAIN)"]
+    %% 🛡️ SECURITY & OBSERVABILITY LAYER
+    subgraph GUARDRAILS ["🛡️ SECURITY & OBSERVABILITY BRAIN"]
         direction BT
-        subgraph SEC ["Zero Trust"]
-            VAULT["Vault Secrets"] --- OPA["Policy as Code"]
-            FALCO["Falco Runtime"] --- SEAL["Sealed Secrets"]
+        
+        subgraph SEC ["🔒 Zero Trust Security"]
+            VAULT["🔐 HashiCorp Vault<br/>🗝️ Secret Management<br/>🔄 Dynamic Secrets<br/>🔒 Encryption as Service"]
+            OPA["📋 Open Policy Agent<br/>⚖️ Policy as Code<br/>🛡️ Admission Control<br/>📊 Compliance Reporting"]
+            FALCO["👁️ Falco Runtime Security<br/>🚨 Threat Detection<br/>📊 Behavioral Analysis<br/>🔔 Real-time Alerts"]
+            SEAL["🔒 Sealed Secrets<br/>🔐 GitOps Security<br/>🎯 Cluster-specific Encryption<br/>🔄 Automatic Rotation"]
+            
+            VAULT --- OPA
+            FALCO --- SEAL
         end
-        subgraph OBS ["Unified Glass"]
-            PROM["Prometheus/Thanos"] --- ELK["Elastic Stack"]
-            JAEG["Jaeger Tracing"] --- NR["New Relic APM"]
+        
+        subgraph OBS ["📊 Unified Observability"]
+            PROM["📈 Prometheus + Thanos<br/>📊 Metrics Collection<br/>🔄 Long-term Storage<br/>🎯 Multi-cluster Queries"]
+            ELK["🔍 Elastic Stack<br/>📋 Log Aggregation<br/>🔎 Full-text Search<br/>📊 Log Analytics"]
+            JAEG["🔍 Jaeger Tracing<br/>🕸️ Distributed Tracing<br/>📊 Performance Analysis<br/>🎯 Bottleneck Detection"]
+            NR["📊 New Relic APM<br/>🚀 Application Performance<br/>👤 User Experience<br/>🔔 Intelligent Alerting"]
+            
+            PROM --- ELK
+            JAEG --- NR
         end
+        
         SEC ==> OBS
-        OBS ==> GRAFANA["📈 GRAFANA MASTER DASHBOARD"]
+        OBS ==> GRAFANA["📈 GRAFANA MASTER DASHBOARD<br/>🎯 Unified Visualization<br/>📊 Custom Dashboards<br/>🔔 Alert Management<br/>👥 Team Collaboration"]
     end
 
-    %% Strategic Interconnects
-    CD ==> RUNTIME
-    RUNTIME ==> GUARDRAILS
+    %% 🔗 Strategic Interconnections
+    CD ==>|"🚀 Deployment Pipeline"| RUNTIME
+    RUNTIME ==>|"📊 Metrics & Logs"| GUARDRAILS
+    GUARDRAILS -.->|"🛡️ Security Policies"| RUNTIME
 
-    %% DISTINGUISHED STYLING
-    style GOVERNANCE fill:#1a1c2e,stroke:#8957e5,stroke-width:4px
-    style RUNTIME fill:#0b0e14,stroke:#fff,stroke-width:4px
-    style GUARDRAILS fill:#161b22,stroke:#3fb950,stroke-width:4px
+    %% 🎨 Distinguished Eye-Catching Styling
+    classDef governanceStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef runtimeStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef securityStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef awsStyle fill:#FF9900,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef doStyle fill:#0080FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef linodeStyle fill:#00B04F,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef meshStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef observabilityStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
+    classDef grafanaStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:5px,color:#FFFFFF,font-weight:bold
     
-    style AWS_PROD fill:#232f3e,stroke:#ff9900
-    style DO_DR fill:#002b5c,stroke:#0080ff
-    style LIN_DEV fill:#003b1a,stroke:#00b04f
+    %% Apply Styling to Components
+    class GIT,QG,BLD,REG,ARGO,RB governanceStyle
+    class ALB_A,EKS,RDS,S3_AWS awsStyle
+    class LB_D,DOKS,MDB,SPC doStyle
+    class NB_L,LKE,LDB,OBJ linodeStyle
+    class ISTIO,LNK,NGX,TRF meshStyle
+    class VAULT,OPA,FALCO,SEAL securityStyle
+    class PROM,ELK,JAEG,NR observabilityStyle
+    class GRAFANA grafanaStyle
     
-    style GRAFANA fill:#f46800,stroke:#fff,stroke-width:5px,color:#fff
+    %% Subgraph Styling
+    style GOVERNANCE fill:#1E293B,stroke:#5F27CD,stroke-width:4px,color:#FFFFFF
+    style RUNTIME fill:#1E293B,stroke:#45B7D1,stroke-width:4px,color:#FFFFFF
+    style GUARDRAILS fill:#1E293B,stroke:#2ED573,stroke-width:4px,color:#FFFFFF
+    style AWS_PROD fill:#334155,stroke:#FF9900,stroke-width:3px,color:#FFFFFF
+    style DO_DR fill:#334155,stroke:#0080FF,stroke-width:3px,color:#FFFFFF
+    style LIN_DEV fill:#334155,stroke:#00B04F,stroke-width:3px,color:#FFFFFF
+    style FABRIC fill:#334155,stroke:#FF6B6B,stroke-width:3px,color:#FFFFFF
+    style SEC fill:#334155,stroke:#2ED573,stroke-width:3px,color:#FFFFFF
+    style OBS fill:#334155,stroke:#FECA57,stroke-width:3px,color:#FFFFFF
 ```
 
 ```mermaid

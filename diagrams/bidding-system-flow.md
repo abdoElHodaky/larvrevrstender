@@ -1,71 +1,111 @@
 # 🎯 Bidding System Flow Diagram
-```mermaid
-   graph TB
-    subgraph Clients
-        PWA[📱 PWA / Mobile App]
-    end
 
-    subgraph API_Layer [Edge Layer]
-        GW[🚪 API Gateway]
-    end
+## 🌟 Distinguished System Architecture Overview
 
-    subgraph Core_Services [Logic Layer]
-        Order[📋 Order Service]
-        Bidding[🎯 Bidding Service]
-        Notif[📢 Notification Service]
-    end
-
-    subgraph Data_Messaging [Infrastructure Layer]
-        Redis[⚡ Redis Event Bus]
-        WS[🔄 WebSocket Server]
-        DB[(🗃️ Primary DB)]
-    end
-
-    subgraph External [External Integrations]
-        SMS[📲 SMS Provider]
-        Email[📧 Email Provider]
-    end
-
-    %% Relationships
-    PWA -->|HTTPS| GW
-    GW --> Order
-    GW --> Bidding
-    
-    Order --> DB
-    Order -.->|Publish Event| Redis
-    
-    Bidding --> DB
-    Bidding -.->|Publish Event| Redis
-    Bidding --> WS
-    
-    Redis -.->|Subscribe| Notif
-    Notif --> DB
-    Notif --> SMS
-    Notif --> Email
-    
-    WS -.->|Push Update| PWA
-```
 ```mermaid
 %%{init: {
   'theme': 'dark',
   'themeVariables': {
-    'primaryColor': '#FF4757',
+    'primaryColor': '#FF6B6B',
     'primaryTextColor': '#FFFFFF',
-    'primaryBorderColor': '#FF6B81',
-    'lineColor': '#2ED573',
-    'secondaryColor': '#1E90FF',
-    'tertiaryColor': '#FFA502',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
     'background': '#0F172A',
     'mainBkg': '#1E293B',
     'secondBkg': '#334155',
-    'tertiaryBkg': '#1E293B',
-    'actorBkg': '#FF4757',
-    'actorBorder': '#FF6B81',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
+graph TB
+    subgraph "🌐 CLIENT APPLICATIONS"
+        PWA["📱 PWA / Mobile App<br/>🚀 Vue.js 3 + TypeScript<br/>⚡ Real-time Updates"]
+    end
+
+    subgraph "🔀 INFRASTRUCTURE GATEWAY"
+        GW["🚪 API Gateway<br/>🛡️ Rate Limiting + Auth<br/>📊 Request Analytics"]
+    end
+
+    subgraph "🎯 CORE BUSINESS SERVICES"
+        Order["📋 Order Service<br/>🔥 Laravel 12+ DDD + Octane<br/>📝 Request Management"]
+        Bidding["🎯 Bidding Service<br/>🔥 Laravel 12+ DDD + Octane<br/>⚡ Real-time Auctions"]
+        Notif["📢 Notification Service<br/>🔥 Laravel 12+ DDD + Octane<br/>📱 Multi-Channel Delivery"]
+    end
+
+    subgraph "💾 DATA & MESSAGING FOUNDATION"
+        Redis["⚡ Redis Event Bus<br/>🚀 Pub/Sub + Queue<br/>📊 Real-time Events"]
+        WS["🔄 WebSocket Server<br/>⚡ Live Communication<br/>🎯 Bidding Updates"]
+        DB[("🗃️ MySQL 8.0 Cluster<br/>📊 Primary + Replicas<br/>🔒 ACID Compliance")]
+    end
+
+    subgraph "🌐 EXTERNAL INTEGRATIONS"
+        SMS["📲 SMS Gateway<br/>🚀 Twilio + Unifonic<br/>🌍 Global Coverage"]
+        Email["📧 Email Service<br/>🚀 SendGrid + AWS SES<br/>📬 Transactional Mail"]
+    end
+
+    %% 🔗 Enhanced Connections
+    PWA ==>|"🔒 HTTPS/WSS"| GW
+    GW ==>|"📋 Order Management"| Order
+    GW ==>|"🎯 Bidding Logic"| Bidding
+    
+    Order ==>|"💾 Data Persistence"| DB
+    Order -.->|"📨 Publish Events"| Redis
+    
+    Bidding ==>|"💾 Bid Storage"| DB
+    Bidding -.->|"📨 Bid Events"| Redis
+    Bidding ==>|"⚡ Live Updates"| WS
+    
+    Redis -.->|"📢 Event Subscription"| Notif
+    Notif ==>|"💾 Message Log"| DB
+    Notif ==>|"📲 SMS Delivery"| SMS
+    Notif ==>|"📧 Email Delivery"| Email
+    
+    WS -.->|"🔄 Real-time Push"| PWA
+
+    %% 🎨 Distinguished Eye-Catching Styling
+    classDef clientStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef gatewayStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef coreStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:4px,color:#000000,font-weight:bold
+    classDef externalStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef notificationStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    classDef messagingStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
+    
+    %% Apply Component Styling
+    class PWA clientStyle
+    class GW gatewayStyle
+    class Order,Bidding coreStyle
+    class Notif notificationStyle
+    class DB dataStyle
+    class Redis,WS messagingStyle
+    class SMS,Email externalStyle
+```
+
+## 🔄 Detailed Bidding Process Flow
+```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'actorBkg': '#FF6B6B',
+    'actorBorder': '#FF8E8E',
     'actorTextColor': '#FFFFFF',
-    'activationBkgColor': '#2ED573',
-    'activationBorderColor': '#FFFFFF',
-    'noteBkgColor': '#FFA502',
-    'noteTextColor': '#000000'
+    'activationBkgColor': '#4ECDC4',
+    'activationBorderColor': '#7ED6D1',
+    'noteBkgColor': '#FECA57',
+    'noteTextColor': '#000000',
+    'noteBorderColor': '#FED876'
   }
 }}%%
 
@@ -224,4 +264,3 @@ sequenceDiagram
 - **Audit Service**: Logs all bidding activities
 
 This bidding system provides a competitive, transparent, and efficient marketplace for automotive parts with real-time capabilities and comprehensive business intelligence.
-
