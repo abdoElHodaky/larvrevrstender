@@ -7,10 +7,7 @@ use App\Services\AuthService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
-// Conditionally use RuntimeException if Sajya is available
-if (class_exists('Sajya\Server\Exceptions\RuntimeException')) {
-    use Sajya\Server\Exceptions\RuntimeException;
-}
+use Sajya\Server\Exceptions\RuntimeException;
 
 class AuthProcedure extends BaseProcedure
 {
