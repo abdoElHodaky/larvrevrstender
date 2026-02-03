@@ -195,7 +195,7 @@ jobs:
         cat dependency-report.md | head -20
 
     - name: Upload Dependency Report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dependency-report-${{ matrix.service }}
         path: services/${{ matrix.service }}/dependency-report.md
@@ -398,7 +398,7 @@ jobs:
         echo '{"rpc":{"average_response_time":75},"rest":{"average_response_time":150}}' > performance-results.json
 
     - name: Upload performance results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-results
         path: deployment/scripts/performance-results.json
