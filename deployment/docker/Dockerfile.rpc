@@ -10,7 +10,7 @@ ENV AUTORUN_ENABLED=true
 # ServerSideUp images are Debian-based, not Alpine
 USER root
 RUN apt-get update && apt-get install -y \
-    mysql-client \
+    mariadb-client \
     nodejs \
     npm \
     && rm -rf /var/lib/apt/lists/*
