@@ -4,6 +4,10 @@ FROM php:8.2-cli-alpine
 ARG SERVICE_NAME
 ENV SERVICE_NAME=${SERVICE_NAME}
 
+# Cache bust to ensure fresh build - Updated 2026-02-03
+ARG CACHE_BUST=2026-02-03-v2
+RUN echo "Cache bust: $CACHE_BUST"
+
 # Install system dependencies for Octane and FrankenPHP
 RUN apk add --no-cache \
     git \
@@ -21,6 +25,7 @@ RUN apk add --no-cache \
     ca-certificates
 
 # Configure and install PHP extensions required for Octane
+# GD extension requires freetype and jpeg support for image processing
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
     pdo_mysql \
