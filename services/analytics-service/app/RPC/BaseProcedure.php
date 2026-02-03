@@ -137,6 +137,7 @@ if (class_exists('Sajya\Server\Procedure')) {
             'timestamp' => now()->toISOString(),
         ];
     }
+}
 } else {
     // Stub implementation when Sajya is not available (for CI/development)
     abstract class BaseProcedure
