@@ -1,5 +1,5 @@
-# Use the official ServerSideUp FrankenPHP Alpine image
-FROM serversideup/php:8.2-frankenphp-alpine
+# Use the official ServerSideUp FrankenPHP image
+FROM serversideup/php:8.3-frankenphp
 
 # 1. Build Arguments & Environment
 ARG SERVICE_NAME
@@ -7,23 +7,23 @@ ENV SERVICE_NAME=${SERVICE_NAME}
 ENV AUTORUN_ENABLED=true
 
 # 2. Install System Dependencies
-# Note: 'install-php-extensions' is available in this image for cleaner PHP builds
+# ServerSideUp images are Debian-based, not Alpine
 USER root
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     mysql-client \
     nodejs \
-    npm
+    npm \
+    && rm -rf /var/lib/apt/lists/*
 
 # 3. Install PHP Extensions
-# High-performance extensions for Laravel Octane
-RUN install-php-extensions \
-    gd \
+# ServerSideUp images come with most extensions pre-installed
+# Check what's already available and add only what's needed
+RUN docker-php-ext-install -j$(nproc) \
     pdo_mysql \
     mysqli \
     pcntl \
     sockets \
-    redis \
-    opcache
+    && docker-php-ext-enable opcache
 
 # 4. Set Working Directory
 WORKDIR /var/www/html
@@ -45,12 +45,12 @@ RUN if [ -f "composer.json" ]; then \
 ENV PHP_OPCACHE_ENABLE=1
 
 # 8. Healthcheck
+# ServerSideUp images have built-in healthcheck endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD healthcheck
 
-# Expose the default FrankenPHP port (8080 is standard for this image)
-EXPOSE 8080 6010 6011
+# Expose the default FrankenPHP ports (8080 HTTP, 8443 HTTPS)
+EXPOSE 8080 8443 6010 6011
 
 # The image uses its own entrypoint to manage the process lifecycle
 # No manual CMD [supervisord] needed!
-
