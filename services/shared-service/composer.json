@@ -1,6 +1,6 @@
 {
-    "name": "reversetender/bidding-service",
-    "description": "Real-time bidding microservice for Reverse Tender Platform",
+    "name": "reversetender/shared-service",
+    "description": "Shared utilities and common functionality for Reverse Tender Platform",
     "type": "project",
     "license": "MIT",
     "require": {
@@ -13,8 +13,6 @@
         "predis/predis": "^2.2",
         "laravel/horizon": "^5.28",
         "laravel/telescope": "^5.2",
-        "pusher/pusher-php-server": "^7.2",
-        "ratchet/pawl": "^0.4.1",
         "sajya/server": "^3.0",
         "sajya/client": "^2.0"
     },
