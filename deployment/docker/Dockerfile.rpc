@@ -10,6 +10,8 @@ RUN apk add --no-cache \
     curl \
     libpng-dev \
     libxml2-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
     zip \
     unzip \
     mysql-client \
@@ -18,8 +20,9 @@ RUN apk add --no-cache \
     npm \
     ca-certificates
 
-# Install PHP extensions required for Octane
-RUN docker-php-ext-install \
+# Configure and install PHP extensions required for Octane
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
     pdo_mysql \
     mysqli \
     xml \
