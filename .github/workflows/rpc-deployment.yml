@@ -55,18 +55,151 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-php-${{ matrix.service }}-
 
-    - name: Install dependencies
+    - name: Check and Install Composer Dependencies
       run: |
         cd services/${{ matrix.service }}
+        
+        echo "🔍 Checking composer dependencies for ${{ matrix.service }}..."
+        
+        # Check if composer.json exists
         if [ ! -f "composer.json" ]; then
           echo "❌ No composer.json found in ${{ matrix.service }} - skipping dependency installation"
           exit 1
         fi
-        # Try composer install first, if it fails due to lock file issues, try update
-        if ! composer install --prefer-dist --no-progress; then
-          echo "⚠️ Composer install failed, trying composer update to fix lock file issues..."
-          composer update --prefer-dist --no-progress || echo "❌ Composer update also failed for ${{ matrix.service }}"
+        
+        echo "✅ composer.json found"
+        
+        # Check if composer.lock exists
+        if [ -f "composer.lock" ]; then
+          echo "✅ composer.lock found - using locked versions"
+          LOCK_STATUS="✅ LOCKED"
+        else
+          echo "⚠️ No composer.lock found - will install latest compatible versions"
+          LOCK_STATUS="⚠️ NO LOCK"
         fi
+        
+        # Display composer.json info
+        echo "📋 Composer configuration:"
+        echo "   - PHP version requirement: $(cat composer.json | grep -o '"php"[^,]*' | head -1 || echo 'Not specified')"
+        echo "   - Lock file status: $LOCK_STATUS"
+        
+        # Check vendor directory
+        if [ -d "vendor" ]; then
+          echo "📦 Existing vendor directory found - will use cache if available"
+        else
+          echo "📦 No vendor directory - fresh installation"
+        fi
+        
+        # Install dependencies with detailed output
+        echo "🚀 Installing composer dependencies..."
+        
+        # Try composer install first, if it fails due to lock file issues, try update
+        if composer install --prefer-dist --no-progress --no-interaction; then
+          echo "✅ Composer install successful for ${{ matrix.service }}"
+          
+          # Display installed packages summary
+          echo "📊 Dependency installation summary:"
+          if [ -f "vendor/composer/installed.json" ]; then
+            PACKAGE_COUNT=$(cat vendor/composer/installed.json | grep -o '"name"' | wc -l)
+            echo "   - Total packages installed: $PACKAGE_COUNT"
+          fi
+          
+          # Check for key RPC-related packages
+          echo "🔧 Key RPC packages status:"
+          if composer show | grep -q "sajya/server"; then
+            echo "   - ✅ sajya/server (RPC server)"
+          else
+            echo "   - ⚠️ sajya/server not found"
+          fi
+          
+          if composer show | grep -q "laravel/octane"; then
+            echo "   - ✅ laravel/octane (Performance)"
+          else
+            echo "   - ⚠️ laravel/octane not found"
+          fi
+          
+        else
+          echo "⚠️ Composer install failed, trying composer update to fix lock file issues..."
+          if composer update --prefer-dist --no-progress --no-interaction; then
+            echo "✅ Composer update successful for ${{ matrix.service }}"
+          else
+            echo "❌ Both composer install and update failed for ${{ matrix.service }}"
+            echo "📋 Composer diagnose output:"
+            composer diagnose || true
+            exit 1
+          fi
+        fi
+        
+        # Verify autoloader
+        if [ -f "vendor/autoload.php" ]; then
+          echo "✅ Autoloader generated successfully"
+        else
+          echo "❌ Autoloader not found - installation may have failed"
+          exit 1
+        fi
+        
+        echo "🎉 Dependency installation completed for ${{ matrix.service }}"
+
+    - name: Generate Dependency Report
+      run: |
+        cd services/${{ matrix.service }}
+        
+        echo "📊 Generating dependency report for ${{ matrix.service }}..."
+        
+        # Create dependency report
+        echo "# Dependency Report for ${{ matrix.service }}" > dependency-report.md
+        echo "Generated on: $(date)" >> dependency-report.md
+        echo "" >> dependency-report.md
+        
+        # Basic info
+        echo "## Configuration" >> dependency-report.md
+        echo "- Service: ${{ matrix.service }}" >> dependency-report.md
+        echo "- PHP Version: $(php --version | head -1)" >> dependency-report.md
+        echo "- Composer Version: $(composer --version)" >> dependency-report.md
+        echo "" >> dependency-report.md
+        
+        # Lock file status
+        if [ -f "composer.lock" ]; then
+          echo "- Lock File: ✅ Present" >> dependency-report.md
+          echo "- Lock File Hash: $(md5sum composer.lock | cut -d' ' -f1)" >> dependency-report.md
+        else
+          echo "- Lock File: ⚠️ Missing" >> dependency-report.md
+        fi
+        echo "" >> dependency-report.md
+        
+        # Package summary
+        echo "## Installed Packages" >> dependency-report.md
+        if [ -f "vendor/composer/installed.json" ]; then
+          PACKAGE_COUNT=$(cat vendor/composer/installed.json | grep -o '"name"' | wc -l)
+          echo "- Total Packages: $PACKAGE_COUNT" >> dependency-report.md
+        fi
+        echo "" >> dependency-report.md
+        
+        # Key RPC packages
+        echo "## Key RPC/Laravel Packages" >> dependency-report.md
+        composer show | grep -E "(sajya|laravel|symfony)" | head -10 >> dependency-report.md || echo "No key packages found" >> dependency-report.md
+        echo "" >> dependency-report.md
+        
+        # Security check (if available)
+        echo "## Security Status" >> dependency-report.md
+        if command -v composer audit >/dev/null 2>&1; then
+          composer audit --format=plain >> dependency-report.md 2>&1 || echo "No security issues found" >> dependency-report.md
+        else
+          echo "Security audit not available" >> dependency-report.md
+        fi
+        
+        echo "✅ Dependency report generated: dependency-report.md"
+        
+        # Display report summary
+        echo "📋 Dependency Report Summary:"
+        cat dependency-report.md | head -20
+
+    - name: Upload Dependency Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: dependency-report-${{ matrix.service }}
+        path: services/${{ matrix.service }}/dependency-report.md
+        retention-days: 30
 
     - name: Run PHPUnit tests
       run: |
