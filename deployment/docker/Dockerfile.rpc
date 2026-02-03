@@ -40,15 +40,16 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /app
 
-# Copy shared service code (if exists)
-COPY services/shared-service ./shared-service/
-
 # Copy service-specific application code
 COPY services/${SERVICE_NAME} ./
 
 # Install PHP dependencies (composer.lock is optional - will be created if missing)
-RUN composer install --no-dev --optimize-autoloader --no-scripts || \
-    (echo "Composer install failed, trying update..." && composer update --no-dev --optimize-autoloader --no-scripts)
+RUN if [ -f "composer.json" ]; then \
+        composer install --no-dev --optimize-autoloader --no-scripts || \
+        (echo "Composer install failed, trying update..." && composer update --no-dev --optimize-autoloader --no-scripts); \
+    else \
+        echo "No composer.json found, skipping composer install"; \
+    fi
 
 # Set permissions for Laravel directories
 RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache \
