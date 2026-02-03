@@ -368,45 +368,40 @@ graph TB
 }}%%
 
 sequenceDiagram
-    participant Client as 📱 Client
-    participant FrankenPHP as 🚀 FrankenPHP
-    participant OctaneManager as 🎯 Octane Manager
-    participant Worker as ⚡ PHP Worker
-    participant Laravel as 🔥 Laravel App
+    participant C as 📱 Client
+    participant FP as 🚀 FrankenPHP
+    participant OM as 🎯 Octane Manager
+    participant W as ⚡ PHP Worker
+    participant L as 🔥 Laravel App
     participant RPC as 🔧 RPC Handler
-    participant Database as 🗃️ Database
-    
-    Note over Client,Database: 🔥 Octane Request Lifecycle - Zero Cold Start
-    
-    Client->>+FrankenPHP: 📤 HTTP/2 Request<br/>JSON-RPC 2.0 Payload
-    
-    Note over FrankenPHP: 🚀 FrankenPHP Server<br/>Go-based Performance<br/>HTTP/2 Multiplexing
-    
-    FrankenPHP->>+OctaneManager: 🎯 Route to Available Worker<br/>Load Balancing
-    
-    Note over OctaneManager: 🔄 Worker Pool Management<br/>8 Workers Available<br/>Round-robin Assignment
-    
-    OctaneManager->>+Worker: ⚡ Assign Request<br/>Worker #3 Selected
-    
-    Note over Worker: 🔥 Persistent Laravel Instance<br/>Framework Already Loaded<br/>Zero Boot Time
-    
-    Worker->>+Laravel: 📤 Process Request<br/>Context Isolation<br/>Request Sandboxing
-    
-    Laravel->>+RPC: 🔧 RPC Procedure Call<br/>JSON-RPC 2.0 Routing<br/>Middleware Stack
-    
-    RPC->>+Database: 🔍 Database Query<br/>Connection Pool<br/>Prepared Statements
-    Database-->>-RPC: 📊 Query Result<br/>Optimized Response
-    
-    RPC-->>-Laravel: ✅ RPC Response<br/>JSON-RPC 2.0 Format
-    Laravel-->>-Worker: 📥 HTTP Response<br/>Serialized Data
-    
-    Note over Worker: 🧹 Request Cleanup<br/>Memory Management<br/>Context Reset
-    
-    Worker-->>-OctaneManager: ✅ Worker Available<br/>Ready for Next Request
-    OctaneManager-->>-FrankenPHP: 📥 Response Ready<br/>HTTP/2 Response
-    FrankenPHP-->>-Client: 📥 Final Response<br/>Total Time: ~45ms
-    
-+    Note over Client,Database: ⚡ 45ms Total (vs 255ms Traditional)<br/>🎯 82% Performance Improvement<br/>🔥 Zero Framework Boot Time
+    participant DB as 🗃️ Database
+
+    Note over C,DB: 🔥 Octane Request Lifecycle - Zero Cold Start
+
+    C->>+FP: 📤 HTTP/2 Request<br/>JSON-RPC 2.0 Payload
+    Note over FP: 🚀 FrankenPHP Server<br/>Go-based Performance<br/>HTTP/2 Multiplexing
+
+    FP->>+OM: 🎯 Route to Available Worker<br/>Load Balancing
+    Note over OM: 🔄 Worker Pool Management<br/>8 Workers Available<br/>Round-robin Assignment
+
+    OM->>+W: ⚡ Assign Request<br/>Worker #3 Selected
+    Note over W: 🔥 Persistent Laravel Instance<br/>Framework Already Loaded<br/>Zero Boot Time
+
+    W->>+L: 📤 Process Request<br/>Context Isolation<br/>Request Sandboxing
+    L->>+RPC: 🔧 RPC Procedure Call<br/>JSON-RPC 2.0 Routing<br/>Middleware Stack
+
+    RPC->>+DB: 🔍 Database Query<br/>Connection Pool<br/>Prepared Statements
+    DB-->>-RPC: 📊 Query Result<br/>Optimized Response
+
+    RPC-->>-L: ✅ RPC Response<br/>JSON-RPC 2.0 Format
+    L-->>-W: 📥 HTTP Response<br/>Serialized Data
+    Note over W: 🧹 Request Cleanup<br/>Memory Management<br/>Context Reset
+
+    W-->>-OM: ✅ Worker Available<br/>Ready for Next Request
+    OM-->>-FP: 📥 Response Ready<br/>HTTP/2 Response
+    FP-->>-C: 📥 Final Response<br/>Total Time: ~45ms
+
+    Note over C,DB: ⚡ 45ms Total (vs 255ms Traditional)<br/>🎯 82% Performance Improvement<br/>🔥 Zero Framework Boot Time
 ```
 
 ---
