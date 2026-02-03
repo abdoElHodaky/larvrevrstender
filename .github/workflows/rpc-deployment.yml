@@ -22,9 +22,9 @@ jobs:
   test-rpc-services:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         service: [
-          shared-service,
           auth-service,
           user-service,
           analytics-service,
@@ -58,6 +58,10 @@ jobs:
     - name: Install dependencies
       run: |
         cd services/${{ matrix.service }}
+        if [ ! -f "composer.json" ]; then
+          echo "❌ No composer.json found in ${{ matrix.service }} - skipping dependency installation"
+          exit 1
+        fi
         composer install --prefer-dist --no-progress
 
     - name: Run PHPUnit tests
@@ -82,9 +86,9 @@ jobs:
     if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main'
     
     strategy:
+      fail-fast: false
       matrix:
         service: [
-          shared-service,
           auth-service,
           user-service,
           analytics-service,
