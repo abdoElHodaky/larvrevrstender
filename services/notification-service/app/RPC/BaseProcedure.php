@@ -9,13 +9,13 @@ use Illuminate\Support\Facades\Log;
 if (class_exists('Sajya\Server\Procedure')) {
     // Full RPC implementation when Sajya is available
     abstract class BaseProcedure extends \Sajya\Server\Procedure
-{
+    {
     /**
      * Validate request parameters
      * 
      * @param array $data
      * @param array $rules
-     * @throws \Sajya\Server\Exceptions\RuntimeException
+     * @throws RuntimeException
      */
     protected function validate(array $data, array $rules): void
     {
@@ -72,7 +72,7 @@ if (class_exists('Sajya\Server\Procedure')) {
      * 
      * @param \Exception $e
      * @param string $context
-     * @throws \Sajya\Server\Exceptions\RuntimeException
+     * @throws RuntimeException
      */
     protected function handleException(\Exception $e, string $context = ''): void
     {
@@ -81,6 +81,8 @@ if (class_exists('Sajya\Server\Procedure')) {
             'Illuminate\Database\Eloquent\ModelNotFoundException' => -32001,
             'Illuminate\Auth\AuthenticationException' => -32003,
             'Illuminate\Auth\Access\AuthorizationException' => -32004,
+            'Firebase\JWT\ExpiredException' => -32005,
+            'Firebase\JWT\SignatureInvalidException' => -32006,
             default => -32603
         };
 
@@ -137,6 +139,26 @@ if (class_exists('Sajya\Server\Procedure')) {
             'timestamp' => now()->toISOString(),
         ];
     }
+
+    /**
+     * Sanitize sensitive data for logging
+     * 
+     * @param array $data
+     * @return array
+     */
+    protected function sanitizeForLogging(array $data): array
+    {
+        $sensitiveFields = ['password', 'token', 'secret', 'key', 'hash'];
+        
+        foreach ($sensitiveFields as $field) {
+            if (isset($data[$field])) {
+                $data[$field] = '[REDACTED]';
+            }
+        }
+        
+        return $data;
+    }
+} 
 } else {
     // Stub implementation when Sajya is not available (for CI/development)
     abstract class BaseProcedure
@@ -192,5 +214,14 @@ if (class_exists('Sajya\Server\Procedure')) {
                 'note' => 'RPC functionality disabled - Sajya packages not available'
             ];
         }
+        
+        /**
+         * Stub sanitize method
+         */
+        protected function sanitizeForLogging(array $data): array
+        {
+            return $data; // No sanitization when Sajya not available
+        }
     }
 }
+
