@@ -158,6 +158,7 @@ if (class_exists('Sajya\Server\Procedure')) {
         
         return $data;
     }
+} 
 } else {
     // Stub implementation when Sajya is not available (for CI/development)
     abstract class BaseProcedure
