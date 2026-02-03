@@ -5,7 +5,7 @@ ARG SERVICE_NAME
 ENV SERVICE_NAME=${SERVICE_NAME}
 
 # Cache bust to ensure fresh build - Updated 2026-02-03
-ARG CACHE_BUST=2026-02-03-v2
+ARG CACHE_BUST=2026-02-03-v3
 RUN echo "Cache bust: $CACHE_BUST"
 
 # Install system dependencies for Octane and FrankenPHP
@@ -80,19 +80,20 @@ RUN echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
 # Create log directories
 RUN mkdir -p storage/logs /var/log/supervisor
 
-# Install FrankenPHP binary
-RUN curl -L https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-linux-x86_64 -o /usr/local/bin/frankenphp \
-    && chmod +x /usr/local/bin/frankenphp
+# Skip FrankenPHP installation for now to reduce build complexity
+# RUN curl -L https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-linux-x86_64 -o /usr/local/bin/frankenphp \
+#     && chmod +x /usr/local/bin/frankenphp
 
-# Generate application key and optimize (with error handling)
-RUN if [ -f "artisan" ]; then \
-        php artisan key:generate --no-interaction || echo "Key generation failed"; \
-        php artisan config:cache || echo "Config cache failed"; \
-        php artisan route:cache || echo "Route cache failed"; \
-        php artisan view:cache || echo "View cache failed"; \
-    else \
-        echo "No artisan file found, skipping Laravel optimizations"; \
-    fi
+# Skip Laravel optimizations during build to reduce complexity
+# These can be done at runtime if needed
+# RUN if [ -f "artisan" ]; then \
+#         php artisan key:generate --no-interaction || echo "Key generation failed"; \
+#         php artisan config:cache || echo "Config cache failed"; \
+#         php artisan route:cache || echo "Route cache failed"; \
+#         php artisan view:cache || echo "View cache failed"; \
+#     else \
+#         echo "No artisan file found, skipping Laravel optimizations"; \
+#     fi
 
 # Expose ports (HTTP and RPC)
 EXPOSE 8000 6010 6011
