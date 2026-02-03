@@ -96,7 +96,7 @@ jobs:
   build-and-push-batch-1:
     needs: test-rpc-services
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
     
     strategy:
       fail-fast: false
@@ -165,7 +165,7 @@ jobs:
   build-and-push-batch-2:
     needs: build-and-push-batch-1
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
     
     strategy:
       fail-fast: false
@@ -234,7 +234,7 @@ jobs:
   performance-test:
     needs: [build-and-push-batch-1, build-and-push-batch-2]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/rpc'
+    if: github.ref == 'refs/heads/rpc' || github.event_name == 'pull_request'
 
     steps:
     - name: Checkout code
@@ -296,7 +296,7 @@ jobs:
   security-scan:
     needs: [build-and-push-batch-1, build-and-push-batch-2]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
 
     steps:
     - name: Checkout code
