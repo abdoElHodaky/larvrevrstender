@@ -292,7 +292,16 @@ pie title 🔴 REST API Response Time Breakdown (220ms avg)
     "🔗 Database Connection" : 15
     "⚡ Business Logic" : 25
     "📦 Response Serialization" : 10
-
+```
+```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'background': '#0F172A'
+  }
+}}%%
 pie title 🟢 RPC-Octane Response Time Breakdown (42ms avg)
     "🛣️ Route Resolution" : 5
     "⚡ Business Logic" : 25
@@ -317,7 +326,16 @@ pie title 🔴 REST Memory Usage per Request (27MB avg)
     "📦 Dependencies" : 8
     "🔗 Database Connections" : 2
     "⚡ Business Logic" : 2
-
+```
+```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#45B7D1',
+    'primaryTextColor': '#FFFFFF',
+    'background': '#0F172A'
+  }
+}}%%
 pie title 🟢 RPC-Octane Memory Usage per Request (16MB avg)
     "📦 Shared Dependencies" : 10
     "🔗 Connection Pool" : 1
