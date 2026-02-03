@@ -1,115 +1,56 @@
-FROM php:8.2-cli-alpine
+# Use the official ServerSideUp FrankenPHP Alpine image
+FROM serversideup/php:8.2-frankenphp-alpine
 
-# Build argument for service name
+# 1. Build Arguments & Environment
 ARG SERVICE_NAME
 ENV SERVICE_NAME=${SERVICE_NAME}
+ENV AUTORUN_ENABLED=true
 
-# Cache bust to ensure fresh build - Updated 2026-02-03
-ARG CACHE_BUST=2026-02-03-v3
-RUN echo "Cache bust: $CACHE_BUST"
-
-# Install system dependencies for Octane and FrankenPHP
+# 2. Install System Dependencies
+# Note: 'install-php-extensions' is available in this image for cleaner PHP builds
+USER root
 RUN apk add --no-cache \
-    git \
-    curl \
-    libpng-dev \
-    libxml2-dev \
-    libjpeg-turbo-dev \
-    freetype-dev \
-    zip \
-    unzip \
     mysql-client \
-    supervisor \
     nodejs \
-    npm \
-    ca-certificates
+    npm
 
-# Configure and install PHP extensions required for Octane
-# GD extension requires freetype and jpeg support for image processing
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install \
+# 3. Install PHP Extensions
+# High-performance extensions for Laravel Octane
+RUN install-php-extensions \
+    gd \
     pdo_mysql \
     mysqli \
-    xml \
-    gd \
-    opcache \
     pcntl \
-    sockets
+    sockets \
+    redis \
+    opcache
 
-# Install Redis extension
-RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && apk del .build-deps
+# 4. Set Working Directory
+WORKDIR /var/www/html
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# 5. Copy Application Code
+# We copy with ownership to the web user (standard is 9999 for serversideup)
+COPY --chown=www-data:www-data services/${SERVICE_NAME} ./
 
-# Set working directory
-WORKDIR /app
-
-# Copy service-specific application code
-COPY services/${SERVICE_NAME} ./
-
-# Install PHP dependencies (composer.lock is optional - will be created if missing)
+# 6. Install Composer Dependencies
+# The image includes composer by default
 RUN if [ -f "composer.json" ]; then \
-        composer install --no-dev --optimize-autoloader --no-scripts || \
-        (echo "Composer install failed, trying update..." && composer update --no-dev --optimize-autoloader --no-scripts); \
-    else \
-        echo "No composer.json found, skipping composer install"; \
+        composer install --no-dev --optimize-autoloader --no-scripts; \
     fi
 
-# Set permissions for Laravel directories
-RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
+# 7. Octane / FrankenPHP Specifics
+# ServerSideUp images use "Autodiscovery" for Laravel. 
+# It will detect Octane and start FrankenPHP automatically.
+# We just need to ensure the entrypoint knows we want Octane.
+ENV PHP_OPCACHE_ENABLE=1
 
-# Create basic supervisor configuration for Octane
-RUN echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'nodaemon=true' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'user=root' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo '' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo '[program:octane]' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'command=php artisan octane:start --host=0.0.0.0 --port=8000' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'directory=/app' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'autostart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'autorestart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'redirect_stderr=true' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'stdout_logfile=/var/log/supervisor/octane.log' >> /etc/supervisor/conf.d/supervisord.conf
-
-# Create log directories
-RUN mkdir -p storage/logs /var/log/supervisor
-
-# Skip FrankenPHP installation for now to reduce build complexity
-# RUN curl -L https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-linux-x86_64 -o /usr/local/bin/frankenphp \
-#     && chmod +x /usr/local/bin/frankenphp
-
-# Skip Laravel optimizations during build to reduce complexity
-# These can be done at runtime if needed
-# RUN if [ -f "artisan" ]; then \
-#         php artisan key:generate --no-interaction || echo "Key generation failed"; \
-#         php artisan config:cache || echo "Config cache failed"; \
-#         php artisan route:cache || echo "Route cache failed"; \
-#         php artisan view:cache || echo "View cache failed"; \
-#     else \
-#         echo "No artisan file found, skipping Laravel optimizations"; \
-#     fi
-
-# Expose ports (HTTP and RPC)
-EXPOSE 8000 6010 6011
-
-# Health check
+# 8. Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
-# Start supervisor with Octane (fallback to PHP if artisan doesn't exist)
-CMD if [ -f "artisan" ] && [ -f "/etc/supervisor/conf.d/supervisord.conf" ]; then \
-        echo "Starting Laravel Octane with Supervisor..."; \
-        /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf; \
-    elif [ -f "artisan" ]; then \
-        echo "Starting Laravel Octane directly..."; \
-        php artisan octane:start --host=0.0.0.0 --port=8000; \
-    else \
-        echo "Starting PHP built-in server as fallback..."; \
-        php -S 0.0.0.0:8000 -t public; \
-    fi
+# Expose the default FrankenPHP port (8080 is standard for this image)
+EXPOSE 8080 6010 6011
+
+# The image uses its own entrypoint to manage the process lifecycle
+# No manual CMD [supervisord] needed!
+
