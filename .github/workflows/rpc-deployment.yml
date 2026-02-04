@@ -572,7 +572,7 @@ jobs:
       with:
         version: 'v1.28.0'
 
-    - name: Configure kubectl
+    - name: Configure kubectl and rollback
       run: |
         if [ "${{ github.ref }}" == "refs/heads/main" ]; then
           if [ -n "${{ secrets.KUBE_CONFIG_PRODUCTION }}" ]; then
