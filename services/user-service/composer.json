@@ -14,7 +14,9 @@
         "laravel/horizon": "^5.28",
         "laravel/telescope": "^5.2",
         "spatie/laravel-medialibrary": "^11.9",
-        "spatie/laravel-permission": "^6.9"
+        "spatie/laravel-permission": "^6.9",
+        "sajya/server": "^7.0",
+        "sajya/client": "^1.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

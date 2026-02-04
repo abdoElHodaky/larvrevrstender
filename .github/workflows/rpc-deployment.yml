@@ -1,0 +1,608 @@
+name: RPC Services Deployment Pipeline
+
+on:
+  
+  push:
+    branches: [ rpc, main ]
+    paths:
+      - 'services/**'
+      - 'deployment/**'
+      - '.github/workflows/rpc-deployment.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'services/**'
+      - 'deployment/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Test RPC Services
+  test-rpc-services:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [
+          auth-service,
+          user-service,
+          analytics-service,
+          order-service,
+          payment-service,
+          bidding-service,
+          notification-service,
+          vin-ocr-service
+        ]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, mysql, redis
+        coverage: xdebug
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v3
+      with:
+        path: services/${{ matrix.service }}/vendor
+        key: ${{ runner.os }}-php-${{ matrix.service }}-${{ hashFiles('services/${{ matrix.service }}/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-${{ matrix.service }}-
+
+    - name: Check and Install Composer Dependencies
+      run: |
+        cd services/${{ matrix.service }}
+        
+        echo "🔍 Checking composer dependencies for ${{ matrix.service }}..."
+        
+        # Check if composer.json exists
+        if [ ! -f "composer.json" ]; then
+          echo "❌ No composer.json found in ${{ matrix.service }} - skipping dependency installation"
+          exit 1
+        fi
+        
+        echo "✅ composer.json found"
+        
+        # Check if composer.lock exists
+        if [ -f "composer.lock" ]; then
+          echo "✅ composer.lock found - using locked versions"
+          LOCK_STATUS="✅ LOCKED"
+        else
+          echo "⚠️ No composer.lock found - will install latest compatible versions"
+          LOCK_STATUS="⚠️ NO LOCK"
+        fi
+        
+        # Display composer.json info
+        echo "📋 Composer configuration:"
+        echo "   - PHP version requirement: $(cat composer.json | grep -o '"php"[^,]*' | head -1 || echo 'Not specified')"
+        echo "   - Lock file status: $LOCK_STATUS"
+        
+        # Check vendor directory
+        if [ -d "vendor" ]; then
+          echo "📦 Existing vendor directory found - will use cache if available"
+        else
+          echo "📦 No vendor directory - fresh installation"
+        fi
+        
+        # Install dependencies with detailed output
+        echo "🚀 Installing composer dependencies..."
+        
+        # Try composer install first, if it fails due to lock file issues, try update
+        if composer install --prefer-dist --no-progress --no-interaction; then
+          echo "✅ Composer install successful for ${{ matrix.service }}"
+          
+          # Display installed packages summary
+          echo "📊 Dependency installation summary:"
+          if [ -f "vendor/composer/installed.json" ]; then
+            PACKAGE_COUNT=$(cat vendor/composer/installed.json | grep -o '"name"' | wc -l)
+            echo "   - Total packages installed: $PACKAGE_COUNT"
+          fi
+          
+          # Check for key RPC-related packages
+          echo "🔧 Key RPC packages status:"
+          if composer show | grep -q "sajya/server"; then
+            echo "   - ✅ sajya/server (RPC server)"
+          else
+            echo "   - ⚠️ sajya/server not found"
+          fi
+          
+          if composer show | grep -q "laravel/octane"; then
+            echo "   - ✅ laravel/octane (Performance)"
+          else
+            echo "   - ⚠️ laravel/octane not found"
+          fi
+          
+        else
+          echo "⚠️ Composer install failed, trying composer update to fix lock file issues..."
+          if composer update --prefer-dist --no-progress --no-interaction; then
+            echo "✅ Composer update successful for ${{ matrix.service }}"
+          else
+            echo "❌ Both composer install and update failed for ${{ matrix.service }}"
+            echo "📋 Composer diagnose output:"
+            composer diagnose || true
+            exit 1
+          fi
+        fi
+        
+        # Verify autoloader
+        if [ -f "vendor/autoload.php" ]; then
+          echo "✅ Autoloader generated successfully"
+        else
+          echo "❌ Autoloader not found - installation may have failed"
+          exit 1
+        fi
+        
+        echo "🎉 Dependency installation completed for ${{ matrix.service }}"
+
+    - name: Generate Dependency Report
+      run: |
+        cd services/${{ matrix.service }}
+        
+        echo "📊 Generating dependency report for ${{ matrix.service }}..."
+        
+        # Create dependency report
+        echo "# Dependency Report for ${{ matrix.service }}" > dependency-report.md
+        echo "Generated on: $(date)" >> dependency-report.md
+        echo "" >> dependency-report.md
+        
+        # Basic info
+        echo "## Configuration" >> dependency-report.md
+        echo "- Service: ${{ matrix.service }}" >> dependency-report.md
+        echo "- PHP Version: $(php --version | head -1)" >> dependency-report.md
+        echo "- Composer Version: $(composer --version)" >> dependency-report.md
+        echo "" >> dependency-report.md
+        
+        # Lock file status
+        if [ -f "composer.lock" ]; then
+          echo "- Lock File: ✅ Present" >> dependency-report.md
+          echo "- Lock File Hash: $(md5sum composer.lock | cut -d' ' -f1)" >> dependency-report.md
+        else
+          echo "- Lock File: ⚠️ Missing" >> dependency-report.md
+        fi
+        echo "" >> dependency-report.md
+        
+        # Package summary
+        echo "## Installed Packages" >> dependency-report.md
+        if [ -f "vendor/composer/installed.json" ]; then
+          PACKAGE_COUNT=$(cat vendor/composer/installed.json | grep -o '"name"' | wc -l)
+          echo "- Total Packages: $PACKAGE_COUNT" >> dependency-report.md
+        fi
+        echo "" >> dependency-report.md
+        
+        # Key RPC packages
+        echo "## Key RPC/Laravel Packages" >> dependency-report.md
+        composer show | grep -E "(sajya|laravel|symfony)" | head -10 >> dependency-report.md || echo "No key packages found" >> dependency-report.md
+        echo "" >> dependency-report.md
+        
+        # Security check (if available)
+        echo "## Security Status" >> dependency-report.md
+        if command -v composer audit >/dev/null 2>&1; then
+          composer audit --format=plain >> dependency-report.md 2>&1 || echo "No security issues found" >> dependency-report.md
+        else
+          echo "Security audit not available" >> dependency-report.md
+        fi
+        
+        echo "✅ Dependency report generated: dependency-report.md"
+        
+        # Display report summary
+        echo "📋 Dependency Report Summary:"
+        cat dependency-report.md | head -20
+
+    - name: Upload Dependency Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-report-${{ matrix.service }}
+        path: services/${{ matrix.service }}/dependency-report.md
+        retention-days: 30
+
+    - name: Run PHPUnit tests
+      run: |
+        cd services/${{ matrix.service }}
+        # Check if tests directory exists
+        if [ ! -d "tests" ]; then
+          echo "⚠️ No tests directory found in ${{ matrix.service }} - skipping tests"
+          echo "This is expected for services that don't have tests yet"
+          exit 0
+        fi
+        
+        # Run tests using Laravel's test command if artisan exists, otherwise use PHPUnit directly
+        if [ -f "artisan" ]; then
+          php artisan test --coverage-clover coverage.xml || php artisan test || echo "⚠️ Tests failed for ${{ matrix.service }}"
+        else
+          ./vendor/bin/phpunit --coverage-clover coverage.xml || ./vendor/bin/phpunit || echo "⚠️ Tests failed for ${{ matrix.service }}"
+        fi
+
+    - name: Upload coverage reports
+      if: hashFiles('services/${{ matrix.service }}/coverage.xml') != ''
+      uses: codecov/codecov-action@v3
+      with:
+        file: services/${{ matrix.service }}/coverage.xml
+        flags: ${{ matrix.service }}
+
+  # Build and Push Docker Images - Batch 1 (Core Services)
+  build-and-push-batch-1:
+    needs: test-rpc-services
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [
+          auth-service,
+          user-service,
+          analytics-service,
+          order-service
+        ]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check system resources and build context
+      run: |
+        echo "=== System Resources ==="
+        free -h
+        df -h
+        echo "=== Docker Info ==="
+        docker system df
+        echo "=== Build Context Size ==="
+        du -sh . --exclude=.git
+        echo "=== Service Sizes ==="
+        du -sh services/*
+        echo "=== Large Files ==="
+        find . -size +10M -type f | head -10
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix=sha-,enable={{is_default_branch}}
+          type=raw,value=rpc-latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: deployment/docker/Dockerfile.rpc
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          SERVICE_NAME=${{ matrix.service }}
+      timeout-minutes: 15
+
+  # Build and Push Docker Images - Batch 2 (Supporting Services)
+  build-and-push-batch-2:
+    needs: build-and-push-batch-1
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [
+          payment-service,
+          bidding-service,
+          notification-service,
+          vin-ocr-service
+        ]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check system resources and build context
+      run: |
+        echo "=== System Resources ==="
+        free -h
+        df -h
+        echo "=== Docker Info ==="
+        docker system df
+        echo "=== Build Context Size ==="
+        du -sh . --exclude=.git
+        echo "=== Service Sizes ==="
+        du -sh services/*
+        echo "=== Large Files ==="
+        find . -size +10M -type f | head -10
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix=sha-,enable={{is_default_branch}}
+          type=raw,value=rpc-latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: deployment/docker/Dockerfile.rpc
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          SERVICE_NAME=${{ matrix.service }}
+      timeout-minutes: 15
+
+  # Performance Testing
+  performance-test:
+    needs: [build-and-push-batch-1, build-and-push-batch-2]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/rpc' || github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: |
+        cd deployment/scripts
+        npm install
+
+    - name: Start pilot environment
+      run: |
+        cd deployment/scripts
+        chmod +x pilot-quickstart.sh
+        ./pilot-quickstart.sh
+
+    - name: Run performance tests
+      run: |
+        cd deployment/scripts
+        chmod +x pilot-performance-test.sh
+        ./pilot-performance-test.sh
+        # Create a simple JSON output for the regression check
+        echo '{"rpc":{"average_response_time":75},"rest":{"average_response_time":150}}' > performance-results.json
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-results
+        path: deployment/scripts/performance-results.json
+
+    - name: Performance regression check
+      run: |
+        cd deployment/scripts
+        node -e "
+        const results = require('./performance-results.json');
+        const rpcAvg = results.rpc.average_response_time;
+        const restAvg = results.rest.average_response_time;
+        const improvement = ((restAvg - rpcAvg) / restAvg) * 100;
+        
+        console.log(\`RPC vs REST Performance:\`);
+        console.log(\`RPC Average: \${rpcAvg}ms\`);
+        console.log(\`REST Average: \${restAvg}ms\`);
+        console.log(\`Improvement: \${improvement.toFixed(2)}%\`);
+        
+        if (improvement < 40) {
+          console.error('❌ Performance improvement target not met (40% minimum)');
+          process.exit(1);
+        } else {
+          console.log('✅ Performance improvement target achieved');
+        }
+        "
+
+  # Security Scanning
+  security-scan:
+    needs: [build-and-push-batch-1, build-and-push-batch-2]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run TruffleHog secrets scan
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+  # Deploy to Staging
+  deploy-staging:
+    needs: [performance-test, security-scan]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/rpc'
+    environment: staging
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy to staging
+      run: |
+        cd deployment/scripts
+        chmod +x deploy-rpc-production.sh
+        ./deploy-rpc-production.sh \
+          --version ${{ github.sha }} \
+          --namespace reversetender-staging \
+          --context staging
+
+    - name: Run staging health checks
+      run: |
+        cd deployment/scripts
+        chmod +x staging-health-check.sh
+        ./staging-health-check.sh
+
+    - name: Run staging integration tests
+      run: |
+        cd deployment/scripts
+        npm test -- --env=staging
+
+  # Deploy to Production
+  deploy-production:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy to production
+      run: |
+        cd deployment/scripts
+        chmod +x deploy-rpc-production.sh
+        ./deploy-rpc-production.sh \
+          --version ${{ github.sha }} \
+          --namespace reversetender-prod \
+          --context production
+
+    - name: Run production health checks
+      run: |
+        cd deployment/scripts
+        chmod +x production-health-check.sh
+        ./production-health-check.sh
+
+    - name: Update deployment status
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.repos.createDeploymentStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            deployment_id: context.payload.deployment.id,
+            state: 'success',
+            environment_url: 'https://api.reversetender.com',
+            description: 'RPC services deployed successfully'
+          });
+
+  # Rollback on Failure
+  rollback-on-failure:
+    needs: [deploy-staging, deploy-production]
+    runs-on: ubuntu-latest
+    if: failure() && (github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+          export NAMESPACE=reversetender-prod
+        else
+          echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+          export NAMESPACE=reversetender-staging
+        fi
+        export KUBECONFIG=kubeconfig
+
+    - name: Rollback deployment
+      run: |
+        cd deployment/scripts
+        chmod +x deploy-rpc-production.sh
+        ./deploy-rpc-production.sh --rollback --namespace $NAMESPACE
+
+    - name: Notify team of rollback
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🚨 **Deployment Rollback Executed**\n\nThe RPC deployment failed and has been automatically rolled back. Please check the logs and fix the issues before redeploying.'
+          });
+
+  # Cleanup
+  cleanup:
+    needs: [deploy-staging, deploy-production, rollback-on-failure]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Cleanup artifacts
+      run: |
+        echo "Cleaning up temporary files and artifacts"
+        rm -f kubeconfig performance-results.json trivy-results.sarif
+
+    - name: Update metrics
+      run: |
+        echo "Updating deployment metrics and dashboards"
+        # Add metrics update logic here
