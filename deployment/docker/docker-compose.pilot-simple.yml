@@ -37,9 +37,9 @@ services:
 
   # Simplified Gateway Service (REST only for testing)
   gateway-service-rest:
-    image: ghcr.io/abdoelhodaky/larvrevrstender/gateway-service:latest
+    image: webdevops/php-nginx:8.3-alpine
     ports:
-      - "8010:8000"
+      - "8010:80"
     environment:
       - APP_NAME=gateway-service-rest
       - APP_ENV=testing
@@ -50,6 +50,9 @@ services:
       - DB_DATABASE=pilot_db
       - DB_USERNAME=pilot_user
       - DB_PASSWORD=pilot123
+      - WEB_DOCUMENT_ROOT=/app/public
+    volumes:
+      - ../../services/gateway-service:/app
     networks:
       - pilot-network
     depends_on:
@@ -58,7 +61,7 @@ services:
       redis-dev:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
       interval: 15s
       timeout: 10s
       retries: 3
@@ -66,9 +69,9 @@ services:
 
   # Simplified Auth Service (REST only for testing)
   auth-service-rest:
-    image: ghcr.io/abdoelhodaky/larvrevrstender/auth-service:latest
+    image: webdevops/php-nginx:8.3-alpine
     ports:
-      - "8011:8000"
+      - "8011:80"
     environment:
       - APP_NAME=auth-service-rest
       - APP_ENV=testing
@@ -80,6 +83,9 @@ services:
       - DB_DATABASE=pilot_db
       - DB_USERNAME=pilot_user
       - DB_PASSWORD=pilot123
+      - WEB_DOCUMENT_ROOT=/app/public
+    volumes:
+      - ../../services/auth-service:/app
     networks:
       - pilot-network
     depends_on:
@@ -88,7 +94,7 @@ services:
       redis-dev:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
       interval: 15s
       timeout: 10s
       retries: 3
