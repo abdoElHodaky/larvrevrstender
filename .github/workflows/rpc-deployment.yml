@@ -235,9 +235,11 @@ jobs:
     - name: Upload coverage reports
       if: hashFiles('services/${{ matrix.service }}/coverage.xml') != ''
       uses: codecov/codecov-action@v3
+      continue-on-error: true
       with:
         file: services/${{ matrix.service }}/coverage.xml
         flags: ${{ matrix.service }}
+        fail_ci_if_error: false
 
   # Build and Push Docker Images - Batch 1 (Core Services)
   build-and-push-batch-1:
