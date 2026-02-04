@@ -243,6 +243,7 @@ jobs:
     
     strategy:
       fail-fast: false
+      max-parallel: 3
       matrix:
         service: [
           auth-service,
@@ -303,7 +304,10 @@ jobs:
         cache-to: type=gha,mode=max
         build-args: |
           SERVICE_NAME=${{ matrix.service }}
-      timeout-minutes: 15
+        platforms: linux/amd64
+        provenance: false
+        sbom: false
+      timeout-minutes: 30
 
   # Build and Push Docker Images - Batch 2 (Supporting Services)
   build-and-push-batch-2:
@@ -313,6 +317,7 @@ jobs:
     
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         service: [
           payment-service,
@@ -372,7 +377,10 @@ jobs:
         cache-to: type=gha,mode=max
         build-args: |
           SERVICE_NAME=${{ matrix.service }}
-      timeout-minutes: 15
+        platforms: linux/amd64
+        provenance: false
+        sbom: false
+      timeout-minutes: 30
 
   # Performance Testing
   performance-test:
