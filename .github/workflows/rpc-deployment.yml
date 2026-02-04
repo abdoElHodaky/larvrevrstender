@@ -256,7 +256,7 @@ jobs:
           user-service,
           analytics-service,
           order-service,
-          shared-service
+          gateway-service
         ]
 
     steps:
