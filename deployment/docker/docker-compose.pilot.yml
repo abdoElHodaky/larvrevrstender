@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Shared Service - REST & RPC
   gateway-service-rest:
@@ -165,8 +163,8 @@ services:
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     volumes:
       - grafana_pilot_data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ../monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ../monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
     networks:
       - pilot-network
     depends_on:
@@ -177,7 +175,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_pilot_data:/prometheus
     networks:
       - pilot-network
@@ -189,23 +187,23 @@ services:
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
 
-  # Load Testing Service
-  load-tester:
-    build:
-      context: ./load-testing
-      dockerfile: Dockerfile
-    volumes:
-      - ./load-testing/scripts:/scripts
-      - ./load-testing/results:/results
-    networks:
-      - pilot-network
-    depends_on:
-      - gateway-service-rest
-      - gateway-service-rpc
-      - auth-service-rest
-      - auth-service-rpc
-    profiles:
-      - testing
+  # Load Testing Service (disabled - missing dependencies)
+  # load-tester:
+  #   build:
+  #     context: ./load-testing
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - ./load-testing/scripts:/scripts
+  #     - ./load-testing/results:/results
+  #   networks:
+  #     - pilot-network
+  #   depends_on:
+  #     - gateway-service-rest
+  #     - gateway-service-rpc
+  #     - auth-service-rest
+  #     - auth-service-rpc
+  #   profiles:
+  #     - testing
 
 volumes:
   mysql_pilot_data:

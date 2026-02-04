@@ -171,7 +171,7 @@ $DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" up -d
 
 # Wait for services to be ready
 log "${BLUE}⏳ Waiting for Services to Start${NC}"
-sleep 30
+sleep 60
 
 # Health check function
 check_service() {
