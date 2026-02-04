@@ -615,12 +615,25 @@ jobs:
       uses: actions/github-script@v6
       with:
         script: |
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: '🚨 **Deployment Rollback Executed**\n\nThe RPC deployment failed and has been automatically rolled back. Please check the logs and fix the issues before redeploying.'
-          });
+          // For push events, create a commit comment instead of issue comment
+          if (context.eventName === 'push') {
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: '🚨 **Deployment Rollback Executed**\n\nThe RPC deployment failed and has been automatically rolled back. Please check the logs and fix the issues before redeploying.'
+            });
+          } else if (context.issue && context.issue.number) {
+            // For issue/PR events, create an issue comment
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚨 **Deployment Rollback Executed**\n\nThe RPC deployment failed and has been automatically rolled back. Please check the logs and fix the issues before redeploying.'
+            });
+          } else {
+            console.log('No suitable context for creating notification comment');
+          }
 
   # Cleanup
   cleanup:
