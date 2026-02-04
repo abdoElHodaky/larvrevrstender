@@ -25,27 +25,19 @@ RUN docker-php-ext-install -j$(nproc) \
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy only composer files first for better layer caching
-COPY services/${SERVICE_NAME}/composer.json services/${SERVICE_NAME}/composer.lock* ./
+# Copy application code first (simpler approach)
+COPY --chown=www-data:www-data services/${SERVICE_NAME} ./
 
 # Install composer dependencies with optimizations
 RUN if [ -f "composer.json" ]; then \
         composer install \
             --no-dev \
-            --no-scripts \
-            --no-autoloader \
             --optimize-autoloader \
+            --no-scripts \
             --prefer-dist \
             --no-interaction \
-            --quiet; \
-    fi
-
-# Copy application code
-COPY --chown=www-data:www-data services/${SERVICE_NAME} ./
-
-# Generate optimized autoloader and run post-install scripts
-RUN if [ -f "composer.json" ]; then \
-        composer dump-autoload --optimize --no-dev \
+            --quiet \
+        && composer dump-autoload --optimize --no-dev \
         && composer run-script --no-dev post-autoload-dump 2>/dev/null || true; \
     fi
 
