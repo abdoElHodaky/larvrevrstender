@@ -59,13 +59,29 @@ This directory contains comprehensive architectural diagrams for the Reverse Ten
 - Business rule enforcement
 - **Key Features**: State transitions, business rules, monitoring
 
-### **8. 🚀 [Deployment Architecture](./deployment-architecture.md)**
-- Multi-cloud infrastructure design
+### **8. 🚀 [Deployment Architecture](./deployment-architecture-updated.md)**
+- Multi-cloud infrastructure with Kubernetes Gateway API
 - DigitalOcean and Linode cluster specifications
 - High availability and disaster recovery
-- CI/CD pipeline and deployment strategies
-- Monitoring and observability stack
-- **Key Features**: Multi-cloud, HA/DR, monitoring, security
+- Advanced CI/CD pipeline with Laravel 12 support
+- Comprehensive monitoring and observability stack
+- **Key Features**: Gateway API, multi-cloud, HA/DR, security, compliance
+
+### **9. 🌐 [Gateway API Architecture](./gateway-api-architecture.md)**
+- Kubernetes Gateway API implementation
+- REST and RPC service routing
+- Advanced load balancing and scaling
+- Security policies and middleware stack
+- Performance optimization and monitoring
+- **Key Features**: Cloud-native, vendor-neutral, extensible, secure
+
+### **10. 🔄 [CI/CD Pipeline Architecture](./cicd-pipeline-architecture.md)**
+- Laravel 12 upgrade validation pipeline
+- RPC services deployment workflow
+- Branch-based deployment strategy
+- Comprehensive testing matrix (PHP 8.2/8.3)
+- Performance testing and security scanning
+- **Key Features**: Automated testing, security integration, multi-environment
 
 ## 🎯 Diagram Usage Guide
 
@@ -76,7 +92,9 @@ This directory contains comprehensive architectural diagrams for the Reverse Ten
 - **Real-time Features**: [Bidding System Flow](./bidding-system-flow.md) for WebSocket integration
 
 ### **For DevOps Engineers**
-- **Infrastructure**: [Deployment Architecture](./deployment-architecture.md) for infrastructure setup
+- **Infrastructure**: [Deployment Architecture](./deployment-architecture-updated.md) for infrastructure setup
+- **Gateway API**: [Gateway API Architecture](./gateway-api-architecture.md) for API gateway implementation
+- **CI/CD Pipeline**: [CI/CD Pipeline Architecture](./cicd-pipeline-architecture.md) for deployment automation
 - **Monitoring**: [Notification Architecture](./notification-architecture.md) for observability
 - **Data Flow**: [Data Flow Diagram](./data-flow-diagram.md) for system understanding
 
@@ -87,7 +105,8 @@ This directory contains comprehensive architectural diagrams for the Reverse Ten
 
 ### **For Project Managers**
 - **System Scope**: [Data Flow Diagram](./data-flow-diagram.md) for project boundaries
-- **Technical Complexity**: [Deployment Architecture](./deployment-architecture.md) for resource planning
+- **Technical Complexity**: [Deployment Architecture](./deployment-architecture-updated.md) for resource planning
+- **CI/CD Pipeline**: [CI/CD Pipeline Architecture](./cicd-pipeline-architecture.md) for delivery planning
 - **Integration Points**: [Notification Architecture](./notification-architecture.md) for external dependencies
 
 ## 🔧 Technical Specifications
@@ -120,13 +139,60 @@ This directory contains comprehensive architectural diagrams for the Reverse Ten
 - [x] Notification Architecture (Multi-channel)
 - [x] Data Flow Diagram (DFD Levels 0-2)
 - [x] System State Diagram (Complete lifecycle)
-- [x] Deployment Architecture (Multi-cloud)
+- [x] Deployment Architecture (Multi-cloud with Gateway API)
+- [x] Gateway API Architecture (Kubernetes Gateway API)
+- [x] CI/CD Pipeline Architecture (Laravel 12 + RPC Services)
+- [x] RPC Architecture Overview (Complete RPC implementation)
+- [x] RPC Communication Flow (Service interactions)
+- [x] RPC Deployment Pipeline (RPC-specific deployment)
+- [x] RPC Middleware Stack (Comprehensive middleware)
+- [x] RPC Octane Integration (Laravel Octane + RPC)
+- [x] RPC Performance Comparison (REST vs RPC benchmarks)
+- [x] RPC Service Procedures (Service definitions)
 
 ### **📋 Diagram Metrics**
-- **Total Diagrams**: 8 comprehensive diagrams
-- **Total Components**: 50+ system components documented
+- **Total Diagrams**: 17 comprehensive diagrams
+- **Core Architecture**: 10 main system diagrams
+- **RPC Specialized**: 7 RPC-focused diagrams
+- **Total Components**: 100+ system components documented
 - **Coverage**: 100% of planned system architecture
 - **Format**: Mermaid markdown for GitHub integration
+- **Gateway API**: Complete Kubernetes Gateway API implementation
+- **CI/CD Coverage**: Full Laravel 12 + RPC deployment pipeline
+
+## 🗺️ Diagram Navigation
+
+### **🏗️ Core Architecture Diagrams**
+- **[Microservices Architecture](./microservices-architecture.md)** - System overview
+- **[Service Architecture](./service-architecture.md)** - Service design patterns
+- **[Gateway API Architecture](./gateway-api-architecture.md)** - API gateway implementation
+- **[Deployment Architecture](./deployment-architecture-updated.md)** - Infrastructure & CI/CD
+
+### **🔄 Process & Flow Diagrams**
+- **[Authentication Flow](./authentication-flow.md)** - User authentication process
+- **[Bidding System Flow](./bidding-system-flow.md)** - Real-time bidding process
+- **[Data Flow Diagram](./data-flow-diagram.md)** - System data flows
+- **[System State Diagram](./system-state-diagram.md)** - State transitions
+
+### **🚀 RPC & Performance Diagrams**
+- **[RPC Architecture Overview](./rpc-architecture-overview.md)** - RPC system design
+- **[RPC Communication Flow](./rpc-communication-flow.md)** - Service interactions
+- **[RPC Performance Comparison](./rpc-performance-comparison.md)** - Performance benchmarks
+- **[RPC Middleware Stack](./rpc-middleware-stack.md)** - Middleware architecture
+- **[RPC Octane Integration](./rpc-octane-integration.md)** - Laravel Octane integration
+- **[RPC Service Procedures](./rpc-service-procedures.md)** - Service definitions
+
+### **⚙️ Operations & Deployment Diagrams**
+- **[CI/CD Pipeline Architecture](./cicd-pipeline-architecture.md)** - Deployment automation
+- **[RPC Deployment Pipeline](./rpc-deployment-pipeline.md)** - RPC deployment process
+- **[Notification Architecture](./notification-architecture.md)** - Multi-channel notifications
+
+### **📊 Data & Schema Diagrams**
+- **[Database Schema](./database-schema.md)** - Complete ERD with ZATCA compliance
+
+### **📚 Documentation Indexes**
+- **[RPC Diagrams Index](./RPC_DIAGRAMS_INDEX.md)** - Complete RPC diagram catalog
+- **[Style Guide](./STYLE_GUIDE.md)** - Diagram styling standards
 
 ## 🔗 Related Documentation
 
@@ -138,4 +204,3 @@ This directory contains comprehensive architectural diagrams for the Reverse Ten
 ---
 
 **📝 Note**: These diagrams are living documents that evolve with the system. Always refer to the latest version in the main branch for the most current architecture.
-
