@@ -196,7 +196,7 @@ sequenceDiagram
 ```yaml
 # 9 RPC Services × 2 PHP Versions = 18 Test Jobs
 services: [
-  'shared-service', 'auth-service', 'user-service',
+  'gateway-service', 'auth-service', 'user-service',
   'analytics-service', 'order-service', 'payment-service',
   'bidding-service', 'notification-service', 'vin-ocr-service'
 ]

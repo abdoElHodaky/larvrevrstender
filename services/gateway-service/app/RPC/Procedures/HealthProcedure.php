@@ -19,7 +19,7 @@ class HealthProcedure extends BaseProcedure
         return $this->executeWithLogging('Health@ping', [], function () {
             return [
                 'status' => 'healthy',
-                'service' => 'shared-service',
+                'service' => 'gateway-service',
                 'version' => config('app.version', '1.0.0'),
                 'timestamp' => now()->toISOString(),
                 'octane_enabled' => config('octane.server') !== null,

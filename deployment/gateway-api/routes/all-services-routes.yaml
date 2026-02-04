@@ -1,0 +1,185 @@
+# Analytics Service Route
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: analytics-service-route
+  namespace: reversetender-prod
+  labels:
+    app: analytics-service
+    tier: backend
+spec:
+  parentRefs:
+  - name: rpc-gateway
+    namespace: reversetender-prod
+  hostnames:
+  - "api.reversetender.sa"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /rpc/analytics
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /rpc
+    backendRefs:
+    - name: analytics-service-rpc
+      port: 8003
+      weight: 100
+---
+# Order Service Route
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: order-service-route
+  namespace: reversetender-prod
+  labels:
+    app: order-service
+    tier: backend
+spec:
+  parentRefs:
+  - name: rpc-gateway
+    namespace: reversetender-prod
+  hostnames:
+  - "api.reversetender.sa"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /rpc/orders
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /rpc
+    backendRefs:
+    - name: order-service-rpc
+      port: 8004
+      weight: 100
+---
+# Payment Service Route
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: payment-service-route
+  namespace: reversetender-prod
+  labels:
+    app: payment-service
+    tier: backend
+spec:
+  parentRefs:
+  - name: rpc-gateway
+    namespace: reversetender-prod
+  hostnames:
+  - "api.reversetender.sa"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /rpc/payments
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /rpc
+    backendRefs:
+    - name: payment-service-rpc
+      port: 8005
+      weight: 100
+---
+# Bidding Service Route
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: bidding-service-route
+  namespace: reversetender-prod
+  labels:
+    app: bidding-service
+    tier: backend
+spec:
+  parentRefs:
+  - name: rpc-gateway
+    namespace: reversetender-prod
+  hostnames:
+  - "api.reversetender.sa"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /rpc/bidding
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /rpc
+    backendRefs:
+    - name: bidding-service-rpc
+      port: 8006
+      weight: 100
+---
+# Notification Service Route
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: notification-service-route
+  namespace: reversetender-prod
+  labels:
+    app: notification-service
+    tier: backend
+spec:
+  parentRefs:
+  - name: rpc-gateway
+    namespace: reversetender-prod
+  hostnames:
+  - "api.reversetender.sa"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /rpc/notifications
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /rpc
+    backendRefs:
+    - name: notification-service-rpc
+      port: 8007
+      weight: 100
+---
+# VIN OCR Service Route
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: vin-ocr-service-route
+  namespace: reversetender-prod
+  labels:
+    app: vin-ocr-service
+    tier: backend
+spec:
+  parentRefs:
+  - name: rpc-gateway
+    namespace: reversetender-prod
+  hostnames:
+  - "api.reversetender.sa"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /rpc/vin-ocr
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /rpc
+    backendRefs:
+    - name: vin-ocr-service-rpc
+      port: 8008
+      weight: 100

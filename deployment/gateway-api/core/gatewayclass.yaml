@@ -1,0 +1,27 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: rpc-gateway-class
+  namespace: reversetender-prod
+spec:
+  controllerName: gateway.nginx.org/nginx-gateway-controller
+  description: "Gateway class for RPC microservices routing"
+  parametersRef:
+    group: gateway.nginx.org
+    kind: NginxGateway
+    name: rpc-gateway-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rpc-gateway-config
+  namespace: reversetender-prod
+data:
+  nginx.conf: |
+    upstream_keepalive_connections: 32
+    upstream_keepalive_requests: 100
+    upstream_keepalive_timeout: 60s
+    proxy_connect_timeout: 60s
+    proxy_send_timeout: 60s
+    proxy_read_timeout: 60s
+

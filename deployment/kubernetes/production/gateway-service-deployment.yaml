@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: shared-service-rpc
+  name: gateway-service-rpc
   namespace: reversetender-prod
   labels:
-    app: shared-service
+    app: gateway-service
     version: rpc
     tier: backend
 spec:
@@ -16,12 +16,12 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: shared-service
+      app: gateway-service
       version: rpc
   template:
     metadata:
       labels:
-        app: shared-service
+        app: gateway-service
         version: rpc
         tier: backend
       annotations:
@@ -30,8 +30,8 @@ spec:
         prometheus.io/path: "/metrics"
     spec:
       containers:
-      - name: shared-service-rpc
-        image: reversetender/shared-service:rpc-latest
+      - name: gateway-service-rpc
+        image: reversetender/gateway-service:rpc-latest
         ports:
         - containerPort: 8000
           name: http
@@ -41,7 +41,7 @@ spec:
           protocol: TCP
         env:
         - name: APP_NAME
-          value: "shared-service"
+          value: "gateway-service"
         - name: APP_ENV
           value: "production"
         - name: OCTANE_SERVER
@@ -127,10 +127,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: shared-service-rpc
+  name: gateway-service-rpc
   namespace: reversetender-prod
   labels:
-    app: shared-service
+    app: gateway-service
     version: rpc
 spec:
   type: ClusterIP
@@ -144,17 +144,17 @@ spec:
     protocol: TCP
     name: rpc
   selector:
-    app: shared-service
+    app: gateway-service
     version: rpc
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: shared-service-rpc-headless
+  name: gateway-service-rpc-headless
   namespace: reversetender-prod
   labels:
-    app: shared-service
+    app: gateway-service
     version: rpc
 spec:
   type: ClusterIP
@@ -165,20 +165,20 @@ spec:
     protocol: TCP
     name: rpc
   selector:
-    app: shared-service
+    app: gateway-service
     version: rpc
 
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: shared-service-rpc-hpa
+  name: gateway-service-rpc-hpa
   namespace: reversetender-prod
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: shared-service-rpc
+    name: gateway-service-rpc
   minReplicas: 3
   maxReplicas: 10
   metrics:
@@ -212,25 +212,25 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: shared-service-rpc-pdb
+  name: gateway-service-rpc-pdb
   namespace: reversetender-prod
 spec:
   minAvailable: 2
   selector:
     matchLabels:
-      app: shared-service
+      app: gateway-service
       version: rpc
 
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: shared-service-rpc-netpol
+  name: gateway-service-rpc-netpol
   namespace: reversetender-prod
 spec:
   podSelector:
     matchLabels:
-      app: shared-service
+      app: gateway-service
       version: rpc
   policyTypes:
   - Ingress

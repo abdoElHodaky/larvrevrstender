@@ -31,12 +31,12 @@ This document provides a comprehensive guide for troubleshooting CI/CD pipeline 
 **Files Modified**: `services/auth-service/composer.json`
 
 ### Phase 2: Docker Build Context Issues ✅ RESOLVED
-**Issue**: Problematic shared-service copy in Dockerfile
+**Issue**: Problematic gateway-service copy in Dockerfile
 **Symptoms**:
 - Docker build context errors
 - File not found during COPY operations
 
-**Solution**: Removed shared-service copy, made composer install conditional
+**Solution**: Removed gateway-service copy, made composer install conditional
 **Files Modified**: `deployment/docker/Dockerfile.rpc`
 
 ### Phase 3: PHP Extension Compilation ✅ RESOLVED

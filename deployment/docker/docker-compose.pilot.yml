@@ -2,21 +2,21 @@ version: '3.8'
 
 services:
   # Shared Service - REST & RPC
-  shared-service-rest:
+  gateway-service-rest:
     build:
-      context: ../../services/shared-service
+      context: ../../services/gateway-service
       dockerfile: ../../deployment/docker/Dockerfile.rest
     ports:
       - "8010:8000"
     environment:
-      - APP_NAME=shared-service-rest
+      - APP_NAME=gateway-service-rest
       - APP_ENV=development
       - DB_HOST=mysql-dev
       - REDIS_HOST=redis-dev
       - LOG_CHANNEL=stack
       - LOG_LEVEL=debug
     volumes:
-      - ../../services/shared-service:/app
+      - ../../services/gateway-service:/app
       - ./logs/shared-rest:/app/storage/logs
     networks:
       - pilot-network
@@ -29,15 +29,15 @@ services:
       timeout: 10s
       retries: 3
 
-  shared-service-rpc:
+  gateway-service-rpc:
     build:
-      context: ../../services/shared-service
+      context: ../../services/gateway-service
       dockerfile: ../../deployment/docker/Dockerfile.rpc
     ports:
       - "6010:6010"
       - "8012:8000"  # HTTP health checks
     environment:
-      - APP_NAME=shared-service-rpc
+      - APP_NAME=gateway-service-rpc
       - APP_ENV=development
       - OCTANE_SERVER=frankenphp
       - OCTANE_WORKERS=2
@@ -50,7 +50,7 @@ services:
       - LOG_CHANNEL=stack
       - LOG_LEVEL=debug
     volumes:
-      - ../../services/shared-service:/app
+      - ../../services/gateway-service:/app
       - ./logs/shared-rpc:/app/storage/logs
     networks:
       - pilot-network
@@ -200,8 +200,8 @@ services:
     networks:
       - pilot-network
     depends_on:
-      - shared-service-rest
-      - shared-service-rpc
+      - gateway-service-rest
+      - gateway-service-rpc
       - auth-service-rest
       - auth-service-rpc
     profiles:

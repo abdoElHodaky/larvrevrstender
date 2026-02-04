@@ -242,34 +242,34 @@ version: '3.8'
 
 services:
   # Shared Service - REST & RPC
-  shared-service-rest:
+  gateway-service-rest:
     build:
-      context: ../../services/shared-service
+      context: ../../services/gateway-service
       dockerfile: ../../deployment/docker/Dockerfile.rest
     ports:
       - "8010:8000"
     environment:
-      - APP_NAME=shared-service-rest
+      - APP_NAME=gateway-service-rest
       - APP_ENV=development
       - DB_HOST=mysql-dev
       - REDIS_HOST=redis-dev
     volumes:
-      - ../../services/shared-service:/app
+      - ../../services/gateway-service:/app
     networks:
       - pilot-network
     depends_on:
       - mysql-dev
       - redis-dev
 
-  shared-service-rpc:
+  gateway-service-rpc:
     build:
-      context: ../../services/shared-service
+      context: ../../services/gateway-service
       dockerfile: ../../deployment/docker/Dockerfile.rpc
     ports:
       - "6010:6010"
       - "8012:8000"  # HTTP health checks
     environment:
-      - APP_NAME=shared-service-rpc
+      - APP_NAME=gateway-service-rpc
       - APP_ENV=development
       - OCTANE_SERVER=frankenphp
       - OCTANE_WORKERS=2
@@ -278,7 +278,7 @@ services:
       - DB_HOST=mysql-dev
       - REDIS_HOST=redis-dev
     volumes:
-      - ../../services/shared-service:/app
+      - ../../services/gateway-service:/app
     networks:
       - pilot-network
     depends_on:
@@ -380,7 +380,7 @@ networks:
 
 ### **Shared Service Structure**
 ```
-services/shared-service/
+services/gateway-service/
 ├── app/
 │   ├── RPC/
 │   │   ├── BaseProcedure.php
@@ -406,7 +406,7 @@ services/shared-service/
 ### **Base Procedure Implementation**
 ```php
 <?php
-// services/shared-service/app/RPC/BaseProcedure.php
+// services/gateway-service/app/RPC/BaseProcedure.php
 
 namespace App\RPC;
 
@@ -449,7 +449,7 @@ abstract class BaseProcedure extends Procedure
         $endTime = microtime(true);
         $metrics = [
             'type' => 'rpc_call',
-            'service' => 'shared-service',
+            'service' => 'gateway-service',
             'method' => $method,
             'correlation_id' => $this->getCorrelationId(),
             'response_time_ms' => round(($endTime - $startTime) * 1000, 2),
@@ -468,7 +468,7 @@ abstract class BaseProcedure extends Procedure
 ### **Health Procedure Implementation**
 ```php
 <?php
-// services/shared-service/app/RPC/Procedures/HealthProcedure.php
+// services/gateway-service/app/RPC/Procedures/HealthProcedure.php
 
 namespace App\RPC\Procedures;
 
@@ -488,7 +488,7 @@ class HealthProcedure extends BaseProcedure
         
         $result = [
             'status' => 'healthy',
-            'service' => 'shared-service',
+            'service' => 'gateway-service',
             'version' => config('app.version', '1.0.0'),
             'timestamp' => now()->toISOString(),
             'octane_enabled' => config('octane.server') !== null,
@@ -633,7 +633,7 @@ class HealthProcedure extends BaseProcedure
 ### **Utility Procedure Implementation**
 ```php
 <?php
-// services/shared-service/app/RPC/Procedures/UtilityProcedure.php
+// services/gateway-service/app/RPC/Procedures/UtilityProcedure.php
 
 namespace App\RPC\Procedures;
 
@@ -936,7 +936,7 @@ class AuthProcedure extends BaseProcedure
 ### **Octane Configuration for Pilot Services**
 ```php
 <?php
-// services/shared-service/config/octane.php
+// services/gateway-service/config/octane.php
 
 return [
     'server' => env('OCTANE_SERVER', 'frankenphp'),
@@ -1008,7 +1008,7 @@ return [
 ### **RPC Routes Configuration**
 ```php
 <?php
-// services/shared-service/routes/rpc.php
+// services/gateway-service/routes/rpc.php
 
 use Sajya\Server\Route;
 use App\RPC\Procedures\HealthProcedure;
