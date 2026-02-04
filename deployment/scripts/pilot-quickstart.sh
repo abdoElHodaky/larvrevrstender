@@ -37,10 +37,18 @@ if ! command_exists docker; then
     exit 1
 fi
 
-if ! command_exists docker-compose; then
+# Check for Docker Compose (both legacy and modern versions)
+DOCKER_COMPOSE_CMD=""
+if command_exists docker-compose; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+elif docker compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE_CMD="docker compose"
+else
     log "${RED}❌ Docker Compose is not installed. Please install Docker Compose first.${NC}"
     exit 1
 fi
+
+log "${GREEN}✅ Docker Compose found: $DOCKER_COMPOSE_CMD${NC}"
 
 if ! command_exists node; then
     log "${RED}❌ Node.js is not installed. Please install Node.js first.${NC}"
@@ -158,8 +166,8 @@ EOF
 # Start the pilot environment
 log "${BLUE}🐳 Starting Docker Environment${NC}"
 cd "$PILOT_DIR"
-docker-compose -f "$DOCKER_COMPOSE_FILE" down --remove-orphans
-docker-compose -f "$DOCKER_COMPOSE_FILE" up -d
+$DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" down --remove-orphans
+$DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" up -d
 
 # Wait for services to be ready
 log "${BLUE}⏳ Waiting for Services to Start${NC}"
@@ -238,10 +246,10 @@ echo -e "   cd deployment/scripts"
 echo -e "   ./pilot-performance-test.sh"
 echo -e ""
 echo -e "4. ${GREEN}View Logs:${NC}"
-echo -e "   docker-compose -f deployment/docker/docker-compose.pilot.yml logs -f"
+echo -e "   $DOCKER_COMPOSE_CMD -f deployment/docker/docker-compose.pilot.yml logs -f"
 echo -e ""
 echo -e "5. ${GREEN}Stop Environment:${NC}"
-echo -e "   docker-compose -f deployment/docker/docker-compose.pilot.yml down"
+echo -e "   $DOCKER_COMPOSE_CMD -f deployment/docker/docker-compose.pilot.yml down"
 
 log "${GREEN}🚀 RPC Pilot Environment is Ready!${NC}"
 log "${GREEN}📊 Check the performance results and start developing your RPC procedures.${NC}"
