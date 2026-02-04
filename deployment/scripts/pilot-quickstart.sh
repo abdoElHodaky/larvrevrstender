@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 PILOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DOCKER_COMPOSE_FILE="$PILOT_DIR/docker/docker-compose.pilot.yml"
+DOCKER_COMPOSE_FILE="$PILOT_DIR/docker/docker-compose.pilot-simple.yml"
 
 echo -e "${BLUE}🚀 RPC Pilot Implementation Quick Start${NC}"
 echo -e "${BLUE}======================================${NC}"
@@ -109,69 +109,25 @@ chmod +x "$PILOT_DIR/scripts/pilot-performance-test.sh"
 chmod +x "$PILOT_DIR/scripts/rpc-load-test.js"
 chmod +x "$PILOT_DIR/scripts/pilot-quickstart.sh"
 
-# Create Prometheus configuration
-log "${BLUE}⚙️ Creating Monitoring Configuration${NC}"
-cat > "$PILOT_DIR/monitoring/prometheus/prometheus.yml" << EOF
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+# Skip monitoring configuration for simplified setup
+log "${BLUE}⚙️ Simplified Setup - Skipping Monitoring Configuration${NC}"
 
-rule_files:
-  # - "first_rules.yml"
-  # - "second_rules.yml"
-
-scrape_configs:
-  - job_name: 'prometheus'
-    static_configs:
-      - targets: ['localhost:9090']
-
-  - job_name: 'gateway-service-rest'
-    static_configs:
-      - targets: ['gateway-service-rest:8000']
-    metrics_path: '/metrics'
-    scrape_interval: 5s
-
-  - job_name: 'gateway-service-rpc'
-    static_configs:
-      - targets: ['gateway-service-rpc:8000']
-    metrics_path: '/metrics'
-    scrape_interval: 5s
-
-  - job_name: 'auth-service-rest'
-    static_configs:
-      - targets: ['auth-service-rest:8000']
-    metrics_path: '/metrics'
-    scrape_interval: 5s
-
-  - job_name: 'auth-service-rpc'
-    static_configs:
-      - targets: ['auth-service-rpc:8000']
-    metrics_path: '/metrics'
-    scrape_interval: 5s
-EOF
-
-# Create Grafana datasource configuration
-cat > "$PILOT_DIR/monitoring/grafana/datasources/prometheus.yml" << EOF
-apiVersion: 1
-
-datasources:
-  - name: Prometheus
-    type: prometheus
-    access: proxy
-    url: http://prometheus:9090
-    isDefault: true
-    editable: true
-EOF
-
-# Start the pilot environment
-log "${BLUE}🐳 Starting Docker Environment${NC}"
+# Start the pilot environment with staged approach
+log "${BLUE}🐳 Starting Docker Environment (Staged Approach)${NC}"
 cd "$PILOT_DIR"
 $DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" down --remove-orphans
-$DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" up -d
 
-# Wait for services to be ready
-log "${BLUE}⏳ Waiting for Services to Start${NC}"
-sleep 60
+# Stage 1: Start infrastructure services first
+log "${BLUE}📊 Stage 1: Starting Infrastructure Services${NC}"
+$DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" up -d mysql-dev redis-dev
+log "${BLUE}⏳ Waiting for infrastructure services...${NC}"
+sleep 30
+
+# Stage 2: Start application services
+log "${BLUE}🚀 Stage 2: Starting Application Services${NC}"
+$DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" up -d gateway-service-rest auth-service-rest
+log "${BLUE}⏳ Waiting for application services...${NC}"
+sleep 45
 
 # Health check function
 check_service() {
@@ -195,28 +151,18 @@ check_service() {
     return 1
 }
 
-# Check all services
+# Check simplified services
 log "${BLUE}🔍 Checking Service Health${NC}"
-check_service "MySQL" "http://localhost:3306" || true
-check_service "Redis" "http://localhost:6379" || true
-check_service "Shared Service REST" "http://localhost:8010/api/health"
-check_service "Shared Service RPC" "http://localhost:6010"
+check_service "Gateway Service REST" "http://localhost:8010/api/health"
 check_service "Auth Service REST" "http://localhost:8011/api/health"
-check_service "Auth Service RPC" "http://localhost:6011"
-check_service "Grafana" "http://localhost:9000"
-check_service "Prometheus" "http://localhost:9090"
 
 # Display service status
 log "${BLUE}📊 Service Status Dashboard${NC}"
 echo -e "${BLUE}================================${NC}"
-echo -e "${GREEN}✅ Shared Service REST:${NC} http://localhost:8010"
-echo -e "${GREEN}✅ Shared Service RPC:${NC}  http://localhost:6010"
+echo -e "${GREEN}✅ Gateway Service REST:${NC} http://localhost:8010"
 echo -e "${GREEN}✅ Auth Service REST:${NC}    http://localhost:8011"
-echo -e "${GREEN}✅ Auth Service RPC:${NC}     http://localhost:6011"
-echo -e "${GREEN}✅ Grafana Dashboard:${NC}    http://localhost:9000 (admin/pilot123)"
-echo -e "${GREEN}✅ Prometheus:${NC}           http://localhost:9090"
-echo -e "${GREEN}✅ MySQL:${NC}                localhost:3306 (pilot_user/pilot123)"
-echo -e "${GREEN}✅ Redis:${NC}                localhost:6379"
+echo -e "${GREEN}✅ MySQL Database:${NC}       localhost:3306 (pilot_user/pilot123)"
+echo -e "${GREEN}✅ Redis Cache:${NC}          localhost:6379"
 
 # Run initial performance test
 log "${BLUE}🧪 Running Initial Performance Test${NC}"
@@ -232,24 +178,21 @@ fi
 # Display next steps
 echo -e "\n${BLUE}🎯 Next Steps:${NC}"
 echo -e "${BLUE}==============${NC}"
-echo -e "1. ${GREEN}View Grafana Dashboard:${NC} http://localhost:9000"
-echo -e "   - Username: admin"
-echo -e "   - Password: pilot123"
+echo -e "1. ${GREEN}Test Gateway Service:${NC}"
+echo -e "   curl http://localhost:8010/api/health"
 echo -e ""
-echo -e "2. ${GREEN}Test RPC Endpoints:${NC}"
-echo -e "   curl -X POST http://localhost:6010 \\"
-echo -e "     -H 'Content-Type: application/json' \\"
-echo -e "     -d '{\"jsonrpc\":\"2.0\",\"method\":\"Health@ping\",\"id\":1}'"
+echo -e "2. ${GREEN}Test Auth Service:${NC}"
+echo -e "   curl http://localhost:8011/api/health"
 echo -e ""
-echo -e "3. ${GREEN}Run Custom Load Tests:${NC}"
+echo -e "3. ${GREEN}Run Performance Tests:${NC}"
 echo -e "   cd deployment/scripts"
 echo -e "   ./pilot-performance-test.sh"
 echo -e ""
 echo -e "4. ${GREEN}View Logs:${NC}"
-echo -e "   $DOCKER_COMPOSE_CMD -f deployment/docker/docker-compose.pilot.yml logs -f"
+echo -e "   $DOCKER_COMPOSE_CMD -f deployment/docker/docker-compose.pilot-simple.yml logs -f"
 echo -e ""
 echo -e "5. ${GREEN}Stop Environment:${NC}"
-echo -e "   $DOCKER_COMPOSE_CMD -f deployment/docker/docker-compose.pilot.yml down"
+echo -e "   $DOCKER_COMPOSE_CMD -f deployment/docker/docker-compose.pilot-simple.yml down"
 
 log "${GREEN}🚀 RPC Pilot Environment is Ready!${NC}"
 log "${GREEN}📊 Check the performance results and start developing your RPC procedures.${NC}"
