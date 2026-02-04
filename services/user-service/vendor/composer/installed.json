@@ -2,17 +2,17 @@
     "packages": [
         {
             "name": "brick/math",
-            "version": "0.14.3",
-            "version_normalized": "0.14.3.0",
+            "version": "0.14.5",
+            "version_normalized": "0.14.5.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/brick/math.git",
-                "reference": "6af96b11de3f7d99730c118c200418c48274edb4"
+                "reference": "618a8077b3c326045e10d5788ed713b341fcfe40"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/brick/math/zipball/6af96b11de3f7d99730c118c200418c48274edb4",
-                "reference": "6af96b11de3f7d99730c118c200418c48274edb4",
+                "url": "https://api.github.com/repos/brick/math/zipball/618a8077b3c326045e10d5788ed713b341fcfe40",
+                "reference": "618a8077b3c326045e10d5788ed713b341fcfe40",
                 "shasum": ""
             },
             "require": {
@@ -23,7 +23,7 @@
                 "phpstan/phpstan": "2.1.22",
                 "phpunit/phpunit": "^11.5"
             },
-            "time": "2026-02-01T15:18:05+00:00",
+            "time": "2026-02-03T18:06:51+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -53,7 +53,7 @@
             ],
             "support": {
                 "issues": "https://github.com/brick/math/issues",
-                "source": "https://github.com/brick/math/tree/0.14.3"
+                "source": "https://github.com/brick/math/tree/0.14.5"
             },
             "funding": [
                 {
@@ -3412,17 +3412,17 @@
         },
         {
             "name": "nette/utils",
-            "version": "v4.1.1",
-            "version_normalized": "4.1.1.0",
+            "version": "v4.1.2",
+            "version_normalized": "4.1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/utils.git",
-                "reference": "c99059c0315591f1a0db7ad6002000288ab8dc72"
+                "reference": "f76b5dc3d6c6d3043c8d937df2698515b99cbaf5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/utils/zipball/c99059c0315591f1a0db7ad6002000288ab8dc72",
-                "reference": "c99059c0315591f1a0db7ad6002000288ab8dc72",
+                "url": "https://api.github.com/repos/nette/utils/zipball/f76b5dc3d6c6d3043c8d937df2698515b99cbaf5",
+                "reference": "f76b5dc3d6c6d3043c8d937df2698515b99cbaf5",
                 "shasum": ""
             },
             "require": {
@@ -3435,7 +3435,7 @@
             "require-dev": {
                 "jetbrains/phpstorm-attributes": "^1.2",
                 "nette/tester": "^2.5",
-                "phpstan/phpstan-nette": "^2.0@stable",
+                "phpstan/phpstan": "^2.0@stable",
                 "tracy/tracy": "^2.9"
             },
             "suggest": {
@@ -3446,7 +3446,7 @@
                 "ext-mbstring": "to use Strings::lower() etc...",
                 "ext-tokenizer": "to use Nette\\Utils\\Reflection::getUseStatements()"
             },
-            "time": "2025-12-22T12:14:32+00:00",
+            "time": "2026-02-03T17:21:09+00:00",
             "type": "library",
             "extra": {
                 "branch-alias": {
@@ -3498,7 +3498,7 @@
             ],
             "support": {
                 "issues": "https://github.com/nette/utils/issues",
-                "source": "https://github.com/nette/utils/tree/v4.1.1"
+                "source": "https://github.com/nette/utils/tree/v4.1.2"
             },
             "install-path": "../nette/utils"
         },
@@ -4052,30 +4052,30 @@
         },
         {
             "name": "phpunit/php-file-iterator",
-            "version": "5.1.0",
-            "version_normalized": "5.1.0.0",
+            "version": "5.1.1",
+            "version_normalized": "5.1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/php-file-iterator.git",
-                "reference": "118cfaaa8bc5aef3287bf315b6060b1174754af6"
+                "reference": "2f3a64888c814fc235386b7387dd5b5ed92ad903"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/php-file-iterator/zipball/118cfaaa8bc5aef3287bf315b6060b1174754af6",
-                "reference": "118cfaaa8bc5aef3287bf315b6060b1174754af6",
+                "url": "https://api.github.com/repos/sebastianbergmann/php-file-iterator/zipball/2f3a64888c814fc235386b7387dd5b5ed92ad903",
+                "reference": "2f3a64888c814fc235386b7387dd5b5ed92ad903",
                 "shasum": ""
             },
             "require": {
                 "php": ">=8.2"
             },
             "require-dev": {
-                "phpunit/phpunit": "^11.0"
+                "phpunit/phpunit": "^11.3"
             },
-            "time": "2024-08-27T05:02:59+00:00",
+            "time": "2026-02-02T13:52:54+00:00",
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-main": "5.0-dev"
+                    "dev-main": "5.1-dev"
                 }
             },
             "installation-source": "dist",
@@ -4104,12 +4104,24 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/php-file-iterator/issues",
                 "security": "https://github.com/sebastianbergmann/php-file-iterator/security/policy",
-                "source": "https://github.com/sebastianbergmann/php-file-iterator/tree/5.1.0"
+                "source": "https://github.com/sebastianbergmann/php-file-iterator/tree/5.1.1"
             },
             "funding": [
                 {
                     "url": "https://github.com/sebastianbergmann",
                     "type": "github"
+                },
+                {
+                    "url": "https://liberapay.com/sebastianbergmann",
+                    "type": "liberapay"
+                },
+                {
+                    "url": "https://thanks.dev/u/gh/sebastianbergmann",
+                    "type": "thanks_dev"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/phpunit/php-file-iterator",
+                    "type": "tidelift"
                 }
             ],
             "install-path": "../phpunit/php-file-iterator"
@@ -5208,6 +5220,138 @@
                 "source": "https://github.com/ramsey/uuid/tree/4.9.2"
             },
             "install-path": "../ramsey/uuid"
+        },
+        {
+            "name": "sajya/client",
+            "version": "1.4.1",
+            "version_normalized": "1.4.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/sajya/client.git",
+                "reference": "e61bedcf60c1d9d32d2c20df8710c3f1986934de"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/sajya/client/zipball/e61bedcf60c1d9d32d2c20df8710c3f1986934de",
+                "reference": "e61bedcf60c1d9d32d2c20df8710c3f1986934de",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^7.4",
+                "illuminate/http": "^8.0|^9.0|^10.0|^11.0|^12.0",
+                "illuminate/support": "8.0|^9.0|^10.0|^11.0|^12.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^7.0|^8.0|^9.0|^10.0",
+                "sajya/server": "^5.2|^6.0|^7.0"
+            },
+            "time": "2025-12-23T15:30:19+00:00",
+            "type": "library",
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "Sajya\\Client\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "tabuna",
+                    "email": "bliz48rus@gmail.com"
+                }
+            ],
+            "description": "HTTP client and server for JSON-RPC 2.0",
+            "homepage": "https://sajya.github.io",
+            "keywords": [
+                "api",
+                "json-prc",
+                "rpc"
+            ],
+            "support": {
+                "issues": "https://github.com/sajya/client/issues",
+                "source": "https://github.com/sajya/client/tree/1.4.1"
+            },
+            "install-path": "../sajya/client"
+        },
+        {
+            "name": "sajya/server",
+            "version": "7.0.0",
+            "version_normalized": "7.0.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/sajya/server.git",
+                "reference": "de5411d9cca32c24d9e347e2ff2221d36ce36e84"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/sajya/server/zipball/de5411d9cca32c24d9e347e2ff2221d36ce36e84",
+                "reference": "de5411d9cca32c24d9e347e2ff2221d36ce36e84",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "laravel/framework": "^10.0|^11.0|^12.0"
+            },
+            "conflict": {
+                "laravel/framework": ">=10.0.0,<=10.48.27 || >11.0.0,<=11.42.0",
+                "league/flysystem": "<3.0.16",
+                "mockery/mockery": "<1.6.1",
+                "orchestra/testbench": ">=9.0.0,<9.8.2"
+            },
+            "require-dev": {
+                "laravel/pint": "^v1.20",
+                "orchestra/testbench": "^8.0|^9.0|^10.0",
+                "phpunit/php-code-coverage": "^10.|^11.0|^12.0",
+                "phpunit/phpunit": "^10.5|^11.0",
+                "vimeo/psalm": "^5.0 | ^6.0"
+            },
+            "suggest": {
+                "ext-zlib": "Required to compress the response into gzip",
+                "sajya/client": "HTTP(S) client for JSON-RPC 2.0"
+            },
+            "time": "2025-03-09T02:00:15+00:00",
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "RPC": "Sajya\\Server\\Facades\\RPC"
+                    },
+                    "providers": [
+                        "Sajya\\Server\\ServerServiceProvider"
+                    ]
+                }
+            },
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "Sajya\\Server\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Alexandr Chernyaev",
+                    "email": "bliz48rus@gmail.com"
+                }
+            ],
+            "description": "Easy implementation of the JSON-RPC 2.0 server for the Laravel framework.",
+            "homepage": "https://sajya.github.io",
+            "keywords": [
+                "api",
+                "json-prc",
+                "rpc"
+            ],
+            "support": {
+                "issues": "https://github.com/sajya/server/issues",
+                "source": "https://github.com/sajya/server/tree/7.0.0"
+            },
+            "install-path": "../sajya/server"
         },
         {
             "name": "sebastian/cli-parser",

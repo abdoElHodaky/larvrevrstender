@@ -1,23 +1,20 @@
-# Use the official ServerSideUp FrankenPHP image
-FROM serversideup/php:8.3-frankenphp
+# Multi-stage build for optimized RPC services
+# Stage 1: Build dependencies and prepare application
+FROM serversideup/php:8.3-frankenphp AS builder
 
-# 1. Build Arguments & Environment
+# Build arguments
 ARG SERVICE_NAME
 ENV SERVICE_NAME=${SERVICE_NAME}
-ENV AUTORUN_ENABLED=true
 
-# 2. Install System Dependencies
-# ServerSideUp images are Debian-based, not Alpine
+# Install only essential build dependencies
 USER root
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     mariadb-client \
-    nodejs \
-    npm \
-    && rm -rf /var/lib/apt/lists/*
+    unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# 3. Install PHP Extensions
-# ServerSideUp images come with most extensions pre-installed
-# Check what's already available and add only what's needed
+# Install PHP extensions efficiently
 RUN docker-php-ext-install -j$(nproc) \
     pdo_mysql \
     mysqli \
@@ -25,32 +22,73 @@ RUN docker-php-ext-install -j$(nproc) \
     sockets \
     && docker-php-ext-enable opcache
 
-# 4. Set Working Directory
+# Set working directory
 WORKDIR /var/www/html
 
-# 5. Copy Application Code
-# We copy with ownership to the web user (standard is 9999 for serversideup)
+# Copy application code first (simpler approach)
 COPY --chown=www-data:www-data services/${SERVICE_NAME} ./
 
-# 6. Install Composer Dependencies
-# The image includes composer by default
+# Install composer dependencies with optimizations
 RUN if [ -f "composer.json" ]; then \
-        composer install --no-dev --optimize-autoloader --no-scripts; \
+        composer install \
+            --no-dev \
+            --optimize-autoloader \
+            --no-scripts \
+            --prefer-dist \
+            --no-interaction \
+            --quiet \
+        && composer dump-autoload --optimize --no-dev \
+        && composer run-script --no-dev post-autoload-dump 2>/dev/null || true; \
     fi
 
-# 7. Octane / FrankenPHP Specifics
-# ServerSideUp images use "Autodiscovery" for Laravel. 
-# It will detect Octane and start FrankenPHP automatically.
-# We just need to ensure the entrypoint knows we want Octane.
-ENV PHP_OPCACHE_ENABLE=1
+# Stage 2: Production runtime image
+FROM serversideup/php:8.3-frankenphp AS runtime
 
-# 8. Healthcheck
-# ServerSideUp images have built-in healthcheck endpoint
+# Build arguments and environment
+ARG SERVICE_NAME
+ENV SERVICE_NAME=${SERVICE_NAME}
+ENV AUTORUN_ENABLED=true
+ENV PHP_OPCACHE_ENABLE=1
+ENV PHP_OPCACHE_MEMORY_CONSUMPTION=256
+ENV PHP_OPCACHE_MAX_ACCELERATED_FILES=20000
+ENV PHP_OPCACHE_REVALIDATE_FREQ=0
+ENV PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
+
+# Install only runtime dependencies
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    mariadb-client \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean \
+    && apt-get autoremove -y
+
+# Install PHP extensions
+RUN docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    mysqli \
+    pcntl \
+    sockets \
+    && docker-php-ext-enable opcache
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy application from builder stage
+COPY --from=builder --chown=www-data:www-data /var/www/html ./
+
+# Create necessary directories and set permissions
+RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
+# Switch to non-root user for security
+USER www-data
+
+# Optimized healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD healthcheck
 
-# Expose the default FrankenPHP ports (8080 HTTP, 8443 HTTPS)
+# Expose ports
 EXPOSE 8080 8443 6010 6011
 
 # The image uses its own entrypoint to manage the process lifecycle
-# No manual CMD [supervisord] needed!

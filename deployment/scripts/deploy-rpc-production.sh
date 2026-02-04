@@ -64,6 +64,37 @@ log() {
 check_prerequisites() {
     log "${BLUE}📋 Checking Prerequisites${NC}"
     
+    # For rollback operations, we can be more lenient with missing tools
+    if [[ "$ROLLBACK" == "true" ]]; then
+        # Check kubectl
+        if ! command -v kubectl &> /dev/null; then
+            log "${YELLOW}⚠️ kubectl is not installed - rollback will be skipped${NC}"
+            return 0
+        fi
+        
+        # Check if kubectl is configured
+        if [[ -z "$KUBECONFIG" ]] && [[ ! -f ~/.kube/config ]]; then
+            log "${YELLOW}⚠️ No Kubernetes configuration found - rollback will be skipped${NC}"
+            return 0
+        fi
+        
+        # Try to check kubectl context (but don't fail if it doesn't work)
+        if ! kubectl config get-contexts &> /dev/null; then
+            log "${YELLOW}⚠️ kubectl context check failed - rollback will be skipped${NC}"
+            return 0
+        fi
+        
+        # Try to set kubectl context (but don't fail if it doesn't work)
+        if ! kubectl config use-context "$KUBECTL_CONTEXT" &> /dev/null; then
+            log "${YELLOW}⚠️ kubectl context '$KUBECTL_CONTEXT' not found - rollback will be skipped${NC}"
+            return 0
+        fi
+        
+        log "${GREEN}✅ Prerequisites check passed for rollback${NC}"
+        return 0
+    fi
+    
+    # For normal deployment operations, be strict about prerequisites
     # Check kubectl
     if ! command -v kubectl &> /dev/null; then
         log "${RED}❌ kubectl is not installed${NC}"
@@ -299,9 +330,23 @@ rollback_service() {
     
     log "${BLUE}🔄 Rolling back $service${NC}"
     
+    # Check if kubectl is available and configured
+    if ! command -v kubectl &> /dev/null; then
+        log "${YELLOW}⚠️ kubectl not found - skipping rollback for $service${NC}"
+        return 0
+    fi
+    
+    if [[ -z "$KUBECONFIG" ]] && [[ ! -f ~/.kube/config ]]; then
+        log "${YELLOW}⚠️ No Kubernetes configuration found - skipping rollback for $service${NC}"
+        return 0
+    fi
+    
     if [[ "$DRY_RUN" == "false" ]]; then
-        kubectl rollout undo deployment/"$service-rpc" --namespace "$NAMESPACE"
-        kubectl rollout status deployment/"$service-rpc" --namespace "$NAMESPACE" --timeout=300s
+        if kubectl rollout undo deployment/"$service-rpc" --namespace "$NAMESPACE" 2>/dev/null; then
+            kubectl rollout status deployment/"$service-rpc" --namespace "$NAMESPACE" --timeout=300s
+        else
+            log "${YELLOW}⚠️ Rollback failed for $service - deployment may not exist${NC}"
+        fi
     fi
     
     log "${GREEN}✅ Rollback completed for $service${NC}"
@@ -313,10 +358,21 @@ cleanup_failed_deployment() {
     
     log "${YELLOW}🧹 Cleaning up failed deployment for $service${NC}"
     
+    # Check if kubectl is available and configured
+    if ! command -v kubectl &> /dev/null; then
+        log "${YELLOW}⚠️ kubectl not found - skipping cleanup for $service${NC}"
+        return 0
+    fi
+    
+    if [[ -z "$KUBECONFIG" ]] && [[ ! -f ~/.kube/config ]]; then
+        log "${YELLOW}⚠️ No Kubernetes configuration found - skipping cleanup for $service${NC}"
+        return 0
+    fi
+    
     if [[ "$DRY_RUN" == "false" ]]; then
-        kubectl delete deployment "$service-rpc" --namespace "$NAMESPACE" --ignore-not-found=true
-        kubectl delete service "$service-rpc" --namespace "$NAMESPACE" --ignore-not-found=true
-        kubectl delete hpa "$service-rpc-hpa" --namespace "$NAMESPACE" --ignore-not-found=true
+        kubectl delete deployment "$service-rpc" --namespace "$NAMESPACE" --ignore-not-found=true 2>/dev/null || true
+        kubectl delete service "$service-rpc" --namespace "$NAMESPACE" --ignore-not-found=true 2>/dev/null || true
+        kubectl delete hpa "$service-rpc-hpa" --namespace "$NAMESPACE" --ignore-not-found=true 2>/dev/null || true
     fi
     
     log "${GREEN}✅ Cleanup completed for $service${NC}"

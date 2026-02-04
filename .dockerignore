@@ -40,6 +40,14 @@ yarn-error.log*
 */vendor/*/bin/
 */vendor/*/builds/
 
+# Additional optimization - exclude non-essential service directories
+# Only include the specific service being built
+services/*/node_modules/
+services/*/dist/
+services/*/build/
+services/*/.env*
+!services/*/.env.example
+
 # OS generated files
 .DS_Store
 .DS_Store?
@@ -64,4 +72,3 @@ public/hot
 .cache/
 .npm/
 .yarn/
-
