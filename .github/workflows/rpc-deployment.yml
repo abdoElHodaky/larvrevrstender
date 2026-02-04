@@ -33,7 +33,8 @@ jobs:
           payment-service,
           bidding-service,
           notification-service,
-          vin-ocr-service
+          vin-ocr-service,
+          shared-service
         ]
     
     steps:
@@ -239,7 +240,8 @@ jobs:
           auth-service,
           user-service,
           analytics-service,
-          order-service
+          order-service,
+          shared-service
         ]
 
     steps:
