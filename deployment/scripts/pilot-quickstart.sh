@@ -117,15 +117,15 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  - job_name: 'shared-service-rest'
+  - job_name: 'gateway-service-rest'
     static_configs:
-      - targets: ['shared-service-rest:8000']
+      - targets: ['gateway-service-rest:8000']
     metrics_path: '/metrics'
     scrape_interval: 5s
 
-  - job_name: 'shared-service-rpc'
+  - job_name: 'gateway-service-rpc'
     static_configs:
-      - targets: ['shared-service-rpc:8000']
+      - targets: ['gateway-service-rpc:8000']
     metrics_path: '/metrics'
     scrape_interval: 5s
 

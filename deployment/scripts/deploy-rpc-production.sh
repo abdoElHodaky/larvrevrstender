@@ -24,7 +24,7 @@ MONITORING_ENABLED=true
 
 # Service deployment order
 DEPLOYMENT_ORDER=(
-    "shared-service"
+    "gateway-service"
     "auth-service"
     "analytics-service"
     "notification-service"
@@ -51,7 +51,7 @@ usage() {
     echo ""
     echo "Examples:"
     echo "  $0 --version v1.2.0"
-    echo "  $0 --version v1.2.0 --services shared-service,auth-service"
+    echo "  $0 --version v1.2.0 --services gateway-service,auth-service"
     echo "  $0 --rollback --services user-service"
 }
 

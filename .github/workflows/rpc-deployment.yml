@@ -38,7 +38,7 @@ jobs:
           bidding-service,
           notification-service,
           vin-ocr-service,
-          shared-service
+          gateway-service
         ]
     
     steps:

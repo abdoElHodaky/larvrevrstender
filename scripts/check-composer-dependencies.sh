@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 
 # Services to check
 SERVICES=(
-    "shared-service"
+    "gateway-service"
     "auth-service"
     "user-service"
     "analytics-service"

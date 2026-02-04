@@ -21,7 +21,7 @@ FORCE=false
 
 # Service migration order (based on complexity and dependencies)
 declare -A SERVICE_ORDER=(
-    ["shared-service"]=1
+    ["gateway-service"]=1
     ["auth-service"]=2
     ["analytics-service"]=3
     ["notification-service"]=4
@@ -34,7 +34,7 @@ declare -A SERVICE_ORDER=(
 
 # Service complexity levels
 declare -A SERVICE_COMPLEXITY=(
-    ["shared-service"]="LOW"
+    ["gateway-service"]="LOW"
     ["auth-service"]="MEDIUM"
     ["analytics-service"]="LOW"
     ["notification-service"]="MEDIUM"
@@ -69,7 +69,7 @@ usage() {
     echo "  4. Cleanup & Optimization"
     echo ""
     echo "Examples:"
-    echo "  $0 --service shared-service --phase 1"
+    echo "  $0 --service gateway-service --phase 1"
     echo "  $0 --service auth-service --phase 2 --dry-run"
     echo "  $0 --service user-service --rollback"
 }
@@ -95,28 +95,28 @@ check_dependencies() {
     
     case $service in
         "auth-service")
-            required_services=("shared-service")
+            required_services=("gateway-service")
             ;;
         "user-service")
-            required_services=("shared-service" "auth-service")
+            required_services=("gateway-service" "auth-service")
             ;;
         "order-service")
-            required_services=("shared-service" "auth-service" "user-service")
+            required_services=("gateway-service" "auth-service" "user-service")
             ;;
         "bidding-service")
-            required_services=("shared-service" "auth-service" "user-service" "order-service")
+            required_services=("gateway-service" "auth-service" "user-service" "order-service")
             ;;
         "payment-service")
-            required_services=("shared-service" "auth-service" "user-service" "order-service")
+            required_services=("gateway-service" "auth-service" "user-service" "order-service")
             ;;
         "notification-service")
-            required_services=("shared-service" "auth-service")
+            required_services=("gateway-service" "auth-service")
             ;;
         "analytics-service")
-            required_services=("shared-service")
+            required_services=("gateway-service")
             ;;
         "vin-ocr-service")
-            required_services=("shared-service" "auth-service")
+            required_services=("gateway-service" "auth-service")
             ;;
     esac
     
@@ -198,7 +198,7 @@ migrate_phase_1_infrastructure() {
     # Copy base procedure template
     if [[ ! -f "services/$service/app/RPC/BaseProcedure.php" ]]; then
         if [[ "$DRY_RUN" == "false" ]]; then
-            cp "services/shared-service/app/RPC/BaseProcedure.php" "services/$service/app/RPC/BaseProcedure.php"
+            cp "services/gateway-service/app/RPC/BaseProcedure.php" "services/$service/app/RPC/BaseProcedure.php"
             # Update namespace
             sed -i "s/namespace App\\\\RPC;/namespace App\\\\RPC;/" "services/$service/app/RPC/BaseProcedure.php"
         fi
@@ -208,7 +208,7 @@ migrate_phase_1_infrastructure() {
     # Copy Octane configuration
     if [[ ! -f "services/$service/config/octane.php" ]]; then
         if [[ "$DRY_RUN" == "false" ]]; then
-            cp "services/shared-service/config/octane.php" "services/$service/config/octane.php"
+            cp "services/gateway-service/config/octane.php" "services/$service/config/octane.php"
             # Update RPC port based on service
             local rpc_port=$(get_service_rpc_port "$service")
             sed -i "s/'port' => env('OCTANE_RPC_PORT', 6010)/'port' => env('OCTANE_RPC_PORT', $rpc_port)/" "services/$service/config/octane.php"
@@ -338,7 +338,7 @@ migrate_phase_4_cleanup() {
 get_service_rpc_port() {
     local service=$1
     case $service in
-        "shared-service") echo "6010" ;;
+        "gateway-service") echo "6010" ;;
         "auth-service") echo "6011" ;;
         "user-service") echo "6001" ;;
         "notification-service") echo "6002" ;;
@@ -380,15 +380,15 @@ EOF
 # Function to create RPC service provider
 create_rpc_service_provider() {
     local service=$1
-    cp "services/shared-service/app/Providers/RpcServiceProvider.php" "services/$service/app/Providers/RpcServiceProvider.php"
+    cp "services/gateway-service/app/Providers/RpcServiceProvider.php" "services/$service/app/Providers/RpcServiceProvider.php"
 }
 
 # Function to create health procedure
 create_health_procedure() {
     local service=$1
-    cp "services/shared-service/app/RPC/Procedures/HealthProcedure.php" "services/$service/app/RPC/Procedures/HealthProcedure.php"
+    cp "services/gateway-service/app/RPC/Procedures/HealthProcedure.php" "services/$service/app/RPC/Procedures/HealthProcedure.php"
     # Update service name in health procedure
-    sed -i "s/'service' => 'shared-service'/'service' => '$service'/" "services/$service/app/RPC/Procedures/HealthProcedure.php"
+    sed -i "s/'service' => 'gateway-service'/'service' => '$service'/" "services/$service/app/RPC/Procedures/HealthProcedure.php"
 }
 
 # Placeholder functions for service-specific procedures
