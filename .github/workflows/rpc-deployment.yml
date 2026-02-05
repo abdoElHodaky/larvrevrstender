@@ -4,7 +4,8 @@ name: RPC Services Deployment Pipeline
 on:
   
   push:
-    branches: [rpc, main-rpc,codegen-bot/*]
+    branches-ignore:
+      - main
     paths:
       - 'services/**'
       - 'deployment/**'
