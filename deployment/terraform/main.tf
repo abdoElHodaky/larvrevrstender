@@ -195,6 +195,66 @@ module "kubernetes_apps" {
   ]
 }
 
+# Gateway API module
+module "gateway_api" {
+  source = "./modules/gateway-api"
+  count  = var.gateway_api_enabled ? 1 : 0
+  
+  project_name   = local.project_name
+  environment    = local.environment
+  cloud_provider = var.cloud_provider
+  domain_name    = var.domain_name
+  
+  # Service configurations
+  services = local.services
+  
+  # Gateway configuration
+  gateway_namespace        = var.gateway_namespace
+  app_namespace           = var.app_namespace
+  gateway_api_version     = var.gateway_api_version
+  gateway_controller_name = var.gateway_controller_name
+  
+  # SSL configuration
+  ssl_enabled           = var.ssl_enabled
+  ssl_certificate_name  = var.ssl_certificate_name
+  
+  # Load balancer configuration
+  load_balancer_algorithm = var.load_balancer_algorithm
+  health_check_path      = var.health_check_path
+  
+  # CORS configuration
+  cors_enabled         = var.cors_enabled
+  cors_allowed_origins = var.cors_allowed_origins
+  
+  # Rate limiting configuration
+  rate_limiting_enabled = var.rate_limiting_enabled
+  rate_limit_requests   = var.rate_limit_requests
+  rate_limit_window     = var.rate_limit_window
+  
+  # Backend TLS configuration
+  backend_tls_enabled         = var.backend_tls_enabled
+  backend_ca_certificate_name = var.backend_ca_certificate_name
+  backend_hostname           = var.backend_hostname
+  
+  # Monitoring configuration
+  monitoring_enabled     = var.monitoring_enabled
+  access_logging_enabled = var.access_logging_enabled
+  log_level             = var.log_level
+  
+  # High availability configuration
+  high_availability_enabled = var.high_availability_enabled
+  gateway_replicas          = var.gateway_replicas
+  
+  # Security configuration
+  security_policies_enabled = var.security_policies_enabled
+  allowed_source_ranges     = var.allowed_ips
+  
+  depends_on = [
+    module.cloud_provider,
+    module.kubernetes_apps
+  ]
+}
+
 # Monitoring stack
 module "monitoring" {
   source = "./modules/monitoring"
