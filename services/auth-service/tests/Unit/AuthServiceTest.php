@@ -158,3 +158,4 @@ class AuthServiceTest extends TestCase
     }
 
 }
+
