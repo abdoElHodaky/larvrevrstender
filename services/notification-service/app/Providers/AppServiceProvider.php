@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Shared\Services\FileUploadService;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -31,6 +32,11 @@ class AppServiceProvider extends ServiceProvider
         // Register push notification service
         $this->app->singleton('push.service', function ($app) {
             return new \App\Services\PushNotificationService();
+        });
+
+        // Register FileUploadService for notification-service
+        $this->app->singleton(FileUploadService::class, function ($app) {
+            return new FileUploadService('notification-service');
         });
     }
 

@@ -1,0 +1,325 @@
+openapi: 3.0.3
+info:
+  title: Profile Management API
+  description: API endpoints for user profile management including avatar upload, retrieval, and deletion
+  version: 1.0.0
+  contact:
+    name: Reverse Tender Platform API Support
+    email: api-support@reversetender.com
+
+servers:
+  - url: https://api.reversetender.com/user-service
+    description: Production server
+  - url: https://staging-api.reversetender.com/user-service
+    description: Staging server
+  - url: http://localhost:8002
+    description: Development server
+
+paths:
+  /api/profile/avatar:
+    post:
+      summary: Upload user avatar
+      description: Upload a new avatar image for the authenticated user. Supports JPEG, PNG, GIF, and WebP formats with automatic optimization.
+      operationId: uploadAvatar
+      tags:
+        - Profile Management
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: Avatar image file (JPEG, PNG, GIF, WebP)
+              required:
+                - avatar
+            encoding:
+              avatar:
+                contentType: image/jpeg, image/png, image/gif, image/webp
+      responses:
+        '200':
+          description: Avatar uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Avatar uploaded successfully"
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      user_id:
+                        type: integer
+                        example: 123
+                      file_path:
+                        type: string
+                        example: "user-service/avatars/123/avatar_uuid.jpg"
+                      file_name:
+                        type: string
+                        example: "avatar_uuid.jpg"
+                      original_name:
+                        type: string
+                        example: "my_photo.jpg"
+                      file_size:
+                        type: integer
+                        example: 245760
+                      mime_type:
+                        type: string
+                        example: "image/jpeg"
+                      storage_provider:
+                        type: string
+                        example: "s3"
+                      url:
+                        type: string
+                        example: "https://cdn.reversetender.com/user-service/avatars/123/avatar_uuid.jpg"
+                      created_at:
+                        type: string
+                        format: date-time
+                        example: "2026-02-05T18:30:00Z"
+                      updated_at:
+                        type: string
+                        format: date-time
+                        example: "2026-02-05T18:30:00Z"
+        '400':
+          description: Bad request - Invalid file or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_file_type:
+                  summary: Invalid file type
+                  value:
+                    success: false
+                    message: "Validation failed"
+                    errors:
+                      avatar: ["The avatar must be a file of type: jpeg, png, gif, webp."]
+                file_too_large:
+                  summary: File too large
+                  value:
+                    success: false
+                    message: "Validation failed"
+                    errors:
+                      avatar: ["The avatar may not be greater than 5120 kilobytes."]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      summary: Get user avatar information
+      description: Retrieve the current avatar information for the authenticated user
+      operationId: getAvatar
+      tags:
+        - Profile Management
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Avatar information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Avatar retrieved successfully"
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      user_id:
+                        type: integer
+                        example: 123
+                      file_path:
+                        type: string
+                        example: "user-service/avatars/123/avatar_uuid.jpg"
+                      file_name:
+                        type: string
+                        example: "avatar_uuid.jpg"
+                      original_name:
+                        type: string
+                        example: "my_photo.jpg"
+                      file_size:
+                        type: integer
+                        example: 245760
+                      mime_type:
+                        type: string
+                        example: "image/jpeg"
+                      storage_provider:
+                        type: string
+                        example: "s3"
+                      url:
+                        type: string
+                        example: "https://cdn.reversetender.com/user-service/avatars/123/avatar_uuid.jpg"
+                      created_at:
+                        type: string
+                        format: date-time
+                        example: "2026-02-05T18:30:00Z"
+                      updated_at:
+                        type: string
+                        format: date-time
+                        example: "2026-02-05T18:30:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Avatar not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No avatar found for this user"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete user avatar
+      description: Delete the current avatar for the authenticated user
+      operationId: deleteAvatar
+      tags:
+        - Profile Management
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Avatar deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Avatar deleted successfully"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Avatar not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No avatar found for this user"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoint
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "An error occurred"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validation failed"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            avatar: ["The avatar field is required."]
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Unauthenticated"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Internal server error"
+
+tags:
+  - name: Profile Management
+    description: User profile management operations including avatar handling
+
+externalDocs:
+  description: Find more info about the Reverse Tender Platform API
+  url: https://docs.reversetender.com/api
+
