@@ -2,6 +2,7 @@
 
 use Sajya\Server\Route;
 use App\RPC\Procedures\UserProcedure;
+use App\RPC\Procedures\KycProcedure;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,4 +17,5 @@ use App\RPC\Procedures\UserProcedure;
 
 Route::rpc('/', [
     UserProcedure::class,
+    KycProcedure::class,
 ])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging']);

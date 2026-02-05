@@ -1,0 +1,520 @@
+openapi: 3.0.3
+info:
+  title: KYC Document Management API
+  description: API endpoints for Know Your Customer (KYC) document management including upload, verification workflow, and document lifecycle management
+  version: 1.0.0
+  contact:
+    name: Reverse Tender Platform API Support
+    email: api-support@reversetender.com
+
+servers:
+  - url: https://api.reversetender.com/user-service
+    description: Production server
+  - url: https://staging-api.reversetender.com/user-service
+    description: Staging server
+  - url: http://localhost:8002
+    description: Development server
+
+paths:
+  /api/kyc/documents:
+    post:
+      summary: Upload KYC document
+      description: Upload a new KYC document for verification. Supports PDF, JPEG, PNG formats with automatic encryption for sensitive documents.
+      operationId: uploadKycDocument
+      tags:
+        - KYC Management
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                document:
+                  type: string
+                  format: binary
+                  description: KYC document file (PDF, JPEG, PNG)
+                document_type:
+                  type: string
+                  enum: [identity, passport, drivers_license, proof_of_address, business_registration, tax_certificate, bank_statement, utility_bill]
+                  description: Type of document being uploaded
+                description:
+                  type: string
+                  maxLength: 1000
+                  description: Optional description of the document
+                  example: "Government issued ID card - front side"
+              required:
+                - document
+                - document_type
+            encoding:
+              document:
+                contentType: application/pdf, image/jpeg, image/png
+      responses:
+        '200':
+          description: KYC document uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "KYC document uploaded successfully"
+                  data:
+                    $ref: '#/components/schemas/KycDocument'
+        '400':
+          description: Bad request - Invalid file or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      summary: Get user's KYC documents
+      description: Retrieve all KYC documents for the authenticated user with optional filtering by document type and status
+      operationId: getKycDocuments
+      tags:
+        - KYC Management
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: document_type
+          in: query
+          description: Filter by document type
+          required: false
+          schema:
+            type: string
+            enum: [identity, passport, drivers_license, proof_of_address, business_registration, tax_certificate, bank_statement, utility_bill]
+        - name: status
+          in: query
+          description: Filter by document status
+          required: false
+          schema:
+            type: string
+            enum: [pending, under_review, approved, rejected, resubmission_required, superseded, deleted]
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: per_page
+          in: query
+          description: Number of documents per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 15
+      responses:
+        '200':
+          description: KYC documents retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "KYC documents retrieved successfully"
+                  data:
+                    type: object
+                    properties:
+                      documents:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/KycDocument'
+                      pagination:
+                        $ref: '#/components/schemas/PaginationInfo'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/kyc/documents/{id}:
+    delete:
+      summary: Delete KYC document
+      description: Soft delete a specific KYC document. Document will be marked as deleted but retained for audit purposes.
+      operationId: deleteKycDocument
+      tags:
+        - KYC Management
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: KYC document ID
+          required: true
+          schema:
+            type: integer
+            example: 123
+      responses:
+        '200':
+          description: KYC document deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "KYC document deleted successfully"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - Cannot delete approved documents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Cannot delete approved documents"
+        '404':
+          description: KYC document not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "KYC document not found"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/kyc/status:
+    get:
+      summary: Get KYC verification status
+      description: Get the overall KYC verification status for the authenticated user including document counts and verification progress
+      operationId: getKycStatus
+      tags:
+        - KYC Management
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: KYC status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "KYC status retrieved successfully"
+                  data:
+                    type: object
+                    properties:
+                      overall_status:
+                        type: string
+                        enum: [pending, under_review, approved, rejected, resubmission_required]
+                        example: "under_review"
+                      submitted_at:
+                        type: string
+                        format: date-time
+                        nullable: true
+                        example: "2026-02-05T18:30:00Z"
+                      verified_at:
+                        type: string
+                        format: date-time
+                        nullable: true
+                        example: null
+                      document_counts:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                            example: 5
+                          pending:
+                            type: integer
+                            example: 2
+                          under_review:
+                            type: integer
+                            example: 2
+                          approved:
+                            type: integer
+                            example: 1
+                          rejected:
+                            type: integer
+                            example: 0
+                          resubmission_required:
+                            type: integer
+                            example: 0
+                      required_documents:
+                        type: array
+                        items:
+                          type: string
+                        example: ["identity", "proof_of_address"]
+                      missing_documents:
+                        type: array
+                        items:
+                          type: string
+                        example: []
+                      next_steps:
+                        type: array
+                        items:
+                          type: string
+                        example: ["Wait for document review to complete"]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/kyc/submit:
+    post:
+      summary: Submit KYC for review
+      description: Submit all uploaded KYC documents for verification review. This action changes document status from 'pending' to 'under_review'.
+      operationId: submitKycForReview
+      tags:
+        - KYC Management
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: KYC submitted for review successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "KYC documents submitted for review successfully"
+                  data:
+                    type: object
+                    properties:
+                      submitted_at:
+                        type: string
+                        format: date-time
+                        example: "2026-02-05T18:30:00Z"
+                      documents_submitted:
+                        type: integer
+                        example: 3
+                      estimated_review_time:
+                        type: string
+                        example: "2-3 business days"
+        '400':
+          description: Bad request - No documents to submit or invalid state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "No pending documents found to submit for review"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoint
+
+  schemas:
+    KycDocument:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        user_id:
+          type: integer
+          example: 456
+        document_type:
+          type: string
+          enum: [identity, passport, drivers_license, proof_of_address, business_registration, tax_certificate, bank_statement, utility_bill]
+          example: "identity"
+        file_path:
+          type: string
+          example: "user-service/kyc/456/identity_uuid.pdf"
+        file_name:
+          type: string
+          example: "identity_uuid.pdf"
+        original_name:
+          type: string
+          example: "drivers_license.pdf"
+        file_size:
+          type: integer
+          example: 1048576
+        mime_type:
+          type: string
+          example: "application/pdf"
+        storage_provider:
+          type: string
+          example: "s3"
+        url:
+          type: string
+          example: "https://cdn.reversetender.com/user-service/kyc/456/identity_uuid.pdf"
+        description:
+          type: string
+          nullable: true
+          example: "Government issued ID card - front side"
+        version:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [pending, under_review, approved, rejected, resubmission_required, superseded, deleted]
+          example: "under_review"
+        encryption_enabled:
+          type: boolean
+          example: true
+        verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+        rejection_reason:
+          type: string
+          nullable: true
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-02-05T18:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-02-05T18:30:00Z"
+
+    PaginationInfo:
+      type: object
+      properties:
+        current_page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 15
+        total:
+          type: integer
+          example: 25
+        last_page:
+          type: integer
+          example: 2
+        from:
+          type: integer
+          example: 1
+        to:
+          type: integer
+          example: 15
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "An error occurred"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validation failed"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            document: ["The document field is required."]
+            document_type: ["The document type field is required."]
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Unauthenticated"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Internal server error"
+
+tags:
+  - name: KYC Management
+    description: Know Your Customer document management and verification workflow operations
+
+externalDocs:
+  description: Find more info about the Reverse Tender Platform API
+  url: https://docs.reversetender.com/api
+

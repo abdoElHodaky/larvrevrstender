@@ -90,22 +90,16 @@ class AuthServiceIntegrationTest extends TestCase
             'phone' => '+966501234567',
         ]);
 
-
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Phone number already registered');
-
-       $userData = [
+        $userData = [
             'name' => 'Ahmed Al-Saudi',
             'phone' => '+966501234567',
             'password' => 'SecurePass123!',
         ];
-        $this->authService->register($userData);
 
         $result = $this->authService->register($userData);
         
         $this->assertFalse($result['success']);
         $this->assertEquals('Phone number already registered', $result['message']);
-
     }
 
     /** @test */
@@ -125,8 +119,6 @@ class AuthServiceIntegrationTest extends TestCase
             ['device_name' => 'Test Device']
         );
 
-
-        var_dump($result);
         $this->assertTrue($result['success']);
         $this->assertArrayHasKey('user', $result);
         $this->assertArrayHasKey('token', $result);
@@ -173,7 +165,6 @@ class AuthServiceIntegrationTest extends TestCase
             ->with('+966501234567', 'password_reset')
             ->andReturn([
                 'success' => true,
-                'message' => 'OTP sent successfully',
                 'message' => 'Password reset code sent successfully',
                 'expires_at' => now()->addMinutes(5)->toISOString(),
             ]);

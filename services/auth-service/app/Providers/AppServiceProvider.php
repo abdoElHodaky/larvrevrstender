@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Shared\Services\FileUploadService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +27,11 @@ class AppServiceProvider extends ServiceProvider
         // Register OTP service
         $this->app->singleton('otp.service', function ($app) {
             return new \App\Services\OTPService;
+        });
+
+        // Register FileUploadService for auth-service
+        $this->app->singleton(FileUploadService::class, function ($app) {
+            return new FileUploadService('auth-service');
         });
     }
 

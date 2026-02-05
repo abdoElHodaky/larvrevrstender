@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Shared\Services\FileUploadService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -16,6 +17,11 @@ class AppServiceProvider extends ServiceProvider
         // Register service-specific bindings
         $this->app->singleton('vin_ocr_service.service', function ($app) {
             return new \App\Services\VinOcrServiceService;
+        });
+
+        // Register FileUploadService for vin-ocr-service
+        $this->app->singleton(FileUploadService::class, function ($app) {
+            return new FileUploadService('vin-ocr-service');
         });
     }
 
