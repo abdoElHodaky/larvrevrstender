@@ -170,7 +170,7 @@ class AuthServiceIntegrationTest extends TestCase
         $result = $this->authService->sendPasswordResetOtp('+966501234567');
 
         $this->assertTrue($result['success']);
-        $this->assertStringContains('reset code sent', $result['message']);
+        $this->assertStringContainsString('reset code sent', $result['message']);
     }
 
     /** @test */
