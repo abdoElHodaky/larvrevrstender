@@ -4,7 +4,6 @@ namespace App\RPC\Procedures;
 
 use App\RPC\BaseProcedure;
 use App\Services\UserService;
-use App\Services\EnhancedUserService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Sajya\Server\Exceptions\RuntimeException;
@@ -12,8 +11,7 @@ use Sajya\Server\Exceptions\RuntimeException;
 class UserProcedure extends BaseProcedure
 {
     public function __construct(
-        private UserService $userService,
-        private EnhancedUserService $enhancedUserService
+        private UserService $userService
     ) {}
 
     /**
@@ -481,7 +479,7 @@ class UserProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('User@createOrUpdateProfile', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedUserService->createOrUpdateProfile(
+            $result = $this->userService->createOrUpdateProfile(
                 $params['user_id'],
                 $params['profile_data']
             );
@@ -516,7 +514,7 @@ class UserProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('User@getUserProfile', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedUserService->getUserProfile($params['user_id']);
+            $result = $this->userService->getUserProfile($params['user_id']);
 
             if (!$result['success']) {
                 throw $this->createRuntimeException(
@@ -566,7 +564,7 @@ class UserProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('User@updateUserPreferences', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedUserService->updateUserPreferences(
+            $result = $this->userService->updateUserPreferences(
                 $params['user_id'],
                 $params['preferences']
             );
@@ -616,7 +614,7 @@ class UserProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('User@addUserAddress', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedUserService->addUserAddress(
+            $result = $this->userService->addUserAddress(
                 $params['user_id'],
                 $params['address_data']
             );
@@ -666,7 +664,7 @@ class UserProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('User@addUserVehicle', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedUserService->addUserVehicle(
+            $result = $this->userService->addUserVehicle(
                 $params['user_id'],
                 $params['vehicle_data']
             );
@@ -711,7 +709,7 @@ class UserProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('User@submitKYCVerification', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedUserService->submitKYCVerification(
+            $result = $this->userService->submitKYCVerification(
                 $params['user_id'],
                 $params['kyc_data']
             );
@@ -751,7 +749,7 @@ class UserProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('User@updateVerificationStatus', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedUserService->updateVerificationStatus(
+            $result = $this->userService->updateVerificationStatus(
                 $params['user_id'],
                 $params['verification_type'],
                 $params['status'],
@@ -791,7 +789,7 @@ class UserProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('User@getUserActivitySummary', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedUserService->getUserActivitySummary(
+            $result = $this->userService->getUserActivitySummary(
                 $params['user_id'],
                 $params['period'] ?? 'month'
             );
@@ -855,7 +853,7 @@ class UserProcedure extends BaseProcedure
 
             RateLimiter::hit($key, 60); // 1 minute window
 
-            $result = $this->enhancedUserService->searchUsers($params['criteria'] ?? []);
+            $result = $this->userService->searchUsers($params['criteria'] ?? []);
 
             if (!$result['success']) {
                 throw $this->createRuntimeException(
@@ -888,7 +886,7 @@ class UserProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('User@getProfileCompletionStatus', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedUserService->getProfileCompletionStatus($params['user_id']);
+            $result = $this->userService->getProfileCompletionStatus($params['user_id']);
 
             if (!$result['success']) {
                 throw $this->createRuntimeException(
@@ -930,7 +928,7 @@ class UserProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('User@updateUserLocation', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedUserService->updateUserLocation(
+            $result = $this->userService->updateUserLocation(
                 $params['user_id'],
                 $params['location_data']
             );
@@ -965,7 +963,7 @@ class UserProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('User@getUserPreferences', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedUserService->getUserPreferences($params['user_id']);
+            $result = $this->userService->getUserPreferences($params['user_id']);
 
             if (!$result['success']) {
                 throw $this->createRuntimeException(

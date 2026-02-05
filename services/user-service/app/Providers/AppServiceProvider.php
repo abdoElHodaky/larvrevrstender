@@ -15,7 +15,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register service-specific bindings
         $this->app->singleton('user_service.service', function ($app) {
-            return new \App\Services\UserServiceService;
+            return new \App\Services\UserService;
         });
     }
 

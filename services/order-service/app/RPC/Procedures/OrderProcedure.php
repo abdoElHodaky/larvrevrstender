@@ -4,7 +4,6 @@ namespace App\RPC\Procedures;
 
 use App\RPC\BaseProcedure;
 use App\Services\OrderService;
-use App\Services\EnhancedOrderService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
@@ -13,8 +12,7 @@ use Sajya\Server\Exceptions\RuntimeException;
 class OrderProcedure extends BaseProcedure
 {
     public function __construct(
-        private OrderService $orderService,
-        private EnhancedOrderService $enhancedOrderService
+        private OrderService $orderService
     ) {}
 
     /**
@@ -509,7 +507,7 @@ class OrderProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('Order@createOrderFromBid', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedOrderService->createOrderFromBid(
+            $result = $this->orderService->createOrderFromBid(
                 $params['bid_id'],
                 $params['order_data'] ?? []
             );
@@ -544,7 +542,7 @@ class OrderProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('Order@getOrderDetails', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedOrderService->getOrderDetails($params['order_id']);
+            $result = $this->orderService->getOrderDetails($params['order_id']);
 
             if (!$result['success']) {
                 throw $this->createRuntimeException(
@@ -587,7 +585,7 @@ class OrderProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('Order@updateOrderStatus', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedOrderService->updateOrderStatus(
+            $result = $this->orderService->updateOrderStatus(
                 $params['order_id'],
                 $params['new_status'],
                 $params['status_data'] ?? []
@@ -651,7 +649,7 @@ class OrderProcedure extends BaseProcedure
 
             RateLimiter::hit($key, 60); // 1 minute window
 
-            $result = $this->enhancedOrderService->searchOrders($params['criteria'] ?? []);
+            $result = $this->orderService->searchOrders($params['criteria'] ?? []);
 
             if (!$result['success']) {
                 throw $this->createRuntimeException(
@@ -688,7 +686,7 @@ class OrderProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('Order@getOrderAnalytics', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedOrderService->getOrderAnalytics($params['filters'] ?? []);
+            $result = $this->orderService->getOrderAnalytics($params['filters'] ?? []);
 
             if (!$result['success']) {
                 throw $this->createRuntimeException(
@@ -721,7 +719,7 @@ class OrderProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('Order@cancelOrder', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedOrderService->cancelOrder(
+            $result = $this->orderService->cancelOrder(
                 $params['order_id'],
                 $params['reason'],
                 $params['cancelled_by']
@@ -768,7 +766,7 @@ class OrderProcedure extends BaseProcedure
                 $params['filters'] ?? []
             );
 
-            $result = $this->enhancedOrderService->searchOrders($criteria);
+            $result = $this->orderService->searchOrders($criteria);
 
             if (!$result['success']) {
                 throw $this->createRuntimeException(
@@ -812,7 +810,7 @@ class OrderProcedure extends BaseProcedure
                 $params['filters'] ?? []
             );
 
-            $result = $this->enhancedOrderService->searchOrders($criteria);
+            $result = $this->orderService->searchOrders($criteria);
 
             if (!$result['success']) {
                 throw $this->createRuntimeException(
@@ -846,7 +844,7 @@ class OrderProcedure extends BaseProcedure
 
         return $this->executeWithLogging('Order@getOrderByNumber', $this->sanitizeForLogging($params), function () use ($params) {
             $criteria = ['order_number' => $params['order_number']];
-            $result = $this->enhancedOrderService->searchOrders($criteria);
+            $result = $this->orderService->searchOrders($criteria);
 
             if (!$result['success'] || empty($result['orders'])) {
                 throw $this->createRuntimeException(
@@ -857,7 +855,7 @@ class OrderProcedure extends BaseProcedure
             }
 
             $order = $result['orders'][0];
-            $detailsResult = $this->enhancedOrderService->getOrderDetails($order->id);
+            $detailsResult = $this->orderService->getOrderDetails($order->id);
 
             return [
                 'success' => true,
@@ -911,7 +909,7 @@ class OrderProcedure extends BaseProcedure
 
             $criteria['status'] = $actionRequiredStatuses;
 
-            $result = $this->enhancedOrderService->searchOrders($criteria);
+            $result = $this->orderService->searchOrders($criteria);
 
             if (!$result['success']) {
                 throw $this->createRuntimeException(
@@ -963,7 +961,7 @@ class OrderProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('Order@getOrderStatusHistory', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->enhancedOrderService->getOrderDetails($params['order_id']);
+            $result = $this->orderService->getOrderDetails($params['order_id']);
 
             if (!$result['success']) {
                 throw $this->createRuntimeException(

@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\Collection;
 
-class EnhancedUserService
+class UserService
 {
     /**
      * Create or update user profile based on user type
