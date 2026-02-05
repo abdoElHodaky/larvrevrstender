@@ -33,7 +33,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => Hash::make('password123'), // Default password
             'remember_token' => Str::random(10),
-            'user_type' => fake()->randomElement(['individual', 'business']),
+            'type' => fake()->randomElement(['customer', 'merchant', 'admin']),
             'status' => 'active',
             'created_at' => now(),
             'updated_at' => now(),
@@ -61,22 +61,32 @@ class UserFactory extends Factory
     }
 
     /**
-     * Indicate that the user should be a business user.
+     * Indicate that the user should be a merchant user.
      */
-    public function business(): static
+    public function merchant(): static
     {
         return $this->state(fn (array $attributes) => [
-            'user_type' => 'business',
+            'type' => 'merchant',
         ]);
     }
 
     /**
-     * Indicate that the user should be an individual user.
+     * Indicate that the user should be an admin user.
      */
-    public function individual(): static
+    public function admin(): static
     {
         return $this->state(fn (array $attributes) => [
-            'user_type' => 'individual',
+            'type' => 'admin',
+        ]);
+    }
+
+    /**
+     * Indicate that the user should be a customer user.
+     */
+    public function customer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'customer',
         ]);
     }
 }
