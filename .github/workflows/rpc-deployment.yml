@@ -227,6 +227,12 @@ jobs:
         touch /tmp/auth_service_test.sqlite
         touch /tmp/user_service_test.sqlite
         touch /tmp/order_service_test.sqlite
+        touch /tmp/analytics_service_test.sqlite
+        touch /tmp/notification_service_test.sqlite
+        touch /tmp/payment_service_test.sqlite
+        touch /tmp/bidding_service_test.sqlite
+        touch /tmp/vin_ocr_service_test.sqlite
+        touch /tmp/gateway_service_test.sqlite
         echo "✅ SQLite database files created successfully"
         
         # Ensure SQLite is available
