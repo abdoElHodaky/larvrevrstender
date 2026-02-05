@@ -1,4 +1,5 @@
 name: RPC Services Deployment Pipeline
+# Trigger deployment test for helm/kind staging environment
 
 on:
   
