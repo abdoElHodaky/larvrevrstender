@@ -1,0 +1,71 @@
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\ServiceProvider;
+use Shared\Services\FileUploadService;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        // Register service-specific bindings
+        $this->app->singleton('auth.service', function ($app) {
+            return new \App\Services\AuthService;
+        });
+
+        // Register JWT service
+        $this->app->singleton('jwt.service', function ($app) {
+            return new \App\Services\JWTService;
+        });
+
+        // Register OTP service
+        $this->app->singleton('otp.service', function ($app) {
+            return new \App\Services\OTPService;
+        });
+
+        // Register FileUploadService for auth-service
+        $this->app->singleton(FileUploadService::class, function ($app) {
+            return new FileUploadService('auth-service');
+        });
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        // Set default string length for MySQL
+        Schema::defaultStringLength(191);
+
+        // Remove data wrapping from JSON resources
+        JsonResource::withoutWrapping();
+
+        // Register custom validation rules
+        $this->registerCustomValidationRules();
+
+        // Register event listeners
+        $this->registerEventListeners();
+    }
+
+    /**
+     * Register custom validation rules.
+     */
+    private function registerCustomValidationRules(): void
+    {
+        // Add custom validation rules here
+    }
+
+    /**
+     * Register event listeners.
+     */
+    private function registerEventListeners(): void
+    {
+        // Add event listeners here
+    }
+}
