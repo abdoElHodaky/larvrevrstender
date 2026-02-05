@@ -15,6 +15,17 @@ class UserProcedure extends BaseProcedure
     ) {}
 
     /**
+     * Create a runtime exception conditionally based on Sajya availability
+     */
+    private function createRuntimeException(string $message, int $code = -32603, array $data = []): \Exception
+    {
+        if (class_exists('Sajya\Server\Exceptions\RuntimeException')) {
+            return new \Sajya\Server\Exceptions\RuntimeException($message, $code, $data);
+        }
+        return new \Exception($message, $code);
+    }
+
+    /**
      * Create new user
      * 
      * @param array $params
@@ -430,6 +441,543 @@ class UserProcedure extends BaseProcedure
                     ['user_id' => $params['user_id']]
                 );
             }
+        });
+    }
+
+    // ========================================
+    // ENHANCED USER MANAGEMENT METHODS
+    // ========================================
+
+    /**
+     * Create or update user profile
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function createOrUpdateProfile(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer',
+            'profile_data' => 'required|array',
+            'profile_data.first_name' => 'sometimes|string|max:100',
+            'profile_data.last_name' => 'sometimes|string|max:100',
+            'profile_data.phone' => 'sometimes|string|max:20',
+            'profile_data.date_of_birth' => 'sometimes|date',
+            'profile_data.gender' => 'sometimes|string|in:male,female,other',
+            'profile_data.nationality' => 'sometimes|string|max:100',
+            'profile_data.id_number' => 'sometimes|string|max:50',
+            'profile_data.id_type' => 'sometimes|string|in:national_id,passport,iqama',
+            'profile_data.company_name' => 'sometimes|string|max:200',
+            'profile_data.company_registration' => 'sometimes|string|max:100',
+            'profile_data.tax_number' => 'sometimes|string|max:50',
+            'profile_data.business_type' => 'sometimes|string|in:individual,company,government',
+            'profile_data.profile_image' => 'sometimes|string|max:500',
+            'profile_data.bio' => 'sometimes|string|max:1000',
+            'profile_data.website' => 'sometimes|url|max:200',
+            'profile_data.social_links' => 'sometimes|array',
+            'profile_data.metadata' => 'sometimes|array',
+        ]);
+
+        return $this->executeWithLogging('User@createOrUpdateProfile', $this->sanitizeForLogging($params), function () use ($params) {
+            $result = $this->userService->createOrUpdateProfile(
+                $params['user_id'],
+                $params['profile_data']
+            );
+
+            if (!$result['success']) {
+                throw $this->createRuntimeException(
+                    $result['message'],
+                    -32001,
+                    ['user_id' => $params['user_id']]
+                );
+            }
+
+            return [
+                'success' => true,
+                'profile' => $result['profile'],
+                'message' => $result['message'],
+                'updated_at' => now()->toISOString(),
+            ];
+        });
+    }
+
+    /**
+     * Get user profile with verification status
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function getUserProfile(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer',
+        ]);
+
+        return $this->executeWithLogging('User@getUserProfile', $this->sanitizeForLogging($params), function () use ($params) {
+            $result = $this->userService->getUserProfile($params['user_id']);
+
+            if (!$result['success']) {
+                throw $this->createRuntimeException(
+                    $result['message'],
+                    -32002,
+                    ['user_id' => $params['user_id']]
+                );
+            }
+
+            return [
+                'success' => true,
+                'profile' => $result['profile'],
+                'verification_status' => $result['verification_status'],
+                'completion_percentage' => $result['completion_percentage'],
+                'missing_fields' => $result['missing_fields'],
+                'retrieved_at' => now()->toISOString(),
+            ];
+        });
+    }
+
+    /**
+     * Update user preferences
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function updateUserPreferences(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer',
+            'preferences' => 'required|array',
+            'preferences.language' => 'sometimes|string|in:ar,en',
+            'preferences.currency' => 'sometimes|string|in:SAR,USD,EUR',
+            'preferences.timezone' => 'sometimes|string|max:50',
+            'preferences.notifications' => 'sometimes|array',
+            'preferences.notifications.email_enabled' => 'sometimes|boolean',
+            'preferences.notifications.sms_enabled' => 'sometimes|boolean',
+            'preferences.notifications.push_enabled' => 'sometimes|boolean',
+            'preferences.notifications.marketing_enabled' => 'sometimes|boolean',
+            'preferences.privacy' => 'sometimes|array',
+            'preferences.privacy.profile_visibility' => 'sometimes|string|in:public,private,contacts',
+            'preferences.privacy.show_online_status' => 'sometimes|boolean',
+            'preferences.privacy.allow_contact' => 'sometimes|boolean',
+            'preferences.display' => 'sometimes|array',
+            'preferences.display.theme' => 'sometimes|string|in:light,dark,auto',
+            'preferences.display.items_per_page' => 'sometimes|integer|min:10|max:100',
+        ]);
+
+        return $this->executeWithLogging('User@updateUserPreferences', $this->sanitizeForLogging($params), function () use ($params) {
+            $result = $this->userService->updateUserPreferences(
+                $params['user_id'],
+                $params['preferences']
+            );
+
+            if (!$result['success']) {
+                throw $this->createRuntimeException(
+                    $result['message'],
+                    -32003,
+                    ['user_id' => $params['user_id']]
+                );
+            }
+
+            return [
+                'success' => true,
+                'preferences' => $result['preferences'],
+                'message' => $result['message'],
+                'updated_at' => now()->toISOString(),
+            ];
+        });
+    }
+
+    /**
+     * Add user address
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function addUserAddress(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer',
+            'address_data' => 'required|array',
+            'address_data.type' => 'required|string|in:home,work,billing,shipping,other',
+            'address_data.label' => 'sometimes|string|max:100',
+            'address_data.street_address' => 'required|string|max:200',
+            'address_data.building_number' => 'sometimes|string|max:20',
+            'address_data.apartment_number' => 'sometimes|string|max:20',
+            'address_data.district' => 'required|string|max:100',
+            'address_data.city' => 'required|string|max:100',
+            'address_data.region' => 'required|string|max:100',
+            'address_data.postal_code' => 'required|string|max:20',
+            'address_data.country' => 'required|string|max:100',
+            'address_data.latitude' => 'sometimes|numeric|between:-90,90',
+            'address_data.longitude' => 'sometimes|numeric|between:-180,180',
+            'address_data.is_default' => 'sometimes|boolean',
+            'address_data.delivery_instructions' => 'sometimes|string|max:500',
+        ]);
+
+        return $this->executeWithLogging('User@addUserAddress', $this->sanitizeForLogging($params), function () use ($params) {
+            $result = $this->userService->addUserAddress(
+                $params['user_id'],
+                $params['address_data']
+            );
+
+            if (!$result['success']) {
+                throw $this->createRuntimeException(
+                    $result['message'],
+                    -32004,
+                    ['user_id' => $params['user_id']]
+                );
+            }
+
+            return [
+                'success' => true,
+                'address' => $result['address'],
+                'message' => $result['message'],
+                'created_at' => now()->toISOString(),
+            ];
+        });
+    }
+
+    /**
+     * Add user vehicle
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function addUserVehicle(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer',
+            'vehicle_data' => 'required|array',
+            'vehicle_data.make' => 'required|string|max:100',
+            'vehicle_data.model' => 'required|string|max:100',
+            'vehicle_data.year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
+            'vehicle_data.vin' => 'sometimes|string|size:17',
+            'vehicle_data.license_plate' => 'sometimes|string|max:20',
+            'vehicle_data.color' => 'sometimes|string|max:50',
+            'vehicle_data.engine_size' => 'sometimes|string|max:20',
+            'vehicle_data.fuel_type' => 'sometimes|string|in:gasoline,diesel,hybrid,electric,other',
+            'vehicle_data.transmission' => 'sometimes|string|in:manual,automatic,cvt',
+            'vehicle_data.mileage' => 'sometimes|integer|min:0',
+            'vehicle_data.is_primary' => 'sometimes|boolean',
+            'vehicle_data.notes' => 'sometimes|string|max:500',
+            'vehicle_data.images' => 'sometimes|array',
+            'vehicle_data.images.*' => 'string|max:500',
+        ]);
+
+        return $this->executeWithLogging('User@addUserVehicle', $this->sanitizeForLogging($params), function () use ($params) {
+            $result = $this->userService->addUserVehicle(
+                $params['user_id'],
+                $params['vehicle_data']
+            );
+
+            if (!$result['success']) {
+                throw $this->createRuntimeException(
+                    $result['message'],
+                    -32005,
+                    ['user_id' => $params['user_id']]
+                );
+            }
+
+            return [
+                'success' => true,
+                'vehicle' => $result['vehicle'],
+                'message' => $result['message'],
+                'created_at' => now()->toISOString(),
+            ];
+        });
+    }
+
+    /**
+     * Submit KYC verification documents
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function submitKYCVerification(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer',
+            'kyc_data' => 'required|array',
+            'kyc_data.document_type' => 'required|string|in:national_id,passport,iqama,driving_license',
+            'kyc_data.document_number' => 'required|string|max:100',
+            'kyc_data.document_front_image' => 'required|string|max:500',
+            'kyc_data.document_back_image' => 'sometimes|string|max:500',
+            'kyc_data.selfie_image' => 'required|string|max:500',
+            'kyc_data.expiry_date' => 'sometimes|date|after:today',
+            'kyc_data.issuing_country' => 'required|string|max:100',
+            'kyc_data.additional_documents' => 'sometimes|array',
+            'kyc_data.additional_documents.*' => 'string|max:500',
+        ]);
+
+        return $this->executeWithLogging('User@submitKYCVerification', $this->sanitizeForLogging($params), function () use ($params) {
+            $result = $this->userService->submitKYCVerification(
+                $params['user_id'],
+                $params['kyc_data']
+            );
+
+            if (!$result['success']) {
+                throw $this->createRuntimeException(
+                    $result['message'],
+                    -32006,
+                    ['user_id' => $params['user_id']]
+                );
+            }
+
+            return [
+                'success' => true,
+                'kyc_submission' => $result['kyc_submission'],
+                'message' => $result['message'],
+                'submitted_at' => now()->toISOString(),
+            ];
+        });
+    }
+
+    /**
+     * Update verification status (admin only)
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function updateVerificationStatus(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer',
+            'verification_type' => 'required|string|in:email,phone,identity,business',
+            'status' => 'required|string|in:pending,verified,rejected',
+            'admin_id' => 'required|integer',
+            'notes' => 'sometimes|string|max:500',
+            'rejection_reason' => 'sometimes|string|max:500',
+        ]);
+
+        return $this->executeWithLogging('User@updateVerificationStatus', $this->sanitizeForLogging($params), function () use ($params) {
+            $result = $this->userService->updateVerificationStatus(
+                $params['user_id'],
+                $params['verification_type'],
+                $params['status'],
+                $params['admin_id'],
+                $params['notes'] ?? null,
+                $params['rejection_reason'] ?? null
+            );
+
+            if (!$result['success']) {
+                throw $this->createRuntimeException(
+                    $result['message'],
+                    -32007,
+                    ['user_id' => $params['user_id'], 'verification_type' => $params['verification_type']]
+                );
+            }
+
+            return [
+                'success' => true,
+                'verification' => $result['verification'],
+                'message' => $result['message'],
+                'updated_at' => now()->toISOString(),
+            ];
+        });
+    }
+
+    /**
+     * Get user activity summary
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function getUserActivitySummary(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer',
+            'period' => 'sometimes|string|in:week,month,quarter,year',
+        ]);
+
+        return $this->executeWithLogging('User@getUserActivitySummary', $this->sanitizeForLogging($params), function () use ($params) {
+            $result = $this->userService->getUserActivitySummary(
+                $params['user_id'],
+                $params['period'] ?? 'month'
+            );
+
+            if (!$result['success']) {
+                throw $this->createRuntimeException(
+                    $result['message'],
+                    -32008,
+                    ['user_id' => $params['user_id']]
+                );
+            }
+
+            return [
+                'success' => true,
+                'activity_summary' => $result['activity_summary'],
+                'period' => $params['period'] ?? 'month',
+                'generated_at' => now()->toISOString(),
+            ];
+        });
+    }
+
+    /**
+     * Search users with advanced filtering
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function searchUsers(array $params): array
+    {
+        $this->validate($params, [
+            'criteria' => 'sometimes|array',
+            'criteria.name' => 'sometimes|string|max:100',
+            'criteria.email' => 'sometimes|string|max:100',
+            'criteria.phone' => 'sometimes|string|max:20',
+            'criteria.role' => 'sometimes|string|in:customer,merchant,admin',
+            'criteria.verification_status' => 'sometimes|string|in:verified,unverified,pending',
+            'criteria.status' => 'sometimes|string|in:active,inactive,suspended',
+            'criteria.registration_date_from' => 'sometimes|date',
+            'criteria.registration_date_to' => 'sometimes|date',
+            'criteria.last_activity_from' => 'sometimes|date',
+            'criteria.last_activity_to' => 'sometimes|date',
+            'criteria.city' => 'sometimes|string|max:100',
+            'criteria.region' => 'sometimes|string|max:100',
+            'criteria.country' => 'sometimes|string|max:100',
+            'criteria.sort_by' => 'sometimes|string|in:name,email,created_at,last_activity',
+            'criteria.sort_direction' => 'sometimes|string|in:asc,desc',
+            'criteria.page' => 'sometimes|integer|min:1',
+            'criteria.per_page' => 'sometimes|integer|min:1|max:100',
+        ]);
+
+        return $this->executeWithLogging('User@searchUsers', $this->sanitizeForLogging($params), function () use ($params) {
+            // Rate limiting for search operations
+            $key = 'user_search:' . request()->ip();
+            if (RateLimiter::tooManyAttempts($key, 60)) {
+                throw $this->createRuntimeException(
+                    'Too many search requests. Please try again later.',
+                    -32009,
+                    ['retry_after' => RateLimiter::availableIn($key)]
+                );
+            }
+
+            RateLimiter::hit($key, 60); // 1 minute window
+
+            $result = $this->userService->searchUsers($params['criteria'] ?? []);
+
+            if (!$result['success']) {
+                throw $this->createRuntimeException(
+                    $result['message'],
+                    -32010,
+                    ['criteria' => $params['criteria'] ?? []]
+                );
+            }
+
+            return [
+                'success' => true,
+                'users' => $result['users'],
+                'pagination' => $result['pagination'],
+                'summary' => $result['summary'],
+                'searched_at' => now()->toISOString(),
+            ];
+        });
+    }
+
+    /**
+     * Get profile completion status
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function getProfileCompletionStatus(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer',
+        ]);
+
+        return $this->executeWithLogging('User@getProfileCompletionStatus', $this->sanitizeForLogging($params), function () use ($params) {
+            $result = $this->userService->getProfileCompletionStatus($params['user_id']);
+
+            if (!$result['success']) {
+                throw $this->createRuntimeException(
+                    $result['message'],
+                    -32011,
+                    ['user_id' => $params['user_id']]
+                );
+            }
+
+            return [
+                'success' => true,
+                'completion_status' => $result['completion_status'],
+                'completion_percentage' => $result['completion_percentage'],
+                'missing_fields' => $result['missing_fields'],
+                'next_steps' => $result['next_steps'],
+                'retrieved_at' => now()->toISOString(),
+            ];
+        });
+    }
+
+    /**
+     * Update user location
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function updateUserLocation(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer',
+            'location_data' => 'required|array',
+            'location_data.latitude' => 'required|numeric|between:-90,90',
+            'location_data.longitude' => 'required|numeric|between:-180,180',
+            'location_data.accuracy' => 'sometimes|numeric|min:0',
+            'location_data.address' => 'sometimes|string|max:200',
+            'location_data.city' => 'sometimes|string|max:100',
+            'location_data.region' => 'sometimes|string|max:100',
+            'location_data.country' => 'sometimes|string|max:100',
+        ]);
+
+        return $this->executeWithLogging('User@updateUserLocation', $this->sanitizeForLogging($params), function () use ($params) {
+            $result = $this->userService->updateUserLocation(
+                $params['user_id'],
+                $params['location_data']
+            );
+
+            if (!$result['success']) {
+                throw $this->createRuntimeException(
+                    $result['message'],
+                    -32012,
+                    ['user_id' => $params['user_id']]
+                );
+            }
+
+            return [
+                'success' => true,
+                'location' => $result['location'],
+                'message' => $result['message'],
+                'updated_at' => now()->toISOString(),
+            ];
+        });
+    }
+
+    /**
+     * Get user preferences
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function getUserPreferences(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer',
+        ]);
+
+        return $this->executeWithLogging('User@getUserPreferences', $this->sanitizeForLogging($params), function () use ($params) {
+            $result = $this->userService->getUserPreferences($params['user_id']);
+
+            if (!$result['success']) {
+                throw $this->createRuntimeException(
+                    $result['message'],
+                    -32013,
+                    ['user_id' => $params['user_id']]
+                );
+            }
+
+            return [
+                'success' => true,
+                'preferences' => $result['preferences'],
+                'retrieved_at' => now()->toISOString(),
+            ];
         });
     }
 }

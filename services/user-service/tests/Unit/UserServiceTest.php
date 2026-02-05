@@ -6,7 +6,7 @@ use App\Models\CustomerProfile;
 use App\Models\MerchantProfile;
 use App\Models\Address;
 use App\Models\Vehicle;
-use App\Services\EnhancedUserService;
+use App\Services\UserService;
 use App\Events\UserProfileUpdated;
 use App\Events\UserVerificationStatusChanged;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,16 +14,16 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
-class EnhancedUserServiceTest extends TestCase
+class UserServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    private EnhancedUserService $userService;
+    private UserService $userService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->userService = new EnhancedUserService();
+        $this->userService = new UserService();
         Event::fake();
     }
 
