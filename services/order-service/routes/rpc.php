@@ -2,7 +2,7 @@
 
 use Sajya\Server\Route;
 use App\RPC\Procedures\OrderProcedure;
-use App\RPC\Procedures\EnhancedOrderProcedure;
+//use App\RPC\Procedures\EnhancedOrderProcedure;
 
 /*
 |--------------------------------------------------------------------------
