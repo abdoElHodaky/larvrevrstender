@@ -90,26 +90,22 @@ class AuthServiceIntegrationTest extends TestCase
             'phone' => '+966501234567',
         ]);
 
-<<<<<<< HEAD
+
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Phone number already registered');
 
-=======
->>>>>>> origin/codegen-bot/fix-failing-phpunit-tests-1770285275
-        $userData = [
+       $userData = [
             'name' => 'Ahmed Al-Saudi',
             'phone' => '+966501234567',
             'password' => 'SecurePass123!',
         ];
-
-<<<<<<< HEAD
         $this->authService->register($userData);
-=======
+
         $result = $this->authService->register($userData);
         
         $this->assertFalse($result['success']);
         $this->assertEquals('Phone number already registered', $result['message']);
->>>>>>> origin/codegen-bot/fix-failing-phpunit-tests-1770285275
+
     }
 
     /** @test */
@@ -129,10 +125,8 @@ class AuthServiceIntegrationTest extends TestCase
             ['device_name' => 'Test Device']
         );
 
-<<<<<<< HEAD
-=======
+
         var_dump($result);
->>>>>>> origin/codegen-bot/fix-failing-phpunit-tests-1770285275
         $this->assertTrue($result['success']);
         $this->assertArrayHasKey('user', $result);
         $this->assertArrayHasKey('token', $result);
@@ -179,12 +173,9 @@ class AuthServiceIntegrationTest extends TestCase
             ->with('+966501234567', 'password_reset')
             ->andReturn([
                 'success' => true,
-<<<<<<< HEAD
                 'message' => 'OTP sent successfully',
-=======
                 'message' => 'Password reset code sent successfully',
                 'expires_at' => now()->addMinutes(5)->toISOString(),
->>>>>>> origin/codegen-bot/fix-failing-phpunit-tests-1770285275
             ]);
 
         $result = $this->authService->sendPasswordResetOtp('+966501234567');
