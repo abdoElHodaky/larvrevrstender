@@ -8,7 +8,7 @@
  */
 
 // Import shared filesystem configuration
-$sharedConfig = require_once __DIR__ . '/../../shared/config/filesystems.php';
+$sharedConfig = require __DIR__ . '/../../shared/config/filesystems.php';
 
 // Service-specific overrides (if any)
 $serviceOverrides = [
