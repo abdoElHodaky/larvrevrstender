@@ -21,7 +21,7 @@ class UserServiceTest extends TestCase
             $this->assertFalse(in_array($type, $validTypes), "Type '$type' should be invalid");
         }
     }
-    }
+    
 
     /** @test */
     public function it_validates_national_id_format()
