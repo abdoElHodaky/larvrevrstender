@@ -73,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('profile')->group(function () {
         Route::get('/', [App\Http\Controllers\ProfileController::class, 'show']);
         Route::put('/', [App\Http\Controllers\ProfileController::class, 'update']);
+        Route::get('/avatar', [App\Http\Controllers\ProfileController::class, 'getAvatar']);
         Route::post('/avatar', [App\Http\Controllers\ProfileController::class, 'uploadAvatar']);
         Route::delete('/avatar', [App\Http\Controllers\ProfileController::class, 'deleteAvatar']);
     });
@@ -99,7 +100,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [App\Http\Controllers\KycController::class, 'show']);
         Route::post('/submit', [App\Http\Controllers\KycController::class, 'submit']);
         Route::get('/status', [App\Http\Controllers\KycController::class, 'getStatus']);
+        Route::get('/documents', [App\Http\Controllers\KycController::class, 'getDocuments']);
         Route::post('/documents', [App\Http\Controllers\KycController::class, 'uploadDocument']);
+        Route::delete('/documents/{id}', [App\Http\Controllers\KycController::class, 'deleteDocument']);
     });
 
     // Address management
