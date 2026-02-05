@@ -17,5 +17,5 @@ use App\RPC\Procedures\EnhancedOrderProcedure;
 
 Route::rpc('/', [
     OrderProcedure::class,
-    EnhancedOrderProcedure::class, // TODO: Review if this is needed or can be merged with OrderProcedure
+    //EnhancedOrderProcedure::class, // TODO: Review if this is needed or can be merged with OrderProcedure
 ])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging']);
