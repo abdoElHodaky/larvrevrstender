@@ -11,7 +11,8 @@ on:
       - 'deployment/**'
       - '.github/workflows/rpc-deployment.yml'
   pull_request:
-    branches: [ main ]
+    branches-ignore:
+      - main
     paths:
       - 'services/**'
       - 'deployment/**'
