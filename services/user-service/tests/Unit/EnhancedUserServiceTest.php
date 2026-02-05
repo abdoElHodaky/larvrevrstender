@@ -29,14 +29,14 @@ class EnhancedUserServiceTest extends TestCase
         $validIds = ['1234567890', '9876543210', '1111111111'];
         
         foreach ($validIds as $id) {
-            $this->assertTrue(preg_match('/^\d{10}$/', $id), "National ID '$id' should be valid");
+            $this->assertEquals(1, preg_match('/^\d{10}$/', $id), "National ID '$id' should be valid");
         }
         
         // Invalid formats
         $invalidIds = ['123456789', '12345678901', 'abc1234567', '', null];
         
         foreach ($invalidIds as $id) {
-            $this->assertFalse(preg_match('/^\d{10}$/', $id), "National ID '$id' should be invalid");
+            $this->assertEquals(0, preg_match('/^\d{10}$/', $id), "National ID '$id' should be invalid");
         }
     }
 
@@ -47,14 +47,14 @@ class EnhancedUserServiceTest extends TestCase
         $validCRs = ['CR123456789', 'CR987654321', 'CR111111111'];
         
         foreach ($validCRs as $cr) {
-            $this->assertTrue(preg_match('/^CR\d{9}$/', $cr), "Commercial registration '$cr' should be valid");
+            $this->assertEquals(1, preg_match('/^CR\d{9}$/', $cr), "Commercial registration '$cr' should be valid");
         }
         
         // Invalid formats
         $invalidCRs = ['CR12345678', 'CR1234567890', '123456789', 'cr123456789', '', null];
         
         foreach ($invalidCRs as $cr) {
-            $this->assertFalse(preg_match('/^CR\d{9}$/', $cr), "Commercial registration '$cr' should be invalid");
+            $this->assertEquals(0, preg_match('/^CR\d{9}$/', $cr), "Commercial registration '$cr' should be invalid");
         }
     }
 
@@ -65,14 +65,14 @@ class EnhancedUserServiceTest extends TestCase
         $validVATs = ['VAT123456789', 'VAT987654321', 'VAT111111111'];
         
         foreach ($validVATs as $vat) {
-            $this->assertTrue(preg_match('/^VAT\d{9}$/', $vat), "VAT number '$vat' should be valid");
+            $this->assertEquals(1, preg_match('/^VAT\d{9}$/', $vat), "VAT number '$vat' should be valid");
         }
         
         // Invalid formats
         $invalidVATs = ['VAT12345678', 'VAT1234567890', '123456789', 'vat123456789', '', null];
         
         foreach ($invalidVATs as $vat) {
-            $this->assertFalse(preg_match('/^VAT\d{9}$/', $vat), "VAT number '$vat' should be invalid");
+            $this->assertEquals(0, preg_match('/^VAT\d{9}$/', $vat), "VAT number '$vat' should be invalid");
         }
     }
 
@@ -83,14 +83,14 @@ class EnhancedUserServiceTest extends TestCase
         $validVINs = ['1HGBH41JXMN109186', 'WBANE53578CM12345', 'JH4KA7561PC123456'];
         
         foreach ($validVINs as $vin) {
-            $this->assertTrue(preg_match('/^[A-HJ-NPR-Z0-9]{17}$/', $vin), "VIN '$vin' should be valid");
+            $this->assertEquals(1, preg_match('/^[A-HJ-NPR-Z0-9]{17}$/', $vin), "VIN '$vin' should be valid");
         }
         
         // Invalid formats
         $invalidVINs = ['INVALID_VIN', '1HGBH41JXMN10918', '1HGBH41JXMN1091866', 'IHGBH41JXMN109186', '', null];
         
         foreach ($invalidVINs as $vin) {
-            $this->assertFalse(preg_match('/^[A-HJ-NPR-Z0-9]{17}$/', $vin), "VIN '$vin' should be invalid");
+            $this->assertEquals(0, preg_match('/^[A-HJ-NPR-Z0-9]{17}$/', $vin), "VIN '$vin' should be invalid");
         }
     }
 
@@ -274,4 +274,3 @@ class EnhancedUserServiceTest extends TestCase
         }
     }
 }
-

@@ -191,14 +191,14 @@ class EnhancedOrderServiceTest extends TestCase
         $validPartNumbers = ['BP-123', 'ENG-456-A', 'FILTER-789', 'OIL-CHANGE-KIT-001'];
         
         foreach ($validPartNumbers as $partNumber) {
-            $this->assertTrue(preg_match('/^[A-Z0-9\-]+$/', $partNumber), "Part number '$partNumber' should be valid");
+            $this->assertEquals(1, preg_match('/^[A-Z0-9\-]+$/', $partNumber), "Part number '$partNumber' should be valid");
         }
         
         // Invalid part number formats
         $invalidPartNumbers = ['bp-123', 'ENG_456', 'FILTER 789', 'OIL@CHANGE', '', null];
         
         foreach ($invalidPartNumbers as $partNumber) {
-            $this->assertFalse(preg_match('/^[A-Z0-9\-]+$/', $partNumber), "Part number '$partNumber' should be invalid");
+            $this->assertEquals(0, preg_match('/^[A-Z0-9\-]+$/', $partNumber), "Part number '$partNumber' should be invalid");
         }
     }
 
@@ -209,14 +209,14 @@ class EnhancedOrderServiceTest extends TestCase
         $validTrackingNumbers = ['TRK123456789', 'SHIP-2024-001', 'DHL1234567890', 'FEDEX123456'];
         
         foreach ($validTrackingNumbers as $trackingNumber) {
-            $this->assertTrue(preg_match('/^[A-Z0-9\-]+$/', $trackingNumber), "Tracking number '$trackingNumber' should be valid");
+            $this->assertEquals(1, preg_match('/^[A-Z0-9\-]+$/', $trackingNumber), "Tracking number '$trackingNumber' should be valid");
         }
         
         // Invalid tracking number formats
         $invalidTrackingNumbers = ['trk123', 'SHIP_2024', 'DHL 123', 'FEDEX@123', '', null];
         
         foreach ($invalidTrackingNumbers as $trackingNumber) {
-            $this->assertFalse(preg_match('/^[A-Z0-9\-]+$/', $trackingNumber), "Tracking number '$trackingNumber' should be invalid");
+            $this->assertEquals(0, preg_match('/^[A-Z0-9\-]+$/', $trackingNumber), "Tracking number '$trackingNumber' should be invalid");
         }
     }
 
@@ -324,4 +324,3 @@ class EnhancedOrderServiceTest extends TestCase
         $this->assertContains('country', $missingFields, "Should detect missing 'country' field");
     }
 }
-
