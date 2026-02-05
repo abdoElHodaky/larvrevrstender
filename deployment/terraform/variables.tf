@@ -606,3 +606,193 @@ variable "ssl_private_key" {
   default     = ""
   sensitive   = true
 }
+
+# Cloud Storage Configuration
+variable "cloud_storage_enabled" {
+  description = "Enable cloud storage module"
+  type        = bool
+  default     = true
+}
+
+variable "storage_versioning_enabled" {
+  description = "Enable versioning for storage bucket"
+  type        = bool
+  default     = true
+}
+
+variable "storage_cors_allowed_origins" {
+  description = "List of allowed origins for CORS"
+  type        = list(string)
+  default     = ["*"]
+}
+
+variable "storage_lifecycle_rules" {
+  description = "Lifecycle rules for cost optimization"
+  type = list(object({
+    id      = string
+    enabled = bool
+    expiration = optional(object({
+      days = number
+    }))
+    noncurrent_version_expiration = optional(object({
+      days = number
+    }))
+  }))
+  default = [
+    {
+      id      = "temp-files-cleanup"
+      enabled = true
+      expiration = {
+        days = 30
+      }
+      noncurrent_version_expiration = {
+        days = 7
+      }
+    },
+    {
+      id      = "old-versions-cleanup"
+      enabled = true
+      noncurrent_version_expiration = {
+        days = 90
+      }
+    }
+  ]
+}
+
+variable "storage_cdn_enabled" {
+  description = "Enable CDN for DigitalOcean Spaces"
+  type        = bool
+  default     = false
+}
+
+variable "storage_cdn_custom_domain" {
+  description = "Custom domain for CDN"
+  type        = string
+  default     = ""
+}
+
+variable "storage_backup_enabled" {
+  description = "Enable backup bucket"
+  type        = bool
+  default     = false
+}
+
+variable "storage_backup_region" {
+  description = "Region for backup bucket (if different from main)"
+  type        = string
+  default     = ""
+}
+
+variable "storage_backup_retention_days" {
+  description = "Number of days to retain backups"
+  type        = number
+  default     = 90
+}
+
+variable "storage_monitoring_enabled" {
+  description = "Enable monitoring and alerting for storage"
+  type        = bool
+  default     = false
+}
+
+variable "storage_alert_email" {
+  description = "Email address for storage alerts"
+  type        = string
+  default     = ""
+}
+
+variable "service_storage_configs" {
+  description = "Storage configurations for each service"
+  type = map(object({
+    max_file_size_mb = number
+    allowed_types    = list(string)
+    public_access    = bool
+    encryption       = bool
+  }))
+  default = {
+    "auth-service" = {
+      max_file_size_mb = 5
+      allowed_types    = ["jpg", "jpeg", "png"]
+      public_access    = false
+      encryption       = true
+    }
+    "user-service" = {
+      max_file_size_mb = 10
+      allowed_types    = ["jpg", "jpeg", "png", "pdf"]
+      public_access    = false
+      encryption       = true
+    }
+    "bidding-service" = {
+      max_file_size_mb = 20
+      allowed_types    = ["jpg", "jpeg", "png", "pdf", "doc", "docx"]
+      public_access    = true
+      encryption       = false
+    }
+    "order-service" = {
+      max_file_size_mb = 15
+      allowed_types    = ["jpg", "jpeg", "png", "pdf"]
+      public_access    = false
+      encryption       = true
+    }
+    "payment-service" = {
+      max_file_size_mb = 5
+      allowed_types    = ["pdf"]
+      public_access    = false
+      encryption       = true
+    }
+    "notification-service" = {
+      max_file_size_mb = 10
+      allowed_types    = ["jpg", "jpeg", "png", "pdf"]
+      public_access    = false
+      encryption       = false
+    }
+    "analytics-service" = {
+      max_file_size_mb = 50
+      allowed_types    = ["csv", "xlsx", "pdf", "json"]
+      public_access    = false
+      encryption       = true
+    }
+    "vin-ocr-service" = {
+      max_file_size_mb = 25
+      allowed_types    = ["jpg", "jpeg", "png"]
+      public_access    = false
+      encryption       = true
+    }
+  }
+}
+
+variable "storage_encryption_enabled" {
+  description = "Enable server-side encryption"
+  type        = bool
+  default     = true
+}
+
+variable "storage_access_logging_enabled" {
+  description = "Enable access logging"
+  type        = bool
+  default     = true
+}
+
+variable "storage_class_transitions" {
+  description = "Storage class transitions for cost optimization"
+  type = list(object({
+    days          = number
+    storage_class = string
+  }))
+  default = [
+    {
+      days          = 30
+      storage_class = "STANDARD_IA"
+    },
+    {
+      days          = 90
+      storage_class = "GLACIER"
+    }
+  ]
+}
+
+variable "multipart_upload_threshold" {
+  description = "Threshold in MB for multipart uploads"
+  type        = number
+  default     = 100
+}

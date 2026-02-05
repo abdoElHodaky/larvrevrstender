@@ -255,6 +255,52 @@ module "gateway_api" {
   ]
 }
 
+# Cloud Storage Module (Multi-Cloud File Storage)
+module "cloud_storage" {
+  count  = var.cloud_storage_enabled ? 1 : 0
+  source = "./modules/cloud-storage"
+
+  cloud_provider = var.cloud_provider
+  environment    = local.environment
+  
+  # Bucket Configuration
+  bucket_name        = var.storage_bucket_name
+  region            = var.storage_region
+  versioning_enabled = var.storage_versioning_enabled
+
+  # CORS Configuration
+  cors_allowed_origins = var.storage_cors_allowed_origins
+
+  # Lifecycle Rules for Cost Optimization
+  lifecycle_rules = var.storage_lifecycle_rules
+
+  # CDN Configuration (DigitalOcean only)
+  cdn_enabled       = var.storage_cdn_enabled
+  cdn_custom_domain = var.storage_cdn_custom_domain
+
+  # Backup Configuration
+  backup_enabled        = var.storage_backup_enabled
+  backup_region         = var.storage_backup_region
+  backup_retention_days = var.storage_backup_retention_days
+
+  # Monitoring
+  monitoring_enabled = var.storage_monitoring_enabled
+  alert_email       = var.storage_alert_email
+
+  # Service-specific configurations
+  service_storage_configs = var.service_storage_configs
+
+  # Security
+  encryption_enabled     = var.storage_encryption_enabled
+  access_logging_enabled = var.storage_access_logging_enabled
+
+  # Cost Optimization
+  storage_class_transitions = var.storage_class_transitions
+  multipart_upload_threshold = var.multipart_upload_threshold
+
+  tags = local.common_tags
+}
+
 # Monitoring stack
 module "monitoring" {
   source = "./modules/monitoring"
