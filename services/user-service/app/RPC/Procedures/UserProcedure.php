@@ -4,14 +4,19 @@ namespace App\RPC\Procedures;
 
 use App\RPC\BaseProcedure;
 use App\Services\UserService;
+use App\Services\ProfileService;
+use App\Services\KycService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Http\UploadedFile;
 use Sajya\Server\Exceptions\RuntimeException;
 
 class UserProcedure extends BaseProcedure
 {
     public function __construct(
-        private UserService $userService
+        private UserService $userService,
+        private ProfileService $profileService,
+        private KycService $kycService
     ) {}
 
     /**
@@ -978,6 +983,289 @@ class UserProcedure extends BaseProcedure
                 'preferences' => $result['preferences'],
                 'retrieved_at' => now()->toISOString(),
             ];
+        });
+    }
+
+    // ========================================
+    // AVATAR MANAGEMENT RPC METHODS
+    // ========================================
+
+    /**
+     * Upload user avatar via RPC
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function uploadAvatar(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer|min:1',
+            'file_data' => 'required|string', // Base64 encoded file data
+            'file_name' => 'required|string|max:255',
+            'mime_type' => 'required|string|in:image/jpeg,image/png,image/gif,image/webp',
+            'options' => 'sometimes|array',
+            'options.max_width' => 'sometimes|integer|min:100|max:2048',
+            'options.max_height' => 'sometimes|integer|min:100|max:2048',
+            'options.quality' => 'sometimes|integer|min:50|max:100',
+        ]);
+
+        return $this->executeWithLogging('User@uploadAvatar', $this->sanitizeForLogging($params), function () use ($params) {
+            // Rate limiting for avatar uploads
+            $key = 'avatar_upload:' . $params['user_id'];
+            if (RateLimiter::tooManyAttempts($key, 5)) {
+                throw $this->createRuntimeException(
+                    'Too many avatar upload attempts. Please try again later.',
+                    -32020,
+                    ['retry_after' => RateLimiter::availableIn($key)]
+                );
+            }
+
+            try {
+                // Find user
+                $user = $this->userService->getUserById($params['user_id']);
+                if (!$user) {
+                    throw $this->createRuntimeException(
+                        'User not found',
+                        -32021,
+                        ['user_id' => $params['user_id']]
+                    );
+                }
+
+                // Decode base64 file data
+                $fileData = base64_decode($params['file_data']);
+                if ($fileData === false) {
+                    throw $this->createRuntimeException(
+                        'Invalid file data encoding',
+                        -32022,
+                        ['user_id' => $params['user_id']]
+                    );
+                }
+
+                // Create temporary file
+                $tempPath = tempnam(sys_get_temp_dir(), 'avatar_');
+                file_put_contents($tempPath, $fileData);
+
+                // Create UploadedFile instance
+                $uploadedFile = new UploadedFile(
+                    $tempPath,
+                    $params['file_name'],
+                    $params['mime_type'],
+                    null,
+                    true
+                );
+
+                // Upload avatar
+                $avatar = $this->profileService->uploadAvatar(
+                    $user,
+                    $uploadedFile,
+                    $params['options'] ?? []
+                );
+
+                // Clean up temp file
+                unlink($tempPath);
+
+                // Clear rate limiting on success
+                RateLimiter::clear($key);
+
+                return [
+                    'success' => true,
+                    'avatar' => [
+                        'id' => $avatar->id,
+                        'url' => $avatar->url,
+                        'cdn_url' => $avatar->cdn_url,
+                        'file_name' => $avatar->file_name,
+                        'file_size' => $avatar->file_size,
+                        'formatted_file_size' => $avatar->formatted_file_size,
+                        'mime_type' => $avatar->mime_type,
+                        'storage_provider' => $avatar->storage_provider,
+                        'uploaded_at' => $avatar->created_at->toISOString(),
+                    ],
+                    'message' => 'Avatar uploaded successfully',
+                    'uploaded_at' => now()->toISOString(),
+                ];
+
+            } catch (\Exception $e) {
+                // Increment rate limiting on failure
+                RateLimiter::hit($key, 300); // 5 minutes
+
+                throw $this->createRuntimeException(
+                    'Avatar upload failed: ' . $e->getMessage(),
+                    -32023,
+                    ['user_id' => $params['user_id']]
+                );
+            }
+        });
+    }
+
+    /**
+     * Delete user avatar via RPC
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function deleteAvatar(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer|min:1',
+        ]);
+
+        return $this->executeWithLogging('User@deleteAvatar', $params, function () use ($params) {
+            try {
+                // Find user
+                $user = $this->userService->getUserById($params['user_id']);
+                if (!$user) {
+                    throw $this->createRuntimeException(
+                        'User not found',
+                        -32024,
+                        ['user_id' => $params['user_id']]
+                    );
+                }
+
+                // Check if user has avatar
+                if (!$user->hasAvatar()) {
+                    throw $this->createRuntimeException(
+                        'User has no avatar to delete',
+                        -32025,
+                        ['user_id' => $params['user_id']]
+                    );
+                }
+
+                // Delete avatar
+                $deleted = $this->profileService->deleteAvatar($user);
+
+                if (!$deleted) {
+                    throw $this->createRuntimeException(
+                        'Failed to delete avatar',
+                        -32026,
+                        ['user_id' => $params['user_id']]
+                    );
+                }
+
+                return [
+                    'success' => true,
+                    'message' => 'Avatar deleted successfully',
+                    'deleted_at' => now()->toISOString(),
+                ];
+
+            } catch (\Exception $e) {
+                throw $this->createRuntimeException(
+                    'Avatar deletion failed: ' . $e->getMessage(),
+                    -32027,
+                    ['user_id' => $params['user_id']]
+                );
+            }
+        });
+    }
+
+    /**
+     * Get user avatar info via RPC
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function getAvatar(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer|min:1',
+        ]);
+
+        return $this->executeWithLogging('User@getAvatar', $params, function () use ($params) {
+            try {
+                // Find user
+                $user = $this->userService->getUserById($params['user_id']);
+                if (!$user) {
+                    throw $this->createRuntimeException(
+                        'User not found',
+                        -32028,
+                        ['user_id' => $params['user_id']]
+                    );
+                }
+
+                // Get avatar
+                $avatar = $this->profileService->getAvatar($user);
+
+                if (!$avatar) {
+                    return [
+                        'success' => true,
+                        'avatar' => null,
+                        'message' => 'User has no avatar',
+                        'retrieved_at' => now()->toISOString(),
+                    ];
+                }
+
+                return [
+                    'success' => true,
+                    'avatar' => [
+                        'id' => $avatar->id,
+                        'url' => $avatar->url,
+                        'cdn_url' => $avatar->cdn_url,
+                        'file_name' => $avatar->file_name,
+                        'original_name' => $avatar->original_name,
+                        'file_size' => $avatar->file_size,
+                        'formatted_file_size' => $avatar->formatted_file_size,
+                        'mime_type' => $avatar->mime_type,
+                        'storage_provider' => $avatar->storage_provider,
+                        'uploaded_at' => $avatar->created_at->toISOString(),
+                        'updated_at' => $avatar->updated_at->toISOString(),
+                    ],
+                    'retrieved_at' => now()->toISOString(),
+                ];
+
+            } catch (\Exception $e) {
+                throw $this->createRuntimeException(
+                    'Failed to retrieve avatar: ' . $e->getMessage(),
+                    -32029,
+                    ['user_id' => $params['user_id']]
+                );
+            }
+        });
+    }
+
+    /**
+     * Get user avatar URL via RPC
+     * 
+     * @param array $params
+     * @return array
+     */
+    public function getAvatarUrl(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer|min:1',
+            'default_url' => 'sometimes|string|url',
+        ]);
+
+        return $this->executeWithLogging('User@getAvatarUrl', $params, function () use ($params) {
+            try {
+                // Find user
+                $user = $this->userService->getUserById($params['user_id']);
+                if (!$user) {
+                    throw $this->createRuntimeException(
+                        'User not found',
+                        -32030,
+                        ['user_id' => $params['user_id']]
+                    );
+                }
+
+                // Get avatar URL
+                $avatarUrl = $this->profileService->getAvatarUrl(
+                    $user,
+                    $params['default_url'] ?? null
+                );
+
+                return [
+                    'success' => true,
+                    'avatar_url' => $avatarUrl,
+                    'has_avatar' => $user->hasAvatar(),
+                    'retrieved_at' => now()->toISOString(),
+                ];
+
+            } catch (\Exception $e) {
+                throw $this->createRuntimeException(
+                    'Failed to retrieve avatar URL: ' . $e->getMessage(),
+                    -32031,
+                    ['user_id' => $params['user_id']]
+                );
+            }
         });
     }
 }
