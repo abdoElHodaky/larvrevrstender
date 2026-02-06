@@ -1,16 +1,16 @@
 <?php
 
-use Sajya\Server\Route;
 use App\RPC\Procedures\BiddingProcedure;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
 | RPC Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register RPC procedures for your application.
-| These procedures are loaded by the RpcServiceProvider within a group
-| which contains the "rpc" middleware group.
+| Here is where you can register RPC routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "rpc" middleware group.
 |
 */
 

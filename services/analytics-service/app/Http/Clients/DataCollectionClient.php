@@ -91,10 +91,10 @@ class DataCollectionClient extends BaseServiceClient
         try {
             $client = new class($baseUrl) extends BaseServiceClient {};
             $response = $client->get($endpoint);
+
             return $response->successful() ? $response->json() : [];
         } catch (\Exception $e) {
             return ['error' => $e->getMessage()];
         }
     }
 }
-

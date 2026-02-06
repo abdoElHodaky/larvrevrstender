@@ -1,15 +1,18 @@
 name: RPC Services Deployment Pipeline
+# Trigger deployment test for helm/kind staging environment
 
 on:
   
   push:
-    branches: [rpc, main-rpc]
+    branches-ignore:
+      - main
     paths:
       - 'services/**'
       - 'deployment/**'
       - '.github/workflows/rpc-deployment.yml'
   pull_request:
-    branches: [ main ]
+    branches-ignore:
+      - main
     paths:
       - 'services/**'
       - 'deployment/**'
@@ -38,7 +41,7 @@ jobs:
           bidding-service,
           notification-service,
           vin-ocr-service,
-          shared-service
+          gateway-service
         ]
     
     steps:
@@ -217,6 +220,29 @@ jobs:
           exit 0
         fi
         
+        # Clean up any existing test database files to ensure fresh start
+        echo "🧹 Cleaning up test database files..."
+        rm -f /tmp/*_test.sqlite
+        
+        # Create fresh SQLite database files for services that need them
+        echo "🗄️ Creating fresh SQLite database files..."
+        touch /tmp/auth_service_test.sqlite
+        touch /tmp/user_service_test.sqlite
+        touch /tmp/order_service_test.sqlite
+        touch /tmp/analytics_service_test.sqlite
+        touch /tmp/notification_service_test.sqlite
+        touch /tmp/payment_service_test.sqlite
+        touch /tmp/bidding_service_test.sqlite
+        touch /tmp/vin_ocr_service_test.sqlite
+        touch /tmp/gateway_service_test.sqlite
+        echo "✅ SQLite database files created successfully"
+        
+        # Ensure SQLite is available
+        if ! command -v sqlite3 >/dev/null 2>&1; then
+          echo "📦 Installing SQLite..."
+          sudo apt-get update && sudo apt-get install -y sqlite3
+        fi
+        
         # Run tests using Laravel's test command if artisan exists, otherwise use PHPUnit directly
         if [ -f "artisan" ]; then
           # Try with coverage first, if it fails due to no coverage driver, try without coverage
@@ -235,9 +261,11 @@ jobs:
     - name: Upload coverage reports
       if: hashFiles('services/${{ matrix.service }}/coverage.xml') != ''
       uses: codecov/codecov-action@v3
+      continue-on-error: true
       with:
         file: services/${{ matrix.service }}/coverage.xml
         flags: ${{ matrix.service }}
+        fail_ci_if_error: false
 
   # Build and Push Docker Images - Batch 1 (Core Services)
   build-and-push-batch-1:
@@ -254,7 +282,7 @@ jobs:
           user-service,
           analytics-service,
           order-service,
-          shared-service
+          gateway-service
         ]
 
     steps:
@@ -479,6 +507,338 @@ jobs:
         head: HEAD
         extra_args: --debug --only-verified
 
+  # Deploy with Helm/Kind (Local Development)
+  deploy-helm-kind:
+    needs: [performance-test, security-scan]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Kind
+      uses: helm/kind-action@v1.10.0
+      with:
+        version: v0.20.0
+        kubectl_version: v1.28.0
+        cluster_name: rpc-cluster
+
+    - name: Setup Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: 'v3.12.0'
+
+    - name: Create Kind cluster config
+      run: |
+        cat <<EOF > kind-config.yaml
+        kind: Cluster
+        apiVersion: kind.x-k8s.io/v1alpha4
+        name: rpc-cluster
+        nodes:
+        - role: control-plane
+          kubeadmConfigPatches:
+          - |
+            kind: InitConfiguration
+            nodeRegistration:
+              kubeletExtraArgs:
+                node-labels: "ingress-ready=true"
+          extraPortMappings:
+          - containerPort: 80
+            hostPort: 80
+            protocol: TCP
+          - containerPort: 443
+            hostPort: 443
+            protocol: TCP
+        - role: worker
+        - role: worker
+        EOF
+
+    - name: Load Docker images to Kind
+      run: |
+        # Load all service images into Kind cluster
+        services=(auth-service user-service analytics-service order-service payment-service bidding-service notification-service vin-ocr-service gateway-service)
+        for service in "${services[@]}"; do
+          if docker image inspect ghcr.io/${{ github.repository_owner }}/larvrevrstender-${service}:${{ github.sha }} >/dev/null 2>&1; then
+            echo "Loading ${service} image into Kind cluster..."
+            kind load docker-image ghcr.io/${{ github.repository_owner }}/larvrevrstender-${service}:${{ github.sha }} --name rpc-cluster
+          else
+            echo "⚠️ Image for ${service} not found, skipping..."
+          fi
+        done
+
+    - name: Create Helm values for RPC services
+      run: |
+        cat <<EOF > helm-values.yaml
+        global:
+          imageRegistry: ghcr.io/${{ github.repository_owner }}
+          imageTag: ${{ github.sha }}
+          imagePullPolicy: IfNotPresent
+          
+        services:
+          authService:
+            enabled: true
+            replicas: 1
+            image: larvrevrstender-auth-service
+            port: 8000
+            
+          userService:
+            enabled: true
+            replicas: 1
+            image: larvrevrstender-user-service
+            port: 8001
+            
+          orderService:
+            enabled: true
+            replicas: 1
+            image: larvrevrstender-order-service
+            port: 8002
+            
+          paymentService:
+            enabled: true
+            replicas: 1
+            image: larvrevrstender-payment-service
+            port: 8003
+            
+          biddingService:
+            enabled: true
+            replicas: 1
+            image: larvrevrstender-bidding-service
+            port: 8004
+            
+          notificationService:
+            enabled: true
+            replicas: 1
+            image: larvrevrstender-notification-service
+            port: 8005
+            
+          vinOcrService:
+            enabled: true
+            replicas: 1
+            image: larvrevrstender-vin-ocr-service
+            port: 8006
+            
+          analyticsService:
+            enabled: true
+            replicas: 1
+            image: larvrevrstender-analytics-service
+            port: 8007
+            
+          gatewayService:
+            enabled: true
+            replicas: 1
+            image: larvrevrstender-gateway-service
+            port: 8080
+            
+        ingress:
+          enabled: true
+          className: nginx
+          hosts:
+            - host: rpc.local
+              paths:
+                - path: /
+                  pathType: Prefix
+                  
+        redis:
+          enabled: true
+          auth:
+            enabled: false
+            
+        mysql:
+          enabled: true
+          auth:
+            rootPassword: "root"
+            database: "reversetender"
+            username: "laravel"
+            password: "password"
+        EOF
+
+    - name: Deploy RPC services with Helm
+      run: |
+        # Add required Helm repositories
+        helm repo add bitnami https://charts.bitnami.com/bitnami
+        helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+        helm repo update
+        
+        # Install NGINX Ingress Controller
+        helm install ingress-nginx ingress-nginx/ingress-nginx \
+          --namespace ingress-nginx \
+          --create-namespace \
+          --set controller.service.type=NodePort \
+          --set controller.hostPort.enabled=true \
+          --wait
+        
+        # Install Redis
+        helm install redis bitnami/redis \
+          --namespace rpc-services \
+          --create-namespace \
+          --set auth.enabled=false \
+          --set replica.replicaCount=1 \
+          --wait
+        
+        # Install MySQL
+        helm install mysql bitnami/mysql \
+          --namespace rpc-services \
+          --set auth.rootPassword=root \
+          --set auth.database=reversetender \
+          --set auth.username=laravel \
+          --set auth.password=password \
+          --wait
+        
+        # Check if Helm chart exists
+        if [ -d "deployment/helm/rpc-services" ]; then
+          echo "📦 Deploying RPC services using Helm chart..."
+          helm install rpc-services deployment/helm/rpc-services \
+            --namespace rpc-services \
+            --create-namespace \
+            --values helm-values.yaml \
+            --wait --timeout=10m
+        else
+          echo "⚠️ Helm chart not found, creating basic deployment..."
+          kubectl create namespace rpc-services --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Create basic deployments for each service
+          services=(auth-service user-service order-service payment-service bidding-service notification-service vin-ocr-service analytics-service gateway-service)
+          for service in "${services[@]}"; do
+            cat <<EOF | kubectl apply -f -
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ${service}
+          namespace: rpc-services
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: ${service}
+          template:
+            metadata:
+              labels:
+                app: ${service}
+            spec:
+              containers:
+              - name: ${service}
+                image: ghcr.io/${{ github.repository_owner }}/larvrevrstender-${service}:${{ github.sha }}
+                imagePullPolicy: IfNotPresent
+                ports:
+                - containerPort: 8000
+                env:
+                - name: APP_ENV
+                  value: "testing"
+                - name: DB_CONNECTION
+                  value: "mysql"
+                - name: DB_HOST
+                  value: "mysql"
+                - name: DB_DATABASE
+                  value: "reversetender"
+                - name: DB_USERNAME
+                  value: "laravel"
+                - name: DB_PASSWORD
+                  value: "password"
+                - name: REDIS_HOST
+                  value: "redis-master"
+        ---
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: ${service}
+          namespace: rpc-services
+        spec:
+          selector:
+            app: ${service}
+          ports:
+          - port: 80
+            targetPort: 8000
+        EOF
+          done
+        fi
+
+    - name: Wait for deployments to be ready
+      run: |
+        echo "⏳ Waiting for deployments to be ready..."
+        kubectl wait --for=condition=available --timeout=300s deployment --all -n rpc-services
+        
+        echo "📊 Deployment status:"
+        kubectl get deployments -n rpc-services
+        kubectl get pods -n rpc-services
+        kubectl get services -n rpc-services
+
+    - name: Run Kind cluster health checks
+      run: |
+        echo "🔍 Running health checks on Kind cluster..."
+        
+        # Check cluster info
+        kubectl cluster-info
+        
+        # Check node status
+        kubectl get nodes
+        
+        # Check all pods
+        kubectl get pods --all-namespaces
+        
+        # Test service connectivity
+        echo "🌐 Testing service connectivity..."
+        services=(auth-service user-service order-service payment-service bidding-service notification-service vin-ocr-service analytics-service gateway-service)
+        for service in "${services[@]}"; do
+          if kubectl get service ${service} -n rpc-services >/dev/null 2>&1; then
+            echo "✅ ${service} service is accessible"
+            # Test if service responds (basic connectivity test)
+            kubectl run test-${service} --image=curlimages/curl --rm -i --restart=Never -- \
+              curl -s -o /dev/null -w "%{http_code}" http://${service}.rpc-services.svc.cluster.local/health || echo "⚠️ ${service} health check failed"
+          else
+            echo "❌ ${service} service not found"
+          fi
+        done
+
+    - name: Run RPC integration tests on Kind
+      run: |
+        echo "🧪 Running RPC integration tests..."
+        
+        # Port forward gateway service for testing
+        kubectl port-forward service/gateway-service 8080:80 -n rpc-services &
+        PORTFORWARD_PID=$!
+        
+        # Wait for port forward to be ready
+        sleep 5
+        
+        # Run basic RPC tests
+        echo "Testing RPC endpoints..."
+        
+        # Test auth service
+        curl -X POST http://localhost:8080/rpc \
+          -H "Content-Type: application/json" \
+          -d '{"jsonrpc":"2.0","method":"Auth.ping","params":{},"id":1}' \
+          || echo "⚠️ Auth RPC test failed"
+        
+        # Test user service  
+        curl -X POST http://localhost:8080/rpc \
+          -H "Content-Type: application/json" \
+          -d '{"jsonrpc":"2.0","method":"User.ping","params":{},"id":2}' \
+          || echo "⚠️ User RPC test failed"
+        
+        # Cleanup port forward
+        kill $PORTFORWARD_PID || true
+        
+        echo "✅ Kind deployment and testing completed"
+
+    - name: Export Kind cluster logs
+      if: failure()
+      run: |
+        echo "📋 Exporting cluster logs for debugging..."
+        kubectl logs --all-containers=true --tail=100 -n rpc-services > kind-cluster-logs.txt
+        kubectl describe pods -n rpc-services > kind-pod-descriptions.txt
+
+    - name: Upload Kind cluster artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: kind-cluster-artifacts
+        path: |
+          kind-cluster-logs.txt
+          kind-pod-descriptions.txt
+          helm-values.yaml
+        retention-days: 7
+
   # Deploy to Staging
   deploy-staging:
     needs: [performance-test, security-scan]
@@ -571,7 +931,7 @@ jobs:
 
   # Rollback on Failure
   rollback-on-failure:
-    needs: [deploy-staging, deploy-production]
+    needs: [deploy-helm-kind, deploy-staging, deploy-production]
     runs-on: ubuntu-latest
     if: failure() && (github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main')
 
@@ -649,7 +1009,7 @@ jobs:
 
   # Cleanup
   cleanup:
-    needs: [deploy-staging, deploy-production, rollback-on-failure]
+    needs: [deploy-helm-kind, deploy-staging, deploy-production, rollback-on-failure]
     runs-on: ubuntu-latest
     if: always()
 

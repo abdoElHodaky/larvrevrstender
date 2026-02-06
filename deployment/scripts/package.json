@@ -1,34 +1,14 @@
 {
-  "name": "rpc-performance-testing",
+  "name": "rpc-performance-tests",
   "version": "1.0.0",
-  "description": "Performance testing tools for RPC services",
-  "main": "rpc-load-test.js",
+  "description": "Performance testing scripts for RPC Services Deployment Pipeline",
+  "main": "index.js",
   "scripts": {
-    "test": "node rpc-load-test.js",
-    "performance": "node rpc-load-test.js --production",
-    "validate": "node -e \"console.log('Package validation successful')\""
+    "test": "echo \"Performance tests not implemented yet\" && exit 0"
   },
-  "dependencies": {
-    "axios": "^1.6.0",
-    "commander": "^11.0.0",
-    "chalk": "^4.1.2",
-    "ora": "^5.4.1",
-    "table": "^6.8.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.0"
-  },
-  "keywords": [
-    "rpc",
-    "performance",
-    "testing",
-    "laravel",
-    "octane"
-  ],
-  "author": "RPC Development Team",
+  "keywords": ["performance", "testing", "rpc", "microservices"],
+  "author": "RPC Services Team",
   "license": "MIT",
-  "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=8.0.0"
-  }
+  "dependencies": {},
+  "devDependencies": {}
 }

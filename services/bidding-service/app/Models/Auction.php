@@ -46,6 +46,22 @@ class Auction extends Model
     }
 
     /**
+     * Get the product images for the auction.
+     */
+    public function productImages(): HasMany
+    {
+        return $this->hasMany(ProductImage::class)->ordered();
+    }
+
+    /**
+     * Get the primary product image for the auction.
+     */
+    public function primaryImage()
+    {
+        return $this->hasOne(ProductImage::class)->primary();
+    }
+
+    /**
      * Get the highest bid for the auction.
      */
     public function highestBid()
@@ -58,7 +74,31 @@ class Auction extends Model
      */
     public function isActive(): bool
     {
-        return $this->status === 'active' && 
+        return $this->status === 'active' &&
                now()->between($this->starts_at, $this->ends_at);
+    }
+
+    /**
+     * Check if the auction has images.
+     */
+    public function hasImages(): bool
+    {
+        return $this->productImages()->exists();
+    }
+
+    /**
+     * Get the primary image URL or default.
+     */
+    public function getPrimaryImageUrlAttribute(): ?string
+    {
+        return $this->primaryImage?->cdn_url;
+    }
+
+    /**
+     * Get the total number of images.
+     */
+    public function getImageCountAttribute(): int
+    {
+        return $this->productImages()->count();
     }
 }

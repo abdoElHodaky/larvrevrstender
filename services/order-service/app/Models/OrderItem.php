@@ -66,6 +66,7 @@ class OrderItem extends Model
         if ($this->quantity > 0) {
             return ($this->total_price - $this->discount_amount) / $this->quantity;
         }
+
         return $this->unit_price;
     }
 }

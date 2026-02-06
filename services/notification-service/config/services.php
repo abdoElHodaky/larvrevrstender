@@ -60,4 +60,3 @@ return [
         'url' => env('VIN_OCR_SERVICE_URL', 'http://vin-ocr-service:8000'),
     ],
 ];
-

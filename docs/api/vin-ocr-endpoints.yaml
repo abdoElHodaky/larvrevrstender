@@ -1,0 +1,418 @@
+openapi: 3.0.3
+info:
+  title: VIN OCR Processing API
+  description: API endpoints for Vehicle Identification Number (VIN) Optical Character Recognition processing with cloud storage integration
+  version: 1.0.0
+  contact:
+    name: Reverse Tender Platform API Support
+    email: api-support@reversetender.com
+
+servers:
+  - url: https://api.reversetender.com/vin-ocr-service
+    description: Production server
+  - url: https://staging-api.reversetender.com/vin-ocr-service
+    description: Staging server
+  - url: http://localhost:8007
+    description: Development server
+
+paths:
+  /api/vin/process:
+    post:
+      summary: Process VIN from image
+      description: Upload an image containing a VIN number for OCR processing. The service will extract the VIN, validate it, and return vehicle information. Images are automatically optimized and stored in cloud storage.
+      operationId: processVinImage
+      tags:
+        - VIN Processing
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Image file containing VIN number (JPEG, PNG, WebP, BMP)
+                optimize_image:
+                  type: boolean
+                  default: true
+                  description: Whether to optimize the image for better OCR accuracy
+                max_width:
+                  type: integer
+                  default: 2048
+                  minimum: 512
+                  maximum: 4096
+                  description: Maximum width for image optimization (pixels)
+                max_height:
+                  type: integer
+                  default: 2048
+                  minimum: 512
+                  maximum: 4096
+                  description: Maximum height for image optimization (pixels)
+                quality:
+                  type: integer
+                  default: 85
+                  minimum: 50
+                  maximum: 100
+                  description: Image quality for optimization (percentage)
+                store_image:
+                  type: boolean
+                  default: true
+                  description: Whether to store the processed image in cloud storage
+              required:
+                - image
+            encoding:
+              image:
+                contentType: image/jpeg, image/png, image/webp, image/bmp
+      responses:
+        '200':
+          description: VIN processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "VIN processed successfully"
+                  data:
+                    type: object
+                    properties:
+                      vin:
+                        type: string
+                        example: "1HGBH41JXMN109186"
+                        description: Extracted VIN number
+                      confidence:
+                        type: number
+                        format: float
+                        example: 0.95
+                        description: OCR confidence score (0-1)
+                      is_valid:
+                        type: boolean
+                        example: true
+                        description: Whether the VIN passes validation checks
+                      vehicle_info:
+                        type: object
+                        nullable: true
+                        properties:
+                          make:
+                            type: string
+                            example: "Honda"
+                          model:
+                            type: string
+                            example: "Civic"
+                          year:
+                            type: integer
+                            example: 2021
+                          body_style:
+                            type: string
+                            example: "Sedan"
+                          engine:
+                            type: string
+                            example: "2.0L I4"
+                          transmission:
+                            type: string
+                            example: "CVT"
+                          country_of_origin:
+                            type: string
+                            example: "United States"
+                      image_info:
+                        type: object
+                        properties:
+                          original_filename:
+                            type: string
+                            example: "vin_photo.jpg"
+                          processed_filename:
+                            type: string
+                            example: "vin_uuid.jpg"
+                          file_size:
+                            type: integer
+                            example: 245760
+                            description: File size in bytes
+                          mime_type:
+                            type: string
+                            example: "image/jpeg"
+                          dimensions:
+                            type: object
+                            properties:
+                              width:
+                                type: integer
+                                example: 1920
+                              height:
+                                type: integer
+                                example: 1080
+                          storage_path:
+                            type: string
+                            example: "vin-ocr-service/images/2026/02/05/vin_uuid.jpg"
+                          url:
+                            type: string
+                            example: "https://cdn.reversetender.com/vin-ocr-service/images/2026/02/05/vin_uuid.jpg"
+                          optimized:
+                            type: boolean
+                            example: true
+                      processing_info:
+                        type: object
+                        properties:
+                          processing_time:
+                            type: number
+                            format: float
+                            example: 2.34
+                            description: Processing time in seconds
+                          ocr_engine:
+                            type: string
+                            example: "tesseract"
+                          preprocessing_applied:
+                            type: array
+                            items:
+                              type: string
+                            example: ["resize", "contrast_enhancement", "noise_reduction"]
+                          created_at:
+                            type: string
+                            format: date-time
+                            example: "2026-02-05T18:30:00Z"
+        '400':
+          description: Bad request - Invalid image or processing error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_image:
+                  summary: Invalid image format
+                  value:
+                    success: false
+                    message: "Validation failed"
+                    errors:
+                      image: ["The image must be a file of type: jpeg, png, webp, bmp."]
+                no_vin_found:
+                  summary: No VIN detected
+                  value:
+                    success: false
+                    message: "No VIN number could be detected in the provided image"
+                    data:
+                      confidence: 0.12
+                      raw_text: "Some text but no VIN pattern"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "File size exceeds maximum allowed limit of 10MB"
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/vin/validate:
+    post:
+      summary: Validate VIN number
+      description: Validate a VIN number without image processing. Useful for validating manually entered VINs.
+      operationId: validateVin
+      tags:
+        - VIN Processing
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vin:
+                  type: string
+                  pattern: '^[A-HJ-NPR-Z0-9]{17}$'
+                  example: "1HGBH41JXMN109186"
+                  description: 17-character VIN number to validate
+              required:
+                - vin
+      responses:
+        '200':
+          description: VIN validation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "VIN validation completed"
+                  data:
+                    type: object
+                    properties:
+                      vin:
+                        type: string
+                        example: "1HGBH41JXMN109186"
+                      is_valid:
+                        type: boolean
+                        example: true
+                      validation_errors:
+                        type: array
+                        items:
+                          type: string
+                        example: []
+                      vehicle_info:
+                        type: object
+                        nullable: true
+                        properties:
+                          make:
+                            type: string
+                            example: "Honda"
+                          model:
+                            type: string
+                            example: "Civic"
+                          year:
+                            type: integer
+                            example: 2021
+                          body_style:
+                            type: string
+                            example: "Sedan"
+                          engine:
+                            type: string
+                            example: "2.0L I4"
+                          transmission:
+                            type: string
+                            example: "CVT"
+                          country_of_origin:
+                            type: string
+                            example: "United States"
+        '400':
+          description: Invalid VIN format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Invalid VIN format"
+                  data:
+                    type: object
+                    properties:
+                      vin:
+                        type: string
+                        example: "INVALID123"
+                      is_valid:
+                        type: boolean
+                        example: false
+                      validation_errors:
+                        type: array
+                        items:
+                          type: string
+                        example: ["VIN must be exactly 17 characters", "Invalid characters detected"]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoint
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "An error occurred"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validation failed"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            image: ["The image field is required."]
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Unauthenticated"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Internal server error"
+
+tags:
+  - name: VIN Processing
+    description: Vehicle Identification Number processing and validation operations
+
+externalDocs:
+  description: Find more info about the Reverse Tender Platform API
+  url: https://docs.reversetender.com/api
+

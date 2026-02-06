@@ -1,7 +1,7 @@
 <?php
 
-use Sajya\Server\Route;
 use App\RPC\Procedures\VinOcrProcedure;
+use Sajya\Server\Route;
 
 /*
 |--------------------------------------------------------------------------

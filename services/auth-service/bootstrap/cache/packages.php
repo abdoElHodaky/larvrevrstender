@@ -21,6 +21,13 @@
       0 => 'Laravel\\Octane\\OctaneServiceProvider',
     ),
   ),
+  'laravel/pail' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Laravel\\Pail\\PailServiceProvider',
+    ),
+  ),
   'laravel/sail' => 
   array (
     'providers' => 
@@ -68,6 +75,17 @@
     'providers' => 
     array (
       0 => 'Termwind\\Laravel\\TermwindServiceProvider',
+    ),
+  ),
+  'sajya/server' => 
+  array (
+    'aliases' => 
+    array (
+      'RPC' => 'Sajya\\Server\\Facades\\RPC',
+    ),
+    'providers' => 
+    array (
+      0 => 'Sajya\\Server\\ServerServiceProvider',
     ),
   ),
   'spatie/laravel-data' => 

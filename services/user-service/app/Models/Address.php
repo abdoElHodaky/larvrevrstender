@@ -37,7 +37,9 @@ class Address extends Model
     ];
 
     const TYPE_BILLING = 'billing';
+
     const TYPE_SHIPPING = 'shipping';
+
     const TYPE_BOTH = 'both';
 
     /**
@@ -45,7 +47,7 @@ class Address extends Model
      */
     public function getFullNameAttribute(): string
     {
-        return trim($this->first_name . ' ' . $this->last_name);
+        return trim($this->first_name.' '.$this->last_name);
     }
 
     /**

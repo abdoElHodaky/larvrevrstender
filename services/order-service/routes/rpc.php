@@ -1,7 +1,9 @@
 <?php
 
-use Sajya\Server\Route;
 use App\RPC\Procedures\OrderProcedure;
+use Sajya\Server\Route;
+
+// use App\RPC\Procedures\EnhancedOrderProcedure;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,4 +18,5 @@ use App\RPC\Procedures\OrderProcedure;
 
 Route::rpc('/', [
     OrderProcedure::class,
+    // EnhancedOrderProcedure::class, // TODO: Review if this is needed or can be merged with OrderProcedure
 ])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging']);

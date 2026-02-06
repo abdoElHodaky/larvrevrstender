@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Shared\Services\FileUploadService;
 
 class VinOcrController extends Controller
 {
@@ -17,10 +18,16 @@ class VinOcrController extends Controller
 
     protected VinValidationService $vinValidationService;
 
-    public function __construct(OcrService $ocrService, VinValidationService $vinValidationService)
-    {
+    protected FileUploadService $fileUploadService;
+
+    public function __construct(
+        OcrService $ocrService,
+        VinValidationService $vinValidationService,
+        FileUploadService $fileUploadService
+    ) {
         $this->ocrService = $ocrService;
         $this->vinValidationService = $vinValidationService;
+        $this->fileUploadService = $fileUploadService;
     }
 
     /**
@@ -328,16 +335,35 @@ class VinOcrController extends Controller
     }
 
     /**
-     * Store uploaded image
+     * Store uploaded image using cloud storage
      */
     private function storeImage($image): string
     {
-        $filename = Str::uuid().'.'.$image->getClientOriginalExtension();
-        $path = 'vin-images/'.date('Y/m/d').'/'.$filename;
+        try {
+            // Use FileUploadService to upload to cloud storage
+            $result = $this->fileUploadService->upload(
+                $image,
+                'vin-ocr-service/vin-images/'.date('Y/m/d'),
+                [
+                    'optimize' => true,
+                    'max_width' => 2048,
+                    'max_height' => 2048,
+                    'quality' => 85,
+                ]
+            );
 
-        Storage::disk('public')->put($path, file_get_contents($image));
+            // Return the storage path for backward compatibility
+            return $result['path'];
+        } catch (\Exception $e) {
+            // Fallback to local storage if cloud storage fails
+            \Log::warning('Cloud storage failed, falling back to local storage: '.$e->getMessage());
 
-        return $path;
+            $filename = Str::uuid().'.'.$image->getClientOriginalExtension();
+            $path = 'vin-images/'.date('Y/m/d').'/'.$filename;
+            Storage::disk('public')->put($path, file_get_contents($image));
+
+            return $path;
+        }
     }
 
     /**

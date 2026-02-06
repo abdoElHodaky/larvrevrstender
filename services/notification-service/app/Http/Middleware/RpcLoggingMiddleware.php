@@ -11,15 +11,13 @@ class RpcLoggingMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
      * @return mixed
      */
     public function handle(Request $request, Closure $next)
     {
         $correlationId = $request->header('X-Correlation-ID');
         $startTime = microtime(true);
-        
+
         // Log incoming request
         Log::info('RPC Request', [
             'correlation_id' => $correlationId,
@@ -30,12 +28,12 @@ class RpcLoggingMiddleware
             'payload_size' => strlen($request->getContent()),
             'timestamp' => now()->toISOString(),
         ]);
-        
+
         try {
             $response = $next($request);
-            
+
             $executionTime = (microtime(true) - $startTime) * 1000;
-            
+
             // Log successful response
             Log::info('RPC Response', [
                 'correlation_id' => $correlationId,
@@ -44,12 +42,12 @@ class RpcLoggingMiddleware
                 'response_size' => method_exists($response, 'getContent') ? strlen($response->getContent()) : 0,
                 'timestamp' => now()->toISOString(),
             ]);
-            
+
             return $response;
-            
+
         } catch (\Exception $e) {
             $executionTime = (microtime(true) - $startTime) * 1000;
-            
+
             // Log error response
             Log::error('RPC Error', [
                 'correlation_id' => $correlationId,
@@ -60,7 +58,7 @@ class RpcLoggingMiddleware
                 'line' => $e->getLine(),
                 'timestamp' => now()->toISOString(),
             ]);
-            
+
             throw $e;
         }
     }

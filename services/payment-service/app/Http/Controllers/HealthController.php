@@ -121,11 +121,11 @@ class HealthController extends Controller
     {
         return [
             'stripe' => [
-                'configured' => !empty(config('services.stripe.secret')),
+                'configured' => ! empty(config('services.stripe.secret')),
                 'mode' => config('app.env') === 'production' ? 'live' : 'test',
             ],
             'paypal' => [
-                'configured' => !empty(config('services.paypal.client_id')),
+                'configured' => ! empty(config('services.paypal.client_id')),
                 'mode' => config('services.paypal.mode', 'sandbox'),
             ],
         ];
@@ -137,7 +137,7 @@ class HealthController extends Controller
     private function getUptime(): array
     {
         $uptime = time() - filemtime(base_path('bootstrap/app.php'));
-        
+
         return [
             'seconds' => $uptime,
             'human' => $this->formatUptime($uptime),
@@ -155,10 +155,18 @@ class HealthController extends Controller
         $seconds = $seconds % 60;
 
         $parts = [];
-        if ($days > 0) $parts[] = "{$days}d";
-        if ($hours > 0) $parts[] = "{$hours}h";
-        if ($minutes > 0) $parts[] = "{$minutes}m";
-        if ($seconds > 0 || empty($parts)) $parts[] = "{$seconds}s";
+        if ($days > 0) {
+            $parts[] = "{$days}d";
+        }
+        if ($hours > 0) {
+            $parts[] = "{$hours}h";
+        }
+        if ($minutes > 0) {
+            $parts[] = "{$minutes}m";
+        }
+        if ($seconds > 0 || empty($parts)) {
+            $parts[] = "{$seconds}s";
+        }
 
         return implode(' ', $parts);
     }

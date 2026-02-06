@@ -16,6 +16,7 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->get("/users/{$userId}");
+
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
             return null;
@@ -29,6 +30,7 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->get("/users/{$userId}/notification-preferences");
+
             return $response->successful() ? $response->json('preferences', []) : [];
         } catch (\Exception $e) {
             return [];
@@ -42,6 +44,7 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->put("/users/{$userId}/notification-preferences", $preferences);
+
             return $response->successful();
         } catch (\Exception $e) {
             return false;
@@ -55,6 +58,7 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->get("/users/{$userId}/contact-info");
+
             return $response->successful() ? $response->json() : [];
         } catch (\Exception $e) {
             return [];
@@ -71,6 +75,7 @@ class UserServiceClient extends BaseServiceClient
                 'delivered_at' => now()->toISOString(),
                 'source' => 'notification_service',
             ]);
+
             return $response->successful();
         } catch (\Exception $e) {
             return false;
@@ -84,10 +89,10 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->post('/users/bulk-notification-targets', $criteria);
+
             return $response->successful() ? $response->json('users', []) : [];
         } catch (\Exception $e) {
             return [];
         }
     }
 }
-
