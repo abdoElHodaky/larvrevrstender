@@ -34,8 +34,6 @@ RUN if [ -f "composer.json" ]; then \
         composer install --no-dev --optimize-autoloader --no-interaction --no-scripts; \
     fi
 
----
-
 # Stage 2: Production Runtime
 FROM serversideup/php:8.3-frankenphp AS runtime
 
