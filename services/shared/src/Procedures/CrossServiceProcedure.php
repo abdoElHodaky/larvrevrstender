@@ -11,6 +11,8 @@ use Shared\Config\CrossServiceConfig;
 // Import all micro procedures
 use Shared\Procedures\Micro\EventPublishingProcedure;
 use Shared\Procedures\Micro\CacheManagementProcedure;
+use Shared\Procedures\Micro\ValidationProcedure;
+use Shared\Procedures\Micro\SecurityProcedure;
 
 /**
  * Cross-Service Procedure Hub
@@ -23,6 +25,8 @@ class CrossServiceProcedure extends BaseProcedure
     // Import all micro procedures via traits
     use EventPublishingProcedure;
     use CacheManagementProcedure;
+    use ValidationProcedure;
+    use SecurityProcedure;
     
     private ProcedureEngine $engine;
     private RestHandler $restHandler;
@@ -57,6 +61,16 @@ class CrossServiceProcedure extends BaseProcedure
         $this->engine->registerProcedure('cache', static::class, 'micro', [
             'description' => 'Cache management operations',
             'methods' => ['cacheSet', 'cacheGet', 'cacheDelete', 'cacheExists', 'cacheStats', 'cacheFlush']
+        ]);
+
+        $this->engine->registerProcedure('validation', static::class, 'micro', [
+            'description' => 'Data validation and sanitization',
+            'methods' => ['validateData', 'validateApiRequest', 'validateCrossFields', 'sanitizeData']
+        ]);
+
+        $this->engine->registerProcedure('security', static::class, 'micro', [
+            'description' => 'Security operations and authentication',
+            'methods' => ['authenticateToken', 'checkAuthorization', 'applyRateLimit', 'encryptData', 'decryptData']
         ]);
 
         // Register macro procedures (to be implemented)

@@ -210,6 +210,113 @@ Route::prefix('config')->group(function () use ($crossService) {
     });
 });
 
+// Validation routes
+Route::prefix('validation')->group(function () use ($crossService) {
+    Route::post('/validate', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->validateData($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/api-request', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->validateApiRequest($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/cross-fields', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->validateCrossFields($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/sanitize', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->sanitizeData($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+});
+
+// Security routes
+Route::prefix('security')->group(function () use ($crossService) {
+    Route::post('/authenticate', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown'),
+            'ip_address' => $request->ip()
+        ];
+        
+        $result = $crossService->authenticateToken($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 401);
+    });
+
+    Route::post('/authorize', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown'),
+            'ip_address' => $request->ip()
+        ];
+        
+        $result = $crossService->checkAuthorization($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 403);
+    });
+
+    Route::post('/rate-limit', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->applyRateLimit($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 429);
+    });
+
+    Route::post('/encrypt', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->encryptData($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/decrypt', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->decryptData($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+});
+
 // Generic procedure execution route
 Route::post('/execute', function (Request $request) use ($crossService) {
     $params = $request->all();
