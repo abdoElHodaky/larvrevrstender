@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev \
     libzip-dev \
     libpq-dev \
+    libicu-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions needed for building/dependencies
@@ -54,6 +55,7 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     libpq-dev \
+    libicu-dev \
     && rm -rf /var/lib/apt/lists/* && apt-get clean
 
 # Re-install extensions (or copy from builder if compatible)
