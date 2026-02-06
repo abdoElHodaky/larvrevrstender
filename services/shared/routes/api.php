@@ -317,6 +317,122 @@ Route::prefix('security')->group(function () use ($crossService) {
     });
 });
 
+// Notification routes
+Route::prefix('notifications')->group(function () use ($crossService) {
+    Route::post('/email', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->sendEmail($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/sms', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->sendSms($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/push', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->sendPushNotification($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::get('/status/{notificationId}', function (Request $request, string $notificationId) use ($crossService) {
+        $params = ['notification_id' => $notificationId];
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->getNotificationStatus($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 404);
+    });
+
+    Route::post('/subscriptions', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->manageSubscriptions($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+});
+
+// Circuit Breaker routes
+Route::prefix('circuit-breaker')->group(function () use ($crossService) {
+    Route::post('/execute', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->executeWithCircuitBreaker($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 503);
+    });
+
+    Route::post('/http', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->executeHttpWithCircuitBreaker($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 503);
+    });
+
+    Route::get('/stats/{serviceName?}', function (Request $request, string $serviceName = null) use ($crossService) {
+        $params = $serviceName ? ['service_name' => $serviceName] : [];
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->getCircuitBreakerStats($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/reset', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->resetCircuitBreaker($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/force-open', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->forceOpenCircuitBreaker($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+});
+
 // Generic procedure execution route
 Route::post('/execute', function (Request $request) use ($crossService) {
     $params = $request->all();

@@ -11,8 +11,10 @@ use Shared\Config\CrossServiceConfig;
 // Import all micro procedures
 use Shared\Procedures\Micro\EventPublishingProcedure;
 use Shared\Procedures\Micro\CacheManagementProcedure;
+use Shared\Procedures\Micro\NotificationProcedure;
 use Shared\Procedures\Micro\ValidationProcedure;
 use Shared\Procedures\Micro\SecurityProcedure;
+use Shared\Procedures\Micro\CircuitBreakerProcedure;
 
 /**
  * Cross-Service Procedure Hub
@@ -25,8 +27,10 @@ class CrossServiceProcedure extends BaseProcedure
     // Import all micro procedures via traits
     use EventPublishingProcedure;
     use CacheManagementProcedure;
+    use NotificationProcedure;
     use ValidationProcedure;
     use SecurityProcedure;
+    use CircuitBreakerProcedure;
     
     private ProcedureEngine $engine;
     private RestHandler $restHandler;
@@ -63,6 +67,11 @@ class CrossServiceProcedure extends BaseProcedure
             'methods' => ['cacheSet', 'cacheGet', 'cacheDelete', 'cacheExists', 'cacheStats', 'cacheFlush']
         ]);
 
+        $this->engine->registerProcedure('notification', static::class, 'micro', [
+            'description' => 'Notification delivery and subscription management',
+            'methods' => ['sendEmail', 'sendSms', 'sendPushNotification', 'getNotificationStatus', 'manageSubscriptions']
+        ]);
+
         $this->engine->registerProcedure('validation', static::class, 'micro', [
             'description' => 'Data validation and sanitization',
             'methods' => ['validateData', 'validateApiRequest', 'validateCrossFields', 'sanitizeData']
@@ -71,6 +80,11 @@ class CrossServiceProcedure extends BaseProcedure
         $this->engine->registerProcedure('security', static::class, 'micro', [
             'description' => 'Security operations and authentication',
             'methods' => ['authenticateToken', 'checkAuthorization', 'applyRateLimit', 'encryptData', 'decryptData']
+        ]);
+
+        $this->engine->registerProcedure('circuit_breaker', static::class, 'micro', [
+            'description' => 'Circuit breaker pattern for fault tolerance',
+            'methods' => ['executeWithCircuitBreaker', 'getCircuitBreakerStats', 'resetCircuitBreaker', 'forceOpenCircuitBreaker', 'executeHttpWithCircuitBreaker']
         ]);
 
         // Register macro procedures (to be implemented)
