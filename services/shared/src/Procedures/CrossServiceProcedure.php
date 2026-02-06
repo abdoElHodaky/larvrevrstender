@@ -16,6 +16,8 @@ use Shared\Procedures\Micro\ValidationProcedure;
 use Shared\Procedures\Micro\SecurityProcedure;
 use Shared\Procedures\Micro\CircuitBreakerProcedure;
 use Shared\Procedures\Micro\QueueCircuitBreakerProcedure;
+use Shared\Procedures\Micro\ThirdPartyIntegrationProcedure;
+use Shared\Procedures\Macro\WorkflowProcedure;
 
 /**
  * Cross-Service Procedure Hub
@@ -33,6 +35,8 @@ class CrossServiceProcedure extends BaseProcedure
     use SecurityProcedure;
     use CircuitBreakerProcedure;
     use QueueCircuitBreakerProcedure;
+    use ThirdPartyIntegrationProcedure;
+    use WorkflowProcedure;
     
     private ProcedureEngine $engine;
     private RestHandler $restHandler;
@@ -94,10 +98,15 @@ class CrossServiceProcedure extends BaseProcedure
             'methods' => ['dispatchWithCircuitBreaker', 'getQueueCircuitBreakerStats', 'resetQueueCircuitBreaker', 'forceOpenQueueCircuitBreaker', 'getQueueHealth']
         ]);
 
-        // Register macro procedures (to be implemented)
+        $this->engine->registerProcedure('third_party_integration', static::class, 'micro', [
+            'description' => 'Third-party service integration with authentication and circuit breaker protection',
+            'methods' => ['initializeIntegration', 'makeApiCall', 'handleWebhook', 'testConnection', 'getIntegrationStats', 'resetIntegrationCircuitBreaker']
+        ]);
+
+        // Register macro procedures
         $this->engine->registerProcedure('workflow', static::class, 'macro', [
-            'description' => 'Complex workflow orchestration',
-            'methods' => ['executeWorkflow', 'getWorkflowStatus']
+            'description' => 'Complex workflow orchestration and management',
+            'methods' => ['startWorkflow', 'getWorkflowStatus', 'registerWorkflowDefinition', 'executeSimpleWorkflow']
         ]);
     }
 

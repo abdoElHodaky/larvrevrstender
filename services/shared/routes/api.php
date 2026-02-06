@@ -497,6 +497,127 @@ Route::prefix('queue-circuit-breaker')->group(function () use ($crossService) {
     });
 });
 
+// Third Party Integration routes
+Route::prefix('third-party-integration')->group(function () use ($crossService) {
+    Route::post('/initialize', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->initializeIntegration($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/api-call', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->makeApiCall($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 503);
+    });
+
+    Route::post('/webhook', function (Request $request) use ($crossService) {
+        $params = [
+            'service_name' => $request->input('service_name'),
+            'payload' => $request->getContent(),
+            'signature' => $request->header('X-Signature'),
+            'headers' => $request->headers->all()
+        ];
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'webhook')
+        ];
+        
+        $result = $crossService->handleWebhook($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/test-connection', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->testConnection($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 503);
+    });
+
+    Route::get('/stats/{serviceName?}', function (Request $request, string $serviceName = null) use ($crossService) {
+        $params = $serviceName ? ['service_name' => $serviceName] : [];
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->getIntegrationStats($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/reset-circuit-breaker', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->resetIntegrationCircuitBreaker($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+});
+
+// Workflow Orchestration routes
+Route::prefix('workflow')->group(function () use ($crossService) {
+    Route::post('/start', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->startWorkflow($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::get('/status/{workflowId}', function (Request $request, string $workflowId) use ($crossService) {
+        $params = ['workflow_id' => $workflowId];
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->getWorkflowStatus($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 404);
+    });
+
+    Route::post('/register', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->registerWorkflowDefinition($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/execute-simple', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->executeSimpleWorkflow($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+});
+
 // Generic procedure execution route
 Route::post('/execute', function (Request $request) use ($crossService) {
     $params = $request->all();
