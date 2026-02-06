@@ -67,8 +67,8 @@ RUN docker-php-ext-install -j$(nproc) \
     intl \
     && docker-php-ext-enable opcache
 
-# Install Redis
-RUN pecl install redis && docker-php-ext-enable redis
+# Install Redis (skip if already installed)
+RUN (pecl install redis || echo "Redis already installed") && docker-php-ext-enable redis
 
 WORKDIR /var/www/html
 
