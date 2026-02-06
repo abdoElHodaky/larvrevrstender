@@ -7,20 +7,21 @@ use App\Services\AuthService;
 use App\Services\OtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Tests\TestCase;
 use Mockery;
+use Tests\TestCase;
 
 class AuthServiceIntegrationTest extends TestCase
 {
     use RefreshDatabase;
 
     private AuthService $authService;
+
     private OtpService $otpService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Mock OtpService
         $this->otpService = Mockery::mock(OtpService::class);
         $this->authService = new AuthService($this->otpService);
@@ -61,7 +62,7 @@ class AuthServiceIntegrationTest extends TestCase
         $this->assertTrue($result['success']);
         $this->assertArrayHasKey('user', $result);
         $this->assertArrayHasKey('otp_sent', $result);
-        
+
         // Verify user was created in database
         $this->assertDatabaseHas('users', [
             'name' => 'Ahmed Al-Saudi',
@@ -74,7 +75,7 @@ class AuthServiceIntegrationTest extends TestCase
         // Verify password is hashed
         $user = User::where('phone', '+966501234567')->first();
         $this->assertTrue(Hash::check('SecurePass123!', $user->password));
-        
+
         // Verify metadata
         $this->assertArrayHasKey('registration_source', $user->metadata);
         $this->assertEquals('web', $user->metadata['registration_source']);
@@ -97,7 +98,7 @@ class AuthServiceIntegrationTest extends TestCase
         ];
 
         $result = $this->authService->register($userData);
-        
+
         $this->assertFalse($result['success']);
         $this->assertEquals('Phone number already registered', $result['message']);
     }
@@ -124,7 +125,7 @@ class AuthServiceIntegrationTest extends TestCase
         $this->assertArrayHasKey('token', $result);
         $this->assertArrayHasKey('expires_at', $result);
         $this->assertArrayHasKey('abilities', $result);
-        
+
         // Verify last login was updated
         $user->refresh();
         $this->assertNotNull($user->last_login_at);

@@ -16,6 +16,7 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->get("/users/{$userId}");
+
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
             return null;
@@ -29,6 +30,7 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->get("/users/{$userId}/kyc-status");
+
             return $response->successful() && $response->json('kyc_verified', false);
         } catch (\Exception $e) {
             return false;
@@ -42,6 +44,7 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->get("/users/{$userId}/wallet");
+
             return $response->successful() ? (float) $response->json('balance', 0) : 0.0;
         } catch (\Exception $e) {
             return 0.0;
@@ -60,6 +63,7 @@ class UserServiceClient extends BaseServiceClient
                 'type' => 'bid_reserve',
                 'source' => 'bidding_service',
             ]);
+
             return $response->successful();
         } catch (\Exception $e) {
             return false;
@@ -76,6 +80,7 @@ class UserServiceClient extends BaseServiceClient
                 'reference' => $bidId,
                 'source' => 'bidding_service',
             ]);
+
             return $response->successful();
         } catch (\Exception $e) {
             return false;
@@ -89,10 +94,10 @@ class UserServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->get("/users/{$userId}/bidding-preferences");
+
             return $response->successful() ? $response->json('preferences', []) : [];
         } catch (\Exception $e) {
             return [];
         }
     }
 }
-

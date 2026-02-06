@@ -16,6 +16,7 @@ class AuthServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->post('/auth/validate-token', ['token' => $token]);
+
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
             return null;
@@ -29,6 +30,7 @@ class AuthServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->get("/auth/users/{$userId}/permissions/{$permission}");
+
             return $response->successful() && $response->json('has_permission', false);
         } catch (\Exception $e) {
             return false;
@@ -45,6 +47,7 @@ class AuthServiceClient extends BaseServiceClient
                 'user_id' => $userId,
                 'operation' => $operation,
             ]);
+
             return $response->successful() && $response->json('authorized', false);
         } catch (\Exception $e) {
             return false;
@@ -63,6 +66,7 @@ class AuthServiceClient extends BaseServiceClient
                 'data' => $data,
                 'timestamp' => now()->toISOString(),
             ]);
+
             return $response->successful();
         } catch (\Exception $e) {
             return false;
@@ -76,10 +80,10 @@ class AuthServiceClient extends BaseServiceClient
     {
         try {
             $response = $this->get("/auth/users/{$userId}/ocr-limits");
+
             return $response->successful() ? $response->json('limits', []) : [];
         } catch (\Exception $e) {
             return [];
         }
     }
 }
-

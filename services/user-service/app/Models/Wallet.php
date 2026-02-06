@@ -30,7 +30,9 @@ class Wallet extends Model
     ];
 
     const STATUS_ACTIVE = 'active';
+
     const STATUS_SUSPENDED = 'suspended';
+
     const STATUS_FROZEN = 'frozen';
 
     /**
@@ -70,12 +72,12 @@ class Wallet extends Model
      */
     public function reserveFunds(float $amount, string $reference): bool
     {
-        if (!$this->hasSufficientBalance($amount)) {
+        if (! $this->hasSufficientBalance($amount)) {
             return false;
         }
 
         $this->increment('reserved_balance', $amount);
-        
+
         $this->reservations()->create([
             'amount' => $amount,
             'reference' => $reference,
@@ -95,7 +97,7 @@ class Wallet extends Model
             ->where('status', 'active')
             ->first();
 
-        if (!$reservation) {
+        if (! $reservation) {
             return false;
         }
 

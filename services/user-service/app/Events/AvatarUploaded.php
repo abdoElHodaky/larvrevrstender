@@ -13,6 +13,7 @@ class AvatarUploaded
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public User $user;
+
     public UserAvatar $avatar;
 
     /**
@@ -39,4 +40,3 @@ class AvatarUploaded
         ];
     }
 }
-

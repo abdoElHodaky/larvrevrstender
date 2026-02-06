@@ -26,7 +26,7 @@ Route::get('/info', function () {
         'version' => config('app.version', '1.0.0'),
         'environment' => config('app.env'),
         'timestamp' => now()->toISOString(),
-        'role' => 'main_entry_point'
+        'role' => 'main_entry_point',
     ]);
 });
 
@@ -35,17 +35,17 @@ Route::prefix('gateway')->group(function () {
     // Service discovery
     Route::get('/discover/{serviceName}', [GatewayController::class, 'discoverService']);
     Route::get('/services', [GatewayController::class, 'getServiceRegistry']);
-    
+
     // Event publishing through gateway
     Route::post('/events/publish', [GatewayController::class, 'publishEvent']);
-    
+
     // Cache operations through gateway
     Route::post('/cache/{operation}', [GatewayController::class, 'cacheOperation'])
         ->where('operation', 'set|get|delete|exists|stats|flush');
-    
+
     // Request validation
     Route::post('/validate', [GatewayController::class, 'validateRequest']);
-    
+
     // Authentication
     Route::post('/authenticate', [GatewayController::class, 'authenticate']);
 });
@@ -96,12 +96,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{user}', [App\Http\Controllers\UserController::class, 'show']);
         Route::put('/{user}', [App\Http\Controllers\UserController::class, 'update']);
         Route::delete('/{user}', [App\Http\Controllers\UserController::class, 'destroy']);
-        
+
         // User permissions
         Route::get('/{user}/permissions', [App\Http\Controllers\UserController::class, 'getPermissions']);
         Route::post('/{user}/permissions', [App\Http\Controllers\UserController::class, 'assignPermissions']);
         Route::delete('/{user}/permissions', [App\Http\Controllers\UserController::class, 'revokePermissions']);
-        
+
         // User roles
         Route::get('/{user}/roles', [App\Http\Controllers\UserController::class, 'getRoles']);
         Route::post('/{user}/roles', [App\Http\Controllers\UserController::class, 'assignRoles']);

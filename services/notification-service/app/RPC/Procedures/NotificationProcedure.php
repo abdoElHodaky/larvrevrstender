@@ -16,9 +16,6 @@ class NotificationProcedure extends BaseProcedure
 
     /**
      * Send notification
-     * 
-     * @param array $params
-     * @return array
      */
     public function send(array $params): array
     {
@@ -34,7 +31,7 @@ class NotificationProcedure extends BaseProcedure
 
         return $this->executeWithLogging('Notification@send', $this->sanitizeForLogging($params), function () use ($params) {
             // Rate limiting for notifications
-            $key = 'notification_send:' . $params['user_id'];
+            $key = 'notification_send:'.$params['user_id'];
             if (RateLimiter::tooManyAttempts($key, 50)) {
                 throw new RuntimeException(
                     'Too many notification attempts. Please try again later.',
@@ -53,22 +50,22 @@ class NotificationProcedure extends BaseProcedure
                     'scheduled_at' => $params['scheduled_at'] ?? null,
                     'priority' => $params['priority'] ?? 'normal',
                 ]);
-                
+
                 // Clear rate limiting on successful send
                 RateLimiter::clear($key);
-                
+
                 return [
                     'success' => true,
                     'notification' => $notification,
                     'sent_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 // Increment rate limiting on failed send
                 RateLimiter::hit($key, 60); // 1 minute
-                
+
                 throw new RuntimeException(
-                    'Notification send failed: ' . $e->getMessage(),
+                    'Notification send failed: '.$e->getMessage(),
                     -32001,
                     ['user_id' => $params['user_id'], 'type' => $params['type']]
                 );
@@ -78,9 +75,6 @@ class NotificationProcedure extends BaseProcedure
 
     /**
      * Send bulk notifications
-     * 
-     * @param array $params
-     * @return array
      */
     public function sendBulk(array $params): array
     {
@@ -97,7 +91,7 @@ class NotificationProcedure extends BaseProcedure
 
         return $this->executeWithLogging('Notification@sendBulk', $this->sanitizeForLogging($params), function () use ($params) {
             // Rate limiting for bulk notifications
-            $key = 'notification_bulk:' . request()->ip();
+            $key = 'notification_bulk:'.request()->ip();
             if (RateLimiter::tooManyAttempts($key, 5)) {
                 throw new RuntimeException(
                     'Too many bulk notification attempts. Please try again later.',
@@ -116,10 +110,10 @@ class NotificationProcedure extends BaseProcedure
                     'scheduled_at' => $params['scheduled_at'] ?? null,
                     'priority' => $params['priority'] ?? 'normal',
                 ]);
-                
+
                 // Clear rate limiting on successful send
                 RateLimiter::clear($key);
-                
+
                 return [
                     'success' => true,
                     'batch_id' => $result['batch_id'],
@@ -128,13 +122,13 @@ class NotificationProcedure extends BaseProcedure
                     'failed_count' => $result['failed_count'],
                     'sent_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 // Increment rate limiting on failed send
                 RateLimiter::hit($key, 300); // 5 minutes
-                
+
                 throw new RuntimeException(
-                    'Bulk notification send failed: ' . $e->getMessage(),
+                    'Bulk notification send failed: '.$e->getMessage(),
                     -32002,
                     ['recipients_count' => count($params['user_ids'])]
                 );
@@ -144,9 +138,6 @@ class NotificationProcedure extends BaseProcedure
 
     /**
      * Get user notifications
-     * 
-     * @param array $params
-     * @return array
      */
     public function getUserNotifications(array $params): array
     {
@@ -167,7 +158,7 @@ class NotificationProcedure extends BaseProcedure
                     'page' => $params['page'] ?? 1,
                     'per_page' => $params['per_page'] ?? 20,
                 ]);
-                
+
                 return [
                     'success' => true,
                     'notifications' => $results['data'],
@@ -175,10 +166,10 @@ class NotificationProcedure extends BaseProcedure
                     'unread_count' => $results['unread_count'],
                     'retrieved_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve user notifications: ' . $e->getMessage(),
+                    'Failed to retrieve user notifications: '.$e->getMessage(),
                     -32003,
                     ['user_id' => $params['user_id']]
                 );
@@ -188,9 +179,6 @@ class NotificationProcedure extends BaseProcedure
 
     /**
      * Mark notification as read
-     * 
-     * @param array $params
-     * @return array
      */
     public function markAsRead(array $params): array
     {
@@ -205,7 +193,7 @@ class NotificationProcedure extends BaseProcedure
                     $params['notification_id'],
                     $params['user_id']
                 );
-                
+
                 return [
                     'success' => true,
                     'notification_id' => $params['notification_id'],
@@ -213,10 +201,10 @@ class NotificationProcedure extends BaseProcedure
                     'read_at' => $result['read_at'],
                     'marked_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to mark notification as read: ' . $e->getMessage(),
+                    'Failed to mark notification as read: '.$e->getMessage(),
                     -32004,
                     ['notification_id' => $params['notification_id']]
                 );
@@ -226,9 +214,6 @@ class NotificationProcedure extends BaseProcedure
 
     /**
      * Mark all notifications as read
-     * 
-     * @param array $params
-     * @return array
      */
     public function markAllAsRead(array $params): array
     {
@@ -243,17 +228,17 @@ class NotificationProcedure extends BaseProcedure
                     $params['user_id'],
                     $params['type'] ?? null
                 );
-                
+
                 return [
                     'success' => true,
                     'user_id' => $params['user_id'],
                     'marked_count' => $result['marked_count'],
                     'marked_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to mark all notifications as read: ' . $e->getMessage(),
+                    'Failed to mark all notifications as read: '.$e->getMessage(),
                     -32005,
                     ['user_id' => $params['user_id']]
                 );
@@ -263,9 +248,6 @@ class NotificationProcedure extends BaseProcedure
 
     /**
      * Delete notification
-     * 
-     * @param array $params
-     * @return array
      */
     public function delete(array $params): array
     {
@@ -280,17 +262,17 @@ class NotificationProcedure extends BaseProcedure
                     $params['notification_id'],
                     $params['user_id']
                 );
-                
+
                 return [
                     'success' => true,
                     'notification_id' => $params['notification_id'],
                     'deleted' => $result['deleted'],
                     'deleted_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to delete notification: ' . $e->getMessage(),
+                    'Failed to delete notification: '.$e->getMessage(),
                     -32006,
                     ['notification_id' => $params['notification_id']]
                 );
@@ -300,9 +282,6 @@ class NotificationProcedure extends BaseProcedure
 
     /**
      * Get notification preferences
-     * 
-     * @param array $params
-     * @return array
      */
     public function getPreferences(array $params): array
     {
@@ -312,31 +291,31 @@ class NotificationProcedure extends BaseProcedure
 
         return $this->executeWithLogging('Notification@getPreferences', $params, function () use ($params) {
             // Check cache first
-            $cacheKey = 'notification_preferences:' . $params['user_id'];
+            $cacheKey = 'notification_preferences:'.$params['user_id'];
             $cached = Cache::get($cacheKey);
-            
+
             if ($cached !== null) {
                 return $cached;
             }
 
             try {
                 $preferences = $this->notificationService->getUserPreferences($params['user_id']);
-                
+
                 $result = [
                     'success' => true,
                     'user_id' => $params['user_id'],
                     'preferences' => $preferences,
                     'retrieved_at' => now()->toISOString(),
                 ];
-                
+
                 // Cache for 30 minutes
                 Cache::put($cacheKey, $result, 1800);
-                
+
                 return $result;
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve notification preferences: ' . $e->getMessage(),
+                    'Failed to retrieve notification preferences: '.$e->getMessage(),
                     -32007,
                     ['user_id' => $params['user_id']]
                 );
@@ -346,9 +325,6 @@ class NotificationProcedure extends BaseProcedure
 
     /**
      * Update notification preferences
-     * 
-     * @param array $params
-     * @return array
      */
     public function updatePreferences(array $params): array
     {
@@ -367,20 +343,20 @@ class NotificationProcedure extends BaseProcedure
                     $params['user_id'],
                     $params['preferences']
                 );
-                
+
                 // Clear cache
-                Cache::forget('notification_preferences:' . $params['user_id']);
-                
+                Cache::forget('notification_preferences:'.$params['user_id']);
+
                 return [
                     'success' => true,
                     'user_id' => $params['user_id'],
                     'preferences' => $preferences,
                     'updated_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to update notification preferences: ' . $e->getMessage(),
+                    'Failed to update notification preferences: '.$e->getMessage(),
                     -32008,
                     ['user_id' => $params['user_id']]
                 );
@@ -390,9 +366,6 @@ class NotificationProcedure extends BaseProcedure
 
     /**
      * Get notification templates
-     * 
-     * @param array $params
-     * @return array
      */
     public function getTemplates(array $params): array
     {
@@ -404,12 +377,12 @@ class NotificationProcedure extends BaseProcedure
 
         return $this->executeWithLogging('Notification@getTemplates', $params, function () use ($params) {
             // Check cache first
-            $cacheKey = 'notification_templates:' . 
-                       ($params['type'] ?? 'all') . ':' . 
-                       ($params['category'] ?? 'all') . ':' .
+            $cacheKey = 'notification_templates:'.
+                       ($params['type'] ?? 'all').':'.
+                       ($params['category'] ?? 'all').':'.
                        ($params['active_only'] ?? true ? 'active' : 'all');
             $cached = Cache::get($cacheKey);
-            
+
             if ($cached !== null) {
                 return $cached;
             }
@@ -420,21 +393,21 @@ class NotificationProcedure extends BaseProcedure
                     'category' => $params['category'] ?? null,
                     'active_only' => $params['active_only'] ?? true,
                 ]);
-                
+
                 $result = [
                     'success' => true,
                     'templates' => $templates,
                     'retrieved_at' => now()->toISOString(),
                 ];
-                
+
                 // Cache for 1 hour
                 Cache::put($cacheKey, $result, 3600);
-                
+
                 return $result;
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve notification templates: ' . $e->getMessage(),
+                    'Failed to retrieve notification templates: '.$e->getMessage(),
                     -32009,
                     ['type' => $params['type'] ?? null]
                 );
@@ -444,9 +417,6 @@ class NotificationProcedure extends BaseProcedure
 
     /**
      * Send template-based notification
-     * 
-     * @param array $params
-     * @return array
      */
     public function sendFromTemplate(array $params): array
     {
@@ -460,7 +430,7 @@ class NotificationProcedure extends BaseProcedure
 
         return $this->executeWithLogging('Notification@sendFromTemplate', $this->sanitizeForLogging($params), function () use ($params) {
             // Rate limiting for template notifications
-            $key = 'notification_template:' . $params['user_id'];
+            $key = 'notification_template:'.$params['user_id'];
             if (RateLimiter::tooManyAttempts($key, 30)) {
                 throw new RuntimeException(
                     'Too many template notification attempts. Please try again later.',
@@ -477,23 +447,23 @@ class NotificationProcedure extends BaseProcedure
                     'scheduled_at' => $params['scheduled_at'] ?? null,
                     'priority' => $params['priority'] ?? 'normal',
                 ]);
-                
+
                 // Clear rate limiting on successful send
                 RateLimiter::clear($key);
-                
+
                 return [
                     'success' => true,
                     'notification' => $notification,
                     'template_id' => $params['template_id'],
                     'sent_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 // Increment rate limiting on failed send
                 RateLimiter::hit($key, 60); // 1 minute
-                
+
                 throw new RuntimeException(
-                    'Template notification send failed: ' . $e->getMessage(),
+                    'Template notification send failed: '.$e->getMessage(),
                     -32010,
                     ['template_id' => $params['template_id'], 'user_id' => $params['user_id']]
                 );
@@ -503,9 +473,6 @@ class NotificationProcedure extends BaseProcedure
 
     /**
      * Get notification statistics
-     * 
-     * @param array $params
-     * @return array
      */
     public function getStatistics(array $params): array
     {
@@ -519,18 +486,18 @@ class NotificationProcedure extends BaseProcedure
             $period = $params['period'] ?? 'month';
             $type = $params['type'] ?? null;
             $userId = $params['user_id'] ?? null;
-            
+
             // Check cache first
-            $cacheKey = 'notification_stats:' . $period . ':' . ($type ?? 'all') . ':' . ($userId ?? 'all');
+            $cacheKey = 'notification_stats:'.$period.':'.($type ?? 'all').':'.($userId ?? 'all');
             $cached = Cache::get($cacheKey);
-            
+
             if ($cached !== null) {
                 return $cached;
             }
 
             try {
                 $statistics = $this->notificationService->getNotificationStatistics($period, $type, $userId);
-                
+
                 $result = [
                     'success' => true,
                     'statistics' => $statistics,
@@ -541,15 +508,15 @@ class NotificationProcedure extends BaseProcedure
                     ],
                     'generated_at' => now()->toISOString(),
                 ];
-                
+
                 // Cache for 30 minutes
                 Cache::put($cacheKey, $result, 1800);
-                
+
                 return $result;
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve notification statistics: ' . $e->getMessage(),
+                    'Failed to retrieve notification statistics: '.$e->getMessage(),
                     -32011,
                     ['period' => $period]
                 );

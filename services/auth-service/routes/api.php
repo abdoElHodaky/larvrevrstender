@@ -75,12 +75,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{user}', [App\Http\Controllers\UserController::class, 'show']);
         Route::put('/{user}', [App\Http\Controllers\UserController::class, 'update']);
         Route::delete('/{user}', [App\Http\Controllers\UserController::class, 'destroy']);
-        
+
         // User permissions
         Route::get('/{user}/permissions', [App\Http\Controllers\UserController::class, 'getPermissions']);
         Route::post('/{user}/permissions', [App\Http\Controllers\UserController::class, 'assignPermissions']);
         Route::delete('/{user}/permissions', [App\Http\Controllers\UserController::class, 'revokePermissions']);
-        
+
         // User roles
         Route::get('/{user}/roles', [App\Http\Controllers\UserController::class, 'getRoles']);
         Route::post('/{user}/roles', [App\Http\Controllers\UserController::class, 'assignRoles']);

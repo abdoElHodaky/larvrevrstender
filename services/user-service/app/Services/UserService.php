@@ -2,16 +2,15 @@
 
 namespace App\Services;
 
-use App\Models\CustomerProfile;
-use App\Models\MerchantProfile;
-use App\Models\Address;
-use App\Models\Vehicle;
 use App\Events\UserProfileUpdated;
 use App\Events\UserVerificationStatusChanged;
+use App\Models\Address;
+use App\Models\CustomerProfile;
+use App\Models\MerchantProfile;
+use App\Models\Vehicle;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Database\Eloquent\Collection;
 
 class UserService
 {
@@ -48,7 +47,7 @@ class UserService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('Profile creation/update failed', [
                 'user_id' => $userId,
                 'user_type' => $userType,
@@ -69,7 +68,7 @@ class UserService
     {
         try {
             $cacheKey = "user_profile:{$userId}";
-            
+
             $profile = Cache::remember($cacheKey, 3600, function () use ($userId, $userType) {
                 return match ($userType) {
                     'customer' => CustomerProfile::where('user_id', $userId)->first(),
@@ -78,7 +77,7 @@ class UserService
                 };
             });
 
-            if (!$profile) {
+            if (! $profile) {
                 return [
                     'success' => false,
                     'message' => 'Profile not found',
@@ -116,8 +115,8 @@ class UserService
     {
         try {
             $profile = $this->getProfileByUserType($userId, $userType);
-            
-            if (!$profile) {
+
+            if (! $profile) {
                 return [
                     'success' => false,
                     'message' => 'Profile not found',
@@ -130,7 +129,7 @@ class UserService
             // Update preferences
             $currentPreferences = $profile->preferences ?? [];
             $updatedPreferences = array_merge($currentPreferences, $validatedPreferences);
-            
+
             $profile->update(['preferences' => $updatedPreferences]);
 
             // Clear cache
@@ -171,8 +170,8 @@ class UserService
             DB::beginTransaction();
 
             $profile = $this->getProfileByUserType($userId, $userType);
-            
-            if (!$profile) {
+
+            if (! $profile) {
                 return [
                     'success' => false,
                     'message' => 'Profile not found',
@@ -201,8 +200,8 @@ class UserService
             // If this is set as default, unset other defaults
             if ($address->is_default) {
                 Address::where('user_id', $userId)
-                       ->where('id', '!=', $address->id)
-                       ->update(['is_default' => false]);
+                    ->where('id', '!=', $address->id)
+                    ->update(['is_default' => false]);
             }
 
             DB::commit();
@@ -224,7 +223,7 @@ class UserService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('Failed to add address', [
                 'user_id' => $userId,
                 'error' => $e->getMessage(),
@@ -246,8 +245,8 @@ class UserService
             DB::beginTransaction();
 
             $profile = CustomerProfile::where('user_id', $userId)->first();
-            
-            if (!$profile) {
+
+            if (! $profile) {
                 return [
                     'success' => false,
                     'message' => 'Customer profile not found',
@@ -276,8 +275,8 @@ class UserService
             // If this is set as primary, unset other primary vehicles
             if ($vehicle->is_primary) {
                 Vehicle::where('customer_id', $profile->id)
-                       ->where('id', '!=', $vehicle->id)
-                       ->update(['is_primary' => false]);
+                    ->where('id', '!=', $vehicle->id)
+                    ->update(['is_primary' => false]);
             }
 
             DB::commit();
@@ -299,7 +298,7 @@ class UserService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('Failed to add vehicle', [
                 'user_id' => $userId,
                 'error' => $e->getMessage(),
@@ -321,8 +320,8 @@ class UserService
             DB::beginTransaction();
 
             $profile = $this->getProfileByUserType($userId, $userType);
-            
-            if (!$profile) {
+
+            if (! $profile) {
                 return [
                     'success' => false,
                     'message' => 'Profile not found',
@@ -360,7 +359,7 @@ class UserService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('KYC verification submission failed', [
                 'user_id' => $userId,
                 'error' => $e->getMessage(),
@@ -376,12 +375,12 @@ class UserService
     /**
      * Update verification status (admin function)
      */
-    public function updateVerificationStatus(int $userId, string $userType, string $status, string $notes = null): array
+    public function updateVerificationStatus(int $userId, string $userType, string $status, ?string $notes = null): array
     {
         try {
             $profile = $this->getProfileByUserType($userId, $userType);
-            
-            if (!$profile) {
+
+            if (! $profile) {
                 return [
                     'success' => false,
                     'message' => 'Profile not found',
@@ -389,7 +388,7 @@ class UserService
             }
 
             $validStatuses = ['pending', 'approved', 'rejected', 'requires_review'];
-            if (!in_array($status, $validStatuses)) {
+            if (! in_array($status, $validStatuses)) {
                 return [
                     'success' => false,
                     'message' => 'Invalid verification status',
@@ -440,8 +439,8 @@ class UserService
     {
         try {
             $cacheKey = "user_activity:{$userId}";
-            
-            $activity = Cache::remember($cacheKey, 1800, function () use ($userId) {
+
+            $activity = Cache::remember($cacheKey, 1800, function () {
                 // This would integrate with other services to get activity data
                 return [
                     'orders_count' => 0, // Would call Order Service
@@ -502,7 +501,7 @@ class UserService
             $perPage = min($criteria['per_page'] ?? 20, 100);
 
             $results = $query->with(['addresses', 'vehicles'])
-                           ->paginate($perPage, ['*'], 'page', $page);
+                ->paginate($perPage, ['*'], 'page', $page);
 
             return [
                 'success' => true,
@@ -601,28 +600,30 @@ class UserService
      */
     private function calculateProfileCompletion($profile): int
     {
-        if (!$profile) return 0;
+        if (! $profile) {
+            return 0;
+        }
 
         $requiredFields = match (get_class($profile)) {
             CustomerProfile::class => [
-                'national_id', 'national_address', 'date_of_birth', 
-                'occupation', 'default_location'
+                'national_id', 'national_address', 'date_of_birth',
+                'occupation', 'default_location',
             ],
             MerchantProfile::class => [
                 'business_name', 'business_type', 'commercial_registration',
-                'tax_number', 'business_address', 'contact_person'
+                'tax_number', 'business_address', 'contact_person',
             ],
             default => []
         };
 
         $completedFields = 0;
         foreach ($requiredFields as $field) {
-            if (!empty($profile->$field)) {
+            if (! empty($profile->$field)) {
                 $completedFields++;
             }
         }
 
-        return count($requiredFields) > 0 
+        return count($requiredFields) > 0
             ? round(($completedFields / count($requiredFields)) * 100)
             : 0;
     }
@@ -636,7 +637,7 @@ class UserService
         $allowedKeys = [
             'language', 'currency', 'timezone', 'notifications',
             'email_updates', 'sms_updates', 'push_notifications',
-            'marketing_consent', 'data_sharing_consent'
+            'marketing_consent', 'data_sharing_consent',
         ];
 
         foreach ($preferences as $key => $value) {
@@ -654,14 +655,14 @@ class UserService
     private function validateAddressData(array $addressData): void
     {
         $required = ['street_address', 'city'];
-        
+
         foreach ($required as $field) {
             if (empty($addressData[$field])) {
                 throw new \Exception("Field {$field} is required");
             }
         }
 
-        if (isset($addressData['type']) && !in_array($addressData['type'], ['delivery', 'billing', 'business'])) {
+        if (isset($addressData['type']) && ! in_array($addressData['type'], ['delivery', 'billing', 'business'])) {
             throw new \Exception('Invalid address type');
         }
     }
@@ -672,7 +673,7 @@ class UserService
     private function validateVehicleData(array $vehicleData): void
     {
         $required = ['vin', 'make', 'model', 'year'];
-        
+
         foreach ($required as $field) {
             if (empty($vehicleData[$field])) {
                 throw new \Exception("Field {$field} is required");
@@ -680,7 +681,7 @@ class UserService
         }
 
         // Validate VIN format (basic validation)
-        if (!preg_match('/^[A-HJ-NPR-Z0-9]{17}$/', $vehicleData['vin'])) {
+        if (! preg_match('/^[A-HJ-NPR-Z0-9]{17}$/', $vehicleData['vin'])) {
             throw new \Exception('Invalid VIN format');
         }
 
@@ -697,12 +698,12 @@ class UserService
     private function validateKYCDocuments(array $documents): void
     {
         $requiredDocuments = ['national_id', 'proof_of_address'];
-        
+
         foreach ($requiredDocuments as $docType) {
-            if (!isset($documents[$docType])) {
+            if (! isset($documents[$docType])) {
                 throw new \Exception("Document {$docType} is required");
             }
-            
+
             if (empty($documents[$docType]['file_path'])) {
                 throw new \Exception("File path for {$docType} is required");
             }

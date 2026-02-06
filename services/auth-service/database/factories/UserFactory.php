@@ -29,7 +29,7 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'phone' => '+966' . fake()->numerify('#########'), // Saudi phone format
+            'phone' => '+966'.fake()->numerify('#########'), // Saudi phone format
             'email_verified_at' => now(),
             'password' => Hash::make('password123'), // Default password
             'remember_token' => Str::random(10),

@@ -23,14 +23,12 @@ class OrderProcedure extends BaseProcedure
         if (class_exists('Sajya\Server\Exceptions\RuntimeException')) {
             return new \Sajya\Server\Exceptions\RuntimeException($message, $code, $data);
         }
+
         return new \Exception($message, $code);
     }
 
     /**
      * Create new order
-     * 
-     * @param array $params
-     * @return array
      */
     public function create(array $params): array
     {
@@ -47,7 +45,7 @@ class OrderProcedure extends BaseProcedure
 
         return $this->executeWithLogging('Order@create', $this->sanitizeForLogging($params), function () use ($params) {
             // Rate limiting for order creation
-            $key = 'order_create:' . $params['user_id'];
+            $key = 'order_create:'.$params['user_id'];
             if (RateLimiter::tooManyAttempts($key, 20)) {
                 throw new RuntimeException(
                     'Too many order creation attempts. Please try again later.',
@@ -65,26 +63,26 @@ class OrderProcedure extends BaseProcedure
                     'payment_method' => $params['payment_method'],
                     'notes' => $params['notes'] ?? null,
                 ]);
-                
+
                 DB::commit();
-                
+
                 // Clear rate limiting on successful creation
                 RateLimiter::clear($key);
-                
+
                 return [
                     'success' => true,
                     'order' => $order,
                     'created_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 DB::rollBack();
-                
+
                 // Increment rate limiting on failed creation
                 RateLimiter::hit($key, 300); // 5 minutes
-                
+
                 throw new RuntimeException(
-                    'Order creation failed: ' . $e->getMessage(),
+                    'Order creation failed: '.$e->getMessage(),
                     -32001,
                     ['user_id' => $params['user_id']]
                 );
@@ -94,9 +92,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Get order by ID
-     * 
-     * @param array $params
-     * @return array
      */
     public function getById(array $params): array
     {
@@ -108,11 +103,11 @@ class OrderProcedure extends BaseProcedure
 
         return $this->executeWithLogging('Order@getById', $params, function () use ($params) {
             // Check cache first
-            $cacheKey = 'order:' . $params['order_id'] . ':' . 
-                       ($params['include_items'] ?? false ? 'with_items' : 'no_items') . ':' .
+            $cacheKey = 'order:'.$params['order_id'].':'.
+                       ($params['include_items'] ?? false ? 'with_items' : 'no_items').':'.
                        ($params['include_history'] ?? false ? 'with_history' : 'no_history');
             $cached = Cache::get($cacheKey);
-            
+
             if ($cached !== null) {
                 return $cached;
             }
@@ -123,29 +118,29 @@ class OrderProcedure extends BaseProcedure
                     $params['include_items'] ?? true,
                     $params['include_history'] ?? false
                 );
-                
-                if (!$order) {
+
+                if (! $order) {
                     throw new RuntimeException(
                         'Order not found',
                         -32001,
                         ['order_id' => $params['order_id']]
                     );
                 }
-                
+
                 $result = [
                     'success' => true,
                     'order' => $order,
                     'retrieved_at' => now()->toISOString(),
                 ];
-                
+
                 // Cache for 10 minutes
                 Cache::put($cacheKey, $result, 600);
-                
+
                 return $result;
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve order: ' . $e->getMessage(),
+                    'Failed to retrieve order: '.$e->getMessage(),
                     -32001,
                     ['order_id' => $params['order_id']]
                 );
@@ -155,9 +150,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Update order status
-     * 
-     * @param array $params
-     * @return array
      */
     public function updateStatus(array $params): array
     {
@@ -177,23 +169,23 @@ class OrderProcedure extends BaseProcedure
                     $params['notes'] ?? null,
                     $params['notify_customer'] ?? true
                 );
-                
+
                 DB::commit();
-                
+
                 // Clear cache
-                Cache::forget('order:' . $params['order_id'] . ':*');
-                
+                Cache::forget('order:'.$params['order_id'].':*');
+
                 return [
                     'success' => true,
                     'order' => $order,
                     'updated_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 DB::rollBack();
-                
+
                 throw new RuntimeException(
-                    'Order status update failed: ' . $e->getMessage(),
+                    'Order status update failed: '.$e->getMessage(),
                     -32002,
                     ['order_id' => $params['order_id'], 'status' => $params['status']]
                 );
@@ -203,9 +195,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Get user orders
-     * 
-     * @param array $params
-     * @return array
      */
     public function getUserOrders(array $params): array
     {
@@ -232,17 +221,17 @@ class OrderProcedure extends BaseProcedure
                     'sort_by' => $params['sort_by'] ?? 'created_at',
                     'sort_order' => $params['sort_order'] ?? 'desc',
                 ]);
-                
+
                 return [
                     'success' => true,
                     'orders' => $results['data'],
                     'pagination' => $results['pagination'],
                     'retrieved_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve user orders: ' . $e->getMessage(),
+                    'Failed to retrieve user orders: '.$e->getMessage(),
                     -32003,
                     ['user_id' => $params['user_id']]
                 );
@@ -252,9 +241,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Calculate order total
-     * 
-     * @param array $params
-     * @return array
      */
     public function calculateTotal(array $params): array
     {
@@ -273,16 +259,16 @@ class OrderProcedure extends BaseProcedure
                     'shipping_address' => $params['shipping_address'],
                     'coupon_code' => $params['coupon_code'] ?? null,
                 ]);
-                
+
                 return [
                     'success' => true,
                     'calculation' => $calculation,
                     'calculated_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Order total calculation failed: ' . $e->getMessage(),
+                    'Order total calculation failed: '.$e->getMessage(),
                     -32004,
                     ['items_count' => count($params['items'])]
                 );
@@ -292,9 +278,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Cancel order
-     * 
-     * @param array $params
-     * @return array
      */
     public function cancel(array $params): array
     {
@@ -312,24 +295,24 @@ class OrderProcedure extends BaseProcedure
                     $params['reason'],
                     $params['refund_amount'] ?? null
                 );
-                
+
                 DB::commit();
-                
+
                 // Clear cache
-                Cache::forget('order:' . $params['order_id'] . ':*');
-                
+                Cache::forget('order:'.$params['order_id'].':*');
+
                 return [
                     'success' => true,
                     'order' => $result['order'],
                     'refund' => $result['refund'] ?? null,
                     'cancelled_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 DB::rollBack();
-                
+
                 throw new RuntimeException(
-                    'Order cancellation failed: ' . $e->getMessage(),
+                    'Order cancellation failed: '.$e->getMessage(),
                     -32005,
                     ['order_id' => $params['order_id']]
                 );
@@ -339,9 +322,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Get order statistics
-     * 
-     * @param array $params
-     * @return array
      */
     public function getStatistics(array $params): array
     {
@@ -355,18 +335,18 @@ class OrderProcedure extends BaseProcedure
             $period = $params['period'] ?? 'month';
             $userId = $params['user_id'] ?? null;
             $status = $params['status'] ?? null;
-            
+
             // Check cache first
-            $cacheKey = 'order_stats:' . $period . ':' . ($userId ?? 'all') . ':' . ($status ?? 'all');
+            $cacheKey = 'order_stats:'.$period.':'.($userId ?? 'all').':'.($status ?? 'all');
             $cached = Cache::get($cacheKey);
-            
+
             if ($cached !== null) {
                 return $cached;
             }
 
             try {
                 $statistics = $this->orderService->getOrderStatistics($period, $userId, $status);
-                
+
                 $result = [
                     'success' => true,
                     'statistics' => $statistics,
@@ -377,15 +357,15 @@ class OrderProcedure extends BaseProcedure
                     ],
                     'generated_at' => now()->toISOString(),
                 ];
-                
+
                 // Cache for 30 minutes
                 Cache::put($cacheKey, $result, 1800);
-                
+
                 return $result;
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve order statistics: ' . $e->getMessage(),
+                    'Failed to retrieve order statistics: '.$e->getMessage(),
                     -32001,
                     ['period' => $period]
                 );
@@ -395,9 +375,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Process order payment
-     * 
-     * @param array $params
-     * @return array
      */
     public function processPayment(array $params): array
     {
@@ -415,24 +392,24 @@ class OrderProcedure extends BaseProcedure
                     $params['payment_method'],
                     $params['payment_details']
                 );
-                
+
                 DB::commit();
-                
+
                 // Clear cache
-                Cache::forget('order:' . $params['order_id'] . ':*');
-                
+                Cache::forget('order:'.$params['order_id'].':*');
+
                 return [
                     'success' => true,
                     'payment' => $result['payment'],
                     'order' => $result['order'],
                     'processed_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 DB::rollBack();
-                
+
                 throw new RuntimeException(
-                    'Payment processing failed: ' . $e->getMessage(),
+                    'Payment processing failed: '.$e->getMessage(),
                     -32006,
                     ['order_id' => $params['order_id'], 'payment_method' => $params['payment_method']]
                 );
@@ -442,9 +419,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Add order tracking
-     * 
-     * @param array $params
-     * @return array
      */
     public function addTracking(array $params): array
     {
@@ -463,19 +437,19 @@ class OrderProcedure extends BaseProcedure
                     $params['carrier'],
                     $params['tracking_url'] ?? null
                 );
-                
+
                 // Clear cache
-                Cache::forget('order:' . $params['order_id'] . ':*');
-                
+                Cache::forget('order:'.$params['order_id'].':*');
+
                 return [
                     'success' => true,
                     'tracking' => $result,
                     'added_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to add order tracking: ' . $e->getMessage(),
+                    'Failed to add order tracking: '.$e->getMessage(),
                     -32007,
                     ['order_id' => $params['order_id']]
                 );
@@ -489,9 +463,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Create order from winning bid
-     * 
-     * @param array $params
-     * @return array
      */
     public function createOrderFromBid(array $params): array
     {
@@ -512,7 +483,7 @@ class OrderProcedure extends BaseProcedure
                 $params['order_data'] ?? []
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32001,
@@ -531,9 +502,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Get order details with enhanced information
-     * 
-     * @param array $params
-     * @return array
      */
     public function getOrderDetails(array $params): array
     {
@@ -544,7 +512,7 @@ class OrderProcedure extends BaseProcedure
         return $this->executeWithLogging('Order@getOrderDetails', $this->sanitizeForLogging($params), function () use ($params) {
             $result = $this->orderService->getOrderDetails($params['order_id']);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32002,
@@ -565,9 +533,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Update order status with enhanced validation
-     * 
-     * @param array $params
-     * @return array
      */
     public function updateOrderStatus(array $params): array
     {
@@ -591,7 +556,7 @@ class OrderProcedure extends BaseProcedure
                 $params['status_data'] ?? []
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32003,
@@ -612,9 +577,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Search orders with advanced filtering
-     * 
-     * @param array $params
-     * @return array
      */
     public function searchOrders(array $params): array
     {
@@ -638,7 +600,7 @@ class OrderProcedure extends BaseProcedure
 
         return $this->executeWithLogging('Order@searchOrders', $this->sanitizeForLogging($params), function () use ($params) {
             // Rate limiting for search operations
-            $key = 'order_search:' . request()->ip();
+            $key = 'order_search:'.request()->ip();
             if (RateLimiter::tooManyAttempts($key, 60)) {
                 throw $this->createRuntimeException(
                     'Too many search requests. Please try again later.',
@@ -651,7 +613,7 @@ class OrderProcedure extends BaseProcedure
 
             $result = $this->orderService->searchOrders($params['criteria'] ?? []);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32005,
@@ -671,9 +633,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Get order analytics and statistics
-     * 
-     * @param array $params
-     * @return array
      */
     public function getOrderAnalytics(array $params): array
     {
@@ -688,7 +647,7 @@ class OrderProcedure extends BaseProcedure
         return $this->executeWithLogging('Order@getOrderAnalytics', $this->sanitizeForLogging($params), function () use ($params) {
             $result = $this->orderService->getOrderAnalytics($params['filters'] ?? []);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32006,
@@ -706,9 +665,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Cancel order with enhanced validation
-     * 
-     * @param array $params
-     * @return array
      */
     public function cancelOrder(array $params): array
     {
@@ -725,7 +681,7 @@ class OrderProcedure extends BaseProcedure
                 $params['cancelled_by']
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32007,
@@ -744,9 +700,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Get customer orders
-     * 
-     * @param array $params
-     * @return array
      */
     public function getCustomerOrders(array $params): array
     {
@@ -768,7 +721,7 @@ class OrderProcedure extends BaseProcedure
 
             $result = $this->orderService->searchOrders($criteria);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32008,
@@ -788,9 +741,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Get merchant orders
-     * 
-     * @param array $params
-     * @return array
      */
     public function getMerchantOrders(array $params): array
     {
@@ -812,7 +762,7 @@ class OrderProcedure extends BaseProcedure
 
             $result = $this->orderService->searchOrders($criteria);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32009,
@@ -832,9 +782,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Get order by number
-     * 
-     * @param array $params
-     * @return array
      */
     public function getOrderByNumber(array $params): array
     {
@@ -846,7 +793,7 @@ class OrderProcedure extends BaseProcedure
             $criteria = ['order_number' => $params['order_number']];
             $result = $this->orderService->searchOrders($criteria);
 
-            if (!$result['success'] || empty($result['orders'])) {
+            if (! $result['success'] || empty($result['orders'])) {
                 throw $this->createRuntimeException(
                     'Order not found',
                     -32010,
@@ -870,9 +817,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Get orders requiring action
-     * 
-     * @param array $params
-     * @return array
      */
     public function getOrdersRequiringAction(array $params): array
     {
@@ -904,14 +848,14 @@ class OrderProcedure extends BaseProcedure
                 'processing',
                 'shipped',
                 'delivered',
-                'disputed'
+                'disputed',
             ];
 
             $criteria['status'] = $actionRequiredStatuses;
 
             $result = $this->orderService->searchOrders($criteria);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32011,
@@ -950,9 +894,6 @@ class OrderProcedure extends BaseProcedure
 
     /**
      * Get order status history
-     * 
-     * @param array $params
-     * @return array
      */
     public function getOrderStatusHistory(array $params): array
     {
@@ -963,7 +904,7 @@ class OrderProcedure extends BaseProcedure
         return $this->executeWithLogging('Order@getOrderStatusHistory', $this->sanitizeForLogging($params), function () use ($params) {
             $result = $this->orderService->getOrderDetails($params['order_id']);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32012,

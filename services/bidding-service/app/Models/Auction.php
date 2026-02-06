@@ -74,7 +74,7 @@ class Auction extends Model
      */
     public function isActive(): bool
     {
-        return $this->status === 'active' && 
+        return $this->status === 'active' &&
                now()->between($this->starts_at, $this->ends_at);
     }
 

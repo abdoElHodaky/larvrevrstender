@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Procedures\GatewayProcedure;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * Gateway Controller
- * 
+ *
  * Main controller that handles all gateway operations and routes requests
  * to appropriate services through the cross-service infrastructure.
  */
@@ -18,27 +18,22 @@ class GatewayController extends Controller
 
     public function __construct()
     {
-        $this->gateway = new GatewayProcedure();
+        $this->gateway = new GatewayProcedure;
     }
 
     /**
      * Route request to appropriate service
-     *
-     * @param Request $request
-     * @param string $service
-     * @param string $path
-     * @return JsonResponse
      */
     public function routeToService(Request $request, string $service, string $path = ''): JsonResponse
     {
         $context = $this->buildContext($request);
-        
+
         $result = $this->gateway->routeRequest([
             'service' => $service,
-            'endpoint' => '/' . ltrim($path, '/'),
+            'endpoint' => '/'.ltrim($path, '/'),
             'method' => $request->getMethod(),
             'data' => $request->all(),
-            'headers' => $request->headers->all()
+            'headers' => $request->headers->all(),
         ], $context);
 
         return $this->formatResponse($result);
@@ -46,31 +41,24 @@ class GatewayController extends Controller
 
     /**
      * Gateway health check
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function health(Request $request): JsonResponse
     {
         $context = $this->buildContext($request);
         $result = $this->gateway->gatewayHealthCheck([], $context);
-        
+
         return $this->formatResponse($result);
     }
 
     /**
      * Discover service
-     *
-     * @param Request $request
-     * @param string $serviceName
-     * @return JsonResponse
      */
     public function discoverService(Request $request, string $serviceName): JsonResponse
     {
         $context = $this->buildContext($request);
-        
+
         $result = $this->gateway->discoverService([
-            'service_name' => $serviceName
+            'service_name' => $serviceName,
         ], $context);
 
         return $this->formatResponse($result);
@@ -78,14 +66,11 @@ class GatewayController extends Controller
 
     /**
      * Publish event through gateway
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function publishEvent(Request $request): JsonResponse
     {
         $context = $this->buildContext($request);
-        
+
         $result = $this->gateway->publishGatewayEvent($request->all(), $context);
 
         return $this->formatResponse($result);
@@ -93,18 +78,15 @@ class GatewayController extends Controller
 
     /**
      * Validate request data
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function validateRequest(Request $request): JsonResponse
     {
         $context = $this->buildContext($request);
-        
+
         $result = $this->gateway->validateApiRequest([
             'request_data' => $request->all(),
             'endpoint' => $request->getPathInfo(),
-            'method' => $request->getMethod()
+            'method' => $request->getMethod(),
         ], $context);
 
         return $this->formatResponse($result);
@@ -112,25 +94,22 @@ class GatewayController extends Controller
 
     /**
      * Authenticate token
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function authenticate(Request $request): JsonResponse
     {
         $context = $this->buildContext($request);
         $token = $request->bearerToken() ?? $request->input('token');
-        
-        if (!$token) {
+
+        if (! $token) {
             return response()->json([
                 'success' => false,
-                'message' => 'Token is required'
+                'message' => 'Token is required',
             ], 400);
         }
 
         $result = $this->gateway->authenticateToken([
             'token' => $token,
-            'service' => 'gateway-service'
+            'service' => 'gateway-service',
         ], $context);
 
         return $this->formatResponse($result);
@@ -138,29 +117,22 @@ class GatewayController extends Controller
 
     /**
      * Get service registry
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function getServiceRegistry(Request $request): JsonResponse
     {
         $context = $this->buildContext($request);
         $result = $this->gateway->getServiceRegistry([], $context);
-        
+
         return $this->formatResponse($result);
     }
 
     /**
      * Cache operations through gateway
-     *
-     * @param Request $request
-     * @param string $operation
-     * @return JsonResponse
      */
     public function cacheOperation(Request $request, string $operation): JsonResponse
     {
         $context = $this->buildContext($request);
-        
+
         switch ($operation) {
             case 'set':
                 $result = $this->gateway->cacheSet($request->all(), $context);
@@ -183,7 +155,7 @@ class GatewayController extends Controller
             default:
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid cache operation'
+                    'message' => 'Invalid cache operation',
                 ], 400);
         }
 
@@ -192,9 +164,6 @@ class GatewayController extends Controller
 
     /**
      * Build request context
-     *
-     * @param Request $request
-     * @return array
      */
     private function buildContext(Request $request): array
     {
@@ -204,24 +173,21 @@ class GatewayController extends Controller
             'user_agent' => $request->userAgent(),
             'request_method' => $request->getMethod(),
             'request_uri' => $request->getRequestUri(),
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ];
     }
 
     /**
      * Format response
-     *
-     * @param array $result
-     * @return JsonResponse
      */
     private function formatResponse(array $result): JsonResponse
     {
         $statusCode = $result['success'] ? 200 : 400;
-        
+
         // Handle specific error cases
-        if (!$result['success']) {
+        if (! $result['success']) {
             $message = $result['message'] ?? 'Unknown error';
-            
+
             if (strpos($message, 'Authentication failed') !== false) {
                 $statusCode = 401;
             } elseif (strpos($message, 'Access denied') !== false || strpos($message, 'Authorization') !== false) {
@@ -240,12 +206,9 @@ class GatewayController extends Controller
 
     /**
      * Generate trace ID
-     *
-     * @return string
      */
     private function generateTraceId(): string
     {
-        return 'gateway_' . uniqid() . '_' . bin2hex(random_bytes(8));
+        return 'gateway_'.uniqid().'_'.bin2hex(random_bytes(8));
     }
 }
-

@@ -2,14 +2,12 @@
 
 namespace App\RPC\Procedures;
 
-use App\RPC\BaseProcedure;
-use App\Services\UserService;
-use App\Services\KycService;
 use App\Models\KycDocument;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\RateLimiter;
+use App\RPC\BaseProcedure;
+use App\Services\KycService;
+use App\Services\UserService;
 use Illuminate\Http\UploadedFile;
-use Sajya\Server\Exceptions\RuntimeException;
+use Illuminate\Support\Facades\RateLimiter;
 
 class KycProcedure extends BaseProcedure
 {
@@ -26,14 +24,12 @@ class KycProcedure extends BaseProcedure
         if (class_exists('Sajya\Server\Exceptions\RuntimeException')) {
             return new \Sajya\Server\Exceptions\RuntimeException($message, $code, $data);
         }
+
         return new \Exception($message, $code);
     }
 
     /**
      * Upload KYC document via RPC
-     * 
-     * @param array $params
-     * @return array
      */
     public function uploadDocument(array $params): array
     {
@@ -48,7 +44,7 @@ class KycProcedure extends BaseProcedure
 
         return $this->executeWithLogging('KYC@uploadDocument', $this->sanitizeForLogging($params), function () use ($params) {
             // Rate limiting for KYC uploads
-            $key = 'kyc_upload:' . $params['user_id'];
+            $key = 'kyc_upload:'.$params['user_id'];
             if (RateLimiter::tooManyAttempts($key, 10)) {
                 throw $this->createRuntimeException(
                     'Too many KYC upload attempts. Please try again later.',
@@ -60,7 +56,7 @@ class KycProcedure extends BaseProcedure
             try {
                 // Find user
                 $user = $this->userService->getUserById($params['user_id']);
-                if (!$user) {
+                if (! $user) {
                     throw $this->createRuntimeException(
                         'User not found',
                         -32041,
@@ -132,7 +128,7 @@ class KycProcedure extends BaseProcedure
                 RateLimiter::hit($key, 300); // 5 minutes
 
                 throw $this->createRuntimeException(
-                    'KYC document upload failed: ' . $e->getMessage(),
+                    'KYC document upload failed: '.$e->getMessage(),
                     -32043,
                     ['user_id' => $params['user_id']]
                 );
@@ -142,9 +138,6 @@ class KycProcedure extends BaseProcedure
 
     /**
      * Get user's KYC documents via RPC
-     * 
-     * @param array $params
-     * @return array
      */
     public function getDocuments(array $params): array
     {
@@ -160,7 +153,7 @@ class KycProcedure extends BaseProcedure
             try {
                 // Find user
                 $user = $this->userService->getUserById($params['user_id']);
-                if (!$user) {
+                if (! $user) {
                     throw $this->createRuntimeException(
                         'User not found',
                         -32044,
@@ -192,7 +185,7 @@ class KycProcedure extends BaseProcedure
 
             } catch (\Exception $e) {
                 throw $this->createRuntimeException(
-                    'Failed to retrieve KYC documents: ' . $e->getMessage(),
+                    'Failed to retrieve KYC documents: '.$e->getMessage(),
                     -32045,
                     ['user_id' => $params['user_id']]
                 );
@@ -202,9 +195,6 @@ class KycProcedure extends BaseProcedure
 
     /**
      * Delete KYC document via RPC
-     * 
-     * @param array $params
-     * @return array
      */
     public function deleteDocument(array $params): array
     {
@@ -217,7 +207,7 @@ class KycProcedure extends BaseProcedure
             try {
                 // Find user
                 $user = $this->userService->getUserById($params['user_id']);
-                if (!$user) {
+                if (! $user) {
                     throw $this->createRuntimeException(
                         'User not found',
                         -32046,
@@ -228,7 +218,7 @@ class KycProcedure extends BaseProcedure
                 // Delete document
                 $deleted = $this->kycService->deleteDocument($user, $params['document_id']);
 
-                if (!$deleted) {
+                if (! $deleted) {
                     throw $this->createRuntimeException(
                         'Failed to delete KYC document or document not found',
                         -32047,
@@ -244,7 +234,7 @@ class KycProcedure extends BaseProcedure
 
             } catch (\Exception $e) {
                 throw $this->createRuntimeException(
-                    'KYC document deletion failed: ' . $e->getMessage(),
+                    'KYC document deletion failed: '.$e->getMessage(),
                     -32048,
                     ['user_id' => $params['user_id'], 'document_id' => $params['document_id']]
                 );
@@ -254,9 +244,6 @@ class KycProcedure extends BaseProcedure
 
     /**
      * Get comprehensive KYC status via RPC
-     * 
-     * @param array $params
-     * @return array
      */
     public function getStatus(array $params): array
     {
@@ -268,7 +255,7 @@ class KycProcedure extends BaseProcedure
             try {
                 // Find user
                 $user = $this->userService->getUserById($params['user_id']);
-                if (!$user) {
+                if (! $user) {
                     throw $this->createRuntimeException(
                         'User not found',
                         -32049,
@@ -287,7 +274,7 @@ class KycProcedure extends BaseProcedure
 
             } catch (\Exception $e) {
                 throw $this->createRuntimeException(
-                    'Failed to retrieve KYC status: ' . $e->getMessage(),
+                    'Failed to retrieve KYC status: '.$e->getMessage(),
                     -32050,
                     ['user_id' => $params['user_id']]
                 );
@@ -297,9 +284,6 @@ class KycProcedure extends BaseProcedure
 
     /**
      * Submit KYC for review via RPC
-     * 
-     * @param array $params
-     * @return array
      */
     public function submitForReview(array $params): array
     {
@@ -311,7 +295,7 @@ class KycProcedure extends BaseProcedure
             try {
                 // Find user
                 $user = $this->userService->getUserById($params['user_id']);
-                if (!$user) {
+                if (! $user) {
                     throw $this->createRuntimeException(
                         'User not found',
                         -32051,
@@ -331,7 +315,7 @@ class KycProcedure extends BaseProcedure
 
             } catch (\Exception $e) {
                 throw $this->createRuntimeException(
-                    'KYC submission failed: ' . $e->getMessage(),
+                    'KYC submission failed: '.$e->getMessage(),
                     -32052,
                     ['user_id' => $params['user_id']]
                 );
@@ -341,9 +325,6 @@ class KycProcedure extends BaseProcedure
 
     /**
      * Admin approve KYC document via RPC
-     * 
-     * @param array $params
-     * @return array
      */
     public function approveDocument(array $params): array
     {
@@ -357,7 +338,7 @@ class KycProcedure extends BaseProcedure
             try {
                 // Find document
                 $document = KycDocument::find($params['document_id']);
-                if (!$document) {
+                if (! $document) {
                     throw $this->createRuntimeException(
                         'KYC document not found',
                         -32053,
@@ -384,7 +365,7 @@ class KycProcedure extends BaseProcedure
 
             } catch (\Exception $e) {
                 throw $this->createRuntimeException(
-                    'KYC document approval failed: ' . $e->getMessage(),
+                    'KYC document approval failed: '.$e->getMessage(),
                     -32054,
                     ['document_id' => $params['document_id']]
                 );
@@ -394,9 +375,6 @@ class KycProcedure extends BaseProcedure
 
     /**
      * Admin reject KYC document via RPC
-     * 
-     * @param array $params
-     * @return array
      */
     public function rejectDocument(array $params): array
     {
@@ -410,7 +388,7 @@ class KycProcedure extends BaseProcedure
             try {
                 // Find document
                 $document = KycDocument::find($params['document_id']);
-                if (!$document) {
+                if (! $document) {
                     throw $this->createRuntimeException(
                         'KYC document not found',
                         -32055,
@@ -437,7 +415,7 @@ class KycProcedure extends BaseProcedure
 
             } catch (\Exception $e) {
                 throw $this->createRuntimeException(
-                    'KYC document rejection failed: ' . $e->getMessage(),
+                    'KYC document rejection failed: '.$e->getMessage(),
                     -32056,
                     ['document_id' => $params['document_id']]
                 );
@@ -447,13 +425,10 @@ class KycProcedure extends BaseProcedure
 
     /**
      * Get KYC document types and statuses
-     * 
-     * @param array $params
-     * @return array
      */
     public function getMetadata(array $params): array
     {
-        return $this->executeWithLogging('KYC@getMetadata', $params, function () use ($params) {
+        return $this->executeWithLogging('KYC@getMetadata', $params, function () {
             return [
                 'success' => true,
                 'metadata' => [
@@ -468,9 +443,6 @@ class KycProcedure extends BaseProcedure
 
     /**
      * Get KYC statistics for admin dashboard
-     * 
-     * @param array $params
-     * @return array
      */
     public function getStatistics(array $params): array
     {
@@ -482,7 +454,7 @@ class KycProcedure extends BaseProcedure
         return $this->executeWithLogging('KYC@getStatistics', $params, function () use ($params) {
             try {
                 $period = $params['period'] ?? 'month';
-                
+
                 // Get statistics from the database
                 $stats = [
                     'total_documents' => KycDocument::count(),
@@ -507,7 +479,7 @@ class KycProcedure extends BaseProcedure
 
             } catch (\Exception $e) {
                 throw $this->createRuntimeException(
-                    'Failed to retrieve KYC statistics: ' . $e->getMessage(),
+                    'Failed to retrieve KYC statistics: '.$e->getMessage(),
                     -32057,
                     ['period' => $params['period'] ?? 'month']
                 );
@@ -515,4 +487,3 @@ class KycProcedure extends BaseProcedure
         });
     }
 }
-

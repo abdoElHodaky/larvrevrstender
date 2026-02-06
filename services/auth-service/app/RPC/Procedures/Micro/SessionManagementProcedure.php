@@ -2,15 +2,15 @@
 
 namespace App\RPC\Procedures\Micro;
 
-use Illuminate\Support\Facades\Session;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
 /**
  * Session Management Micro Procedure
- * 
+ *
  * Provides session CRUD operations that can be imported into service procedures
  * via use statements for modular session management.
  */
@@ -18,9 +18,6 @@ trait SessionManagementProcedure
 {
     /**
      * Create a new Laravel session
-     *
-     * @param array $params
-     * @return array
      */
     public function createLaravelSession(array $params): array
     {
@@ -29,29 +26,29 @@ trait SessionManagementProcedure
             $ipAddress = $params['ip_address'] ?? null;
             $userAgent = $params['user_agent'] ?? null;
             $sessionData = $params['session_data'] ?? [];
-            
-            if (!$userId) {
+
+            if (! $userId) {
                 return [
                     'success' => false,
                     'message' => 'User ID is required',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
             // Generate unique session ID
             $sessionId = Str::random(40);
-            
+
             // Prepare session payload
             $payload = array_merge([
                 '_token' => Str::random(40),
                 'user_id' => $userId,
                 'login_time' => now()->timestamp,
-                'device_info' => $this->extractDeviceInfo($userAgent)
+                'device_info' => $this->extractDeviceInfo($userAgent),
             ], $sessionData);
 
             // Encode payload
             $encodedPayload = base64_encode(serialize($payload));
-            
+
             // Insert session into database
             DB::table('sessions')->insert([
                 'id' => $sessionId,
@@ -59,7 +56,7 @@ trait SessionManagementProcedure
                 'ip_address' => $ipAddress,
                 'user_agent' => $userAgent,
                 'payload' => $encodedPayload,
-                'last_activity' => now()->timestamp
+                'last_activity' => now()->timestamp,
             ]);
 
             // Update user's last login information
@@ -68,7 +65,7 @@ trait SessionManagementProcedure
             Log::info('Laravel session created', [
                 'session_id' => $sessionId,
                 'user_id' => $userId,
-                'ip_address' => $ipAddress
+                'ip_address' => $ipAddress,
             ]);
 
             return [
@@ -78,93 +75,87 @@ trait SessionManagementProcedure
                     'session_id' => $sessionId,
                     'user_id' => $userId,
                     'expires_at' => now()->addMinutes(config('session.lifetime', 1440))->toISOString(),
-                    'device_info' => $payload['device_info']
-                ]
+                    'device_info' => $payload['device_info'],
+                ],
             ];
 
         } catch (\Exception $e) {
             Log::error('Session creation failed', [
                 'user_id' => $params['user_id'] ?? null,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Session creation failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Session creation failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Get session data by session ID
-     *
-     * @param array $params
-     * @return array
      */
     public function getSessionData(array $params): array
     {
         try {
             $sessionId = $params['session_id'] ?? null;
-            
-            if (!$sessionId) {
+
+            if (! $sessionId) {
                 return [
                     'success' => false,
                     'message' => 'Session ID is required',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
             // Validate session first
             $validation = $this->validateLaravelSession(['session_id' => $sessionId]);
-            
-            if (!$validation['success']) {
+
+            if (! $validation['success']) {
                 return $validation;
             }
 
             return [
                 'success' => true,
                 'message' => 'Session data retrieved successfully',
-                'data' => $validation['data']
+                'data' => $validation['data'],
             ];
 
         } catch (\Exception $e) {
             Log::error('Get session data failed', [
                 'session_id' => $params['session_id'] ?? null,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Get session data failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Get session data failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Refresh Laravel session (extend lifetime)
-     *
-     * @param array $params
-     * @return array
      */
     public function refreshLaravelSession(array $params): array
     {
         try {
             $sessionId = $params['session_id'] ?? null;
-            
-            if (!$sessionId) {
+
+            if (! $sessionId) {
                 return [
                     'success' => false,
                     'message' => 'Session ID is required',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
             // Validate session first
             $validation = $this->validateLaravelSession(['session_id' => $sessionId]);
-            
-            if (!$validation['success']) {
+
+            if (! $validation['success']) {
                 return $validation;
             }
 
@@ -173,17 +164,17 @@ trait SessionManagementProcedure
                 ->where('id', $sessionId)
                 ->update(['last_activity' => now()->timestamp]);
 
-            if (!$updated) {
+            if (! $updated) {
                 return [
                     'success' => false,
                     'message' => 'Session not found or could not be refreshed',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
             Log::info('Session refreshed', [
                 'session_id' => $sessionId,
-                'user_id' => $validation['data']['user_id']
+                'user_id' => $validation['data']['user_id'],
             ]);
 
             return [
@@ -192,40 +183,37 @@ trait SessionManagementProcedure
                 'data' => [
                     'session_id' => $sessionId,
                     'new_expires_at' => now()->addMinutes(config('session.lifetime', 1440))->toISOString(),
-                    'last_activity' => now()->toISOString()
-                ]
+                    'last_activity' => now()->toISOString(),
+                ],
             ];
 
         } catch (\Exception $e) {
             Log::error('Session refresh failed', [
                 'session_id' => $params['session_id'] ?? null,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Session refresh failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Session refresh failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Revoke Laravel session
-     *
-     * @param array $params
-     * @return array
      */
     public function revokeLaravelSession(array $params): array
     {
         try {
             $sessionId = $params['session_id'] ?? null;
-            
-            if (!$sessionId) {
+
+            if (! $sessionId) {
                 return [
                     'success' => false,
                     'message' => 'Session ID is required',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
@@ -234,11 +222,11 @@ trait SessionManagementProcedure
                 ->where('id', $sessionId)
                 ->first();
 
-            if (!$sessionData) {
+            if (! $sessionData) {
                 return [
                     'success' => false,
                     'message' => 'Session not found',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
@@ -247,17 +235,17 @@ trait SessionManagementProcedure
                 ->where('id', $sessionId)
                 ->delete();
 
-            if (!$deleted) {
+            if (! $deleted) {
                 return [
                     'success' => false,
                     'message' => 'Session could not be revoked',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
             Log::info('Session revoked', [
                 'session_id' => $sessionId,
-                'user_id' => $sessionData->user_id
+                'user_id' => $sessionData->user_id,
             ]);
 
             return [
@@ -265,29 +253,26 @@ trait SessionManagementProcedure
                 'message' => 'Session revoked successfully',
                 'data' => [
                     'session_id' => $sessionId,
-                    'revoked_at' => now()->toISOString()
-                ]
+                    'revoked_at' => now()->toISOString(),
+                ],
             ];
 
         } catch (\Exception $e) {
             Log::error('Session revocation failed', [
                 'session_id' => $params['session_id'] ?? null,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Session revocation failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Session revocation failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Get active user sessions
-     *
-     * @param array $params
-     * @return array
      */
     public function getActiveUserSessions(array $params): array
     {
@@ -295,12 +280,12 @@ trait SessionManagementProcedure
             $userId = $params['user_id'] ?? null;
             $limit = $params['limit'] ?? 10;
             $offset = $params['offset'] ?? 0;
-            
-            if (!$userId) {
+
+            if (! $userId) {
                 return [
                     'success' => false,
                     'message' => 'User ID is required',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
@@ -317,18 +302,18 @@ trait SessionManagementProcedure
 
             foreach ($sessions as $session) {
                 $lastActivity = Carbon::createFromTimestamp($session->last_activity);
-                
+
                 // Check if session is still active
-                if (!$lastActivity->addMinutes($sessionLifetime)->isPast()) {
+                if (! $lastActivity->addMinutes($sessionLifetime)->isPast()) {
                     $payload = unserialize(base64_decode($session->payload));
-                    
+
                     $activeSessions[] = [
                         'session_id' => $session->id,
                         'ip_address' => $session->ip_address,
                         'user_agent' => $session->user_agent,
                         'last_activity' => $lastActivity->toISOString(),
                         'device_info' => $payload['device_info'] ?? null,
-                        'expires_at' => $lastActivity->addMinutes($sessionLifetime)->toISOString()
+                        'expires_at' => $lastActivity->addMinutes($sessionLifetime)->toISOString(),
                     ];
                 } else {
                     // Clean up expired session
@@ -342,47 +327,44 @@ trait SessionManagementProcedure
                 'data' => [
                     'sessions' => $activeSessions,
                     'total_active' => count($activeSessions),
-                    'user_id' => $userId
-                ]
+                    'user_id' => $userId,
+                ],
             ];
 
         } catch (\Exception $e) {
             Log::error('Get active sessions failed', [
                 'user_id' => $params['user_id'] ?? null,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Get active sessions failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Get active sessions failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Revoke all user sessions
-     *
-     * @param array $params
-     * @return array
      */
     public function revokeUserSessions(array $params): array
     {
         try {
             $userId = $params['user_id'] ?? null;
             $excludeSessionId = $params['exclude_session_id'] ?? null;
-            
-            if (!$userId) {
+
+            if (! $userId) {
                 return [
                     'success' => false,
                     'message' => 'User ID is required',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
             // Build query
             $query = DB::table('sessions')->where('user_id', $userId);
-            
+
             // Exclude current session if specified
             if ($excludeSessionId) {
                 $query->where('id', '!=', $excludeSessionId);
@@ -397,7 +379,7 @@ trait SessionManagementProcedure
             Log::info('User sessions revoked', [
                 'user_id' => $userId,
                 'sessions_revoked' => $deleted,
-                'excluded_session' => $excludeSessionId
+                'excluded_session' => $excludeSessionId,
             ]);
 
             return [
@@ -406,37 +388,34 @@ trait SessionManagementProcedure
                 'data' => [
                     'user_id' => $userId,
                     'sessions_revoked' => $deleted,
-                    'revoked_at' => now()->toISOString()
-                ]
+                    'revoked_at' => now()->toISOString(),
+                ],
             ];
 
         } catch (\Exception $e) {
             Log::error('Revoke user sessions failed', [
                 'user_id' => $params['user_id'] ?? null,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Revoke user sessions failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Revoke user sessions failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Extract device information from user agent
-     *
-     * @param string|null $userAgent
-     * @return array
      */
     private function extractDeviceInfo(?string $userAgent): array
     {
-        if (!$userAgent) {
+        if (! $userAgent) {
             return [
                 'device_type' => 'unknown',
                 'platform' => 'unknown',
-                'browser' => 'unknown'
+                'browser' => 'unknown',
             ];
         }
 
@@ -476,16 +455,12 @@ trait SessionManagementProcedure
             'device_type' => $deviceType,
             'platform' => $platform,
             'browser' => $browser,
-            'user_agent' => $userAgent
+            'user_agent' => $userAgent,
         ];
     }
 
     /**
      * Update user's last login information
-     *
-     * @param int $userId
-     * @param string|null $ipAddress
-     * @return void
      */
     private function updateUserLastLogin(int $userId, ?string $ipAddress): void
     {
@@ -496,12 +471,12 @@ trait SessionManagementProcedure
                     'last_login_at' => now(),
                     'last_login_ip' => $ipAddress,
                     'login_count' => DB::raw('login_count + 1'),
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ]);
         } catch (\Exception $e) {
             Log::warning('Failed to update user last login', [
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }

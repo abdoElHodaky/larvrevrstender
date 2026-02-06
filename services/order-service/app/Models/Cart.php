@@ -26,8 +26,11 @@ class Cart extends Model
     ];
 
     const STATUS_ACTIVE = 'active';
+
     const STATUS_ABANDONED = 'abandoned';
+
     const STATUS_CONVERTED = 'converted';
+
     const STATUS_EXPIRED = 'expired';
 
     /**
@@ -109,6 +112,7 @@ class Cart extends Model
             $existingItem->update([
                 'total_price' => $existingItem->unit_price * $existingItem->quantity,
             ]);
+
             return $existingItem;
         }
 

@@ -20,10 +20,15 @@ class BidAttachment extends Model
      * Attachment type constants.
      */
     const TYPE_DOCUMENT = 'document';
+
     const TYPE_IMAGE = 'image';
+
     const TYPE_CERTIFICATE = 'certificate';
+
     const TYPE_PROOF_OF_FUNDS = 'proof_of_funds';
+
     const TYPE_TECHNICAL_SPEC = 'technical_spec';
+
     const TYPE_OTHER = 'other';
 
     /**
@@ -99,12 +104,12 @@ class BidAttachment extends Model
     {
         $bytes = $this->file_size;
         $units = ['B', 'KB', 'MB', 'GB'];
-        
+
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
             $bytes /= 1024;
         }
-        
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 
     /**
@@ -117,7 +122,8 @@ class BidAttachment extends Model
         }
 
         $cdnDomain = config('filesystems.cdn_domain', 'https://cdn.reversetender.com');
-        return $cdnDomain . '/' . ltrim($this->file_path, '/');
+
+        return $cdnDomain.'/'.ltrim($this->file_path, '/');
     }
 
     /**
@@ -154,7 +160,7 @@ class BidAttachment extends Model
      */
     public function isDocument(): bool
     {
-        return str_starts_with($this->mime_type, 'application/') || 
+        return str_starts_with($this->mime_type, 'application/') ||
                str_starts_with($this->mime_type, 'text/');
     }
 
@@ -223,7 +229,7 @@ class BidAttachment extends Model
                         [
                             'attachment_id' => $attachment->id,
                             'file_path' => $attachment->file_path,
-                            'error' => $e->getMessage()
+                            'error' => $e->getMessage(),
                         ]
                     );
                 }
@@ -231,4 +237,3 @@ class BidAttachment extends Model
         });
     }
 }
-

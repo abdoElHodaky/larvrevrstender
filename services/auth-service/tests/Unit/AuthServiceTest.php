@@ -3,8 +3,8 @@
 namespace Tests\Unit;
 
 use App\Services\OtpService;
-use PHPUnit\Framework\TestCase;
 use Mockery;
+use PHPUnit\Framework\TestCase;
 
 class AuthServiceTest extends TestCase
 {
@@ -13,7 +13,7 @@ class AuthServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Mock OtpService
         $this->otpService = Mockery::mock(OtpService::class);
     }
@@ -36,8 +36,8 @@ class AuthServiceTest extends TestCase
         // Test valid Saudi phone number formats
         $validPhones = [
             '+966501234567',
-            '966501234567', 
-            '0501234567'
+            '966501234567',
+            '0501234567',
         ];
 
         foreach ($validPhones as $phone) {
@@ -80,16 +80,16 @@ class AuthServiceTest extends TestCase
 
             // Test length requirement
             $lengthValid = strlen($password) >= 8;
-            
+
             // Test uppercase requirement
             $hasUppercase = preg_match('/[A-Z]/', $password);
-            
+
             // Test lowercase requirement
             $hasLowercase = preg_match('/[a-z]/', $password);
-            
+
             // Test number requirement
             $hasNumber = preg_match('/[0-9]/', $password);
-            
+
             // Test special character requirement
             $hasSpecial = preg_match('/[^A-Za-z0-9]/', $password);
 
@@ -109,14 +109,14 @@ class AuthServiceTest extends TestCase
         $validEmails = [
             'test@example.com',
             'user.name@domain.co.uk',
-            'user+tag@example.org'
+            'user+tag@example.org',
         ];
 
         $invalidEmails = [
             'invalid-email',
             '@domain.com',
             'user@',
-            'user..name@domain.com'
+            'user..name@domain.com',
         ];
 
         foreach ($validEmails as $email) {
@@ -156,6 +156,4 @@ class AuthServiceTest extends TestCase
             }
         }
     }
-
 }
-

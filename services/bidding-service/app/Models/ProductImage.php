@@ -71,12 +71,12 @@ class ProductImage extends Model
     {
         $bytes = $this->file_size;
         $units = ['B', 'KB', 'MB', 'GB'];
-        
+
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
             $bytes /= 1024;
         }
-        
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 
     /**
@@ -89,7 +89,8 @@ class ProductImage extends Model
         }
 
         $cdnDomain = config('filesystems.cdn_domain', 'https://cdn.reversetender.com');
-        return $cdnDomain . '/' . ltrim($this->file_path, '/');
+
+        return $cdnDomain.'/'.ltrim($this->file_path, '/');
     }
 
     /**
@@ -98,8 +99,9 @@ class ProductImage extends Model
     public function getDimensionsAttribute(): ?string
     {
         if ($this->width && $this->height) {
-            return $this->width . 'x' . $this->height;
+            return $this->width.'x'.$this->height;
         }
+
         return null;
     }
 
@@ -111,6 +113,7 @@ class ProductImage extends Model
         if ($this->width && $this->height && $this->height > 0) {
             return round($this->width / $this->height, 2);
         }
+
         return null;
     }
 
@@ -188,7 +191,7 @@ class ProductImage extends Model
                         [
                             'image_id' => $image->id,
                             'file_path' => $image->file_path,
-                            'error' => $e->getMessage()
+                            'error' => $e->getMessage(),
                         ]
                     );
                 }
@@ -196,4 +199,3 @@ class ProductImage extends Model
         });
     }
 }
-

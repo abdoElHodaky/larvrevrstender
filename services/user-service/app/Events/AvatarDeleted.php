@@ -13,6 +13,7 @@ class AvatarDeleted
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public User $user;
+
     public UserAvatar $avatar;
 
     /**
@@ -37,4 +38,3 @@ class AvatarDeleted
         ];
     }
 }
-

@@ -13,6 +13,7 @@ class KycSubmittedForReview
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public User $user;
+
     public Collection $documents;
 
     /**
@@ -38,4 +39,3 @@ class KycSubmittedForReview
         ];
     }
 }
-

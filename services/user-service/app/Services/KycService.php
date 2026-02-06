@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use App\Models\KycDocument;
-use Shared\Services\FileUploadService;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Shared\Services\FileUploadService;
 
 class KycService
 {
@@ -25,9 +25,9 @@ class KycService
      * Upload KYC document.
      */
     public function uploadDocument(
-        User $user, 
-        UploadedFile $file, 
-        string $documentType, 
+        User $user,
+        UploadedFile $file,
+        string $documentType,
         ?string $description = null
     ): KycDocument {
         // Validate inputs
@@ -41,7 +41,7 @@ class KycService
             // Upload to cloud storage with encryption
             $result = $this->fileUploadService->upload(
                 $file,
-                'user-service/kyc-documents/' . $user->id . '/' . $documentType,
+                'user-service/kyc-documents/'.$user->id.'/'.$documentType,
                 [
                     'optimize' => false, // Don't optimize documents to preserve quality
                     'encrypt' => true,   // Encrypt sensitive KYC documents
@@ -88,7 +88,7 @@ class KycService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             // Cleanup uploaded file
             if (isset($result['path'])) {
                 try {
@@ -115,8 +115,8 @@ class KycService
      * Get user's KYC documents with pagination and filtering.
      */
     public function getDocuments(
-        User $user, 
-        ?string $documentType = null, 
+        User $user,
+        ?string $documentType = null,
         ?string $status = null,
         int $perPage = 15,
         int $page = 1
@@ -142,7 +142,7 @@ class KycService
         $document = $user->kycDocuments()->findOrFail($documentId);
 
         // Check if document can be deleted
-        if (!$document->canBeDeleted()) {
+        if (! $document->canBeDeleted()) {
             throw new \InvalidArgumentException('Cannot delete approved or documents under review');
         }
 
@@ -187,7 +187,7 @@ class KycService
     {
         $documents = $user->kycDocuments()->active()->get();
         $requiredDocuments = $this->getRequiredDocumentTypes();
-        
+
         // Count documents by status
         $statusCounts = [
             'total' => $documents->count(),
@@ -204,7 +204,7 @@ class KycService
 
         // Determine overall status
         $overallStatus = $user->kyc_status;
-        
+
         // Get submission and verification dates
         $submittedAt = $documents->where('status', '!=', KycDocument::STATUS_PENDING)->min('updated_at');
         $verifiedAt = $user->isKycApproved() ? $documents->where('status', KycDocument::STATUS_APPROVED)->max('verified_at') : null;
@@ -388,7 +388,7 @@ class KycService
     {
         // This could update a kyc_status field on users table if it exists
         // For now, the status is calculated dynamically via the User model
-        
+
         // Optionally store last KYC update timestamp
         if (DB::getSchemaBuilder()->hasColumn('users', 'kyc_updated_at')) {
             $user->update(['kyc_updated_at' => now()]);
@@ -402,24 +402,26 @@ class KycService
     {
         switch ($overallStatus) {
             case 'not_started':
-                return ['Upload required documents: ' . implode(', ', $this->getRequiredDocumentTypes())];
-            
+                return ['Upload required documents: '.implode(', ', $this->getRequiredDocumentTypes())];
+
             case 'pending':
-                if (!empty($missingTypes)) {
-                    return ['Upload missing documents: ' . implode(', ', $missingTypes)];
+                if (! empty($missingTypes)) {
+                    return ['Upload missing documents: '.implode(', ', $missingTypes)];
                 }
+
                 return ['Submit documents for review'];
-            
+
             case 'under_review':
                 return ['Wait for document review to complete'];
-            
+
             case 'rejected':
                 $rejectedDocs = $user->kycDocuments()->rejected()->pluck('document_type')->toArray();
-                return ['Resubmit rejected documents: ' . implode(', ', $rejectedDocs)];
-            
+
+                return ['Resubmit rejected documents: '.implode(', ', $rejectedDocs)];
+
             case 'approved':
                 return ['KYC verification complete'];
-            
+
             default:
                 return ['Contact support for assistance'];
         }
@@ -443,7 +445,7 @@ class KycService
             'document_type' => [
                 'required',
                 'string',
-                'in:' . implode(',', array_keys(KycDocument::getDocumentTypes())),
+                'in:'.implode(',', array_keys(KycDocument::getDocumentTypes())),
             ],
         ]);
 
@@ -452,4 +454,3 @@ class KycService
         }
     }
 }
-
