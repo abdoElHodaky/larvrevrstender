@@ -51,7 +51,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY services/${SERVICE_NAME} /app
 
 # Copy shared procedures if they exist
-COPY services/shared /app/shared 2>/dev/null || true
+COPY services/shared /app/shared
 
 # Set permissions
 RUN chown -R www-data:www-data /app \
