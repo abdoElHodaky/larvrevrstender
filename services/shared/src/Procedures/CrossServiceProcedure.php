@@ -15,6 +15,7 @@ use Shared\Procedures\Micro\NotificationProcedure;
 use Shared\Procedures\Micro\ValidationProcedure;
 use Shared\Procedures\Micro\SecurityProcedure;
 use Shared\Procedures\Micro\CircuitBreakerProcedure;
+use Shared\Procedures\Micro\QueueCircuitBreakerProcedure;
 
 /**
  * Cross-Service Procedure Hub
@@ -31,6 +32,7 @@ class CrossServiceProcedure extends BaseProcedure
     use ValidationProcedure;
     use SecurityProcedure;
     use CircuitBreakerProcedure;
+    use QueueCircuitBreakerProcedure;
     
     private ProcedureEngine $engine;
     private RestHandler $restHandler;
@@ -85,6 +87,11 @@ class CrossServiceProcedure extends BaseProcedure
         $this->engine->registerProcedure('circuit_breaker', static::class, 'micro', [
             'description' => 'Circuit breaker pattern for fault tolerance',
             'methods' => ['executeWithCircuitBreaker', 'getCircuitBreakerStats', 'resetCircuitBreaker', 'forceOpenCircuitBreaker', 'executeHttpWithCircuitBreaker']
+        ]);
+
+        $this->engine->registerProcedure('queue_circuit_breaker', static::class, 'micro', [
+            'description' => 'Queue circuit breaker pattern for asynchronous fault tolerance',
+            'methods' => ['dispatchWithCircuitBreaker', 'getQueueCircuitBreakerStats', 'resetQueueCircuitBreaker', 'forceOpenQueueCircuitBreaker', 'getQueueHealth']
         ]);
 
         // Register macro procedures (to be implemented)

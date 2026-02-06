@@ -433,6 +433,70 @@ Route::prefix('circuit-breaker')->group(function () use ($crossService) {
     });
 });
 
+// Queue Circuit Breaker routes
+Route::prefix('queue-circuit-breaker')->group(function () use ($crossService) {
+    Route::post('/dispatch', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->dispatchWithCircuitBreaker($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 503);
+    });
+
+    Route::get('/stats/{serviceName?}', function (Request $request, string $serviceName = null) use ($crossService) {
+        $params = $serviceName ? ['service_name' => $serviceName] : [];
+        if ($request->has('queue')) {
+            $params['queue'] = $request->get('queue');
+        }
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->getQueueCircuitBreakerStats($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/reset', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->resetQueueCircuitBreaker($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::post('/force-open', function (Request $request) use ($crossService) {
+        $params = $request->all();
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->forceOpenQueueCircuitBreaker($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 400);
+    });
+
+    Route::get('/health', function (Request $request) use ($crossService) {
+        $params = [];
+        if ($request->has('queue')) {
+            $params['queue'] = $request->get('queue');
+        }
+        $context = [
+            'trace_id' => $request->header('X-Trace-ID'),
+            'source_service' => $request->header('X-Source-Service', 'unknown')
+        ];
+        
+        $result = $crossService->getQueueHealth($params, $context);
+        return response()->json($result, $result['success'] ? 200 : 503);
+    });
+});
+
 // Generic procedure execution route
 Route::post('/execute', function (Request $request) use ($crossService) {
     $params = $request->all();
