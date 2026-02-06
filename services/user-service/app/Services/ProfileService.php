@@ -4,12 +4,12 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\UserAvatar;
-use Shared\Services\FileUploadService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Shared\Services\FileUploadService;
 
 class ProfileService
 {
@@ -46,7 +46,7 @@ class ProfileService
 
             $result = $this->fileUploadService->upload(
                 $file,
-                'user-service/avatars/' . $user->id,
+                'user-service/avatars/'.$user->id,
                 $uploadOptions
             );
 
@@ -83,7 +83,7 @@ class ProfileService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             // Attempt to clean up uploaded file
             if (isset($result['path'])) {
                 try {
@@ -112,8 +112,8 @@ class ProfileService
     public function deleteAvatar(User $user, bool $commitTransaction = true): bool
     {
         $avatar = $user->avatar;
-        
-        if (!$avatar) {
+
+        if (! $avatar) {
             return false;
         }
 
@@ -233,8 +233,8 @@ class ProfileService
     public function getAvatarStats(User $user): array
     {
         $avatar = $user->avatar;
-        
-        if (!$avatar) {
+
+        if (! $avatar) {
             return [
                 'has_avatar' => false,
                 'upload_date' => null,
@@ -274,7 +274,7 @@ class ProfileService
     public function bulkDeleteAvatars(array $userIds): array
     {
         $results = [];
-        
+
         foreach ($userIds as $userId) {
             try {
                 $user = User::findOrFail($userId);
@@ -291,4 +291,3 @@ class ProfileService
         return $results;
     }
 }
-

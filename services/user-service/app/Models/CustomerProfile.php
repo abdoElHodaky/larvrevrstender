@@ -51,8 +51,11 @@ class CustomerProfile extends Model
      * Verification status constants
      */
     const STATUS_PENDING = 'pending';
+
     const STATUS_APPROVED = 'approved';
+
     const STATUS_REJECTED = 'rejected';
+
     const STATUS_REQUIRES_REVIEW = 'requires_review';
 
     /**
@@ -194,8 +197,8 @@ class CustomerProfile extends Model
     {
         $preferences = $this->preferences ?? [];
         $categories = $preferences['preferred_categories'] ?? [];
-        
-        if (!in_array($category, $categories)) {
+
+        if (! in_array($category, $categories)) {
             $categories[] = $category;
             $preferences['preferred_categories'] = $categories;
             $this->update(['preferences' => $preferences]);
@@ -209,8 +212,8 @@ class CustomerProfile extends Model
     {
         $preferences = $this->preferences ?? [];
         $categories = $preferences['preferred_categories'] ?? [];
-        
-        $categories = array_filter($categories, fn($cat) => $cat !== $category);
+
+        $categories = array_filter($categories, fn ($cat) => $cat !== $category);
         $preferences['preferred_categories'] = array_values($categories);
         $this->update(['preferences' => $preferences]);
     }
@@ -246,6 +249,7 @@ class CustomerProfile extends Model
     public function getDisplayNameAttribute(): string
     {
         $name = $this->user->name ?? 'Unknown User';
+
         return $this->company_name ? "{$name} ({$this->company_name})" : $name;
     }
 
@@ -254,9 +258,9 @@ class CustomerProfile extends Model
      */
     public function hasCompleteKYC(): bool
     {
-        return !empty($this->national_id) 
-            && !empty($this->national_address)
-            && !empty($this->date_of_birth)
+        return ! empty($this->national_id)
+            && ! empty($this->national_address)
+            && ! empty($this->date_of_birth)
             && $this->isVerified();
     }
 
@@ -266,17 +270,17 @@ class CustomerProfile extends Model
     public function getVerificationProgressAttribute(): int
     {
         $requiredFields = [
-            'national_id', 'national_address', 'date_of_birth', 
-            'occupation', 'default_location'
+            'national_id', 'national_address', 'date_of_birth',
+            'occupation', 'default_location',
         ];
-        
+
         $completedFields = 0;
         foreach ($requiredFields as $field) {
-            if (!empty($this->$field)) {
+            if (! empty($this->$field)) {
                 $completedFields++;
             }
         }
-        
+
         return round(($completedFields / count($requiredFields)) * 100);
     }
 

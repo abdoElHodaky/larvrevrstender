@@ -55,8 +55,8 @@ class VinScan extends Model
      */
     public function isSuccessful(): bool
     {
-        return $this->status === 'completed' && 
-               !empty($this->vin_number) && 
+        return $this->status === 'completed' &&
+               ! empty($this->vin_number) &&
                $this->confidence_score >= 0.8;
     }
 
@@ -73,18 +73,18 @@ class VinScan extends Model
      */
     public function getFormattedFileSizeAttribute(): string
     {
-        if (!$this->file_size) {
+        if (! $this->file_size) {
             return 'Unknown';
         }
 
         $bytes = $this->file_size;
         $units = ['B', 'KB', 'MB', 'GB'];
-        
+
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
             $bytes /= 1024;
         }
-        
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 
     /**
@@ -102,7 +102,8 @@ class VinScan extends Model
 
         if ($this->file_path) {
             $cdnDomain = config('filesystems.cdn_domain', 'https://cdn.reversetender.com');
-            return $cdnDomain . '/' . ltrim($this->file_path, '/');
+
+            return $cdnDomain.'/'.ltrim($this->file_path, '/');
         }
 
         return $this->url;
@@ -113,7 +114,7 @@ class VinScan extends Model
      */
     public function hasCloudStorageMetadata(): bool
     {
-        return !empty($this->file_path) && !empty($this->storage_provider);
+        return ! empty($this->file_path) && ! empty($this->storage_provider);
     }
 
     /**
@@ -121,7 +122,7 @@ class VinScan extends Model
      */
     public function getFileExtensionAttribute(): string
     {
-        if (!$this->mime_type) {
+        if (! $this->mime_type) {
             return 'unknown';
         }
 
@@ -143,7 +144,7 @@ class VinScan extends Model
     public function scopeWithCloudStorage($query)
     {
         return $query->whereNotNull('file_path')
-                    ->whereNotNull('storage_provider');
+            ->whereNotNull('storage_provider');
     }
 
     /**

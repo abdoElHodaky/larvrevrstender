@@ -47,4 +47,3 @@ return [
         'url' => env('NOTIFICATION_SERVICE_URL', 'http://notification-service:8000'),
     ],
 ];
-

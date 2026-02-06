@@ -38,17 +38,27 @@ class Transaction extends Model
     ];
 
     const TYPE_PAYMENT = 'payment';
+
     const TYPE_REFUND = 'refund';
+
     const TYPE_PARTIAL_REFUND = 'partial_refund';
+
     const TYPE_CHARGEBACK = 'chargeback';
+
     const TYPE_AUTHORIZATION = 'authorization';
+
     const TYPE_CAPTURE = 'capture';
 
     const STATUS_PENDING = 'pending';
+
     const STATUS_PROCESSING = 'processing';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_FAILED = 'failed';
+
     const STATUS_CANCELLED = 'cancelled';
+
     const STATUS_REFUNDED = 'refunded';
 
     /**

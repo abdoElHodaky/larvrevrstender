@@ -23,10 +23,10 @@ class RpcServiceProvider extends ServiceProvider
     {
         // Load RPC routes
         $this->loadRoutesFrom(base_path('routes/rpc.php'));
-        
+
         // Register RPC middleware
         $this->registerRpcMiddleware();
-        
+
         // Register RPC clients for other services
         $this->registerRpcClients();
     }
@@ -37,7 +37,7 @@ class RpcServiceProvider extends ServiceProvider
     private function registerRpcMiddleware(): void
     {
         $router = $this->app['router'];
-        
+
         $router->aliasMiddleware('rpc.correlation', \App\Http\Middleware\RpcCorrelationMiddleware::class);
         $router->aliasMiddleware('rpc.performance', \App\Http\Middleware\RpcPerformanceMiddleware::class);
         $router->aliasMiddleware('rpc.logging', \App\Http\Middleware\RpcLoggingMiddleware::class);

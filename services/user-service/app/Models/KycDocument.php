@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Builder;
 
 class KycDocument extends Model
 {
@@ -21,23 +21,36 @@ class KycDocument extends Model
      * Document type constants.
      */
     const TYPE_IDENTITY = 'identity';
+
     const TYPE_PASSPORT = 'passport';
+
     const TYPE_DRIVERS_LICENSE = 'drivers_license';
+
     const TYPE_PROOF_OF_ADDRESS = 'proof_of_address';
+
     const TYPE_BUSINESS_REGISTRATION = 'business_registration';
+
     const TYPE_TAX_CERTIFICATE = 'tax_certificate';
+
     const TYPE_BANK_STATEMENT = 'bank_statement';
+
     const TYPE_UTILITY_BILL = 'utility_bill';
 
     /**
      * Status constants.
      */
     const STATUS_PENDING = 'pending';
+
     const STATUS_UNDER_REVIEW = 'under_review';
+
     const STATUS_APPROVED = 'approved';
+
     const STATUS_REJECTED = 'rejected';
+
     const STATUS_RESUBMISSION_REQUIRED = 'resubmission_required';
+
     const STATUS_SUPERSEDED = 'superseded';
+
     const STATUS_DELETED = 'deleted';
 
     /**
@@ -145,12 +158,12 @@ class KycDocument extends Model
     {
         $bytes = $this->file_size;
         $units = ['B', 'KB', 'MB', 'GB'];
-        
+
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
             $bytes /= 1024;
         }
-        
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 
     /**
@@ -198,7 +211,7 @@ class KycDocument extends Model
      */
     public function canBeDeleted(): bool
     {
-        return !in_array($this->status, [self::STATUS_APPROVED, self::STATUS_UNDER_REVIEW]);
+        return ! in_array($this->status, [self::STATUS_APPROVED, self::STATUS_UNDER_REVIEW]);
     }
 
     /**
@@ -211,7 +224,8 @@ class KycDocument extends Model
         }
 
         $cdnDomain = config('filesystems.cdn_domain', 'https://cdn.reversetender.com');
-        return $cdnDomain . '/' . ltrim($this->file_path, '/');
+
+        return $cdnDomain.'/'.ltrim($this->file_path, '/');
     }
 
     /**
@@ -311,7 +325,7 @@ class KycDocument extends Model
                         [
                             'document_id' => $document->id,
                             'file_path' => $document->file_path,
-                            'error' => $e->getMessage()
+                            'error' => $e->getMessage(),
                         ]
                     );
                 }
@@ -319,4 +333,3 @@ class KycDocument extends Model
         });
     }
 }
-

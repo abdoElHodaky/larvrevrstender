@@ -2,24 +2,20 @@
 
 namespace App\RPC\Procedures;
 
-use App\RPC\BaseProcedure;
-use App\Http\Controllers\BiddingController;
 use App\Http\Controllers\AuctionController;
+use App\Http\Controllers\BiddingController;
+use App\RPC\BaseProcedure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class BiddingProcedure extends BaseProcedure
 {
     /**
      * Place a bid on an auction
-     * 
-     * @param array $params
-     * @return array
      */
     public function placeBid(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'auction_id' => 'required|integer',
@@ -29,13 +25,13 @@ class BiddingProcedure extends BaseProcedure
                 'notes' => 'nullable|string|max:1000',
             ]);
 
-            $controller = new BiddingController();
+            $controller = new BiddingController;
             $request = new Request($params);
-            
+
             $result = $controller->placeBid($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -44,24 +40,21 @@ class BiddingProcedure extends BaseProcedure
 
     /**
      * Get bid details
-     * 
-     * @param array $params
-     * @return array
      */
     public function getBid(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'bid_id' => 'required|integer',
             ]);
 
-            $controller = new BiddingController();
+            $controller = new BiddingController;
             $result = $controller->getBid($params['bid_id']);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -70,14 +63,11 @@ class BiddingProcedure extends BaseProcedure
 
     /**
      * Get all bids for a user
-     * 
-     * @param array $params
-     * @return array
      */
     public function getUserBids(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'user_id' => 'required|integer',
@@ -86,11 +76,11 @@ class BiddingProcedure extends BaseProcedure
                 'offset' => 'nullable|integer|min:0',
             ]);
 
-            $controller = new BiddingController();
+            $controller = new BiddingController;
             $result = $controller->getUserBids($params['user_id']);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -99,14 +89,11 @@ class BiddingProcedure extends BaseProcedure
 
     /**
      * Get all bids for an auction
-     * 
-     * @param array $params
-     * @return array
      */
     public function getAuctionBids(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'auction_id' => 'required|integer',
@@ -115,11 +102,11 @@ class BiddingProcedure extends BaseProcedure
                 'offset' => 'nullable|integer|min:0',
             ]);
 
-            $controller = new BiddingController();
+            $controller = new BiddingController;
             $result = $controller->getAuctionBids($params['auction_id']);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -128,14 +115,11 @@ class BiddingProcedure extends BaseProcedure
 
     /**
      * Update bid status
-     * 
-     * @param array $params
-     * @return array
      */
     public function updateBidStatus(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'bid_id' => 'required|integer',
@@ -143,16 +127,16 @@ class BiddingProcedure extends BaseProcedure
                 'reason' => 'nullable|string|max:500',
             ]);
 
-            $controller = new BiddingController();
+            $controller = new BiddingController;
             $request = new Request([
                 'status' => $params['status'],
                 'reason' => $params['reason'] ?? null,
             ]);
-            
+
             $result = $controller->updateBidStatus($request, $params['bid_id']);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -161,14 +145,11 @@ class BiddingProcedure extends BaseProcedure
 
     /**
      * Create a new auction
-     * 
-     * @param array $params
-     * @return array
      */
     public function createAuction(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'title' => 'required|string|max:255',
@@ -182,13 +163,13 @@ class BiddingProcedure extends BaseProcedure
                 'user_id' => 'required|integer',
             ]);
 
-            $controller = new AuctionController();
+            $controller = new AuctionController;
             $request = new Request($params);
-            
+
             $result = $controller->store($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -197,24 +178,21 @@ class BiddingProcedure extends BaseProcedure
 
     /**
      * Get auction details
-     * 
-     * @param array $params
-     * @return array
      */
     public function getAuction(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'auction_id' => 'required|integer',
             ]);
 
-            $controller = new AuctionController();
+            $controller = new AuctionController;
             $result = $controller->show($params['auction_id']);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -223,14 +201,11 @@ class BiddingProcedure extends BaseProcedure
 
     /**
      * Update auction details
-     * 
-     * @param array $params
-     * @return array
      */
     public function updateAuction(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'auction_id' => 'required|integer',
@@ -241,13 +216,13 @@ class BiddingProcedure extends BaseProcedure
                 'end_time' => 'nullable|date',
             ]);
 
-            $controller = new AuctionController();
+            $controller = new AuctionController;
             $request = new Request($params);
-            
+
             $result = $controller->update($request, $params['auction_id']);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -256,27 +231,24 @@ class BiddingProcedure extends BaseProcedure
 
     /**
      * Close an auction
-     * 
-     * @param array $params
-     * @return array
      */
     public function closeAuction(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'auction_id' => 'required|integer',
                 'reason' => 'nullable|string|max:500',
             ]);
 
-            $controller = new AuctionController();
+            $controller = new AuctionController;
             $request = new Request(['reason' => $params['reason'] ?? null]);
-            
+
             $result = $controller->close($request, $params['auction_id']);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -285,25 +257,22 @@ class BiddingProcedure extends BaseProcedure
 
     /**
      * Get auction status
-     * 
-     * @param array $params
-     * @return array
      */
     public function getAuctionStatus(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'auction_id' => 'required|integer',
             ]);
 
-            $controller = new AuctionController();
+            $controller = new AuctionController;
             $auction = $controller->show($params['auction_id']);
             $auctionData = $auction->getData(true);
-            
+
             $this->logPerformance(__METHOD__, $params, $auction, $startTime);
-            
+
             return [
                 'auction_id' => $auctionData['id'],
                 'status' => $auctionData['status'],
@@ -319,14 +288,11 @@ class BiddingProcedure extends BaseProcedure
 
     /**
      * Get bid history for an auction
-     * 
-     * @param array $params
-     * @return array
      */
     public function getBidHistory(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'auction_id' => 'required|integer',
@@ -334,11 +300,11 @@ class BiddingProcedure extends BaseProcedure
                 'offset' => 'nullable|integer|min:0',
             ]);
 
-            $controller = new AuctionController();
+            $controller = new AuctionController;
             $result = $controller->getBids($params['auction_id']);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -347,27 +313,24 @@ class BiddingProcedure extends BaseProcedure
 
     /**
      * Cancel/withdraw a bid
-     * 
-     * @param array $params
-     * @return array
      */
     public function cancelBid(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'bid_id' => 'required|integer',
                 'reason' => 'nullable|string|max:500',
             ]);
 
-            $controller = new BiddingController();
+            $controller = new BiddingController;
             $request = new Request(['reason' => $params['reason'] ?? null]);
-            
+
             $result = $controller->cancel($request, $params['bid_id']);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return [
                 'success' => $result->getStatusCode() === 200,
                 'message' => 'Bid cancelled successfully',

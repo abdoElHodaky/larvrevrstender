@@ -23,7 +23,7 @@ return new class extends Migration
             $table->unique(['user_id', 'role_id']);
             $table->index(['user_id', 'expires_at']);
             $table->index('assigned_by');
-            
+
             $table->foreign('assigned_by')->references('id')->on('users')->onDelete('set null');
         });
     }

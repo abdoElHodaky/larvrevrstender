@@ -4,12 +4,10 @@ namespace App\RPC\Procedures\Micro;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
-use Carbon\Carbon;
 
 /**
  * Session Security Micro Procedure
- * 
+ *
  * Provides session security methods that can be imported into service procedures
  * via use statements for modular session management.
  */
@@ -17,9 +15,6 @@ trait SessionSecurityProcedure
 {
     /**
      * Detect suspicious session activity
-     *
-     * @param array $params
-     * @return array
      */
     public function detectSuspiciousActivity(array $params): array
     {
@@ -27,19 +22,19 @@ trait SessionSecurityProcedure
             $sessionId = $params['session_id'] ?? null;
             $currentIp = $params['current_ip'] ?? null;
             $currentUserAgent = $params['current_user_agent'] ?? null;
-            
-            if (!$sessionId) {
+
+            if (! $sessionId) {
                 return [
                     'success' => false,
                     'message' => 'Session ID is required',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
             // Get session data
             $sessionValidation = $this->validateLaravelSession(['session_id' => $sessionId]);
-            
-            if (!$sessionValidation['success']) {
+
+            if (! $sessionValidation['success']) {
                 return $sessionValidation;
             }
 
@@ -53,7 +48,7 @@ trait SessionSecurityProcedure
                     'message' => 'IP address changed during session',
                     'original_ip' => $sessionData['ip_address'],
                     'current_ip' => $currentIp,
-                    'severity' => 'medium'
+                    'severity' => 'medium',
                 ];
             }
 
@@ -62,7 +57,7 @@ trait SessionSecurityProcedure
                 $suspiciousFlags[] = [
                     'type' => 'user_agent_change',
                     'message' => 'User agent changed during session',
-                    'severity' => 'high'
+                    'severity' => 'high',
                 ];
             }
 
@@ -78,14 +73,14 @@ trait SessionSecurityProcedure
                 $suspiciousFlags[] = $concurrentSuspicion;
             }
 
-            $isSuspicious = !empty($suspiciousFlags);
+            $isSuspicious = ! empty($suspiciousFlags);
 
             // Log suspicious activity
             if ($isSuspicious) {
                 Log::warning('Suspicious session activity detected', [
                     'session_id' => $sessionId,
                     'user_id' => $sessionData['user_id'],
-                    'flags' => $suspiciousFlags
+                    'flags' => $suspiciousFlags,
                 ]);
 
                 // Store suspicious activity record
@@ -99,29 +94,26 @@ trait SessionSecurityProcedure
                     'session_id' => $sessionId,
                     'is_suspicious' => $isSuspicious,
                     'flags' => $suspiciousFlags,
-                    'risk_level' => $this->calculateRiskLevel($suspiciousFlags)
-                ]
+                    'risk_level' => $this->calculateRiskLevel($suspiciousFlags),
+                ],
             ];
 
         } catch (\Exception $e) {
             Log::error('Suspicious activity detection failed', [
                 'session_id' => $params['session_id'] ?? null,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Suspicious activity detection failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Suspicious activity detection failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Enforce concurrent session limits
-     *
-     * @param array $params
-     * @return array
      */
     public function enforceConcurrentSessionLimits(array $params): array
     {
@@ -129,19 +121,19 @@ trait SessionSecurityProcedure
             $userId = $params['user_id'] ?? null;
             $maxSessions = $params['max_sessions'] ?? 5;
             $currentSessionId = $params['current_session_id'] ?? null;
-            
-            if (!$userId) {
+
+            if (! $userId) {
                 return [
                     'success' => false,
                     'message' => 'User ID is required',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
             // Get active sessions for user
             $activeSessionsResult = $this->getActiveUserSessions(['user_id' => $userId]);
-            
-            if (!$activeSessionsResult['success']) {
+
+            if (! $activeSessionsResult['success']) {
                 return $activeSessionsResult;
             }
 
@@ -156,8 +148,8 @@ trait SessionSecurityProcedure
                         'user_id' => $userId,
                         'active_sessions' => $sessionCount,
                         'max_sessions' => $maxSessions,
-                        'action_taken' => 'none'
-                    ]
+                        'action_taken' => 'none',
+                    ],
                 ];
             }
 
@@ -197,7 +189,7 @@ trait SessionSecurityProcedure
             Log::info('Concurrent session limit enforced', [
                 'user_id' => $userId,
                 'sessions_revoked' => $totalRevoked,
-                'max_sessions' => $maxSessions
+                'max_sessions' => $maxSessions,
             ]);
 
             return [
@@ -208,29 +200,26 @@ trait SessionSecurityProcedure
                     'sessions_revoked' => $totalRevoked,
                     'remaining_sessions' => $sessionCount - $totalRevoked,
                     'max_sessions' => $maxSessions,
-                    'action_taken' => 'revoked_oldest_sessions'
-                ]
+                    'action_taken' => 'revoked_oldest_sessions',
+                ],
             ];
 
         } catch (\Exception $e) {
             Log::error('Session limit enforcement failed', [
                 'user_id' => $params['user_id'] ?? null,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Session limit enforcement failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Session limit enforcement failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Validate device fingerprint
-     *
-     * @param array $params
-     * @return array
      */
     public function validateDevice(array $params): array
     {
@@ -238,28 +227,28 @@ trait SessionSecurityProcedure
             $sessionId = $params['session_id'] ?? null;
             $currentUserAgent = $params['current_user_agent'] ?? null;
             $deviceFingerprint = $params['device_fingerprint'] ?? null;
-            
-            if (!$sessionId) {
+
+            if (! $sessionId) {
                 return [
                     'success' => false,
                     'message' => 'Session ID is required',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
             // Get session data
             $sessionValidation = $this->validateLaravelSession(['session_id' => $sessionId]);
-            
-            if (!$sessionValidation['success']) {
+
+            if (! $sessionValidation['success']) {
                 return $sessionValidation;
             }
 
             $sessionData = $sessionValidation['data'];
             $originalUserAgent = $sessionData['user_agent'];
-            
+
             $validationResults = [
                 'user_agent_match' => $originalUserAgent === $currentUserAgent,
-                'device_fingerprint_match' => true // Default to true if no fingerprint provided
+                'device_fingerprint_match' => true, // Default to true if no fingerprint provided
             ];
 
             // Validate device fingerprint if provided
@@ -270,11 +259,11 @@ trait SessionSecurityProcedure
 
             $isValid = $validationResults['user_agent_match'] && $validationResults['device_fingerprint_match'];
 
-            if (!$isValid) {
+            if (! $isValid) {
                 Log::warning('Device validation failed', [
                     'session_id' => $sessionId,
                     'user_id' => $sessionData['user_id'],
-                    'validation_results' => $validationResults
+                    'validation_results' => $validationResults,
                 ]);
             }
 
@@ -285,48 +274,45 @@ trait SessionSecurityProcedure
                     'session_id' => $sessionId,
                     'is_valid' => $isValid,
                     'validation_results' => $validationResults,
-                    'risk_level' => $isValid ? 'low' : 'high'
-                ]
+                    'risk_level' => $isValid ? 'low' : 'high',
+                ],
             ];
 
         } catch (\Exception $e) {
             Log::error('Device validation failed', [
                 'session_id' => $params['session_id'] ?? null,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Device validation failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Device validation failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Clean up expired and suspicious sessions
-     *
-     * @param array $params
-     * @return array
      */
     public function cleanupSuspiciousSessions(array $params): array
     {
         try {
             $maxAge = $params['max_age_hours'] ?? 24;
             $riskThreshold = $params['risk_threshold'] ?? 'high';
-            
+
             $cutoffTime = now()->subHours($maxAge)->timestamp;
-            
+
             // Get sessions that are either expired or flagged as suspicious
             $suspiciousSessions = DB::table('sessions')
                 ->where(function ($query) use ($cutoffTime) {
                     $query->where('last_activity', '<', $cutoffTime)
-                          ->orWhereExists(function ($subQuery) {
-                              $subQuery->select(DB::raw(1))
-                                       ->from('session_security_logs')
-                                       ->whereColumn('session_security_logs.session_id', 'sessions.id')
-                                       ->where('risk_level', 'high');
-                          });
+                        ->orWhereExists(function ($subQuery) {
+                            $subQuery->select(DB::raw(1))
+                                ->from('session_security_logs')
+                                ->whereColumn('session_security_logs.session_id', 'sessions.id')
+                                ->where('risk_level', 'high');
+                        });
                 })
                 ->get();
 
@@ -346,7 +332,7 @@ trait SessionSecurityProcedure
             Log::info('Suspicious sessions cleaned up', [
                 'sessions_cleaned' => $cleanedCount,
                 'security_logs_cleaned' => $logsCleaned,
-                'max_age_hours' => $maxAge
+                'max_age_hours' => $maxAge,
             ]);
 
             return [
@@ -357,34 +343,30 @@ trait SessionSecurityProcedure
                     'security_logs_cleaned' => $logsCleaned,
                     'cleanup_criteria' => [
                         'max_age_hours' => $maxAge,
-                        'risk_threshold' => $riskThreshold
-                    ]
-                ]
+                        'risk_threshold' => $riskThreshold,
+                    ],
+                ],
             ];
 
         } catch (\Exception $e) {
             Log::error('Suspicious session cleanup failed', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Suspicious session cleanup failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Suspicious session cleanup failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Check for suspicious location changes
-     *
-     * @param int $userId
-     * @param string|null $currentIp
-     * @return array|null
      */
     private function checkLocationSuspicion(int $userId, ?string $currentIp): ?array
     {
-        if (!$currentIp) {
+        if (! $currentIp) {
             return null;
         }
 
@@ -402,13 +384,13 @@ trait SessionSecurityProcedure
 
         // Check for rapid IP changes (simplified - in production, use geolocation service)
         $ipAddresses = $recentSessions->pluck('ip_address')->unique();
-        
+
         if ($ipAddresses->count() > 2) {
             return [
                 'type' => 'rapid_location_change',
                 'message' => 'Multiple IP addresses detected in short time period',
                 'severity' => 'high',
-                'ip_count' => $ipAddresses->count()
+                'ip_count' => $ipAddresses->count(),
             ];
         }
 
@@ -417,21 +399,17 @@ trait SessionSecurityProcedure
 
     /**
      * Check for concurrent sessions from different locations
-     *
-     * @param int $userId
-     * @param string|null $currentIp
-     * @return array|null
      */
     private function checkConcurrentSessionSuspicion(int $userId, ?string $currentIp): ?array
     {
-        if (!$currentIp) {
+        if (! $currentIp) {
             return null;
         }
 
         // Get active sessions for user
         $activeSessions = $this->getActiveUserSessions(['user_id' => $userId]);
-        
-        if (!$activeSessions['success'] || count($activeSessions['data']['sessions']) < 2) {
+
+        if (! $activeSessions['success'] || count($activeSessions['data']['sessions']) < 2) {
             return null;
         }
 
@@ -444,7 +422,7 @@ trait SessionSecurityProcedure
                 'type' => 'concurrent_different_locations',
                 'message' => 'Active sessions from multiple IP addresses',
                 'severity' => 'medium',
-                'concurrent_ips' => $ipAddresses->count()
+                'concurrent_ips' => $ipAddresses->count(),
             ];
         }
 
@@ -453,11 +431,6 @@ trait SessionSecurityProcedure
 
     /**
      * Record suspicious activity in security log
-     *
-     * @param string $sessionId
-     * @param int $userId
-     * @param array $flags
-     * @return void
      */
     private function recordSuspiciousActivity(string $sessionId, int $userId, array $flags): void
     {
@@ -484,23 +457,20 @@ trait SessionSecurityProcedure
                 'user_id' => $userId,
                 'risk_level' => $riskLevel,
                 'flags' => json_encode($flags),
-                'created_at' => now()
+                'created_at' => now(),
             ]);
 
         } catch (\Exception $e) {
             Log::error('Failed to record suspicious activity', [
                 'session_id' => $sessionId,
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
 
     /**
      * Calculate risk level based on suspicious flags
-     *
-     * @param array $flags
-     * @return string
      */
     private function calculateRiskLevel(array $flags): string
     {

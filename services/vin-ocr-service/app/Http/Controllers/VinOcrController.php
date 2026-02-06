@@ -5,12 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\VinOcrLog;
 use App\Services\OcrService;
 use App\Services\VinValidationService;
-use Shared\Services\FileUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Shared\Services\FileUploadService;
 
 class VinOcrController extends Controller
 {
@@ -21,7 +21,7 @@ class VinOcrController extends Controller
     protected FileUploadService $fileUploadService;
 
     public function __construct(
-        OcrService $ocrService, 
+        OcrService $ocrService,
         VinValidationService $vinValidationService,
         FileUploadService $fileUploadService
     ) {
@@ -343,12 +343,12 @@ class VinOcrController extends Controller
             // Use FileUploadService to upload to cloud storage
             $result = $this->fileUploadService->upload(
                 $image,
-                'vin-ocr-service/vin-images/' . date('Y/m/d'),
+                'vin-ocr-service/vin-images/'.date('Y/m/d'),
                 [
                     'optimize' => true,
                     'max_width' => 2048,
                     'max_height' => 2048,
-                    'quality' => 85
+                    'quality' => 85,
                 ]
             );
 
@@ -356,12 +356,12 @@ class VinOcrController extends Controller
             return $result['path'];
         } catch (\Exception $e) {
             // Fallback to local storage if cloud storage fails
-            \Log::warning('Cloud storage failed, falling back to local storage: ' . $e->getMessage());
-            
+            \Log::warning('Cloud storage failed, falling back to local storage: '.$e->getMessage());
+
             $filename = Str::uuid().'.'.$image->getClientOriginalExtension();
             $path = 'vin-images/'.date('Y/m/d').'/'.$filename;
             Storage::disk('public')->put($path, file_get_contents($image));
-            
+
             return $path;
         }
     }

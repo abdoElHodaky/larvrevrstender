@@ -1,8 +1,8 @@
 <?php
 
-use Sajya\Server\Route;
-use App\RPC\Procedures\UserProcedure;
 use App\RPC\Procedures\KycProcedure;
+use App\RPC\Procedures\UserProcedure;
+use Sajya\Server\Route;
 
 /*
 |--------------------------------------------------------------------------

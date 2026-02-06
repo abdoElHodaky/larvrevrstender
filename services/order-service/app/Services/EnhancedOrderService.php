@@ -2,19 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\PartRequest;
-use App\Models\Bid;
+use App\Events\OrderCancelled;
+use App\Events\OrderCompleted;
 use App\Events\OrderCreated;
 use App\Events\OrderStatusChanged;
-use App\Events\OrderCompleted;
-use App\Events\OrderCancelled;
+use App\Models\Bid;
+use App\Models\Order;
+use App\Models\OrderItem;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Database\Eloquent\Collection;
-use Carbon\Carbon;
 
 class EnhancedOrderService
 {
@@ -27,10 +25,10 @@ class EnhancedOrderService
             DB::beginTransaction();
 
             $bid = Bid::with(['partRequest', 'merchant'])->findOrFail($bidId);
-            
+
             // Validate bid can be converted to order
             $validation = $this->validateBidForOrder($bid);
-            if (!$validation['valid']) {
+            if (! $validation['valid']) {
                 return [
                     'success' => false,
                     'message' => $validation['message'],
@@ -65,7 +63,7 @@ class EnhancedOrderService
                         'timestamp' => now()->toISOString(),
                         'note' => 'Order created from winning bid',
                         'updated_by' => 'system',
-                    ]
+                    ],
                 ],
                 'metadata' => array_merge([
                     'created_from' => 'bid',
@@ -109,7 +107,7 @@ class EnhancedOrderService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('Order creation failed', [
                 'bid_id' => $bidId,
                 'error' => $e->getMessage(),
@@ -118,7 +116,7 @@ class EnhancedOrderService
 
             return [
                 'success' => false,
-                'message' => 'Failed to create order: ' . $e->getMessage(),
+                'message' => 'Failed to create order: '.$e->getMessage(),
             ];
         }
     }
@@ -130,16 +128,16 @@ class EnhancedOrderService
     {
         try {
             $cacheKey = "order_details:{$orderId}";
-            
+
             $order = Cache::remember($cacheKey, 1800, function () use ($orderId) {
                 return Order::with([
                     'partRequest.vehicle',
                     'winningBid.merchant',
-                    'orderItems'
+                    'orderItems',
                 ])->find($orderId);
             });
 
-            if (!$order) {
+            if (! $order) {
                 return [
                     'success' => false,
                     'message' => 'Order not found',
@@ -148,7 +146,7 @@ class EnhancedOrderService
 
             // Add calculated fields
             $order->days_since_created = $order->created_at->diffInDays(now());
-            $order->is_payment_overdue = $order->payment_due_at && now()->gt($order->payment_due_at) && !$order->paid_at;
+            $order->is_payment_overdue = $order->payment_due_at && now()->gt($order->payment_due_at) && ! $order->paid_at;
             $order->estimated_delivery_days = $order->estimated_delivery ? $order->estimated_delivery->diffInDays(now()) : null;
             $order->can_be_cancelled = $this->canOrderBeCancelled($order);
             $order->can_be_refunded = $this->canOrderBeRefunded($order);
@@ -187,7 +185,7 @@ class EnhancedOrderService
 
             // Validate status transition
             $validation = $this->validateStatusTransition($order, $newStatus);
-            if (!$validation['valid']) {
+            if (! $validation['valid']) {
                 return [
                     'success' => false,
                     'message' => $validation['message'],
@@ -269,7 +267,7 @@ class EnhancedOrderService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('Order status update failed', [
                 'order_id' => $orderId,
                 'new_status' => $newStatus,
@@ -278,7 +276,7 @@ class EnhancedOrderService
 
             return [
                 'success' => false,
-                'message' => 'Failed to update order status: ' . $e->getMessage(),
+                'message' => 'Failed to update order status: '.$e->getMessage(),
             ];
         }
     }
@@ -334,7 +332,7 @@ class EnhancedOrderService
                         break;
                     case 'overdue':
                         $query->whereNull('paid_at')
-                              ->where('payment_due_at', '<', now());
+                            ->where('payment_due_at', '<', now());
                         break;
                 }
             }
@@ -344,7 +342,7 @@ class EnhancedOrderService
             }
 
             if (isset($criteria['order_number'])) {
-                $query->where('order_number', 'like', '%' . $criteria['order_number'] . '%');
+                $query->where('order_number', 'like', '%'.$criteria['order_number'].'%');
             }
 
             // Sorting
@@ -361,7 +359,8 @@ class EnhancedOrderService
             // Add calculated fields to results
             $results->getCollection()->transform(function ($order) {
                 $order->days_since_created = $order->created_at->diffInDays(now());
-                $order->is_payment_overdue = $order->payment_due_at && now()->gt($order->payment_due_at) && !$order->paid_at;
+                $order->is_payment_overdue = $order->payment_due_at && now()->gt($order->payment_due_at) && ! $order->paid_at;
+
                 return $order;
             });
 
@@ -396,8 +395,8 @@ class EnhancedOrderService
     public function getOrderAnalytics(array $filters = []): array
     {
         try {
-            $cacheKey = 'order_analytics:' . md5(serialize($filters));
-            
+            $cacheKey = 'order_analytics:'.md5(serialize($filters));
+
             $analytics = Cache::remember($cacheKey, 900, function () use ($filters) {
                 $query = Order::query();
 
@@ -423,23 +422,23 @@ class EnhancedOrderService
                     'total_revenue' => $query->sum('total_amount'),
                     'average_order_value' => $query->avg('total_amount'),
                     'orders_by_status' => $query->groupBy('status')
-                                               ->selectRaw('status, count(*) as count')
-                                               ->pluck('count', 'status')
-                                               ->toArray(),
+                        ->selectRaw('status, count(*) as count')
+                        ->pluck('count', 'status')
+                        ->toArray(),
                     'orders_by_month' => $query->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, count(*) as count')
-                                              ->groupBy('month')
-                                              ->orderBy('month')
-                                              ->pluck('count', 'month')
-                                              ->toArray(),
+                        ->groupBy('month')
+                        ->orderBy('month')
+                        ->pluck('count', 'month')
+                        ->toArray(),
                     'payment_methods' => $query->whereNotNull('payment_method')
-                                              ->groupBy('payment_method')
-                                              ->selectRaw('payment_method, count(*) as count')
-                                              ->pluck('count', 'payment_method')
-                                              ->toArray(),
+                        ->groupBy('payment_method')
+                        ->selectRaw('payment_method, count(*) as count')
+                        ->pluck('count', 'payment_method')
+                        ->toArray(),
                     'delivery_methods' => $query->groupBy('delivery_method')
-                                               ->selectRaw('delivery_method, count(*) as count')
-                                               ->pluck('count', 'delivery_method')
-                                               ->toArray(),
+                        ->selectRaw('delivery_method, count(*) as count')
+                        ->pluck('count', 'delivery_method')
+                        ->toArray(),
                 ];
             });
 
@@ -472,7 +471,7 @@ class EnhancedOrderService
 
             $order = Order::findOrFail($orderId);
 
-            if (!$this->canOrderBeCancelled($order)) {
+            if (! $this->canOrderBeCancelled($order)) {
                 return [
                     'success' => false,
                     'message' => 'Order cannot be cancelled in current status',
@@ -503,7 +502,7 @@ class EnhancedOrderService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('Order cancellation failed', [
                 'order_id' => $orderId,
                 'reason' => $reason,
@@ -555,12 +554,12 @@ class EnhancedOrderService
         $partCost = $bid->amount;
         $deliveryCost = $bid->delivery_cost ?? 0;
         $taxRate = 0.15; // 15% VAT for Saudi Arabia
-        
+
         $subtotal = $partCost + $deliveryCost;
         $taxAmount = $subtotal * $taxRate;
         $platformFeeRate = 0.05; // 5% platform fee
         $platformFee = $subtotal * $platformFeeRate;
-        
+
         $totalAmount = $subtotal + $taxAmount + $platformFee;
 
         return [
@@ -618,39 +617,39 @@ class EnhancedOrderService
     private function validateStatusTransition(Order $order, string $newStatus): array
     {
         $currentStatus = $order->status;
-        
+
         $validTransitions = [
             Order::STATUS_PENDING_PAYMENT => [
                 Order::STATUS_PAYMENT_CONFIRMED,
-                Order::STATUS_CANCELLED
+                Order::STATUS_CANCELLED,
             ],
             Order::STATUS_PAYMENT_CONFIRMED => [
                 Order::STATUS_PROCESSING,
-                Order::STATUS_CANCELLED
+                Order::STATUS_CANCELLED,
             ],
             Order::STATUS_PROCESSING => [
                 Order::STATUS_SHIPPED,
-                Order::STATUS_CANCELLED
+                Order::STATUS_CANCELLED,
             ],
             Order::STATUS_SHIPPED => [
                 Order::STATUS_DELIVERED,
-                Order::STATUS_DISPUTED
+                Order::STATUS_DISPUTED,
             ],
             Order::STATUS_DELIVERED => [
                 Order::STATUS_COMPLETED,
-                Order::STATUS_DISPUTED
+                Order::STATUS_DISPUTED,
             ],
             Order::STATUS_COMPLETED => [],
             Order::STATUS_CANCELLED => [Order::STATUS_REFUNDED],
             Order::STATUS_REFUNDED => [],
             Order::STATUS_DISPUTED => [
                 Order::STATUS_COMPLETED,
-                Order::STATUS_REFUNDED
+                Order::STATUS_REFUNDED,
             ],
         ];
 
-        if (!isset($validTransitions[$currentStatus]) || 
-            !in_array($newStatus, $validTransitions[$currentStatus])) {
+        if (! isset($validTransitions[$currentStatus]) ||
+            ! in_array($newStatus, $validTransitions[$currentStatus])) {
             return [
                 'valid' => false,
                 'message' => "Cannot transition from {$currentStatus} to {$newStatus}",
@@ -668,7 +667,7 @@ class EnhancedOrderService
         $cancellableStatuses = [
             Order::STATUS_PENDING_PAYMENT,
             Order::STATUS_PAYMENT_CONFIRMED,
-            Order::STATUS_PROCESSING
+            Order::STATUS_PROCESSING,
         ];
 
         return in_array($order->status, $cancellableStatuses);
@@ -679,7 +678,7 @@ class EnhancedOrderService
      */
     private function canOrderBeRefunded(Order $order): bool
     {
-        return $order->paid_at && 
+        return $order->paid_at &&
                in_array($order->status, [Order::STATUS_CANCELLED, Order::STATUS_DISPUTED]);
     }
 
@@ -813,9 +812,9 @@ class EnhancedOrderService
             'total_amount' => $query->sum('total_amount'),
             'average_amount' => $query->avg('total_amount'),
             'status_counts' => $query->groupBy('status')
-                                   ->selectRaw('status, count(*) as count')
-                                   ->pluck('count', 'status')
-                                   ->toArray(),
+                ->selectRaw('status, count(*) as count')
+                ->pluck('count', 'status')
+                ->toArray(),
         ];
     }
 
@@ -841,7 +840,7 @@ class EnhancedOrderService
         Cache::forget("order_details:{$order->id}");
         Cache::forget("customer_orders:{$order->customer_id}");
         Cache::forget("merchant_orders:{$order->merchant_id}");
-        
+
         // Clear analytics cache
         Cache::tags(['order_analytics'])->flush();
     }

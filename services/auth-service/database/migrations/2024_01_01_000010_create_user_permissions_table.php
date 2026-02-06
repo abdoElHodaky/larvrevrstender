@@ -23,7 +23,7 @@ return new class extends Migration
             $table->unique(['user_id', 'permission_id']);
             $table->index(['user_id', 'expires_at']);
             $table->index('granted_by');
-            
+
             $table->foreign('granted_by')->references('id')->on('users')->onDelete('set null');
         });
     }

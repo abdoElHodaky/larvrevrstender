@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Shared\Services\FileUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Shared\Services\FileUploadService;
 
 class KycController extends Controller
 {
@@ -27,9 +27,13 @@ class KycController extends Controller
 
     // KYC status constants
     const STATUS_PENDING = 'pending';
+
     const STATUS_UNDER_REVIEW = 'under_review';
+
     const STATUS_APPROVED = 'approved';
+
     const STATUS_REJECTED = 'rejected';
+
     const STATUS_RESUBMISSION_REQUIRED = 'resubmission_required';
 
     public function __construct(FileUploadService $fileUploadService)
@@ -44,7 +48,7 @@ class KycController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'document' => 'required|file|mimes:pdf,jpeg,png,jpg|max:10240', // 10MB max
-            'document_type' => 'required|string|in:' . implode(',', array_keys(self::DOCUMENT_TYPES)),
+            'document_type' => 'required|string|in:'.implode(',', array_keys(self::DOCUMENT_TYPES)),
             'description' => 'nullable|string|max:500',
         ]);
 
@@ -75,7 +79,7 @@ class KycController extends Controller
             // Upload document to cloud storage
             $result = $this->fileUploadService->upload(
                 $document,
-                'user-service/kyc-documents/' . $user->id . '/' . $documentType,
+                'user-service/kyc-documents/'.$user->id.'/'.$documentType,
                 [
                     'optimize' => false, // Don't optimize documents to preserve quality
                     'encrypt' => true,   // Encrypt sensitive KYC documents
@@ -130,7 +134,7 @@ class KycController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('KYC document upload failed: ' . $e->getMessage(), [
+            Log::error('KYC document upload failed: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
                 'document_type' => $request->input('document_type'),
                 'file_name' => $document->getClientOriginalName() ?? null,
@@ -185,7 +189,7 @@ class KycController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Get KYC documents failed: ' . $e->getMessage(), [
+            Log::error('Get KYC documents failed: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
             ]);
 
@@ -244,7 +248,7 @@ class KycController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Get KYC status failed: ' . $e->getMessage(), [
+            Log::error('Get KYC status failed: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
             ]);
 
@@ -276,7 +280,7 @@ class KycController extends Controller
 
             $missingDocuments = array_diff($requiredDocuments, $uploadedDocuments);
 
-            if (!empty($missingDocuments)) {
+            if (! empty($missingDocuments)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Missing required documents',
@@ -312,7 +316,7 @@ class KycController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('KYC submission failed: ' . $e->getMessage(), [
+            Log::error('KYC submission failed: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
             ]);
 
@@ -339,7 +343,7 @@ class KycController extends Controller
                 ->where('status', '!=', 'deleted')
                 ->first();
 
-            if (!$document) {
+            if (! $document) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Document not found',
@@ -350,7 +354,7 @@ class KycController extends Controller
             try {
                 $this->fileUploadService->delete($document->file_path);
             } catch (\Exception $e) {
-                Log::warning('Failed to delete KYC document from cloud storage: ' . $e->getMessage(), [
+                Log::warning('Failed to delete KYC document from cloud storage: '.$e->getMessage(), [
                     'user_id' => $user->id,
                     'document_id' => $documentId,
                     'file_path' => $document->file_path,
@@ -375,7 +379,7 @@ class KycController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('KYC document deletion failed: ' . $e->getMessage(), [
+            Log::error('KYC document deletion failed: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
                 'document_id' => $documentId,
             ]);

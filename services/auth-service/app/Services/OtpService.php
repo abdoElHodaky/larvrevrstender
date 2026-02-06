@@ -30,7 +30,7 @@ class OtpService
             // Check rate limiting
             $rateLimitKey = "otp_rate_limit:{$phoneNumber}";
             $attempts = Cache::get($rateLimitKey, 0);
-            
+
             if ($attempts >= 3) {
                 return [
                     'success' => false,
@@ -100,7 +100,7 @@ class OtpService
         $key = $this->getCacheKey($phoneNumber, $type);
         $storedData = Cache::get($key);
 
-        if (!$storedData) {
+        if (! $storedData) {
             return [
                 'valid' => false,
                 'message' => 'OTP not found or expired',
@@ -110,6 +110,7 @@ class OtpService
         // Check attempt limit
         if ($storedData['attempts'] >= 3) {
             Cache::forget($key);
+
             return [
                 'valid' => false,
                 'message' => 'Too many verification attempts. Please request a new code.',
@@ -122,7 +123,7 @@ class OtpService
 
         if ($storedData['code'] === $otp) {
             Cache::forget($key);
-            
+
             Log::info('OTP verified successfully', [
                 'phone' => $phoneNumber,
                 'type' => $type,
@@ -161,7 +162,7 @@ class OtpService
      */
     private function getCacheKey(string $phoneNumber, string $type = 'verification'): string
     {
-        return "otp:{$type}:" . md5($phoneNumber);
+        return "otp:{$type}:".md5($phoneNumber);
     }
 
     /**
@@ -200,6 +201,7 @@ class OtpService
     public function hasActiveOtp(string $phoneNumber, string $type = 'verification'): bool
     {
         $key = $this->getCacheKey($phoneNumber, $type);
+
         return Cache::has($key);
     }
 
@@ -210,14 +212,14 @@ class OtpService
     {
         $key = $this->getCacheKey($phoneNumber, $type);
         $storedData = Cache::get($key);
-        
-        if (!$storedData) {
+
+        if (! $storedData) {
             return null;
         }
 
         $expiryMinutes = $this->getExpiryMinutes($type);
         $expiresAt = $storedData['created_at']->addMinutes($expiryMinutes);
-        
+
         return max(0, now()->diffInSeconds($expiresAt));
     }
 
@@ -227,7 +229,7 @@ class OtpService
     public function clearAllOtps(string $phoneNumber): void
     {
         $types = ['registration', 'password_reset', 'login', 'verification', 'two_factor'];
-        
+
         foreach ($types as $type) {
             $key = $this->getCacheKey($phoneNumber, $type);
             Cache::forget($key);

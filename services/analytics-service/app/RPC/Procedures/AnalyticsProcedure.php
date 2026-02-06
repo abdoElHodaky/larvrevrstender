@@ -2,25 +2,21 @@
 
 namespace App\RPC\Procedures;
 
-use App\RPC\BaseProcedure;
 use App\Http\Controllers\AnalyticsController;
-use App\Http\Controllers\ReportController;
 use App\Http\Controllers\MetricsController;
+use App\Http\Controllers\ReportController;
+use App\RPC\BaseProcedure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class AnalyticsProcedure extends BaseProcedure
 {
     /**
      * Track an event
-     * 
-     * @param array $params
-     * @return array
      */
     public function trackEvent(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'event_name' => 'required|string|max:255',
@@ -30,13 +26,13 @@ class AnalyticsProcedure extends BaseProcedure
                 'timestamp' => 'nullable|date',
             ]);
 
-            $controller = new AnalyticsController();
+            $controller = new AnalyticsController;
             $request = new Request($params);
-            
+
             $result = $controller->trackEvent($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return [
                 'success' => $result->getStatusCode() === 201,
                 'event_id' => $result->getData()->id ?? null,
@@ -48,14 +44,11 @@ class AnalyticsProcedure extends BaseProcedure
 
     /**
      * Collect a metric
-     * 
-     * @param array $params
-     * @return array
      */
     public function collectMetric(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'metric_name' => 'required|string|max:255',
@@ -65,13 +58,13 @@ class AnalyticsProcedure extends BaseProcedure
                 'timestamp' => 'nullable|date',
             ]);
 
-            $controller = new AnalyticsController();
+            $controller = new AnalyticsController;
             $request = new Request($params);
-            
+
             $result = $controller->collectMetric($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return [
                 'success' => $result->getStatusCode() === 201,
                 'metric_id' => $result->getData()->id ?? null,
@@ -83,14 +76,11 @@ class AnalyticsProcedure extends BaseProcedure
 
     /**
      * Get dashboard data
-     * 
-     * @param array $params
-     * @return array
      */
     public function getDashboard(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'user_id' => 'nullable|integer',
@@ -99,13 +89,13 @@ class AnalyticsProcedure extends BaseProcedure
                 'filters' => 'nullable|array',
             ]);
 
-            $controller = new AnalyticsController();
+            $controller = new AnalyticsController;
             $request = new Request($params);
-            
+
             $result = $controller->getDashboard($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -114,14 +104,11 @@ class AnalyticsProcedure extends BaseProcedure
 
     /**
      * Generate a report
-     * 
-     * @param array $params
-     * @return array
      */
     public function generateReport(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'report_type' => 'required|string|in:user_activity,revenue,performance,conversion',
@@ -131,13 +118,13 @@ class AnalyticsProcedure extends BaseProcedure
                 'format' => 'nullable|string|in:json,csv,pdf',
             ]);
 
-            $controller = new ReportController();
+            $controller = new ReportController;
             $request = new Request($params);
-            
+
             $result = $controller->generate($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -146,14 +133,11 @@ class AnalyticsProcedure extends BaseProcedure
 
     /**
      * Get report by type
-     * 
-     * @param array $params
-     * @return array
      */
     public function getReport(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'report_type' => 'required|string',
@@ -162,13 +146,13 @@ class AnalyticsProcedure extends BaseProcedure
                 'filters' => 'nullable|array',
             ]);
 
-            $controller = new AnalyticsController();
+            $controller = new AnalyticsController;
             $request = new Request($params);
-            
+
             $result = $controller->getReport($request, $params['report_type']);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -177,14 +161,11 @@ class AnalyticsProcedure extends BaseProcedure
 
     /**
      * Get metrics summary
-     * 
-     * @param array $params
-     * @return array
      */
     public function getMetricsSummary(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'metric_names' => 'nullable|array',
@@ -193,13 +174,13 @@ class AnalyticsProcedure extends BaseProcedure
                 'group_by' => 'nullable|string|in:hour,day,week,month',
             ]);
 
-            $controller = new MetricsController();
+            $controller = new MetricsController;
             $request = new Request($params);
-            
+
             $result = $controller->getSummary($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -208,14 +189,11 @@ class AnalyticsProcedure extends BaseProcedure
 
     /**
      * Get metrics trends
-     * 
-     * @param array $params
-     * @return array
      */
     public function getMetricsTrends(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'metric_name' => 'required|string',
@@ -224,13 +202,13 @@ class AnalyticsProcedure extends BaseProcedure
                 'interval' => 'nullable|string|in:hour,day,week,month',
             ]);
 
-            $controller = new MetricsController();
+            $controller = new MetricsController;
             $request = new Request($params);
-            
+
             $result = $controller->getTrends($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -239,14 +217,11 @@ class AnalyticsProcedure extends BaseProcedure
 
     /**
      * Get performance metrics
-     * 
-     * @param array $params
-     * @return array
      */
     public function getPerformanceMetrics(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'service_name' => 'nullable|string',
@@ -255,13 +230,13 @@ class AnalyticsProcedure extends BaseProcedure
                 'metrics' => 'nullable|array',
             ]);
 
-            $controller = new MetricsController();
+            $controller = new MetricsController;
             $request = new Request($params);
-            
+
             $result = $controller->getPerformance($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -270,27 +245,24 @@ class AnalyticsProcedure extends BaseProcedure
 
     /**
      * Get service health metrics
-     * 
-     * @param array $params
-     * @return array
      */
     public function getServiceHealth(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'services' => 'nullable|array',
                 'include_details' => 'nullable|boolean',
             ]);
 
-            $controller = new AnalyticsController();
+            $controller = new AnalyticsController;
             $request = new Request($params);
-            
+
             $result = $controller->getServiceHealth($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -299,14 +271,11 @@ class AnalyticsProcedure extends BaseProcedure
 
     /**
      * Get user analytics
-     * 
-     * @param array $params
-     * @return array
      */
     public function getUserAnalytics(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'user_id' => 'required|integer',
@@ -316,14 +285,14 @@ class AnalyticsProcedure extends BaseProcedure
                 'include_sessions' => 'nullable|boolean',
             ]);
 
-            $controller = new AnalyticsController();
+            $controller = new AnalyticsController;
             $request = new Request($params);
-            
+
             // Assuming there's a getUserAnalytics method in AnalyticsController
             $result = $controller->getUserAnalytics($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -332,14 +301,11 @@ class AnalyticsProcedure extends BaseProcedure
 
     /**
      * Get business metrics
-     * 
-     * @param array $params
-     * @return array
      */
     public function getBusinessMetrics(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'metrics' => 'nullable|array',
@@ -348,14 +314,14 @@ class AnalyticsProcedure extends BaseProcedure
                 'group_by' => 'nullable|string|in:day,week,month,quarter',
             ]);
 
-            $controller = new AnalyticsController();
+            $controller = new AnalyticsController;
             $request = new Request($params);
-            
+
             // Assuming there's a getBusinessMetrics method in AnalyticsController
             $result = $controller->getBusinessMetrics($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -364,14 +330,11 @@ class AnalyticsProcedure extends BaseProcedure
 
     /**
      * Get conversion funnel data
-     * 
-     * @param array $params
-     * @return array
      */
     public function getConversionFunnel(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'funnel_steps' => 'required|array',
@@ -380,14 +343,14 @@ class AnalyticsProcedure extends BaseProcedure
                 'segment_by' => 'nullable|string',
             ]);
 
-            $controller = new AnalyticsController();
+            $controller = new AnalyticsController;
             $request = new Request($params);
-            
+
             // Assuming there's a getConversionFunnel method in AnalyticsController
             $result = $controller->getConversionFunnel($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
@@ -396,28 +359,25 @@ class AnalyticsProcedure extends BaseProcedure
 
     /**
      * Get real-time metrics
-     * 
-     * @param array $params
-     * @return array
      */
     public function getRealTimeMetrics(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             $this->validate($params, [
                 'metrics' => 'nullable|array',
                 'time_window' => 'nullable|integer|min:1|max:3600', // seconds
             ]);
 
-            $controller = new AnalyticsController();
+            $controller = new AnalyticsController;
             $request = new Request($params);
-            
+
             // Assuming there's a getRealTimeMetrics method in AnalyticsController
             $result = $controller->getRealTimeMetrics($request);
-            
+
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
-            
+
             return $result->getData(true);
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);

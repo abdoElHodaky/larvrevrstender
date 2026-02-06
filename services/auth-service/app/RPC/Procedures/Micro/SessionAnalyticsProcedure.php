@@ -2,13 +2,13 @@
 
 namespace App\RPC\Procedures\Micro;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 /**
  * Session Analytics Micro Procedure
- * 
+ *
  * Provides session analytics and reporting methods that can be imported into service procedures
  * via use statements for modular session management.
  */
@@ -16,26 +16,23 @@ trait SessionAnalyticsProcedure
 {
     /**
      * Get session statistics for a user
-     *
-     * @param array $params
-     * @return array
      */
     public function getSessionStats(array $params): array
     {
         try {
             $userId = $params['user_id'] ?? null;
             $days = $params['days'] ?? 30;
-            
-            if (!$userId) {
+
+            if (! $userId) {
                 return [
                     'success' => false,
                     'message' => 'User ID is required',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
             $startDate = now()->subDays($days)->startOfDay();
-            
+
             // Get session statistics
             $stats = [
                 'total_sessions' => $this->getTotalSessions($userId, $startDate),
@@ -44,7 +41,7 @@ trait SessionAnalyticsProcedure
                 'most_used_devices' => $this->getMostUsedDevices($userId, $startDate),
                 'login_frequency' => $this->getLoginFrequency($userId, $startDate),
                 'security_incidents' => $this->getSecurityIncidents($userId, $startDate),
-                'geographic_distribution' => $this->getGeographicDistribution($userId, $startDate)
+                'geographic_distribution' => $this->getGeographicDistribution($userId, $startDate),
             ];
 
             return [
@@ -55,29 +52,26 @@ trait SessionAnalyticsProcedure
                     'period_days' => $days,
                     'period_start' => $startDate->toISOString(),
                     'period_end' => now()->toISOString(),
-                    'statistics' => $stats
-                ]
+                    'statistics' => $stats,
+                ],
             ];
 
         } catch (\Exception $e) {
             Log::error('Get session stats failed', [
                 'user_id' => $params['user_id'] ?? null,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Get session stats failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Get session stats failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Get login history for a user
-     *
-     * @param array $params
-     * @return array
      */
     public function getLoginHistory(array $params): array
     {
@@ -86,12 +80,12 @@ trait SessionAnalyticsProcedure
             $limit = $params['limit'] ?? 50;
             $offset = $params['offset'] ?? 0;
             $days = $params['days'] ?? 30;
-            
-            if (!$userId) {
+
+            if (! $userId) {
                 return [
                     'success' => false,
                     'message' => 'User ID is required',
-                    'data' => null
+                    'data' => null,
                 ];
             }
 
@@ -108,10 +102,10 @@ trait SessionAnalyticsProcedure
                 ->map(function ($session) {
                     $payload = unserialize(base64_decode($session->payload));
                     $deviceInfo = $payload['device_info'] ?? [];
-                    
+
                     return [
                         'session_id' => $session->id,
-                        'login_time' => isset($payload['login_time']) 
+                        'login_time' => isset($payload['login_time'])
                             ? Carbon::createFromTimestamp($payload['login_time'])->toISOString()
                             : Carbon::createFromTimestamp($session->last_activity)->toISOString(),
                         'ip_address' => $session->ip_address,
@@ -120,7 +114,7 @@ trait SessionAnalyticsProcedure
                         'platform' => $deviceInfo['platform'] ?? 'unknown',
                         'browser' => $deviceInfo['browser'] ?? 'unknown',
                         'last_activity' => Carbon::createFromTimestamp($session->last_activity)->toISOString(),
-                        'is_active' => $this->isSessionActive($session->last_activity)
+                        'is_active' => $this->isSessionActive($session->last_activity),
                     ];
                 });
 
@@ -140,38 +134,35 @@ trait SessionAnalyticsProcedure
                         'total' => $totalCount,
                         'limit' => $limit,
                         'offset' => $offset,
-                        'has_more' => ($offset + $limit) < $totalCount
+                        'has_more' => ($offset + $limit) < $totalCount,
                     ],
-                    'period_days' => $days
-                ]
+                    'period_days' => $days,
+                ],
             ];
 
         } catch (\Exception $e) {
             Log::error('Get login history failed', [
                 'user_id' => $params['user_id'] ?? null,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Get login history failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Get login history failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Get session analytics for admin dashboard
-     *
-     * @param array $params
-     * @return array
      */
     public function getSystemSessionAnalytics(array $params): array
     {
         try {
             $days = $params['days'] ?? 7;
             $startDate = now()->subDays($days)->startOfDay();
-            
+
             // System-wide session analytics
             $analytics = [
                 'total_sessions' => $this->getSystemTotalSessions($startDate),
@@ -181,7 +172,7 @@ trait SessionAnalyticsProcedure
                 'device_breakdown' => $this->getSystemDeviceBreakdown($startDate),
                 'security_incidents' => $this->getSystemSecurityIncidents($startDate),
                 'top_user_agents' => $this->getTopUserAgents($startDate),
-                'geographic_stats' => $this->getSystemGeographicStats($startDate)
+                'geographic_stats' => $this->getSystemGeographicStats($startDate),
             ];
 
             return [
@@ -191,41 +182,38 @@ trait SessionAnalyticsProcedure
                     'period_days' => $days,
                     'period_start' => $startDate->toISOString(),
                     'period_end' => now()->toISOString(),
-                    'analytics' => $analytics
-                ]
+                    'analytics' => $analytics,
+                ],
             ];
 
         } catch (\Exception $e) {
             Log::error('Get system session analytics failed', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Get system session analytics failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Get system session analytics failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Get session performance metrics
-     *
-     * @param array $params
-     * @return array
      */
     public function getSessionPerformanceMetrics(array $params): array
     {
         try {
             $days = $params['days'] ?? 7;
             $startDate = now()->subDays($days)->startOfDay();
-            
+
             $metrics = [
                 'average_session_duration' => $this->getSystemAverageSessionDuration($startDate),
                 'session_creation_rate' => $this->getSessionCreationRate($startDate, $days),
                 'session_cleanup_stats' => $this->getSessionCleanupStats($startDate),
                 'concurrent_session_peaks' => $this->getConcurrentSessionPeaks($startDate),
-                'database_performance' => $this->getSessionDatabasePerformance()
+                'database_performance' => $this->getSessionDatabasePerformance(),
             ];
 
             return [
@@ -234,29 +222,25 @@ trait SessionAnalyticsProcedure
                 'data' => [
                     'period_days' => $days,
                     'metrics' => $metrics,
-                    'generated_at' => now()->toISOString()
-                ]
+                    'generated_at' => now()->toISOString(),
+                ],
             ];
 
         } catch (\Exception $e) {
             Log::error('Get session performance metrics failed', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Get session performance metrics failed: ' . $e->getMessage(),
-                'data' => null
+                'message' => 'Get session performance metrics failed: '.$e->getMessage(),
+                'data' => null,
             ];
         }
     }
 
     /**
      * Get total sessions for a user in a period
-     *
-     * @param int $userId
-     * @param Carbon $startDate
-     * @return int
      */
     private function getTotalSessions(int $userId, Carbon $startDate): int
     {
@@ -268,15 +252,12 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get active sessions count for a user
-     *
-     * @param int $userId
-     * @return int
      */
     private function getActiveSessionsCount(int $userId): int
     {
         $sessionLifetime = config('session.lifetime', 1440);
         $cutoffTime = now()->subMinutes($sessionLifetime)->timestamp;
-        
+
         return DB::table('sessions')
             ->where('user_id', $userId)
             ->where('last_activity', '>', $cutoffTime)
@@ -285,10 +266,6 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get average session duration for a user
-     *
-     * @param int $userId
-     * @param Carbon $startDate
-     * @return float
      */
     private function getAverageSessionDuration(int $userId, Carbon $startDate): float
     {
@@ -307,7 +284,7 @@ trait SessionAnalyticsProcedure
         foreach ($sessions as $session) {
             $payload = unserialize(base64_decode($session->payload));
             $loginTime = $payload['login_time'] ?? $session->last_activity;
-            
+
             $duration = $session->last_activity - $loginTime;
             if ($duration > 0) {
                 $totalDuration += $duration;
@@ -320,10 +297,6 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get most used devices for a user
-     *
-     * @param int $userId
-     * @param Carbon $startDate
-     * @return array
      */
     private function getMostUsedDevices(int $userId, Carbon $startDate): array
     {
@@ -337,20 +310,20 @@ trait SessionAnalyticsProcedure
         foreach ($sessions as $session) {
             $payload = unserialize(base64_decode($session->payload));
             $deviceInfo = $payload['device_info'] ?? [];
-            
-            $deviceKey = ($deviceInfo['device_type'] ?? 'unknown') . '|' . 
-                        ($deviceInfo['platform'] ?? 'unknown') . '|' . 
+
+            $deviceKey = ($deviceInfo['device_type'] ?? 'unknown').'|'.
+                        ($deviceInfo['platform'] ?? 'unknown').'|'.
                         ($deviceInfo['browser'] ?? 'unknown');
-            
-            if (!isset($deviceStats[$deviceKey])) {
+
+            if (! isset($deviceStats[$deviceKey])) {
                 $deviceStats[$deviceKey] = [
                     'device_type' => $deviceInfo['device_type'] ?? 'unknown',
                     'platform' => $deviceInfo['platform'] ?? 'unknown',
                     'browser' => $deviceInfo['browser'] ?? 'unknown',
-                    'count' => 0
+                    'count' => 0,
                 ];
             }
-            
+
             $deviceStats[$deviceKey]['count']++;
         }
 
@@ -364,10 +337,6 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get login frequency for a user
-     *
-     * @param int $userId
-     * @param Carbon $startDate
-     * @return array
      */
     private function getLoginFrequency(int $userId, Carbon $startDate): array
     {
@@ -378,12 +347,12 @@ trait SessionAnalyticsProcedure
             ->get();
 
         $dailyLogins = [];
-        
+
         foreach ($sessions as $session) {
             $payload = unserialize(base64_decode($session->payload));
             $loginTime = $payload['login_time'] ?? $session->last_activity;
             $date = Carbon::createFromTimestamp($loginTime)->format('Y-m-d');
-            
+
             $dailyLogins[$date] = ($dailyLogins[$date] ?? 0) + 1;
         }
 
@@ -392,10 +361,6 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get security incidents for a user
-     *
-     * @param int $userId
-     * @param Carbon $startDate
-     * @return array
      */
     private function getSecurityIncidents(int $userId, Carbon $startDate): array
     {
@@ -411,7 +376,7 @@ trait SessionAnalyticsProcedure
                     'session_id' => $incident->session_id,
                     'risk_level' => $incident->risk_level,
                     'flags' => json_decode($incident->flags, true),
-                    'created_at' => Carbon::parse($incident->created_at)->toISOString()
+                    'created_at' => Carbon::parse($incident->created_at)->toISOString(),
                 ];
             })->toArray();
 
@@ -423,10 +388,6 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get geographic distribution for a user
-     *
-     * @param int $userId
-     * @param Carbon $startDate
-     * @return array
      */
     private function getGeographicDistribution(int $userId, Carbon $startDate): array
     {
@@ -436,7 +397,7 @@ trait SessionAnalyticsProcedure
             ->get();
 
         $ipStats = [];
-        
+
         foreach ($sessions as $session) {
             $ip = $session->ip_address;
             $ipStats[$ip] = ($ipStats[$ip] ?? 0) + 1;
@@ -445,29 +406,23 @@ trait SessionAnalyticsProcedure
         // In production, you would use a geolocation service to convert IPs to locations
         return [
             'unique_ips' => count($ipStats),
-            'ip_distribution' => $ipStats
+            'ip_distribution' => $ipStats,
         ];
     }
 
     /**
      * Check if session is still active
-     *
-     * @param int $lastActivity
-     * @return bool
      */
     private function isSessionActive(int $lastActivity): bool
     {
         $sessionLifetime = config('session.lifetime', 1440);
         $cutoffTime = now()->subMinutes($sessionLifetime)->timestamp;
-        
+
         return $lastActivity > $cutoffTime;
     }
 
     /**
      * Get system-wide total sessions
-     *
-     * @param Carbon $startDate
-     * @return int
      */
     private function getSystemTotalSessions(Carbon $startDate): int
     {
@@ -478,14 +433,12 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get system-wide active sessions
-     *
-     * @return int
      */
     private function getSystemActiveSessions(): int
     {
         $sessionLifetime = config('session.lifetime', 1440);
         $cutoffTime = now()->subMinutes($sessionLifetime)->timestamp;
-        
+
         return DB::table('sessions')
             ->where('last_activity', '>', $cutoffTime)
             ->count();
@@ -493,9 +446,6 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get unique active users
-     *
-     * @param Carbon $startDate
-     * @return int
      */
     private function getUniqueActiveUsers(Carbon $startDate): int
     {
@@ -507,35 +457,28 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get sessions by day
-     *
-     * @param Carbon $startDate
-     * @param int $days
-     * @return array
      */
     private function getSessionsByDay(Carbon $startDate, int $days): array
     {
         $sessionsByDay = [];
-        
+
         for ($i = 0; $i < $days; $i++) {
             $date = $startDate->copy()->addDays($i);
             $dayStart = $date->startOfDay()->timestamp;
             $dayEnd = $date->endOfDay()->timestamp;
-            
+
             $count = DB::table('sessions')
                 ->whereBetween('last_activity', [$dayStart, $dayEnd])
                 ->count();
-            
+
             $sessionsByDay[$date->format('Y-m-d')] = $count;
         }
-        
+
         return $sessionsByDay;
     }
 
     /**
      * Get system device breakdown
-     *
-     * @param Carbon $startDate
-     * @return array
      */
     private function getSystemDeviceBreakdown(Carbon $startDate): array
     {
@@ -547,13 +490,13 @@ trait SessionAnalyticsProcedure
             'desktop' => 0,
             'mobile' => 0,
             'tablet' => 0,
-            'unknown' => 0
+            'unknown' => 0,
         ];
 
         foreach ($sessions as $session) {
             $payload = unserialize(base64_decode($session->payload));
             $deviceType = $payload['device_info']['device_type'] ?? 'unknown';
-            
+
             if (isset($deviceStats[$deviceType])) {
                 $deviceStats[$deviceType]++;
             } else {
@@ -566,9 +509,6 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get system security incidents
-     *
-     * @param Carbon $startDate
-     * @return array
      */
     private function getSystemSecurityIncidents(Carbon $startDate): array
     {
@@ -586,9 +526,6 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get top user agents
-     *
-     * @param Carbon $startDate
-     * @return array
      */
     private function getTopUserAgents(Carbon $startDate): array
     {
@@ -604,9 +541,6 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get system geographic stats
-     *
-     * @param Carbon $startDate
-     * @return array
      */
     private function getSystemGeographicStats(Carbon $startDate): array
     {
@@ -622,9 +556,6 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get system average session duration
-     *
-     * @param Carbon $startDate
-     * @return float
      */
     private function getSystemAverageSessionDuration(Carbon $startDate): float
     {
@@ -642,7 +573,7 @@ trait SessionAnalyticsProcedure
         foreach ($sessions as $session) {
             $payload = unserialize(base64_decode($session->payload));
             $loginTime = $payload['login_time'] ?? $session->last_activity;
-            
+
             $duration = $session->last_activity - $loginTime;
             if ($duration > 0) {
                 $totalDuration += $duration;
@@ -655,28 +586,22 @@ trait SessionAnalyticsProcedure
 
     /**
      * Get session creation rate
-     *
-     * @param Carbon $startDate
-     * @param int $days
-     * @return float
      */
     private function getSessionCreationRate(Carbon $startDate, int $days): float
     {
         $totalSessions = $this->getSystemTotalSessions($startDate);
+
         return $days > 0 ? round($totalSessions / $days, 2) : 0;
     }
 
     /**
      * Get session cleanup stats
-     *
-     * @param Carbon $startDate
-     * @return array
      */
     private function getSessionCleanupStats(Carbon $startDate): array
     {
         $sessionLifetime = config('session.lifetime', 1440);
         $expiredCutoff = now()->subMinutes($sessionLifetime)->timestamp;
-        
+
         $totalSessions = DB::table('sessions')->count();
         $activeSessions = DB::table('sessions')
             ->where('last_activity', '>', $expiredCutoff)
@@ -687,15 +612,12 @@ trait SessionAnalyticsProcedure
             'total_sessions' => $totalSessions,
             'active_sessions' => $activeSessions,
             'expired_sessions' => $expiredSessions,
-            'cleanup_needed' => $expiredSessions > 0
+            'cleanup_needed' => $expiredSessions > 0,
         ];
     }
 
     /**
      * Get concurrent session peaks
-     *
-     * @param Carbon $startDate
-     * @return array
      */
     private function getConcurrentSessionPeaks(Carbon $startDate): array
     {
@@ -703,14 +625,12 @@ trait SessionAnalyticsProcedure
         // In production, you'd want to track this with more granular time intervals
         return [
             'peak_concurrent_sessions' => $this->getSystemActiveSessions(),
-            'peak_time' => now()->toISOString()
+            'peak_time' => now()->toISOString(),
         ];
     }
 
     /**
      * Get session database performance metrics
-     *
-     * @return array
      */
     private function getSessionDatabasePerformance(): array
     {
@@ -725,12 +645,12 @@ trait SessionAnalyticsProcedure
 
             return [
                 'table_size_mb' => $tableSize[0]->size_mb ?? 0,
-                'total_records' => DB::table('sessions')->count()
+                'total_records' => DB::table('sessions')->count(),
             ];
         } catch (\Exception $e) {
             return [
                 'table_size_mb' => 0,
-                'total_records' => DB::table('sessions')->count()
+                'total_records' => DB::table('sessions')->count(),
             ];
         }
     }

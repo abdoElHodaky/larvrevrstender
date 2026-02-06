@@ -21,7 +21,7 @@ return new class extends Migration
 
             $table->unique(['role_id', 'permission_id']);
             $table->index('granted_by');
-            
+
             $table->foreign('granted_by')->references('id')->on('users')->onDelete('set null');
         });
     }

@@ -6,10 +6,10 @@ use App\Events\VinOcrProcessed;
 use App\Models\Brand;
 use App\Models\Vehicle;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Cache;
 
 class VinOcrService
 {
@@ -423,7 +423,7 @@ class VinOcrService
             } catch (\Exception $e) {
                 Log::warning("OCR engine {$engine} failed", [
                     'customer_id' => $customerId,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -432,13 +432,13 @@ class VinOcrService
             return [
                 'success' => false,
                 'message' => 'No OCR engine could extract VIN with sufficient confidence',
-                'engines_tried' => $engines
+                'engines_tried' => $engines,
             ];
         }
 
         // Find consensus VIN or highest confidence result
         $consensusResult = $this->findConsensusVin($results);
-        
+
         // Create vehicle record with enhanced data
         if ($consensusResult['success']) {
             $vehicleData = $this->enhancedVehicleDataExtraction($consensusResult['vin']);
@@ -452,8 +452,8 @@ class VinOcrService
                         'engines_tried' => count($engines),
                         'successful_engines' => count($results),
                         'consensus_method' => $consensusResult['method'],
-                        'processing_time' => microtime(true) - LARAVEL_START
-                    ]
+                        'processing_time' => microtime(true) - LARAVEL_START,
+                    ],
                 ]
             ));
 
@@ -463,7 +463,7 @@ class VinOcrService
                 'vin' => $consensusResult['vin'],
                 'confidence' => $consensusResult['confidence'],
                 'engines_used' => array_column($results, 'engine'),
-                'vehicle_data' => $vehicleData
+                'vehicle_data' => $vehicleData,
             ];
         }
 
@@ -476,7 +476,7 @@ class VinOcrService
     private function processWithEngine(UploadedFile $image, string $engine): array
     {
         $imagePath = $this->storeImage($image);
-        
+
         try {
             switch ($engine) {
                 case 'google_vision':
@@ -502,45 +502,45 @@ class VinOcrService
     private function processWithGoogleVision(string $imagePath): array
     {
         $apiKey = config('services.google.vision_api_key');
-        if (!$apiKey) {
+        if (! $apiKey) {
             throw new \Exception('Google Vision API key not configured');
         }
 
         $imageData = base64_encode(Storage::get($imagePath));
-        
+
         $response = Http::post("https://vision.googleapis.com/v1/images:annotate?key={$apiKey}", [
             'requests' => [
                 [
                     'image' => ['content' => $imageData],
-                    'features' => [['type' => 'TEXT_DETECTION', 'maxResults' => 10]]
-                ]
-            ]
+                    'features' => [['type' => 'TEXT_DETECTION', 'maxResults' => 10]],
+                ],
+            ],
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new \Exception('Google Vision API request failed');
         }
 
         $data = $response->json();
         $textAnnotations = $data['responses'][0]['textAnnotations'] ?? [];
-        
+
         if (empty($textAnnotations)) {
             return [
                 'success' => false,
                 'engine' => 'google_vision',
-                'message' => 'No text detected'
+                'message' => 'No text detected',
             ];
         }
 
         $extractedText = $textAnnotations[0]['description'] ?? '';
         $vin = $this->extractVinFromText($extractedText);
-        
-        if (!$vin) {
+
+        if (! $vin) {
             return [
                 'success' => false,
                 'engine' => 'google_vision',
                 'message' => 'No VIN pattern found in extracted text',
-                'extracted_text' => $extractedText
+                'extracted_text' => $extractedText,
             ];
         }
 
@@ -551,7 +551,7 @@ class VinOcrService
             'engine' => 'google_vision',
             'vin' => $vin,
             'confidence' => $confidence,
-            'extracted_text' => $extractedText
+            'extracted_text' => $extractedText,
         ];
     }
 
@@ -563,13 +563,13 @@ class VinOcrService
         // Mock implementation - would use AWS SDK
         $extractedText = $this->mockOcrExtraction($imagePath, 'aws_textract');
         $vin = $this->extractVinFromText($extractedText);
-        
-        if (!$vin) {
+
+        if (! $vin) {
             return [
                 'success' => false,
                 'engine' => 'aws_textract',
                 'message' => 'No VIN pattern found',
-                'extracted_text' => $extractedText
+                'extracted_text' => $extractedText,
             ];
         }
 
@@ -578,7 +578,7 @@ class VinOcrService
             'engine' => 'aws_textract',
             'vin' => $vin,
             'confidence' => 0.85,
-            'extracted_text' => $extractedText
+            'extracted_text' => $extractedText,
         ];
     }
 
@@ -590,13 +590,13 @@ class VinOcrService
         // Mock implementation - would use Azure SDK
         $extractedText = $this->mockOcrExtraction($imagePath, 'azure_vision');
         $vin = $this->extractVinFromText($extractedText);
-        
-        if (!$vin) {
+
+        if (! $vin) {
             return [
                 'success' => false,
                 'engine' => 'azure_vision',
                 'message' => 'No VIN pattern found',
-                'extracted_text' => $extractedText
+                'extracted_text' => $extractedText,
             ];
         }
 
@@ -605,7 +605,7 @@ class VinOcrService
             'engine' => 'azure_vision',
             'vin' => $vin,
             'confidence' => 0.82,
-            'extracted_text' => $extractedText
+            'extracted_text' => $extractedText,
         ];
     }
 
@@ -617,13 +617,13 @@ class VinOcrService
         // Mock implementation - would use Tesseract binary
         $extractedText = $this->mockOcrExtraction($imagePath, 'tesseract');
         $vin = $this->extractVinFromText($extractedText);
-        
-        if (!$vin) {
+
+        if (! $vin) {
             return [
                 'success' => false,
                 'engine' => 'tesseract',
                 'message' => 'No VIN pattern found',
-                'extracted_text' => $extractedText
+                'extracted_text' => $extractedText,
             ];
         }
 
@@ -632,7 +632,7 @@ class VinOcrService
             'engine' => 'tesseract',
             'vin' => $vin,
             'confidence' => 0.75,
-            'extracted_text' => $extractedText
+            'extracted_text' => $extractedText,
         ];
     }
 
@@ -649,7 +649,7 @@ class VinOcrService
         $vinGroups = [];
         foreach ($results as $result) {
             $vin = $result['vin'];
-            if (!isset($vinGroups[$vin])) {
+            if (! isset($vinGroups[$vin])) {
                 $vinGroups[$vin] = [];
             }
             $vinGroups[$vin][] = $result;
@@ -663,7 +663,7 @@ class VinOcrService
         foreach ($vinGroups as $vin => $group) {
             $score = count($group);
             $avgConfidence = array_sum(array_column($group, 'confidence')) / count($group);
-            
+
             if ($score > $bestScore || ($score === $bestScore && $avgConfidence > $bestConfidence)) {
                 $bestVin = $vin;
                 $bestScore = $score;
@@ -671,16 +671,16 @@ class VinOcrService
             }
         }
 
-        if (!$bestVin) {
+        if (! $bestVin) {
             // Fallback to highest confidence single result
             $highestConfidence = max(array_column($results, 'confidence'));
-            $bestResult = array_filter($results, fn($r) => $r['confidence'] === $highestConfidence)[0];
-            
+            $bestResult = array_filter($results, fn ($r) => $r['confidence'] === $highestConfidence)[0];
+
             return [
                 'success' => true,
                 'vin' => $bestResult['vin'],
                 'confidence' => $bestResult['confidence'],
-                'method' => 'highest_confidence'
+                'method' => 'highest_confidence',
             ];
         }
 
@@ -689,7 +689,7 @@ class VinOcrService
             'vin' => $bestVin,
             'confidence' => $bestConfidence,
             'method' => $bestScore > 1 ? 'consensus' : 'single_engine',
-            'consensus_count' => $bestScore
+            'consensus_count' => $bestScore,
         ];
     }
 
@@ -699,10 +699,10 @@ class VinOcrService
     private function enhancedVehicleDataExtraction(string $vin): array
     {
         $cacheKey = "vehicle_data:{$vin}";
-        
+
         return Cache::remember($cacheKey, 3600, function () use ($vin) {
             $data = $this->extractVehicleDataFromVin($vin);
-            
+
             // Try to enhance with external APIs
             try {
                 $externalData = $this->fetchExternalVehicleData($vin);
@@ -710,7 +710,7 @@ class VinOcrService
             } catch (\Exception $e) {
                 Log::info('External vehicle data fetch failed', [
                     'vin' => $vin,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
 
@@ -737,7 +737,7 @@ class VinOcrService
             'mpg_highway' => 35,
             'safety_rating' => 5,
             'recalls' => [],
-            'market_value' => 18500
+            'market_value' => 18500,
         ];
     }
 
@@ -747,10 +747,10 @@ class VinOcrService
     private function calculateConfidence(string $vin, array $textAnnotations): float
     {
         $baseConfidence = 0.8;
-        
+
         // Adjust based on VIN validation
         $validation = $this->validateExtractedVin($vin);
-        if (!$validation['valid']) {
+        if (! $validation['valid']) {
             $baseConfidence -= 0.3;
         }
 
@@ -793,7 +793,7 @@ class VinOcrService
                 $results[] = [
                     'index' => $index,
                     'filename' => $image->getClientOriginalName(),
-                    'result' => $result
+                    'result' => $result,
                 ];
 
                 if ($result['success']) {
@@ -807,8 +807,8 @@ class VinOcrService
                     'filename' => $image->getClientOriginalName(),
                     'result' => [
                         'success' => false,
-                        'error' => $e->getMessage()
-                    ]
+                        'error' => $e->getMessage(),
+                    ],
                 ];
                 $failed++;
             }
@@ -819,7 +819,7 @@ class VinOcrService
             'successful' => $successful,
             'failed' => $failed,
             'success_rate' => count($images) > 0 ? $successful / count($images) : 0,
-            'results' => $results
+            'results' => $results,
         ];
     }
 
@@ -829,35 +829,35 @@ class VinOcrService
     public function getEnhancedOcrStats(): array
     {
         $baseStats = $this->getOcrStats();
-        
+
         return array_merge($baseStats, [
             'engine_performance' => [
                 'google_vision' => [
                     'success_rate' => 0.92,
                     'avg_confidence' => 0.89,
-                    'avg_processing_time' => 1.2
+                    'avg_processing_time' => 1.2,
                 ],
                 'aws_textract' => [
                     'success_rate' => 0.88,
                     'avg_confidence' => 0.85,
-                    'avg_processing_time' => 1.8
+                    'avg_processing_time' => 1.8,
                 ],
                 'azure_vision' => [
                     'success_rate' => 0.85,
                     'avg_confidence' => 0.82,
-                    'avg_processing_time' => 1.5
+                    'avg_processing_time' => 1.5,
                 ],
                 'tesseract' => [
                     'success_rate' => 0.75,
                     'avg_confidence' => 0.78,
-                    'avg_processing_time' => 0.8
-                ]
+                    'avg_processing_time' => 0.8,
+                ],
             ],
             'consensus_stats' => [
                 'consensus_found_rate' => 0.78,
                 'avg_engines_agreeing' => 2.3,
-                'confidence_improvement' => 0.15
-            ]
+                'confidence_improvement' => 0.15,
+            ],
         ]);
     }
 }

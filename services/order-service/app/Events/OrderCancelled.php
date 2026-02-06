@@ -3,9 +3,7 @@
 namespace App\Events;
 
 use App\Models\Order;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -33,16 +31,14 @@ class OrderCancelled implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('user.' . $this->order->customer_id),
-            new PrivateChannel('user.' . $this->order->merchant_id),
-            new PrivateChannel('order.' . $this->order->id),
+            new PrivateChannel('user.'.$this->order->customer_id),
+            new PrivateChannel('user.'.$this->order->merchant_id),
+            new PrivateChannel('order.'.$this->order->id),
         ];
     }
 
     /**
      * Get the data to broadcast.
-     *
-     * @return array
      */
     public function broadcastWith(): array
     {
@@ -60,8 +56,6 @@ class OrderCancelled implements ShouldBroadcast
 
     /**
      * The event's broadcast name.
-     *
-     * @return string
      */
     public function broadcastAs(): string
     {

@@ -2,11 +2,8 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
@@ -15,13 +12,15 @@ class UserVerificationStatusChanged
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $profile;
+
     public $newStatus;
+
     public $previousStatus;
 
     /**
      * Create a new event instance.
      */
-    public function __construct($profile, string $newStatus, string $previousStatus = null)
+    public function __construct($profile, string $newStatus, ?string $previousStatus = null)
     {
         $this->profile = $profile;
         $this->newStatus = $newStatus;
@@ -36,14 +35,12 @@ class UserVerificationStatusChanged
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('user.' . $this->profile->user_id),
+            new PrivateChannel('user.'.$this->profile->user_id),
         ];
     }
 
     /**
      * Get the data to broadcast.
-     *
-     * @return array
      */
     public function broadcastWith(): array
     {
@@ -57,8 +54,6 @@ class UserVerificationStatusChanged
 
     /**
      * The event's broadcast name.
-     *
-     * @return string
      */
     public function broadcastAs(): string
     {

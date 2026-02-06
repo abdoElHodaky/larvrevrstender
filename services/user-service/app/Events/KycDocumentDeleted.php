@@ -2,8 +2,8 @@
 
 namespace App\Events;
 
-use App\Models\User;
 use App\Models\KycDocument;
+use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -13,6 +13,7 @@ class KycDocumentDeleted
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public User $user;
+
     public KycDocument $document;
 
     /**
@@ -39,4 +40,3 @@ class KycDocumentDeleted
         ];
     }
 }
-

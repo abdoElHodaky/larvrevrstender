@@ -1,458 +1,429 @@
-# 🏗️ Reverse Tender Platform - Modern Microservices Architecture
+# 🏗️ Enhanced Microservices Architecture
 
-> **🚀 Laravel 12+ Ready Architecture** | **🔥 Domain-Driven Design** | **⚡ High Performance**
+## 🎯 **Enterprise Architecture Overview**
 
-## 🎯 Architecture Overview
+The Laravel Reverse Tender Platform features an **enterprise-grade microservices architecture** with advanced **workflow orchestration**, **dual circuit breaker patterns**, and **third-party integration capabilities**.
 
-This diagram showcases our modernized microservices architecture implementing **Domain-Driven Design (DDD)**, **Hexagonal Architecture**, and **CQRS patterns** with Laravel 12+ structure.
+## 📊 **Complete System Architecture**
 
 ```mermaid
-%%{init: {
-  'theme': 'dark',
-  'themeVariables': {
-    'primaryColor': '#FF6B6B',
-    'primaryTextColor': '#FFFFFF',
-    'primaryBorderColor': '#FF8E8E',
-    'lineColor': '#4ECDC4',
-    'secondaryColor': '#45B7D1',
-    'tertiaryColor': '#96CEB4',
-    'background': '#0F172A',
-    'mainBkg': '#1E293B',
-    'secondBkg': '#334155',
-    'tertiaryBkg': '#475569'
-  }
-}}%%
-
 graph TB
-    %% 🌐 Client Layer - Modern Frontend Applications
-    subgraph "🌐 CLIENT APPLICATIONS"
-        PWA["🚀 PWA Client<br/>⚡ Vue.js 3 + Composition API<br/>🔥 Vite + TypeScript<br/>📱 Progressive Web App<br/>🌐 Port: 3000"]
-        ADMIN["🎛️ Admin Dashboard<br/>⚡ Vue.js 3 + Quasar<br/>📊 Real-time Analytics<br/>🔐 Role-based Access<br/>🌐 Port: 3001"]
-        MOBILE["📱 Mobile Apps<br/>⚡ React Native + Expo<br/>🔔 Push Notifications<br/>📍 Geolocation<br/>📦 App Store Ready"]
+    subgraph "Client Layer"
+        WEB[🌐 Web Application<br/>React/Vue Frontend]
+        MOBILE[📱 Mobile App<br/>React Native/Flutter]
+        API_CLIENT[🔌 API Clients<br/>Third-party Integrations]
     end
-    
-    %% 🔀 Infrastructure Layer
-    subgraph "🔀 INFRASTRUCTURE GATEWAY"
-        LB["⚖️ Load Balancer<br/>🚀 Nginx + HAProxy<br/>🛡️ SSL Termination + WAF<br/>📈 Auto-scaling + Health Checks<br/>🌐 Port: 80/443"]
-        GATEWAY["🚪 API Gateway<br/>🔥 Laravel 12+ Gateway<br/>🛡️ Rate Limiting + JWT Auth<br/>📊 Request Analytics + Logging<br/>🌐 Port: 8000"]
+
+    subgraph "Gateway Layer"
+        GATEWAY[🚪 Gateway Service<br/>Port: 8000<br/>Routing & Load Balancing]
     end
-    
-    %% 🎯 Core Business Services - Domain-Driven Design
-    subgraph "🎯 CORE BUSINESS SERVICES"
-        AUTH["🔐 Authentication Service<br/>🔥 Laravel 12+ DDD + Octane<br/>🛡️ JWT + OAuth2 + MFA<br/>🏗️ Hexagonal Architecture<br/>🌐 Port: 8001"]
-        USER["👥 User Management Service<br/>🔥 Laravel 12+ DDD + Octane<br/>👤 Profiles + KYC + Verification<br/>🎭 RBAC + Permission System<br/>🌐 Port: 8003"]
-        ORDER["📋 Order Management Service<br/>🔥 Laravel 12+ DDD + Octane<br/>📝 Request Workflow + State Machine<br/>🔄 Event Sourcing + CQRS<br/>🌐 Port: 8004"]
-        BIDDING["🎯 Bidding Engine Service<br/>🔥 Laravel 12+ DDD + Octane<br/>⚡ Real-time Auctions + WebSockets<br/>🏆 Smart Matching + AI Scoring<br/>🌐 Port: 8002"]
+
+    subgraph "Cross-Service Infrastructure Hub"
+        SHARED[🎯 Shared Service<br/>Port: 8001<br/>Orchestration Hub]
+        
+        subgraph "Micro Procedures (8 Total)"
+            EVENT[📡 Event Publishing<br/>Async Messaging]
+            CACHE[💾 Cache Management<br/>Redis Operations]
+            NOTIFY[📢 Notification<br/>Multi-channel]
+            VALID[✅ Validation<br/>Data Validation]
+            SEC[🔐 Security<br/>Auth & Encryption]
+            CB[🛡️ Circuit Breaker<br/>Sync Protection]
+            QCB[⚡ Queue Circuit Breaker<br/>Async Protection]
+            TPI[🔌 Third-Party Integration<br/>External Services]
+        end
+        
+        subgraph "Macro Procedures (2 Types)"
+            WF[🔄 Workflow Orchestration<br/>Complex Processes]
+            BL[🎯 Business Logic<br/>Domain Workflows]
+        end
     end
-    
-    %% 🔧 Supporting Services
-    subgraph "🔧 SUPPORTING SERVICES"
-        NOTIFICATION["📢 Notification Service<br/>🔥 Laravel 12+ DDD + Octane<br/>📱 Multi-Channel Delivery<br/>🎯 Smart Templates + Targeting<br/>🌐 Port: 8005"]
-        PAYMENT["💳 Payment Service<br/>🔥 Laravel 12+ DDD + Octane<br/>💰 Multi-Gateway + ZATCA<br/>🔒 PCI DSS + Fraud Detection<br/>🌐 Port: 8006"]
-        ANALYTICS["📊 Analytics Service<br/>🔥 Laravel 12+ DDD + Octane<br/>📈 BI + Real-time Reporting<br/>🤖 ML-powered Insights + AI<br/>🌐 Port: 8007"]
-        VIN_OCR["🔍 VIN OCR Service<br/>🔥 Laravel 12+ DDD + Octane<br/>🚗 AI Vehicle Recognition<br/>📸 Multi-Engine Computer Vision<br/>🌐 Port: 8008"]
+
+    subgraph "Core Microservices (8 Total)"
+        AUTH[🔑 Auth Service<br/>Port: 8002<br/>Authentication]
+        TENDER[📋 Tender Service<br/>Port: 8003<br/>Tender Management]
+        BID[💰 Bidding Service<br/>Port: 8004<br/>Bid Processing]
+        PAY[💳 Payment Service<br/>Port: 8005<br/>Payment Processing]
+        NOTIF_SVC[📨 Notification Service<br/>Port: 8006<br/>Message Delivery]
+        ANALYTICS[📊 Analytics Service<br/>Port: 8007<br/>Data Analytics]
+        USER[👤 User Service<br/>Port: 8008<br/>User Management]
+        ADMIN[⚙️ Admin Service<br/>Port: 8009<br/>Administration]
     end
-    
-    %% 💾 Data & Storage Layer
-    subgraph "💾 DATA & STORAGE FOUNDATION"
-        MYSQL["🗃️ MySQL 8.0 Cluster<br/>📊 Primary + Read Replicas<br/>🔄 Master-Slave Replication<br/>⚡ Query Optimization + Indexing<br/>🔒 Encryption at Rest"]
-        REDIS["⚡ Redis 7.0 Cluster<br/>🚀 Cache + Sessions + Pub/Sub<br/>🔄 Cluster Mode + Persistence<br/>💾 Memory Optimization<br/>📊 Performance Monitoring"]
-        MINIO["📁 MinIO S3 Compatible<br/>☁️ Object Storage + CDN<br/>🖼️ Images + Documents + Assets<br/>🔄 Multi-region Sync<br/>🔒 Encryption + Versioning"]
+
+    subgraph "External Services"
+        STRIPE[💳 Stripe API<br/>Payment Processing]
+        MAILGUN[📧 Mailgun API<br/>Email Service]
+        TWILIO[📱 Twilio API<br/>SMS Service]
+        AWS[☁️ AWS Services<br/>Cloud Infrastructure]
+        GOOGLE[🔍 Google APIs<br/>OAuth & Maps]
     end
-    
-    %% 📨 Message & Event Layer
-    subgraph "📨 EVENT-DRIVEN MESSAGING"
-        QUEUE["📨 Event Bus System<br/>⚡ Redis Pub/Sub + Laravel Horizon<br/>🔄 Event Sourcing + CQRS<br/>📊 Dead Letter Queue + Retry Logic<br/>🎯 Message Routing + Filtering"]
-        WEBSOCKET["🔌 WebSocket Server<br/>⚡ Real-time Communication<br/>🎯 Live Bidding Updates<br/>📱 Push Notifications<br/>🔄 Connection Management"]
+
+    subgraph "Data Layer"
+        REDIS[(🔴 Redis Cluster<br/>Cache & Circuit State<br/>Session Management)]
+        DB[(🗄️ MySQL/PostgreSQL<br/>Primary Database<br/>ACID Transactions)]
+        QUEUE[(📬 Queue System<br/>Job Processing<br/>Laravel Queues)]
+        SEARCH[(🔍 Elasticsearch<br/>Search & Analytics<br/>Full-text Search)]
     end
+
+    %% Client connections
+    WEB --> GATEWAY
+    MOBILE --> GATEWAY
+    API_CLIENT --> GATEWAY
+
+    %% Gateway to Shared Hub
+    GATEWAY --> SHARED
+
+    %% Shared Hub to Core Services
+    SHARED --> AUTH
+    SHARED --> TENDER
+    SHARED --> BID
+    SHARED --> PAY
+    SHARED --> NOTIF_SVC
+    SHARED --> ANALYTICS
+    SHARED --> USER
+    SHARED --> ADMIN
+
+    %% Third-Party Integrations
+    TPI --> STRIPE
+    TPI --> MAILGUN
+    TPI --> TWILIO
+    TPI --> AWS
+    TPI --> GOOGLE
+
+    %% Data Layer Connections
+    SHARED --> REDIS
+    SHARED --> DB
+    SHARED --> QUEUE
+    SHARED --> SEARCH
     
-    %% 🌐 External Integrations
-    subgraph "🌐 EXTERNAL INTEGRATIONS"
-        ZATCA["🏛️ ZATCA Portal<br/>📄 E-Invoicing Compliance<br/>🇸🇦 Saudi Tax Authority API<br/>🔐 Digital Signatures + Validation<br/>📊 Compliance Reporting"]
-        SMS_PROVIDER["📱 SMS Gateway<br/>🚀 Twilio + AWS SNS + Unifonic<br/>🌍 Global Coverage + Delivery<br/>📊 Analytics + Tracking<br/>🎯 Smart Routing"]
-        EMAIL_PROVIDER["📧 Email Service<br/>🚀 SendGrid + AWS SES<br/>📬 Transactional + Marketing<br/>📊 Open/Click Tracking<br/>🎨 Template Management"]
-        PUSH_PROVIDER["🔔 Push Notifications<br/>🚀 FCM + APNS + Web Push<br/>📱 iOS + Android + PWA<br/>🎯 Targeted Campaigns<br/>📊 Engagement Analytics"]
-    end
-    
-    %% 🌐 Client Layer Connections
-    PWA -.->|"🔒 HTTPS/WSS"| LB
-    ADMIN -.->|"🔒 HTTPS/WSS"| LB
-    MOBILE -.->|"🔒 HTTPS/WSS"| LB
-    
-    %% 🔀 Infrastructure Flow
-    LB ==>|"⚖️ Load Balanced"| GATEWAY
-    
-    %% 🚪 Gateway to Core Services
-    GATEWAY ==>|"🔐 Authenticated"| AUTH
-    GATEWAY ==>|"👥 User Context"| USER
-    GATEWAY ==>|"📋 Business Logic"| ORDER
-    GATEWAY ==>|"🎯 Real-time"| BIDDING
-    GATEWAY ==>|"📢 Async"| NOTIFICATION
-    GATEWAY ==>|"💳 Secure"| PAYMENT
-    GATEWAY ==>|"📊 Analytics"| ANALYTICS
-    GATEWAY ==>|"🔍 AI/ML"| VIN_OCR
-    
-    %% 🔄 Inter-Service Communication (Domain Events)
-    AUTH -.->|"🔐 User Authenticated"| USER
-    USER -.->|"👤 Profile Updated"| ORDER
-    ORDER -.->|"📋 Order Created"| BIDDING
-    BIDDING -.->|"🎯 Bid Placed"| NOTIFICATION
-    ORDER -.->|"💰 Payment Required"| PAYMENT
-    PAYMENT -.->|"🏛️ Tax Compliance"| ZATCA
-    
-    %% 💾 Data Persistence Layer
-    AUTH ==>|"🔐 User Data"| MYSQL
-    USER ==>|"👤 Profiles"| MYSQL
-    ORDER ==>|"📋 Orders"| MYSQL
-    BIDDING ==>|"🎯 Bids"| MYSQL
-    NOTIFICATION ==>|"📢 Messages"| MYSQL
-    PAYMENT ==>|"💳 Transactions"| MYSQL
-    ANALYTICS ==>|"📊 Metrics"| MYSQL
-    VIN_OCR ==>|"🔍 OCR Results"| MYSQL
-    
-    %% ⚡ Caching Layer
-    AUTH ==>|"🎫 Sessions"| REDIS
-    USER ==>|"👤 Cache"| REDIS
-    ORDER ==>|"📋 Cache"| REDIS
-    BIDDING ==>|"⚡ Real-time"| REDIS
-    GATEWAY ==>|"🚪 Rate Limits"| REDIS
-    
-    %% 📁 File Storage
-    USER ==>|"🖼️ Avatars"| MINIO
-    ORDER ==>|"📄 Documents"| MINIO
-    VIN_OCR ==>|"📸 Images"| MINIO
-    
-    %% 📨 Event-Driven Architecture
-    BIDDING ==>|"🎯 Bid Events"| QUEUE
-    NOTIFICATION ==>|"📢 Send Queue"| QUEUE
-    ORDER ==>|"📋 Order Events"| QUEUE
-    BIDDING -.->|"⚡ Live Updates"| WEBSOCKET
-    
-    %% 🌐 External Integrations
-    NOTIFICATION ==>|"📱 SMS"| SMS_PROVIDER
-    NOTIFICATION ==>|"📧 Email"| EMAIL_PROVIDER
-    NOTIFICATION ==>|"🔔 Push"| PUSH_PROVIDER
-    PAYMENT ==>|"🏛️ E-Invoice"| ZATCA
-    
-    %% 🎨 Distinguished Eye-Catching Styling
-    classDef clientStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
-    classDef infraStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
-    classDef coreStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
-    classDef supportStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
-    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:4px,color:#000000,font-weight:bold
-    classDef messageStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
-    classDef externalStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef securityStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold
-    
-    %% Apply Component Styling
-    class PWA,ADMIN,MOBILE clientStyle
-    class LB,GATEWAY infraStyle
-    class AUTH securityStyle
-    class USER,ORDER,BIDDING coreStyle
-    class NOTIFICATION,PAYMENT,ANALYTICS,VIN_OCR supportStyle
-    class MYSQL,REDIS,MINIO dataStyle
-    class QUEUE,WEBSOCKET messageStyle
-    class ZATCA,SMS_PROVIDER,EMAIL_PROVIDER,PUSH_PROVIDER externalStyle
+    AUTH --> DB
+    TENDER --> DB
+    BID --> DB
+    PAY --> DB
+    NOTIF_SVC --> DB
+    ANALYTICS --> DB
+    USER --> DB
+    ADMIN --> DB
+
+    %% Queue Connections
+    QCB --> QUEUE
+    NOTIF_SVC --> QUEUE
+    PAY --> QUEUE
+    ANALYTICS --> QUEUE
+
+    %% Cache Connections
+    CACHE --> REDIS
+    AUTH --> REDIS
+    TENDER --> REDIS
+    BID --> REDIS
+
+    %% Search Connections
+    TENDER --> SEARCH
+    BID --> SEARCH
+    ANALYTICS --> SEARCH
+
+    %% Styling
+    classDef clientStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+    classDef gatewayStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000
+    classDef sharedStyle fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000
+    classDef microStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    classDef macroStyle fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000
+    classDef serviceStyle fill:#fff8e1,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef externalStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px,color:#000
+    classDef dataStyle fill:#f1f8e9,stroke:#33691e,stroke-width:2px,color:#000
+
+    class WEB,MOBILE,API_CLIENT clientStyle
+    class GATEWAY gatewayStyle
+    class SHARED sharedStyle
+    class EVENT,CACHE,NOTIFY,VALID,SEC,CB,QCB,TPI microStyle
+    class WF,BL macroStyle
+    class AUTH,TENDER,BID,PAY,NOTIF_SVC,ANALYTICS,USER,ADMIN serviceStyle
+    class STRIPE,MAILGUN,TWILIO,AWS,GOOGLE externalStyle
+    class REDIS,DB,QUEUE,SEARCH dataStyle
 ```
 
-## 🏗️ Modern Architecture Principles
+## 🔄 **Cross-Service Infrastructure Details**
 
-### 🎯 **Domain-Driven Design (DDD)**
-- **Domain Layer**: Core business logic and entities
-- **Application Layer**: Use cases and application services
-- **Infrastructure Layer**: External concerns (database, APIs, etc.)
-- **Interface Layer**: Controllers, DTOs, and external interfaces
+### **Micro Procedures (8 Total)**
 
-### 🔄 **Event-Driven Architecture**
-- **Event Sourcing**: Complete audit trail of all business events
-- **CQRS**: Separate read and write models for optimal performance
-- **Domain Events**: Loose coupling between bounded contexts
-- **Saga Pattern**: Distributed transaction management
-
-### 🏛️ **Hexagonal Architecture**
-- **Ports**: Interfaces defining how the application communicates
-- **Adapters**: Implementations of ports for specific technologies
-- **Core**: Business logic independent of external concerns
-- **Dependency Inversion**: Core depends on abstractions, not concretions
-
----
-
-## 🚀 Service Specifications
-
-### **🚪 API Gateway (Port 8000)**
-```yaml
-🔥 Laravel 12+ Features:
-  - Modern Routing with Route Model Binding
-  - Advanced Middleware Pipeline
-  - Request/Response Transformation
-  - OpenAPI 3.0 Documentation
-
-🛡️ Security Features:
-  - JWT Token Validation
-  - Rate Limiting (Redis-based)
-  - CORS Management
-  - Request Sanitization
-
-📊 Monitoring:
-  - Request/Response Logging
-  - Performance Metrics
-  - Error Tracking
-  - Health Checks
-```
-
-### **🔐 Auth Service (Port 8001)**
-```yaml
-🏗️ DDD Structure:
-  Domain/Auth/
-    ├── Models/User.php (Domain Entity)
-    ├── ValueObjects/UserId.php, Email.php
-    ├── Repositories/UserRepositoryInterface.php
-    └── Events/UserAuthenticated.php
-
-🔐 Security Features:
-  - JWT with RS256 Algorithm
-  - OAuth2 (Google, Apple, Microsoft)
-  - Multi-factor Authentication (TOTP, SMS)
-  - Biometric Authentication Support
-
-🎯 Modern Patterns:
-  - Repository Pattern
-  - Value Objects
-  - Domain Events
-  - Command/Query Separation
-```
-
-### **👥 User Service (Port 8003)**
-```yaml
-🏗️ DDD Structure:
-  Domain/User/
-    ├── Models/Profile.php, Verification.php
-    ├── ValueObjects/PhoneNumber.php, Address.php
-    ├── Services/KYCService.php
-    └── Events/ProfileUpdated.php
-
-🔍 KYC Features:
-  - Document Verification (AI-powered)
-  - Identity Verification
-  - Address Verification
-  - Business License Validation
-
-📱 Profile Management:
-  - Multi-language Support
-  - Preference Management
-  - Privacy Controls
-  - Data Export (GDPR)
-```
-
-### **📋 Order Service (Port 8004)**
-```yaml
-🏗️ DDD Structure:
-  Domain/Order/
-    ├── Models/Order.php, OrderItem.php
-    ├── ValueObjects/OrderId.php, Money.php
-    ├── Services/OrderWorkflowService.php
-    └── Events/OrderCreated.php, OrderStatusChanged.php
-
-🔄 Workflow Engine:
-  - State Machine Pattern
-  - Business Rules Engine
-  - Approval Workflows
-  - Automated Processing
-
-📊 Analytics:
-  - Order Tracking
-  - Performance Metrics
-  - Demand Forecasting
-  - Supplier Analytics
-```
-
-### **🎯 Bidding Service (Port 8002)**
-```yaml
-🏗️ DDD Structure:
-  Domain/Bidding/
-    ├── Models/Auction.php, Bid.php
-    ├── ValueObjects/BidAmount.php, AuctionId.php
-    ├── Services/AuctionEngine.php
-    └── Events/BidPlaced.php, AuctionEnded.php
-
-⚡ Real-time Features:
-  - WebSocket Connections
-  - Live Bid Updates
-  - Auto-bidding Algorithms
-  - Bid Validation Rules
-
-🤖 Smart Features:
-  - ML-powered Price Suggestions
-  - Fraud Detection
-  - Market Analysis
-  - Automated Matching
-```
-
-### **📢 Notification Service (Port 8005)**
-```yaml
-🏗️ DDD Structure:
-  Domain/Notification/
-    ├── Models/Notification.php, Template.php
-    ├── ValueObjects/NotificationId.php, Channel.php
-    ├── Services/NotificationDispatcher.php
-    └── Events/NotificationSent.php
-
-📱 Multi-channel Support:
-  - Push Notifications (FCM, APNS)
-  - SMS (Twilio, AWS SNS)
-  - Email (SendGrid, SES)
-  - WhatsApp Business API
-
-🎯 Smart Features:
-  - Personalization Engine
-  - A/B Testing
-  - Delivery Optimization
-  - Analytics & Tracking
-```
-
-### **💳 Payment Service (Port 8006)**
-```yaml
-🏗️ DDD Structure:
-  Domain/Payment/
-    ├── Models/Payment.php, Transaction.php
-    ├── ValueObjects/Amount.php, Currency.php
-    ├── Services/PaymentProcessor.php
-    └── Events/PaymentProcessed.php
-
-💰 Payment Gateways:
-  - Stripe, PayPal, Square
-  - Local Saudi Gateways
-  - Cryptocurrency Support
-  - Buy Now Pay Later (BNPL)
-
-🏛️ Compliance:
-  - ZATCA E-Invoicing
-  - PCI DSS Level 1
-  - Anti-Money Laundering (AML)
-  - Know Your Customer (KYC)
-```
-
-### **📊 Analytics Service (Port 8007)**
-```yaml
-🏗️ DDD Structure:
-  Domain/Analytics/
-    ├── Models/Metric.php, Report.php
-    ├── ValueObjects/MetricId.php, TimeRange.php
-    ├── Services/ReportGenerator.php
-    └── Events/MetricRecorded.php
-
-📈 Analytics Features:
-  - Real-time Dashboards
-  - Custom Report Builder
-  - Data Visualization
-  - Predictive Analytics
-
-🤖 AI/ML Features:
-  - Demand Forecasting
-  - Price Optimization
-  - Customer Segmentation
-  - Anomaly Detection
-```
-
-### **🔍 VIN OCR Service (Port 8008)**
-```yaml
-🏗️ DDD Structure:
-  Domain/VIN/
-    ├── Models/VehicleInfo.php, OCRResult.php
-    ├── ValueObjects/VIN.php, Confidence.php
-    ├── Services/OCRProcessor.php
-    └── Events/VINProcessed.php
-
-🤖 AI/ML Features:
-  - Computer Vision (OpenCV)
-  - OCR Engine (Tesseract)
-  - Vehicle Database Integration
-  - Confidence Scoring
-
-🚗 Vehicle Data:
-  - Make, Model, Year Detection
-  - Specifications Lookup
-  - Market Value Estimation
-  - Parts Compatibility
-```
-
----
-
-## 🔧 Infrastructure Components
-
-### **💾 Data Layer**
-- **MySQL 8.0**: ACID compliance, JSON support, performance optimization
-- **Redis 7.0**: Caching, sessions, pub/sub, clustering
-- **MinIO**: S3-compatible object storage, multi-region replication
-
-### **📨 Message Layer**
-- **Laravel Horizon**: Queue management and monitoring
-- **Redis Pub/Sub**: Real-time event distribution
-- **WebSocket Server**: Live bidding and notifications
-
-### **🌐 External Integrations**
-- **ZATCA API**: Saudi Arabia tax compliance
-- **Payment Gateways**: Multi-provider support
-- **Communication APIs**: SMS, Email, Push notifications
-
----
-
-## 🎯 Key Benefits
-
-### **🚀 Performance**
-- **Horizontal Scaling**: Independent service scaling
-- **Caching Strategy**: Multi-layer caching (Redis, CDN)
-- **Database Optimization**: Read replicas, query optimization
-- **Async Processing**: Event-driven, non-blocking operations
-
-### **🛡️ Security**
-- **Zero Trust Architecture**: Every request authenticated
-- **Data Encryption**: At rest and in transit
-- **Compliance**: GDPR, PCI DSS, ZATCA
-- **Audit Trail**: Complete event sourcing
-
-### **🔧 Maintainability**
-- **Domain-Driven Design**: Clear business boundaries
-- **Hexagonal Architecture**: Testable, flexible design
-- **Modern Laravel**: Latest framework features
-- **Comprehensive Testing**: Unit, integration, E2E tests
-
----
-
-## 🔄 Communication Patterns
-
-### **🔄 Event-Driven Communication**
 ```mermaid
 graph LR
-    A[Order Created] --> B[Bidding Started]
-    B --> C[Notification Sent]
-    C --> D[Analytics Updated]
-    D --> E[Payment Initiated]
+    subgraph "Micro Procedures Layer"
+        EVENT[📡 Event Publishing<br/>• Async messaging<br/>• Event routing<br/>• Service decoupling]
+        CACHE[💾 Cache Management<br/>• Redis operations<br/>• TTL management<br/>• Cache invalidation]
+        NOTIFY[📢 Notification<br/>• Multi-channel delivery<br/>• Template management<br/>• Delivery tracking]
+        VALID[✅ Validation<br/>• Data validation<br/>• Business rules<br/>• Input sanitization]
+        SEC[🔐 Security<br/>• Authentication<br/>• Authorization<br/>• Encryption/Decryption]
+        CB[🛡️ Circuit Breaker<br/>• Sync protection<br/>• HTTP requests<br/>• Auto recovery]
+        QCB[⚡ Queue Circuit Breaker<br/>• Async protection<br/>• Job processing<br/>• Laravel Fuse]
+        TPI[🔌 Third-Party Integration<br/>• External APIs<br/>• Authentication<br/>• Webhook handling]
+    end
+
+    classDef microStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    class EVENT,CACHE,NOTIFY,VALID,SEC,CB,QCB,TPI microStyle
 ```
 
-### **⚡ Real-time Communication**
+### **Macro Procedures (2 Types)**
+
+```mermaid
+graph TB
+    subgraph "Macro Procedures Layer"
+        WF[🔄 Workflow Orchestration<br/>• Complex process management<br/>• State persistence<br/>• Compensation logic]
+        BL[🎯 Business Logic<br/>• Domain-specific workflows<br/>• Order processing<br/>• User onboarding]
+        
+        subgraph "Built-in Workflows"
+            USER_WF[👤 User Onboarding<br/>• Registration<br/>• Verification<br/>• Setup]
+            ORDER_WF[📦 Order Processing<br/>• Validation<br/>• Payment<br/>• Fulfillment]
+            DATA_WF[🔄 Data Sync<br/>• Cross-service sync<br/>• Consistency<br/>• Verification]
+        end
+    end
+
+    WF --> USER_WF
+    WF --> ORDER_WF
+    WF --> DATA_WF
+    BL --> USER_WF
+    BL --> ORDER_WF
+
+    classDef macroStyle fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000
+    classDef workflowStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
+    
+    class WF,BL macroStyle
+    class USER_WF,ORDER_WF,DATA_WF workflowStyle
+```
+
+## 🛡️ **Dual Circuit Breaker Architecture**
+
+```mermaid
+graph TB
+    subgraph "Circuit Breaker Protection"
+        subgraph "Synchronous Protection"
+            SYNC_CB[🛡️ HTTP Circuit Breaker<br/>• REST API calls<br/>• External services<br/>• Real-time requests]
+            SYNC_STATES[States: CLOSED → OPEN → HALF_OPEN]
+        end
+        
+        subgraph "Asynchronous Protection"
+            ASYNC_CB[⚡ Queue Circuit Breaker<br/>• Laravel Fuse<br/>• Job processing<br/>• Background tasks]
+            ASYNC_STATES[States: CLOSED → OPEN → HALF_OPEN]
+        end
+        
+        subgraph "State Management"
+            REDIS_STATE[(🔴 Redis<br/>Circuit States<br/>Metrics<br/>Recovery Timers)]
+        end
+    end
+
+    SYNC_CB --> REDIS_STATE
+    ASYNC_CB --> REDIS_STATE
+    SYNC_CB --> SYNC_STATES
+    ASYNC_CB --> ASYNC_STATES
+
+    classDef cbStyle fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    classDef stateStyle fill:#f1f8e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    
+    class SYNC_CB,ASYNC_CB cbStyle
+    class SYNC_STATES,ASYNC_STATES,REDIS_STATE stateStyle
+```
+
+## 🔌 **Third-Party Integration Framework**
+
+```mermaid
+graph TB
+    subgraph "Integration Framework"
+        BASE_INT[🔌 Base Integration<br/>• Authentication<br/>• Rate limiting<br/>• Circuit breaker protection]
+        
+        subgraph "Service Integrations"
+            STRIPE_INT[💳 Stripe Integration<br/>• Payment processing<br/>• Webhook handling<br/>• Refund management]
+            MAILGUN_INT[📧 Mailgun Integration<br/>• Email delivery<br/>• Template management<br/>• Delivery tracking]
+            TWILIO_INT[📱 Twilio Integration<br/>• SMS delivery<br/>• Voice calls<br/>• Verification codes]
+            AWS_INT[☁️ AWS Integration<br/>• S3 storage<br/>• SES email<br/>• CloudWatch metrics]
+        end
+        
+        subgraph "Authentication Strategies"
+            BEARER[🔑 Bearer Token<br/>• JWT tokens<br/>• API keys<br/>• OAuth2]
+            API_KEY[🗝️ API Key<br/>• Header-based<br/>• Query parameter<br/>• Custom headers]
+        end
+    end
+
+    BASE_INT --> STRIPE_INT
+    BASE_INT --> MAILGUN_INT
+    BASE_INT --> TWILIO_INT
+    BASE_INT --> AWS_INT
+    
+    BASE_INT --> BEARER
+    BASE_INT --> API_KEY
+
+    classDef integrationStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef serviceStyle fill:#fff8e1,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef authStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    
+    class BASE_INT integrationStyle
+    class STRIPE_INT,MAILGUN_INT,TWILIO_INT,AWS_INT serviceStyle
+    class BEARER,API_KEY authStyle
+```
+
+## 📡 **API Architecture Overview**
+
+```mermaid
+graph TB
+    subgraph "API Layer (80+ Endpoints)"
+        subgraph "Core Infrastructure APIs"
+            EVENT_API[📡 Event Publishing API<br/>• /api/event-publishing/*<br/>• Publish, subscribe, status]
+            CACHE_API[💾 Cache Management API<br/>• /api/cache-management/*<br/>• Set, get, delete, flush]
+            NOTIFY_API[📢 Notification API<br/>• /api/notification/*<br/>• Send, bulk, status]
+            VALID_API[✅ Validation API<br/>• /api/validation/*<br/>• Validate, custom rules]
+            SEC_API[🔐 Security API<br/>• /api/security/*<br/>• Encrypt, decrypt, tokens]
+        end
+        
+        subgraph "Circuit Breaker APIs"
+            CB_API[🛡️ Circuit Breaker API<br/>• /api/circuit-breaker/*<br/>• Stats, reset, force-open]
+            QCB_API[⚡ Queue Circuit Breaker API<br/>• /api/queue-circuit-breaker/*<br/>• Dispatch, stats, health]
+        end
+        
+        subgraph "Integration & Workflow APIs"
+            TPI_API[🔌 Third-Party Integration API<br/>• /api/third-party-integration/*<br/>• Initialize, call, webhook]
+            WF_API[🔄 Workflow API<br/>• /api/workflow/*<br/>• Start, status, register]
+        end
+    end
+
+    classDef apiStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+    classDef cbApiStyle fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    classDef intApiStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
+    
+    class EVENT_API,CACHE_API,NOTIFY_API,VALID_API,SEC_API apiStyle
+    class CB_API,QCB_API cbApiStyle
+    class TPI_API,WF_API intApiStyle
+```
+
+## 🔄 **Service Communication Patterns**
+
+### **Request Flow with Circuit Breaker Protection**
+
 ```mermaid
 sequenceDiagram
     participant Client
     participant Gateway
-    participant Bidding
-    participant WebSocket
+    participant Shared
+    participant CircuitBreaker
+    participant Service
+    participant External
+
+    Client->>Gateway: HTTP Request
+    Gateway->>Shared: Route to Procedure
+    Shared->>CircuitBreaker: Check Circuit State
     
-    Client->>Gateway: Place Bid
-    Gateway->>Bidding: Process Bid
-    Bidding->>WebSocket: Broadcast Update
-    WebSocket->>Client: Live Bid Update
+    alt Circuit CLOSED
+        CircuitBreaker->>Service: Execute Request
+        Service->>External: External API Call
+        External-->>Service: Response
+        Service-->>CircuitBreaker: Success
+        CircuitBreaker-->>Shared: Success Response
+    else Circuit OPEN
+        CircuitBreaker-->>Shared: Fail Fast
+    else Circuit HALF_OPEN
+        CircuitBreaker->>Service: Test Request
+        alt Success
+            Service-->>CircuitBreaker: Success
+            Note over CircuitBreaker: Close Circuit
+        else Failure
+            Service-->>CircuitBreaker: Failure
+            Note over CircuitBreaker: Open Circuit
+        end
+    end
+    
+    Shared-->>Gateway: Response
+    Gateway-->>Client: HTTP Response
 ```
 
-### **🛡️ Security & Resilience**
-- **Circuit Breaker Pattern**: Prevent cascade failures
-- **Retry Logic**: Exponential backoff with jitter
-- **Health Checks**: Comprehensive service monitoring
-- **Rate Limiting**: Redis-based throttling
-- **Graceful Degradation**: Fallback mechanisms
+### **Workflow Execution Flow**
 
-### **📈 Performance & Scalability**
-- **Horizontal Scaling**: Kubernetes auto-scaling
-- **Database Optimization**: Read replicas, query optimization
-- **Caching Strategy**: Multi-layer (Redis, CDN, Application)
-- **CDN Integration**: Global content delivery
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Workflow
+    participant Step1
+    participant Step2
+    participant Step3
+    participant Compensation
+
+    Client->>Workflow: Start Workflow
+    Workflow->>Step1: Execute Step 1
+    Step1-->>Workflow: Success
+    Note over Workflow: Add Compensation for Step 1
+    
+    Workflow->>Step2: Execute Step 2
+    Step2-->>Workflow: Success
+    Note over Workflow: Add Compensation for Step 2
+    
+    Workflow->>Step3: Execute Step 3
+    alt Step 3 Success
+        Step3-->>Workflow: Success
+        Workflow-->>Client: Workflow Completed
+    else Step 3 Failure
+        Step3-->>Workflow: Failure
+        Workflow->>Compensation: Execute Compensation Stack
+        Compensation->>Step2: Compensate Step 2
+        Compensation->>Step1: Compensate Step 1
+        Compensation-->>Workflow: Compensation Complete
+        Workflow-->>Client: Workflow Failed (Compensated)
+    end
+```
+
+## 📊 **Technology Stack**
+
+### **Backend Technologies**
+- **Framework**: Laravel 10+ with PHP 8.1+
+- **Database**: MySQL 8.0 / PostgreSQL 14+
+- **Cache**: Redis 7.0+ (Circuit breaker state, sessions, cache)
+- **Queue**: Laravel Queues with Redis driver
+- **Search**: Elasticsearch 8.0+ (Full-text search, analytics)
+
+### **Circuit Breaker Technologies**
+- **Sync Circuit Breaker**: Custom implementation with Redis state
+- **Async Circuit Breaker**: Laravel Fuse package
+- **State Management**: Redis with TTL and atomic operations
+- **Monitoring**: Custom metrics with Prometheus integration
+
+### **Integration Technologies**
+- **HTTP Client**: Laravel HTTP Client with Guzzle
+- **Authentication**: JWT, OAuth2, API Keys
+- **Webhooks**: Signature verification, event processing
+- **Rate Limiting**: Redis-based sliding window
+
+### **Deployment Technologies**
+- **Containerization**: Docker with multi-stage builds
+- **Orchestration**: Kubernetes with Helm charts
+- **Load Balancing**: Nginx with upstream configuration
+- **Monitoring**: Prometheus, Grafana, ELK Stack
+
+## 🎯 **Key Architecture Benefits**
+
+### **🛡️ Fault Tolerance**
+- **Dual Circuit Breaker Protection** prevents cascade failures
+- **Intelligent Failure Classification** (5xx triggers, 4xx ignored)
+- **Automatic Recovery Testing** and service restoration
+- **Exponential Backoff** with configurable limits
+
+### **🔄 Workflow Orchestration**
+- **State-Managed Workflows** with persistence and recovery
+- **Compensation Mechanisms** for automatic rollback
+- **Parallel and Sequential Execution** for performance
+- **Conditional Branching** for dynamic business logic
+
+### **🔌 Integration Capabilities**
+- **Standardized Integration Patterns** for external services
+- **Multiple Authentication Strategies** (Bearer, API Key, OAuth2)
+- **Rate Limiting and Retry Logic** for reliability
+- **Webhook Security** with signature verification
+
+### **📈 Scalability**
+- **Horizontal Scaling** with stateless services
+- **Load Balancing** across multiple instances
+- **Queue-Based Processing** for async operations
+- **Caching Strategies** for performance optimization
+
+### **🔍 Observability**
+- **Comprehensive Logging** with correlation IDs
+- **Circuit Breaker Metrics** and health monitoring
+- **Workflow Progress Tracking** and state visibility
+- **Performance Monitoring** with execution time tracking
+
+This enhanced microservices architecture provides enterprise-grade capabilities with advanced workflow orchestration, comprehensive fault tolerance, and secure third-party integration capabilities.
+

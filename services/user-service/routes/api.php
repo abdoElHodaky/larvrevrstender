@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\HealthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -40,25 +40,25 @@ Route::middleware('service.auth')->group(function () {
     // User profile routes for inter-service communication
     Route::get('/users/{userId}', [App\Http\Controllers\UserController::class, 'getUserProfile']);
     Route::put('/users/{userId}', [App\Http\Controllers\UserController::class, 'updateUserProfile']);
-    
+
     // Wallet management routes
     Route::get('/users/{userId}/wallet', [App\Http\Controllers\WalletController::class, 'getUserWallet']);
     Route::post('/users/{userId}/wallet/transactions', [App\Http\Controllers\WalletController::class, 'updateWalletBalance']);
     Route::post('/users/{userId}/wallet/reserve', [App\Http\Controllers\WalletController::class, 'reserveFunds']);
     Route::post('/users/{userId}/wallet/release', [App\Http\Controllers\WalletController::class, 'releaseFunds']);
-    
+
     // User preferences routes
     Route::get('/users/{userId}/preferences', [App\Http\Controllers\UserController::class, 'getUserPreferences']);
     Route::put('/users/{userId}/preferences', [App\Http\Controllers\UserController::class, 'updateUserPreferences']);
-    
+
     // KYC management routes
     Route::get('/users/{userId}/kyc', [App\Http\Controllers\KycController::class, 'getKycStatus']);
     Route::put('/users/{userId}/kyc', [App\Http\Controllers\KycController::class, 'updateKycStatus']);
-    
+
     // Notification preferences routes
     Route::get('/users/{userId}/notification-preferences', [App\Http\Controllers\NotificationController::class, 'getNotificationPreferences']);
     Route::put('/users/{userId}/notification-preferences', [App\Http\Controllers\NotificationController::class, 'updateNotificationPreferences']);
-    
+
     // Bulk user operations
     Route::post('/users/search', [App\Http\Controllers\UserController::class, 'getUsersByCriteria']);
 });

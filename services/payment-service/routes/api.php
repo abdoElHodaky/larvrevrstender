@@ -37,11 +37,11 @@ Route::middleware('service.auth')->group(function () {
     Route::post('/payments/{paymentId}/refund', [App\Http\Controllers\PaymentController::class, 'refundPayment']);
     Route::post('/payments/{paymentId}/capture', [App\Http\Controllers\PaymentController::class, 'capturePayment']);
     Route::post('/payments/{paymentId}/cancel', [App\Http\Controllers\PaymentController::class, 'cancelPayment']);
-    
+
     // Payment validation routes
     Route::post('/payments/validate', [App\Http\Controllers\PaymentController::class, 'validatePayment']);
     Route::post('/payments/verify', [App\Http\Controllers\PaymentController::class, 'verifyPayment']);
-    
+
     // Gateway management routes
     Route::get('/gateways', [App\Http\Controllers\GatewayController::class, 'getAvailableGateways']);
     Route::get('/gateways/{gateway}/status', [App\Http\Controllers\GatewayController::class, 'getGatewayStatus']);

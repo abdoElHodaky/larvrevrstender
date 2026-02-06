@@ -3,12 +3,12 @@
 namespace App\RPC\Procedures;
 
 use App\RPC\BaseProcedure;
-use App\Services\UserService;
-use App\Services\ProfileService;
 use App\Services\KycService;
+use App\Services\ProfileService;
+use App\Services\UserService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Http\UploadedFile;
 use Sajya\Server\Exceptions\RuntimeException;
 
 class UserProcedure extends BaseProcedure
@@ -27,14 +27,12 @@ class UserProcedure extends BaseProcedure
         if (class_exists('Sajya\Server\Exceptions\RuntimeException')) {
             return new \Sajya\Server\Exceptions\RuntimeException($message, $code, $data);
         }
+
         return new \Exception($message, $code);
     }
 
     /**
      * Create new user
-     * 
-     * @param array $params
-     * @return array
      */
     public function create(array $params): array
     {
@@ -50,7 +48,7 @@ class UserProcedure extends BaseProcedure
 
         return $this->executeWithLogging('User@create', $this->sanitizeForLogging($params), function () use ($params) {
             // Rate limiting for user creation
-            $key = 'user_create:' . request()->ip();
+            $key = 'user_create:'.request()->ip();
             if (RateLimiter::tooManyAttempts($key, 10)) {
                 throw new RuntimeException(
                     'Too many user creation attempts. Please try again later.',
@@ -69,22 +67,22 @@ class UserProcedure extends BaseProcedure
                     'address' => $params['address'] ?? null,
                     'preferences' => $params['preferences'] ?? [],
                 ]);
-                
+
                 // Clear rate limiting on successful creation
                 RateLimiter::clear($key);
-                
+
                 return [
                     'success' => true,
                     'user' => $user,
                     'created_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 // Increment rate limiting on failed creation
                 RateLimiter::hit($key, 300); // 5 minutes
-                
+
                 throw new RuntimeException(
-                    'User creation failed: ' . $e->getMessage(),
+                    'User creation failed: '.$e->getMessage(),
                     -32001,
                     ['email' => $params['email']]
                 );
@@ -94,9 +92,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Get user by ID
-     * 
-     * @param array $params
-     * @return array
      */
     public function getById(array $params): array
     {
@@ -108,9 +103,9 @@ class UserProcedure extends BaseProcedure
 
         return $this->executeWithLogging('User@getById', $params, function () use ($params) {
             // Check cache first
-            $cacheKey = 'user:' . $params['user_id'];
+            $cacheKey = 'user:'.$params['user_id'];
             $cached = Cache::get($cacheKey);
-            
+
             if ($cached !== null) {
                 return $cached;
             }
@@ -121,29 +116,29 @@ class UserProcedure extends BaseProcedure
                     $params['include_preferences'] ?? false,
                     $params['include_statistics'] ?? false
                 );
-                
-                if (!$user) {
+
+                if (! $user) {
                     throw new RuntimeException(
                         'User not found',
                         -32001,
                         ['user_id' => $params['user_id']]
                     );
                 }
-                
+
                 $result = [
                     'success' => true,
                     'user' => $user,
                     'retrieved_at' => now()->toISOString(),
                 ];
-                
+
                 // Cache for 5 minutes
                 Cache::put($cacheKey, $result, 300);
-                
+
                 return $result;
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve user: ' . $e->getMessage(),
+                    'Failed to retrieve user: '.$e->getMessage(),
                     -32001,
                     ['user_id' => $params['user_id']]
                 );
@@ -153,9 +148,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Update user information
-     * 
-     * @param array $params
-     * @return array
      */
     public function update(array $params): array
     {
@@ -179,19 +171,19 @@ class UserProcedure extends BaseProcedure
                     'preferences' => $params['preferences'] ?? null,
                     'status' => $params['status'] ?? null,
                 ]);
-                
+
                 // Clear cache
-                Cache::forget('user:' . $params['user_id']);
-                
+                Cache::forget('user:'.$params['user_id']);
+
                 return [
                     'success' => true,
                     'user' => $user,
                     'updated_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'User update failed: ' . $e->getMessage(),
+                    'User update failed: '.$e->getMessage(),
                     -32002,
                     ['user_id' => $params['user_id']]
                 );
@@ -201,9 +193,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Get user profile with statistics
-     * 
-     * @param array $params
-     * @return array
      */
     public function getProfile(array $params): array
     {
@@ -214,16 +203,16 @@ class UserProcedure extends BaseProcedure
         return $this->executeWithLogging('User@getProfile', $params, function () use ($params) {
             try {
                 $profile = $this->userService->getUserProfile($params['user_id']);
-                
+
                 return [
                     'success' => true,
                     'profile' => $profile,
                     'retrieved_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve user profile: ' . $e->getMessage(),
+                    'Failed to retrieve user profile: '.$e->getMessage(),
                     -32001,
                     ['user_id' => $params['user_id']]
                 );
@@ -233,9 +222,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Search users with filters
-     * 
-     * @param array $params
-     * @return array
      */
     public function search(array $params): array
     {
@@ -264,17 +250,17 @@ class UserProcedure extends BaseProcedure
                     'sort_by' => $params['sort_by'] ?? 'created_at',
                     'sort_order' => $params['sort_order'] ?? 'desc',
                 ]);
-                
+
                 return [
                     'success' => true,
                     'users' => $results['data'],
                     'pagination' => $results['pagination'],
                     'searched_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'User search failed: ' . $e->getMessage(),
+                    'User search failed: '.$e->getMessage(),
                     -32003,
                     ['search_params' => $params]
                 );
@@ -284,9 +270,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Get user statistics
-     * 
-     * @param array $params
-     * @return array
      */
     public function getStatistics(array $params): array
     {
@@ -297,9 +280,9 @@ class UserProcedure extends BaseProcedure
 
         return $this->executeWithLogging('User@getStatistics', $params, function () use ($params) {
             // Check cache first
-            $cacheKey = 'user_stats:' . $params['user_id'] . ':' . ($params['period'] ?? 'month');
+            $cacheKey = 'user_stats:'.$params['user_id'].':'.($params['period'] ?? 'month');
             $cached = Cache::get($cacheKey);
-            
+
             if ($cached !== null) {
                 return $cached;
             }
@@ -309,22 +292,22 @@ class UserProcedure extends BaseProcedure
                     $params['user_id'],
                     $params['period'] ?? 'month'
                 );
-                
+
                 $result = [
                     'success' => true,
                     'statistics' => $statistics,
                     'period' => $params['period'] ?? 'month',
                     'retrieved_at' => now()->toISOString(),
                 ];
-                
+
                 // Cache for 1 hour
                 Cache::put($cacheKey, $result, 3600);
-                
+
                 return $result;
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve user statistics: ' . $e->getMessage(),
+                    'Failed to retrieve user statistics: '.$e->getMessage(),
                     -32001,
                     ['user_id' => $params['user_id']]
                 );
@@ -334,9 +317,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Update user preferences
-     * 
-     * @param array $params
-     * @return array
      */
     public function updatePreferences(array $params): array
     {
@@ -355,19 +335,19 @@ class UserProcedure extends BaseProcedure
                     $params['user_id'],
                     $params['preferences']
                 );
-                
+
                 // Clear cache
-                Cache::forget('user:' . $params['user_id']);
-                
+                Cache::forget('user:'.$params['user_id']);
+
                 return [
                     'success' => true,
                     'preferences' => $user['preferences'],
                     'updated_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to update user preferences: ' . $e->getMessage(),
+                    'Failed to update user preferences: '.$e->getMessage(),
                     -32002,
                     ['user_id' => $params['user_id']]
                 );
@@ -377,9 +357,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Deactivate user account
-     * 
-     * @param array $params
-     * @return array
      */
     public function deactivate(array $params): array
     {
@@ -394,19 +371,19 @@ class UserProcedure extends BaseProcedure
                     $params['user_id'],
                     $params['reason'] ?? null
                 );
-                
+
                 // Clear cache
-                Cache::forget('user:' . $params['user_id']);
-                
+                Cache::forget('user:'.$params['user_id']);
+
                 return [
                     'success' => true,
                     'message' => 'User account deactivated successfully',
                     'deactivated_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to deactivate user: ' . $e->getMessage(),
+                    'Failed to deactivate user: '.$e->getMessage(),
                     -32002,
                     ['user_id' => $params['user_id']]
                 );
@@ -416,9 +393,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Reactivate user account
-     * 
-     * @param array $params
-     * @return array
      */
     public function reactivate(array $params): array
     {
@@ -429,19 +403,19 @@ class UserProcedure extends BaseProcedure
         return $this->executeWithLogging('User@reactivate', $params, function () use ($params) {
             try {
                 $result = $this->userService->reactivateUser($params['user_id']);
-                
+
                 // Clear cache
-                Cache::forget('user:' . $params['user_id']);
-                
+                Cache::forget('user:'.$params['user_id']);
+
                 return [
                     'success' => true,
                     'message' => 'User account reactivated successfully',
                     'reactivated_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to reactivate user: ' . $e->getMessage(),
+                    'Failed to reactivate user: '.$e->getMessage(),
                     -32002,
                     ['user_id' => $params['user_id']]
                 );
@@ -455,9 +429,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Create or update user profile
-     * 
-     * @param array $params
-     * @return array
      */
     public function createOrUpdateProfile(array $params): array
     {
@@ -489,7 +460,7 @@ class UserProcedure extends BaseProcedure
                 $params['profile_data']
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32001,
@@ -508,9 +479,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Get user profile with verification status
-     * 
-     * @param array $params
-     * @return array
      */
     public function getUserProfile(array $params): array
     {
@@ -521,7 +489,7 @@ class UserProcedure extends BaseProcedure
         return $this->executeWithLogging('User@getUserProfile', $this->sanitizeForLogging($params), function () use ($params) {
             $result = $this->userService->getUserProfile($params['user_id']);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32002,
@@ -542,9 +510,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Update user preferences
-     * 
-     * @param array $params
-     * @return array
      */
     public function updateUserPreferences(array $params): array
     {
@@ -574,7 +539,7 @@ class UserProcedure extends BaseProcedure
                 $params['preferences']
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32003,
@@ -593,9 +558,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Add user address
-     * 
-     * @param array $params
-     * @return array
      */
     public function addUserAddress(array $params): array
     {
@@ -624,7 +586,7 @@ class UserProcedure extends BaseProcedure
                 $params['address_data']
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32004,
@@ -643,9 +605,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Add user vehicle
-     * 
-     * @param array $params
-     * @return array
      */
     public function addUserVehicle(array $params): array
     {
@@ -654,7 +613,7 @@ class UserProcedure extends BaseProcedure
             'vehicle_data' => 'required|array',
             'vehicle_data.make' => 'required|string|max:100',
             'vehicle_data.model' => 'required|string|max:100',
-            'vehicle_data.year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
+            'vehicle_data.year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
             'vehicle_data.vin' => 'sometimes|string|size:17',
             'vehicle_data.license_plate' => 'sometimes|string|max:20',
             'vehicle_data.color' => 'sometimes|string|max:50',
@@ -674,7 +633,7 @@ class UserProcedure extends BaseProcedure
                 $params['vehicle_data']
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32005,
@@ -693,9 +652,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Submit KYC verification documents
-     * 
-     * @param array $params
-     * @return array
      */
     public function submitKYCVerification(array $params): array
     {
@@ -719,7 +675,7 @@ class UserProcedure extends BaseProcedure
                 $params['kyc_data']
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32006,
@@ -738,9 +694,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Update verification status (admin only)
-     * 
-     * @param array $params
-     * @return array
      */
     public function updateVerificationStatus(array $params): array
     {
@@ -763,7 +716,7 @@ class UserProcedure extends BaseProcedure
                 $params['rejection_reason'] ?? null
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32007,
@@ -782,9 +735,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Get user activity summary
-     * 
-     * @param array $params
-     * @return array
      */
     public function getUserActivitySummary(array $params): array
     {
@@ -799,7 +749,7 @@ class UserProcedure extends BaseProcedure
                 $params['period'] ?? 'month'
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32008,
@@ -818,9 +768,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Search users with advanced filtering
-     * 
-     * @param array $params
-     * @return array
      */
     public function searchUsers(array $params): array
     {
@@ -847,7 +794,7 @@ class UserProcedure extends BaseProcedure
 
         return $this->executeWithLogging('User@searchUsers', $this->sanitizeForLogging($params), function () use ($params) {
             // Rate limiting for search operations
-            $key = 'user_search:' . request()->ip();
+            $key = 'user_search:'.request()->ip();
             if (RateLimiter::tooManyAttempts($key, 60)) {
                 throw $this->createRuntimeException(
                     'Too many search requests. Please try again later.',
@@ -860,7 +807,7 @@ class UserProcedure extends BaseProcedure
 
             $result = $this->userService->searchUsers($params['criteria'] ?? []);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32010,
@@ -880,9 +827,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Get profile completion status
-     * 
-     * @param array $params
-     * @return array
      */
     public function getProfileCompletionStatus(array $params): array
     {
@@ -893,7 +837,7 @@ class UserProcedure extends BaseProcedure
         return $this->executeWithLogging('User@getProfileCompletionStatus', $this->sanitizeForLogging($params), function () use ($params) {
             $result = $this->userService->getProfileCompletionStatus($params['user_id']);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32011,
@@ -914,9 +858,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Update user location
-     * 
-     * @param array $params
-     * @return array
      */
     public function updateUserLocation(array $params): array
     {
@@ -938,7 +879,7 @@ class UserProcedure extends BaseProcedure
                 $params['location_data']
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32012,
@@ -957,9 +898,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Get user preferences
-     * 
-     * @param array $params
-     * @return array
      */
     public function getUserPreferences(array $params): array
     {
@@ -970,7 +908,7 @@ class UserProcedure extends BaseProcedure
         return $this->executeWithLogging('User@getUserPreferences', $this->sanitizeForLogging($params), function () use ($params) {
             $result = $this->userService->getUserPreferences($params['user_id']);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw $this->createRuntimeException(
                     $result['message'],
                     -32013,
@@ -992,9 +930,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Upload user avatar via RPC
-     * 
-     * @param array $params
-     * @return array
      */
     public function uploadAvatar(array $params): array
     {
@@ -1011,7 +946,7 @@ class UserProcedure extends BaseProcedure
 
         return $this->executeWithLogging('User@uploadAvatar', $this->sanitizeForLogging($params), function () use ($params) {
             // Rate limiting for avatar uploads
-            $key = 'avatar_upload:' . $params['user_id'];
+            $key = 'avatar_upload:'.$params['user_id'];
             if (RateLimiter::tooManyAttempts($key, 5)) {
                 throw $this->createRuntimeException(
                     'Too many avatar upload attempts. Please try again later.',
@@ -1023,7 +958,7 @@ class UserProcedure extends BaseProcedure
             try {
                 // Find user
                 $user = $this->userService->getUserById($params['user_id']);
-                if (!$user) {
+                if (! $user) {
                     throw $this->createRuntimeException(
                         'User not found',
                         -32021,
@@ -1089,7 +1024,7 @@ class UserProcedure extends BaseProcedure
                 RateLimiter::hit($key, 300); // 5 minutes
 
                 throw $this->createRuntimeException(
-                    'Avatar upload failed: ' . $e->getMessage(),
+                    'Avatar upload failed: '.$e->getMessage(),
                     -32023,
                     ['user_id' => $params['user_id']]
                 );
@@ -1099,9 +1034,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Delete user avatar via RPC
-     * 
-     * @param array $params
-     * @return array
      */
     public function deleteAvatar(array $params): array
     {
@@ -1113,7 +1045,7 @@ class UserProcedure extends BaseProcedure
             try {
                 // Find user
                 $user = $this->userService->getUserById($params['user_id']);
-                if (!$user) {
+                if (! $user) {
                     throw $this->createRuntimeException(
                         'User not found',
                         -32024,
@@ -1122,7 +1054,7 @@ class UserProcedure extends BaseProcedure
                 }
 
                 // Check if user has avatar
-                if (!$user->hasAvatar()) {
+                if (! $user->hasAvatar()) {
                     throw $this->createRuntimeException(
                         'User has no avatar to delete',
                         -32025,
@@ -1133,7 +1065,7 @@ class UserProcedure extends BaseProcedure
                 // Delete avatar
                 $deleted = $this->profileService->deleteAvatar($user);
 
-                if (!$deleted) {
+                if (! $deleted) {
                     throw $this->createRuntimeException(
                         'Failed to delete avatar',
                         -32026,
@@ -1149,7 +1081,7 @@ class UserProcedure extends BaseProcedure
 
             } catch (\Exception $e) {
                 throw $this->createRuntimeException(
-                    'Avatar deletion failed: ' . $e->getMessage(),
+                    'Avatar deletion failed: '.$e->getMessage(),
                     -32027,
                     ['user_id' => $params['user_id']]
                 );
@@ -1159,9 +1091,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Get user avatar info via RPC
-     * 
-     * @param array $params
-     * @return array
      */
     public function getAvatar(array $params): array
     {
@@ -1173,7 +1102,7 @@ class UserProcedure extends BaseProcedure
             try {
                 // Find user
                 $user = $this->userService->getUserById($params['user_id']);
-                if (!$user) {
+                if (! $user) {
                     throw $this->createRuntimeException(
                         'User not found',
                         -32028,
@@ -1184,7 +1113,7 @@ class UserProcedure extends BaseProcedure
                 // Get avatar
                 $avatar = $this->profileService->getAvatar($user);
 
-                if (!$avatar) {
+                if (! $avatar) {
                     return [
                         'success' => true,
                         'avatar' => null,
@@ -1213,7 +1142,7 @@ class UserProcedure extends BaseProcedure
 
             } catch (\Exception $e) {
                 throw $this->createRuntimeException(
-                    'Failed to retrieve avatar: ' . $e->getMessage(),
+                    'Failed to retrieve avatar: '.$e->getMessage(),
                     -32029,
                     ['user_id' => $params['user_id']]
                 );
@@ -1223,9 +1152,6 @@ class UserProcedure extends BaseProcedure
 
     /**
      * Get user avatar URL via RPC
-     * 
-     * @param array $params
-     * @return array
      */
     public function getAvatarUrl(array $params): array
     {
@@ -1238,7 +1164,7 @@ class UserProcedure extends BaseProcedure
             try {
                 // Find user
                 $user = $this->userService->getUserById($params['user_id']);
-                if (!$user) {
+                if (! $user) {
                     throw $this->createRuntimeException(
                         'User not found',
                         -32030,
@@ -1261,7 +1187,7 @@ class UserProcedure extends BaseProcedure
 
             } catch (\Exception $e) {
                 throw $this->createRuntimeException(
-                    'Failed to retrieve avatar URL: ' . $e->getMessage(),
+                    'Failed to retrieve avatar URL: '.$e->getMessage(),
                     -32031,
                     ['user_id' => $params['user_id']]
                 );

@@ -83,7 +83,7 @@ class CartItem extends Model
     public function decreaseQuantity(int $amount = 1): void
     {
         $newQuantity = max(0, $this->quantity - $amount);
-        
+
         if ($newQuantity === 0) {
             $this->delete();
         } else {

@@ -17,9 +17,6 @@ class PaymentProcedure extends BaseProcedure
 
     /**
      * Process payment
-     * 
-     * @param array $params
-     * @return array
      */
     public function processPayment(array $params): array
     {
@@ -35,7 +32,7 @@ class PaymentProcedure extends BaseProcedure
 
         return $this->executeWithLogging('Payment@processPayment', $this->sanitizeForLogging($params), function () use ($params) {
             // Rate limiting for payment processing
-            $key = 'payment_process:' . ($params['customer_id'] ?? request()->ip());
+            $key = 'payment_process:'.($params['customer_id'] ?? request()->ip());
             if (RateLimiter::tooManyAttempts($key, 10)) {
                 throw new RuntimeException(
                     'Too many payment attempts. Please try again later.',
@@ -55,26 +52,26 @@ class PaymentProcedure extends BaseProcedure
                     'customer_id' => $params['customer_id'] ?? null,
                     'description' => $params['description'] ?? null,
                 ]);
-                
+
                 DB::commit();
-                
+
                 // Clear rate limiting on successful payment
                 RateLimiter::clear($key);
-                
+
                 return [
                     'success' => true,
                     'payment' => $payment,
                     'processed_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 DB::rollBack();
-                
+
                 // Increment rate limiting on failed payment
                 RateLimiter::hit($key, 600); // 10 minutes
-                
+
                 throw new RuntimeException(
-                    'Payment processing failed: ' . $e->getMessage(),
+                    'Payment processing failed: '.$e->getMessage(),
                     -32001,
                     ['order_id' => $params['order_id'], 'amount' => $params['amount']]
                 );
@@ -84,9 +81,6 @@ class PaymentProcedure extends BaseProcedure
 
     /**
      * Get payment by ID
-     * 
-     * @param array $params
-     * @return array
      */
     public function getById(array $params): array
     {
@@ -97,10 +91,10 @@ class PaymentProcedure extends BaseProcedure
 
         return $this->executeWithLogging('Payment@getById', $params, function () use ($params) {
             // Check cache first
-            $cacheKey = 'payment:' . $params['payment_id'] . ':' . 
+            $cacheKey = 'payment:'.$params['payment_id'].':'.
                        ($params['include_details'] ?? false ? 'with_details' : 'no_details');
             $cached = Cache::get($cacheKey);
-            
+
             if ($cached !== null) {
                 return $cached;
             }
@@ -110,29 +104,29 @@ class PaymentProcedure extends BaseProcedure
                     $params['payment_id'],
                     $params['include_details'] ?? false
                 );
-                
-                if (!$payment) {
+
+                if (! $payment) {
                     throw new RuntimeException(
                         'Payment not found',
                         -32001,
                         ['payment_id' => $params['payment_id']]
                     );
                 }
-                
+
                 $result = [
                     'success' => true,
                     'payment' => $payment,
                     'retrieved_at' => now()->toISOString(),
                 ];
-                
+
                 // Cache for 15 minutes
                 Cache::put($cacheKey, $result, 900);
-                
+
                 return $result;
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve payment: ' . $e->getMessage(),
+                    'Failed to retrieve payment: '.$e->getMessage(),
                     -32001,
                     ['payment_id' => $params['payment_id']]
                 );
@@ -142,9 +136,6 @@ class PaymentProcedure extends BaseProcedure
 
     /**
      * Refund payment
-     * 
-     * @param array $params
-     * @return array
      */
     public function refund(array $params): array
     {
@@ -164,23 +155,23 @@ class PaymentProcedure extends BaseProcedure
                     $params['reason'],
                     $params['notify_customer'] ?? true
                 );
-                
+
                 DB::commit();
-                
+
                 // Clear cache
-                Cache::forget('payment:' . $params['payment_id'] . ':*');
-                
+                Cache::forget('payment:'.$params['payment_id'].':*');
+
                 return [
                     'success' => true,
                     'refund' => $refund,
                     'refunded_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 DB::rollBack();
-                
+
                 throw new RuntimeException(
-                    'Payment refund failed: ' . $e->getMessage(),
+                    'Payment refund failed: '.$e->getMessage(),
                     -32002,
                     ['payment_id' => $params['payment_id']]
                 );
@@ -190,9 +181,6 @@ class PaymentProcedure extends BaseProcedure
 
     /**
      * Get payment status
-     * 
-     * @param array $params
-     * @return array
      */
     public function getStatus(array $params): array
     {
@@ -203,17 +191,17 @@ class PaymentProcedure extends BaseProcedure
         return $this->executeWithLogging('Payment@getStatus', $params, function () use ($params) {
             try {
                 $status = $this->paymentService->getPaymentStatus($params['payment_id']);
-                
+
                 return [
                     'success' => true,
                     'payment_id' => $params['payment_id'],
                     'status' => $status,
                     'checked_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to get payment status: ' . $e->getMessage(),
+                    'Failed to get payment status: '.$e->getMessage(),
                     -32001,
                     ['payment_id' => $params['payment_id']]
                 );
@@ -223,9 +211,6 @@ class PaymentProcedure extends BaseProcedure
 
     /**
      * Capture authorized payment
-     * 
-     * @param array $params
-     * @return array
      */
     public function capture(array $params): array
     {
@@ -241,23 +226,23 @@ class PaymentProcedure extends BaseProcedure
                     $params['payment_id'],
                     $params['amount'] ?? null // null for full capture
                 );
-                
+
                 DB::commit();
-                
+
                 // Clear cache
-                Cache::forget('payment:' . $params['payment_id'] . ':*');
-                
+                Cache::forget('payment:'.$params['payment_id'].':*');
+
                 return [
                     'success' => true,
                     'payment' => $result,
                     'captured_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 DB::rollBack();
-                
+
                 throw new RuntimeException(
-                    'Payment capture failed: ' . $e->getMessage(),
+                    'Payment capture failed: '.$e->getMessage(),
                     -32003,
                     ['payment_id' => $params['payment_id']]
                 );
@@ -267,9 +252,6 @@ class PaymentProcedure extends BaseProcedure
 
     /**
      * Void authorized payment
-     * 
-     * @param array $params
-     * @return array
      */
     public function void(array $params): array
     {
@@ -285,23 +267,23 @@ class PaymentProcedure extends BaseProcedure
                     $params['payment_id'],
                     $params['reason'] ?? null
                 );
-                
+
                 DB::commit();
-                
+
                 // Clear cache
-                Cache::forget('payment:' . $params['payment_id'] . ':*');
-                
+                Cache::forget('payment:'.$params['payment_id'].':*');
+
                 return [
                     'success' => true,
                     'payment' => $result,
                     'voided_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 DB::rollBack();
-                
+
                 throw new RuntimeException(
-                    'Payment void failed: ' . $e->getMessage(),
+                    'Payment void failed: '.$e->getMessage(),
                     -32004,
                     ['payment_id' => $params['payment_id']]
                 );
@@ -311,9 +293,6 @@ class PaymentProcedure extends BaseProcedure
 
     /**
      * Get customer payments
-     * 
-     * @param array $params
-     * @return array
      */
     public function getCustomerPayments(array $params): array
     {
@@ -336,17 +315,17 @@ class PaymentProcedure extends BaseProcedure
                     'page' => $params['page'] ?? 1,
                     'per_page' => $params['per_page'] ?? 20,
                 ]);
-                
+
                 return [
                     'success' => true,
                     'payments' => $results['data'],
                     'pagination' => $results['pagination'],
                     'retrieved_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve customer payments: ' . $e->getMessage(),
+                    'Failed to retrieve customer payments: '.$e->getMessage(),
                     -32005,
                     ['customer_id' => $params['customer_id']]
                 );
@@ -356,9 +335,6 @@ class PaymentProcedure extends BaseProcedure
 
     /**
      * Create payment method
-     * 
-     * @param array $params
-     * @return array
      */
     public function createPaymentMethod(array $params): array
     {
@@ -377,16 +353,16 @@ class PaymentProcedure extends BaseProcedure
                     'details' => $params['details'],
                     'is_default' => $params['is_default'] ?? false,
                 ]);
-                
+
                 return [
                     'success' => true,
                     'payment_method' => $paymentMethod,
                     'created_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Payment method creation failed: ' . $e->getMessage(),
+                    'Payment method creation failed: '.$e->getMessage(),
                     -32006,
                     ['customer_id' => $params['customer_id'], 'type' => $params['type']]
                 );
@@ -396,9 +372,6 @@ class PaymentProcedure extends BaseProcedure
 
     /**
      * Get customer payment methods
-     * 
-     * @param array $params
-     * @return array
      */
     public function getPaymentMethods(array $params): array
     {
@@ -410,11 +383,11 @@ class PaymentProcedure extends BaseProcedure
 
         return $this->executeWithLogging('Payment@getPaymentMethods', $params, function () use ($params) {
             // Check cache first
-            $cacheKey = 'payment_methods:' . $params['customer_id'] . ':' . 
-                       ($params['type'] ?? 'all') . ':' . 
+            $cacheKey = 'payment_methods:'.$params['customer_id'].':'.
+                       ($params['type'] ?? 'all').':'.
                        ($params['active_only'] ?? false ? 'active' : 'all');
             $cached = Cache::get($cacheKey);
-            
+
             if ($cached !== null) {
                 return $cached;
             }
@@ -425,21 +398,21 @@ class PaymentProcedure extends BaseProcedure
                     $params['type'] ?? null,
                     $params['active_only'] ?? true
                 );
-                
+
                 $result = [
                     'success' => true,
                     'payment_methods' => $paymentMethods,
                     'retrieved_at' => now()->toISOString(),
                 ];
-                
+
                 // Cache for 10 minutes
                 Cache::put($cacheKey, $result, 600);
-                
+
                 return $result;
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve payment methods: ' . $e->getMessage(),
+                    'Failed to retrieve payment methods: '.$e->getMessage(),
                     -32007,
                     ['customer_id' => $params['customer_id']]
                 );
@@ -449,9 +422,6 @@ class PaymentProcedure extends BaseProcedure
 
     /**
      * Delete payment method
-     * 
-     * @param array $params
-     * @return array
      */
     public function deletePaymentMethod(array $params): array
     {
@@ -466,19 +436,19 @@ class PaymentProcedure extends BaseProcedure
                     $params['payment_method_id'],
                     $params['customer_id']
                 );
-                
+
                 // Clear cache
-                Cache::forget('payment_methods:' . $params['customer_id'] . ':*');
-                
+                Cache::forget('payment_methods:'.$params['customer_id'].':*');
+
                 return [
                     'success' => true,
                     'deleted' => $result,
                     'deleted_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Payment method deletion failed: ' . $e->getMessage(),
+                    'Payment method deletion failed: '.$e->getMessage(),
                     -32008,
                     ['payment_method_id' => $params['payment_method_id']]
                 );
@@ -488,9 +458,6 @@ class PaymentProcedure extends BaseProcedure
 
     /**
      * Get payment statistics
-     * 
-     * @param array $params
-     * @return array
      */
     public function getStatistics(array $params): array
     {
@@ -504,18 +471,18 @@ class PaymentProcedure extends BaseProcedure
             $period = $params['period'] ?? 'month';
             $currency = $params['currency'] ?? null;
             $paymentMethod = $params['payment_method'] ?? null;
-            
+
             // Check cache first
-            $cacheKey = 'payment_stats:' . $period . ':' . ($currency ?? 'all') . ':' . ($paymentMethod ?? 'all');
+            $cacheKey = 'payment_stats:'.$period.':'.($currency ?? 'all').':'.($paymentMethod ?? 'all');
             $cached = Cache::get($cacheKey);
-            
+
             if ($cached !== null) {
                 return $cached;
             }
 
             try {
                 $statistics = $this->paymentService->getPaymentStatistics($period, $currency, $paymentMethod);
-                
+
                 $result = [
                     'success' => true,
                     'statistics' => $statistics,
@@ -526,15 +493,15 @@ class PaymentProcedure extends BaseProcedure
                     ],
                     'generated_at' => now()->toISOString(),
                 ];
-                
+
                 // Cache for 30 minutes
                 Cache::put($cacheKey, $result, 1800);
-                
+
                 return $result;
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Failed to retrieve payment statistics: ' . $e->getMessage(),
+                    'Failed to retrieve payment statistics: '.$e->getMessage(),
                     -32009,
                     ['period' => $period]
                 );
@@ -544,9 +511,6 @@ class PaymentProcedure extends BaseProcedure
 
     /**
      * Verify webhook signature
-     * 
-     * @param array $params
-     * @return array
      */
     public function verifyWebhook(array $params): array
     {
@@ -563,17 +527,17 @@ class PaymentProcedure extends BaseProcedure
                     $params['signature'],
                     $params['provider']
                 );
-                
+
                 return [
                     'success' => true,
                     'verified' => $result['verified'],
                     'event_type' => $result['event_type'] ?? null,
                     'verified_at' => now()->toISOString(),
                 ];
-                
+
             } catch (\Exception $e) {
                 throw new RuntimeException(
-                    'Webhook verification failed: ' . $e->getMessage(),
+                    'Webhook verification failed: '.$e->getMessage(),
                     -32010,
                     ['provider' => $params['provider']]
                 );

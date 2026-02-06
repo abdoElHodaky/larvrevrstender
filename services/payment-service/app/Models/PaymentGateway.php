@@ -40,10 +40,15 @@ class PaymentGateway extends Model
     ];
 
     const PROVIDER_STRIPE = 'stripe';
+
     const PROVIDER_PAYPAL = 'paypal';
+
     const PROVIDER_RAZORPAY = 'razorpay';
+
     const PROVIDER_MOYASAR = 'moyasar';
+
     const PROVIDER_HYPERPAY = 'hyperpay';
+
     const PROVIDER_TABBY = 'tabby';
 
     /**
@@ -116,10 +121,10 @@ class PaymentGateway extends Model
     public function getProcessingFee(float $amount): float
     {
         $fees = $this->fees ?? [];
-        
+
         $fixedFee = $fees['fixed'] ?? 0;
         $percentageFee = ($fees['percentage'] ?? 0) / 100;
-        
+
         return $fixedFee + ($amount * $percentageFee);
     }
 
@@ -129,10 +134,10 @@ class PaymentGateway extends Model
     public function isAmountWithinLimits(float $amount): bool
     {
         $limits = $this->limits ?? [];
-        
+
         $minAmount = $limits['min'] ?? 0;
         $maxAmount = $limits['max'] ?? PHP_FLOAT_MAX;
-        
+
         return $amount >= $minAmount && $amount <= $maxAmount;
     }
 

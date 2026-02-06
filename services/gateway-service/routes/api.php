@@ -1,32 +1,53 @@
 <?php
 
+use App\Http\Controllers\GatewayController;
 use App\Http\Controllers\HealthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| Gateway API Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
+| Gateway service routes that serve as the main entry point for all
+| external requests and route them to appropriate microservices.
 |
 */
 
-// Health check routes
-Route::get('/health', [HealthController::class, 'check']);
+// Gateway health check (includes cross-service status)
+Route::get('/health', [GatewayController::class, 'health']);
 Route::get('/up', [HealthController::class, 'up']);
 
-// Service info route
+// Gateway service info
 Route::get('/info', function () {
     return response()->json([
-        'service' => 'auth-service',
+        'service' => 'gateway-service',
         'version' => config('app.version', '1.0.0'),
         'environment' => config('app.env'),
         'timestamp' => now()->toISOString(),
+        'role' => 'main_entry_point',
     ]);
+});
+
+// Cross-service operations through gateway
+Route::prefix('gateway')->group(function () {
+    // Service discovery
+    Route::get('/discover/{serviceName}', [GatewayController::class, 'discoverService']);
+    Route::get('/services', [GatewayController::class, 'getServiceRegistry']);
+
+    // Event publishing through gateway
+    Route::post('/events/publish', [GatewayController::class, 'publishEvent']);
+
+    // Cache operations through gateway
+    Route::post('/cache/{operation}', [GatewayController::class, 'cacheOperation'])
+        ->where('operation', 'set|get|delete|exists|stats|flush');
+
+    // Request validation
+    Route::post('/validate', [GatewayController::class, 'validateRequest']);
+
+    // Authentication
+    Route::post('/authenticate', [GatewayController::class, 'authenticate']);
 });
 
 // Authentication routes
@@ -75,12 +96,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{user}', [App\Http\Controllers\UserController::class, 'show']);
         Route::put('/{user}', [App\Http\Controllers\UserController::class, 'update']);
         Route::delete('/{user}', [App\Http\Controllers\UserController::class, 'destroy']);
-        
+
         // User permissions
         Route::get('/{user}/permissions', [App\Http\Controllers\UserController::class, 'getPermissions']);
         Route::post('/{user}/permissions', [App\Http\Controllers\UserController::class, 'assignPermissions']);
         Route::delete('/{user}/permissions', [App\Http\Controllers\UserController::class, 'revokePermissions']);
-        
+
         // User roles
         Route::get('/{user}/roles', [App\Http\Controllers\UserController::class, 'getRoles']);
         Route::post('/{user}/roles', [App\Http\Controllers\UserController::class, 'assignRoles']);
@@ -112,3 +133,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{role}', [App\Http\Controllers\RoleController::class, 'destroy']);
     });
 });
+
+// Service routing - Gateway as main entry point
+// Route all service requests through the gateway
+Route::any('/services/{service}/{path?}', [GatewayController::class, 'routeToService'])
+    ->where('service', '[a-zA-Z0-9_-]+')
+    ->where('path', '.*');

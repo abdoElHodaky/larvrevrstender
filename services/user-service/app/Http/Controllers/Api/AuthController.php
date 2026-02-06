@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Clients\AuthServiceClient;
-use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use App\Models\User;
 
 class AuthController extends Controller
 {
@@ -89,7 +89,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials',
@@ -164,10 +164,10 @@ class AuthController extends Controller
     {
         try {
             $user = $request->user();
-            
+
             // Revoke current token
             $request->user()->currentAccessToken()->delete();
-            
+
             // Create new token
             $token = $user->createToken('api-token')->plainTextToken;
 
@@ -214,8 +214,8 @@ class AuthController extends Controller
 
             // Find user by token
             $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
-            
-            if (!$accessToken || !$accessToken->tokenable) {
+
+            if (! $accessToken || ! $accessToken->tokenable) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid token',

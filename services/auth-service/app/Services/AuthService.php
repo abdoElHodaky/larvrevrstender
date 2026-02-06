@@ -279,7 +279,7 @@ class AuthService
     private function validateRegistrationData(array $userData): void
     {
         $required = ['name', 'phone', 'password'];
-        
+
         foreach ($required as $field) {
             if (empty($userData[$field])) {
                 throw new \Exception("Field {$field} is required");
@@ -287,18 +287,18 @@ class AuthService
         }
 
         // Validate phone format (Saudi format)
-        if (!preg_match('/^(\+966|966|0)?[5][0-9]{8}$/', $userData['phone'])) {
+        if (! preg_match('/^(\+966|966|0)?[5][0-9]{8}$/', $userData['phone'])) {
             throw new \Exception('Invalid Saudi phone number format');
         }
 
         // Validate email format if provided
-        if (isset($userData['email']) && !filter_var($userData['email'], FILTER_VALIDATE_EMAIL)) {
+        if (isset($userData['email']) && ! filter_var($userData['email'], FILTER_VALIDATE_EMAIL)) {
             throw new \Exception('Invalid email format');
         }
 
         // Validate user type
         $validTypes = [User::TYPE_CUSTOMER, User::TYPE_MERCHANT, User::TYPE_ADMIN];
-        if (isset($userData['type']) && !in_array($userData['type'], $validTypes)) {
+        if (isset($userData['type']) && ! in_array($userData['type'], $validTypes)) {
             throw new \Exception('Invalid user type');
         }
 
@@ -317,26 +317,26 @@ class AuthService
             throw new \Exception('Password must be at least 8 characters long');
         }
 
-        if (!preg_match('/[A-Z]/', $password)) {
+        if (! preg_match('/[A-Z]/', $password)) {
             throw new \Exception('Password must contain at least one uppercase letter');
         }
 
-        if (!preg_match('/[a-z]/', $password)) {
+        if (! preg_match('/[a-z]/', $password)) {
             throw new \Exception('Password must contain at least one lowercase letter');
         }
 
-        if (!preg_match('/[0-9]/', $password)) {
+        if (! preg_match('/[0-9]/', $password)) {
             throw new \Exception('Password must contain at least one number');
         }
 
-        if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+        if (! preg_match('/[^A-Za-z0-9]/', $password)) {
             throw new \Exception('Password must contain at least one special character');
         }
 
         // Check against common passwords
         $commonPasswords = [
             'password', '123456', '123456789', 'qwerty', 'abc123',
-            'password123', 'admin', 'letmein', 'welcome', '12345678'
+            'password123', 'admin', 'letmein', 'welcome', '12345678',
         ];
 
         if (in_array(strtolower($password), $commonPasswords)) {
@@ -351,11 +351,11 @@ class AuthService
     {
         try {
             // Check for account lockout
-            $lockoutKey = 'login_attempts:' . $identifier;
+            $lockoutKey = 'login_attempts:'.$identifier;
             $attempts = cache()->get($lockoutKey, 0);
-            
+
             if ($attempts >= 5) {
-                $lockoutTime = cache()->get($lockoutKey . ':locked_until');
+                $lockoutTime = cache()->get($lockoutKey.':locked_until');
                 if ($lockoutTime && now()->lt($lockoutTime)) {
                     throw new \Exception('Account temporarily locked due to too many failed attempts. Try again later.');
                 }
@@ -363,28 +363,28 @@ class AuthService
 
             // Find user by phone or email
             $user = User::where('phone', $identifier)
-                       ->orWhere('email', $identifier)
-                       ->first();
+                ->orWhere('email', $identifier)
+                ->first();
 
-            if (!$user || !Hash::check($password, $user->password)) {
+            if (! $user || ! Hash::check($password, $user->password)) {
                 // Increment failed attempts
                 cache()->put($lockoutKey, $attempts + 1, now()->addMinutes(15));
-                
+
                 if ($attempts + 1 >= 5) {
-                    cache()->put($lockoutKey . ':locked_until', now()->addMinutes(30), now()->addMinutes(30));
+                    cache()->put($lockoutKey.':locked_until', now()->addMinutes(30), now()->addMinutes(30));
                 }
-                
+
                 throw new \Exception('Invalid credentials');
             }
 
             // Check if user is active
-            if (!$user->isActive()) {
+            if (! $user->isActive()) {
                 throw new \Exception('Account is not active');
             }
 
             // Clear failed attempts on successful login
             cache()->forget($lockoutKey);
-            cache()->forget($lockoutKey . ':locked_until');
+            cache()->forget($lockoutKey.':locked_until');
 
             // Update last login information
             $user->updateLastLogin(request()->ip() ?? '127.0.0.1');
@@ -392,14 +392,14 @@ class AuthService
             // Create token with appropriate abilities
             $deviceName = $options['device_name'] ?? 'Unknown Device';
             $expiresAt = $options['remember'] ?? false ? now()->addDays(30) : now()->addHours(24);
-            
+
             try {
                 $token = $user->createToken($deviceName, $user->getTokenAbilities(), $expiresAt);
                 $tokenString = $token->plainTextToken;
             } catch (\Exception $e) {
                 // Fallback: generate a simple token if createToken fails
                 Log::warning('Token creation failed, using fallback', ['error' => $e->getMessage()]);
-                $tokenString = 'fallback_token_' . Str::random(40);
+                $tokenString = 'fallback_token_'.Str::random(40);
             }
 
             // Log successful login
@@ -416,7 +416,7 @@ class AuthService
                 'token_type' => 'Bearer',
                 'expires_at' => $expiresAt->toISOString(),
                 'abilities' => $user->getTokenAbilities(),
-                'requires_verification' => !$user->isVerified(),
+                'requires_verification' => ! $user->isVerified(),
             ];
 
         } catch (\Exception $e) {
@@ -441,8 +441,8 @@ class AuthService
         try {
             // Find the token
             $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
-            
-            if (!$accessToken) {
+
+            if (! $accessToken) {
                 return [
                     'valid' => false,
                     'error' => 'Invalid token',
@@ -460,7 +460,7 @@ class AuthService
             $user = $accessToken->tokenable;
 
             // Check if user is still active
-            if (!$user->isActive()) {
+            if (! $user->isActive()) {
                 return [
                     'valid' => false,
                     'error' => 'User account is not active',
@@ -484,7 +484,7 @@ class AuthService
         } catch (\Exception $e) {
             Log::error('Token verification failed', [
                 'error' => $e->getMessage(),
-                'token' => substr($token, 0, 10) . '...',
+                'token' => substr($token, 0, 10).'...',
             ]);
 
             return [
@@ -501,10 +501,10 @@ class AuthService
     {
         try {
             $user = User::where('phone', $identifier)
-                       ->orWhere('email', $identifier)
-                       ->first();
+                ->orWhere('email', $identifier)
+                ->first();
 
-            if (!$user) {
+            if (! $user) {
                 // Don't reveal if user exists or not for security
                 return [
                     'success' => true,
@@ -517,7 +517,7 @@ class AuthService
 
             return [
                 'success' => $otpResult['success'],
-                'message' => $otpResult['success'] 
+                'message' => $otpResult['success']
                     ? 'Password reset code sent to your phone'
                     : 'Failed to send reset code',
             ];
@@ -543,8 +543,8 @@ class AuthService
         try {
             // Verify OTP
             $otpResult = $this->otpService->verifyOtp($phone, $otp, 'password_reset');
-            
-            if (!$otpResult['valid']) {
+
+            if (! $otpResult['valid']) {
                 return [
                     'success' => false,
                     'message' => 'Invalid or expired reset code',
@@ -552,8 +552,8 @@ class AuthService
             }
 
             $user = User::where('phone', $phone)->first();
-            
-            if (!$user) {
+
+            if (! $user) {
                 return [
                     'success' => false,
                     'message' => 'User not found',

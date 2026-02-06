@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -118,7 +118,7 @@ class User extends Authenticatable
     {
         $requiredDocuments = ['identity', 'proof_of_address'];
         $approvedTypes = $this->approvedKycDocuments->pluck('document_type')->toArray();
-        
+
         return count(array_intersect($requiredDocuments, $approvedTypes)) === count($requiredDocuments);
     }
 
@@ -129,8 +129,9 @@ class User extends Authenticatable
     {
         $requiredDocuments = ['identity', 'proof_of_address'];
         $submittedTypes = $this->kycDocuments()->active()->distinct('document_type')->pluck('document_type')->toArray();
-        
+
         $completed = count(array_intersect($requiredDocuments, $submittedTypes));
+
         return (int) (($completed / count($requiredDocuments)) * 100);
     }
 

@@ -2,8 +2,8 @@
 
 namespace App\Events;
 
-use App\Models\User;
 use App\Models\KycDocument;
+use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -13,7 +13,9 @@ class KycDocumentApproved
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public User $user;
+
     public KycDocument $document;
+
     public ?string $notes;
 
     /**
@@ -42,4 +44,3 @@ class KycDocumentApproved
         ];
     }
 }
-
