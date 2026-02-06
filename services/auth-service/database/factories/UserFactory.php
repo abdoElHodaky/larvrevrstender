@@ -71,7 +71,6 @@ class UserFactory extends Factory
     }
 
     /**
-<<<<<<< HEAD
      * Indicate that the user should be an admin user.
      */
     public function admin(): static
@@ -87,13 +86,6 @@ class UserFactory extends Factory
     public function customer(): static
     {
         return $this->state(fn (array $attributes) => [
-=======
-     * Indicate that the user should be a customer user.
-     */
-    public function customer(): static
-    {
-        return $this->state(fn (array $attributes) => [
->>>>>>> origin/feature/laravel-session-management
             'type' => 'customer',
         ]);
     }
