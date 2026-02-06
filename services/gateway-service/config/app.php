@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Gateway Service'),
+    'name' => env('APP_NAME', 'Auth Service'),
 
     /*
     |--------------------------------------------------------------------------

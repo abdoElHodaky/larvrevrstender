@@ -729,15 +729,19 @@
 #25 /tmp/abdoElHodaky/larvrevrstender/services/auth-service/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
 #26 {main}
 "} 
-[2026-02-05 19:54:50] production.ERROR: Class "Laravel\Sanctum\Sanctum" not found {"exception":"[object] (Error(code: 0): Class \"Laravel\\Sanctum\\Sanctum\" not found at /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/config/sanctum.php:21)
-[stacktrace]
-#0 /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(115): require()
-#1 /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(115): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->Illuminate\\Foundation\\Bootstrap\\{closure}()
-#2 /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(96): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->loadConfigurationFile()
-#3 /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php(55): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->loadConfigurationFiles()
-#4 /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(342): Illuminate\\Foundation\\Bootstrap\\LoadConfiguration->bootstrap()
-#5 /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(494): Illuminate\\Foundation\\Application->bootstrapWith()
-#6 /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(196): Illuminate\\Foundation\\Console\\Kernel->bootstrap()
-#7 /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
-#8 {main}
-"} 
+[2026-02-05 22:45:46] testing.ERROR: Registration failed: Phone number already registered  
+[2026-02-05 22:45:46] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-02-05 22:45:46] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-02-05 22:45:46] testing.WARNING: Login attempt failed {"identifier":"+966501234567","ip":"127.0.0.1","error":"Account is not active"} 
+[2026-02-05 22:45:46] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-02-05 22:45:46] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-02-05 22:45:46] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-02-05 22:45:46] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-02-05 22:48:02] testing.ERROR: Registration failed: Phone number already registered  
+[2026-02-05 22:48:02] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-02-05 22:48:02] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-02-05 22:48:02] testing.WARNING: Login attempt failed {"identifier":"+966501234567","ip":"127.0.0.1","error":"Account is not active"} 
+[2026-02-05 22:48:02] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-02-05 22:48:02] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-02-05 22:48:02] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-02-05 22:48:02] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 

@@ -3,6 +3,10 @@
 namespace App\RPC\Procedures;
 
 use App\RPC\BaseProcedure;
+use App\RPC\Procedures\Micro\SessionValidationProcedure;
+use App\RPC\Procedures\Micro\SessionManagementProcedure;
+use App\RPC\Procedures\Micro\SessionSecurityProcedure;
+use App\RPC\Procedures\Micro\SessionAnalyticsProcedure;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PermissionController;
@@ -13,6 +17,7 @@ use Illuminate\Support\Facades\Log;
 
 class AuthProcedure extends BaseProcedure
 {
+    use SessionValidationProcedure, SessionManagementProcedure, SessionSecurityProcedure, SessionAnalyticsProcedure;
     /**
      * Validate authentication token
      * 

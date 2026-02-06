@@ -3,7 +3,7 @@
         'name' => 'larvrevrstender/gateway-service',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'f9e0da9a66032b033b5816ec1fe6438026b35319',
+        'reference' => 'fca93c2ab213f94e77b9eb4c3f6da89b0a7b023f',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -391,7 +391,7 @@
         'larvrevrstender/gateway-service' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'f9e0da9a66032b033b5816ec1fe6438026b35319',
+            'reference' => 'fca93c2ab213f94e77b9eb4c3f6da89b0a7b023f',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
