@@ -23,7 +23,8 @@ RUN docker-php-ext-install -j$(nproc) \
     bcmath \
     gd \
     zip \
-    intl
+    intl \
+    exif
 
 WORKDIR /var/www/html
 
@@ -65,6 +66,7 @@ RUN docker-php-ext-install -j$(nproc) \
     pcntl \
     bcmath \
     intl \
+    exif \
     && docker-php-ext-enable opcache
 
 # Install Redis (skip if already installed)
