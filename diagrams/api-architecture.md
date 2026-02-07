@@ -7,23 +7,44 @@ The **Complete API Architecture** provides **80+ endpoints** across multiple ser
 ## 🏗️ **Complete API Architecture Overview**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#45B7D1',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#6BC5D8',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#54A0FF',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#45B7D1',
+    'edgeLabelBackground': '#334155',
+    'nodeTextColor': '#FFFFFF',
+    'edgeColor': '#4ECDC4'
+  }
+}}%%
+
 graph TB
-    subgraph "Client Layer"
+    subgraph "🌐 CLIENT LAYER"
         WEB_CLIENT[🌐 Web Clients<br/>• React/Vue apps<br/>• Mobile apps<br/>• Third-party integrations]
         API_CLIENT[🔌 API Clients<br/>• SDKs<br/>• CLI tools<br/>• Automation scripts]
     end
 
-    subgraph "API Gateway Layer"
+    subgraph "🚪 API GATEWAY LAYER"
         GATEWAY[🚪 API Gateway<br/>Port: 8000<br/>• Request routing<br/>• Load balancing<br/>• Rate limiting]
         
-        subgraph "Protocol Support"
+        subgraph "⚡ Protocol Support"
             REST_HANDLER[🌐 REST Handler<br/>• HTTP methods<br/>• Resource-based<br/>• JSON responses]
             RPC_HANDLER[⚡ RPC Handler<br/>• JSON-RPC 2.0<br/>• Method calls<br/>• Batch requests]
         end
     end
 
-    subgraph "API Categories (80+ Endpoints)"
-        subgraph "Core Infrastructure APIs (40+ endpoints)"
+    subgraph "📡 API CATEGORIES (80+ Endpoints)"
+        subgraph "⚡ Core Infrastructure APIs (40+ endpoints)"
             EVENT_API[📡 Event Publishing API<br/>• /api/event-publishing/*<br/>• Publish, subscribe, status<br/>• Event routing & delivery]
             CACHE_API[💾 Cache Management API<br/>• /api/cache-management/*<br/>• Set, get, delete, flush<br/>• TTL & tag management]
             NOTIFY_API[📢 Notification API<br/>• /api/notification/*<br/>• Send, bulk, status<br/>• Multi-channel delivery]
@@ -31,27 +52,27 @@ graph TB
             SEC_API[🔐 Security API<br/>• /api/security/*<br/>• Encrypt, decrypt, tokens<br/>• Auth & authorization]
         end
         
-        subgraph "Circuit Breaker APIs (10+ endpoints)"
+        subgraph "🛡️ Circuit Breaker APIs (10+ endpoints)"
             CB_API[🛡️ Circuit Breaker API<br/>• /api/circuit-breaker/*<br/>• Stats, reset, force-open<br/>• Sync protection]
             QCB_API[⚡ Queue Circuit Breaker API<br/>• /api/queue-circuit-breaker/*<br/>• Dispatch, stats, health<br/>• Async protection]
         end
         
-        subgraph "Integration & Workflow APIs (20+ endpoints)"
+        subgraph "🔌 Integration & Workflow APIs (20+ endpoints)"
             TPI_API[🔌 Third-Party Integration API<br/>• /api/third-party-integration/*<br/>• Initialize, call, webhook<br/>• External services]
             WF_API[🔄 Workflow API<br/>• /api/workflow/*<br/>• Start, status, register<br/>• Orchestration management]
         end
         
-        subgraph "Business Domain APIs (10+ endpoints)"
+        subgraph "🎯 Business Domain APIs (10+ endpoints)"
             TENDER_API[📋 Tender API<br/>• /api/tenders/*<br/>• CRUD operations<br/>• Bidding management]
             USER_API[👤 User API<br/>• /api/users/*<br/>• Profile management<br/>• Authentication]
         end
     end
 
-    subgraph "Shared Service Hub"
+    subgraph "🎯 SHARED SERVICE HUB"
         SHARED_SERVICE[🎯 Shared Service<br/>Port: 8001<br/>• Cross-service orchestration<br/>• Procedure execution<br/>• State management]
     end
 
-    subgraph "Response & Error Handling"
+    subgraph "📋 RESPONSE & ERROR HANDLING"
         RESPONSE_FORMAT[📋 Consistent Response Format<br/>• Success/error structure<br/>• Metadata inclusion<br/>• Trace ID tracking]
         ERROR_HANDLER[❌ Error Handler<br/>• HTTP status codes<br/>• Error categorization<br/>• Circuit breaker errors]
         RATE_LIMITER[⏳ Rate Limiter<br/>• Per-endpoint limits<br/>• Burst handling<br/>• Quota management]
@@ -107,16 +128,16 @@ graph TB
     TPI_API --> SHARED_SERVICE
     WF_API --> SHARED_SERVICE
 
-    %% Styling
-    classDef clientStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
-    classDef gatewayStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000
-    classDef protocolStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
-    classDef coreApiStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    classDef cbApiStyle fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    classDef intApiStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
-    classDef domainApiStyle fill:#f1f8e9,stroke:#388e3c,stroke-width:2px,color:#000
-    classDef sharedStyle fill:#fce4ec,stroke:#ad1457,stroke-width:2px,color:#000
-    classDef responseStyle fill:#fff8e1,stroke:#f9a825,stroke-width:2px,color:#000
+    %% Distinguished Eye-Catching Styling
+    classDef clientStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef gatewayStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef protocolStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef coreApiStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef cbApiStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef intApiStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef domainApiStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef sharedStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef responseStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
 
     class WEB_CLIENT,API_CLIENT clientStyle
     class GATEWAY gatewayStyle
@@ -542,4 +563,3 @@ graph TB
 - **SDK Generation** support for multiple languages
 
 This complete API architecture provides enterprise-grade capabilities with comprehensive functionality, robust protection mechanisms, and excellent developer experience across all service categories.
-

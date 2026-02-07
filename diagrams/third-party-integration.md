@@ -7,29 +7,50 @@ The **Third-Party Integration Framework** provides standardized patterns for con
 ## 🏗️ **Complete Integration Architecture**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#54A0FF',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#7BB3FF',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#54A0FF',
+    'edgeLabelBackground': '#334155',
+    'nodeTextColor': '#FFFFFF',
+    'edgeColor': '#4ECDC4'
+  }
+}}%%
+
 graph TB
-    subgraph "Integration Management Layer"
+    subgraph "🔧 INTEGRATION MANAGEMENT LAYER"
         INT_PROC[🔌 Third-Party Integration Procedure<br/>• Service initialization<br/>• API call management<br/>• Webhook handling]
         INT_MANAGER[⚙️ Integration Manager<br/>• Service registry<br/>• Configuration management<br/>• Instance lifecycle]
     end
 
-    subgraph "Base Integration Framework"
+    subgraph "🏗️ BASE INTEGRATION FRAMEWORK"
         BASE_INT[🏗️ Base Third-Party Integration<br/>• Common functionality<br/>• Authentication handling<br/>• Error management]
         
-        subgraph "Authentication Strategies"
+        subgraph "🔐 Authentication Strategies"
             BEARER_AUTH[🔑 Bearer Token Authentication<br/>• JWT tokens<br/>• API keys<br/>• OAuth2 tokens]
             API_KEY_AUTH[🗝️ API Key Authentication<br/>• Header-based keys<br/>• Query parameter keys<br/>• Custom header formats]
             OAUTH_AUTH[🔐 OAuth2 Authentication<br/>• Authorization code flow<br/>• Client credentials<br/>• Token refresh]
         end
         
-        subgraph "Protection Mechanisms"
+        subgraph "🛡️ Protection Mechanisms"
             RATE_LIMITER[⏳ Rate Limiting<br/>• Request throttling<br/>• Sliding window<br/>• Per-service limits]
             RETRY_LOGIC[🔄 Retry Logic<br/>• Exponential backoff<br/>• Configurable delays<br/>• Max retry limits]
             CB_PROTECTION[🛡️ Circuit Breaker<br/>• Request protection<br/>• Failure detection<br/>• Auto recovery]
         end
     end
 
-    subgraph "Service Integrations"
+    subgraph "⚡ SERVICE INTEGRATIONS"
         STRIPE_INT[💳 Stripe Integration<br/>• Payment processing<br/>• Customer management<br/>• Webhook handling]
         MAILGUN_INT[📧 Mailgun Integration<br/>• Email delivery<br/>• Template management<br/>• Delivery tracking]
         TWILIO_INT[📱 Twilio Integration<br/>• SMS delivery<br/>• Voice calls<br/>• Verification codes]
@@ -37,7 +58,7 @@ graph TB
         CUSTOM_INT[🎯 Custom Integrations<br/>• Business-specific<br/>• Domain services<br/>• Legacy systems]
     end
 
-    subgraph "External Services"
+    subgraph "🌐 EXTERNAL SERVICES"
         STRIPE_API[💳 Stripe API<br/>api.stripe.com]
         MAILGUN_API[📧 Mailgun API<br/>api.mailgun.net]
         TWILIO_API[📱 Twilio API<br/>api.twilio.com]
@@ -45,13 +66,13 @@ graph TB
         CUSTOM_API[🌐 Custom APIs<br/>External services]
     end
 
-    subgraph "Event Handling"
+    subgraph "🎣 EVENT HANDLING"
         WEBHOOK_HANDLER[🎣 Webhook Handler<br/>• Signature verification<br/>• Event routing<br/>• Processing logic]
         SIG_VERIFIER[🔐 Signature Verifier<br/>• HMAC validation<br/>• Timestamp checking<br/>• Replay protection]
         EVENT_PROCESSOR[⚡ Event Processor<br/>• Event parsing<br/>• Business logic<br/>• Response handling]
     end
 
-    subgraph "State Management"
+    subgraph "💾 STATE MANAGEMENT"
         TOKEN_CACHE[(🔴 Token Cache<br/>Redis<br/>• Access tokens<br/>• Refresh tokens<br/>• Expiration tracking)]
         RATE_CACHE[(📊 Rate Limit Cache<br/>Redis<br/>• Request counters<br/>• Window tracking<br/>• Quota management)]
         CB_STATE[(🛡️ Circuit Breaker State<br/>Redis<br/>• Circuit status<br/>• Failure metrics<br/>• Recovery timers)]
@@ -101,15 +122,15 @@ graph TB
     RATE_LIMITER --> RATE_CACHE
     CB_PROTECTION --> CB_STATE
 
-    %% Styling
-    classDef managementStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
-    classDef baseStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    classDef authStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    classDef protectionStyle fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    classDef serviceStyle fill:#fff8e1,stroke:#f9a825,stroke-width:2px,color:#000
-    classDef externalStyle fill:#fce4ec,stroke:#ad1457,stroke-width:2px,color:#000
-    classDef webhookStyle fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000
-    classDef stateStyle fill:#f1f8e9,stroke:#33691e,stroke-width:2px,color:#000
+    %% Distinguished Eye-Catching Styling
+    classDef managementStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef baseStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef authStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef protectionStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef serviceStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef externalStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef webhookStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef stateStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
 
     class INT_PROC,INT_MANAGER managementStyle
     class BASE_INT baseStyle
@@ -126,12 +147,29 @@ graph TB
 ### **Authentication Flow Diagram**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'actorBkg': '#54A0FF',
+    'actorBorder': '#7BB3FF',
+    'actorTextColor': '#FFFFFF',
+    'activationBkgColor': '#4ECDC4',
+    'activationBorderColor': '#7ED6D1',
+    'noteBkgColor': '#FECA57',
+    'noteTextColor': '#000000',
+    'noteBorderColor': '#FED876',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'primaryTextColor': '#FFFFFF'
+  }
+}}%%
+
 sequenceDiagram
-    participant App
-    participant Integration
-    participant TokenCache
-    participant ExternalAPI
-    participant AuthServer
+    participant App as 🌐 App
+    participant Integration as 🔌 Integration
+    participant TokenCache as 💾 Token Cache
+    participant ExternalAPI as 🌐 External API
+    participant AuthServer as 🔐 Auth Server
 
     App->>Integration: Initialize Service
     Integration->>TokenCache: Check Cached Token
@@ -596,4 +634,3 @@ graph TB
 - **Historical Analytics** for capacity planning and optimization
 
 This third-party integration framework provides enterprise-grade capabilities for secure, reliable, and scalable external service connectivity with comprehensive monitoring and fault tolerance.
-
