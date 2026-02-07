@@ -148,77 +148,65 @@ graph TB
 
 ```mermaid
 %%{init: {
-  'theme': 'dark',
+  'theme': 'base',
   'themeVariables': {
-    'primaryColor': '#FF6B6B',
-    'primaryTextColor': '#FFFFFF',
-    'primaryBorderColor': '#FF8E8E',
-    'lineColor': '#4ECDC4',
-    'secondaryColor': '#45B7D1',
-    'tertiaryColor': '#96CEB4',
-    'background': '#0F172A',
-    'mainBkg': '#1E293B',
-    'secondBkg': '#334155',
-    'tertiaryBkg': '#475569',
-    'actorBkg': '#FF6B6B',
-    'actorBorder': '#FF8E8E',
-    'actorTextColor': '#FFFFFF',
-    'activationBkgColor': '#4ECDC4',
-    'activationBorderColor': '#7ED6D1',
-    'noteBkgColor': '#FECA57',
-    'noteTextColor': '#000000',
-    'noteBorderColor': '#FED876'
+    'primaryColor': '#5E81AC',
+    'primaryTextColor': '#ECEFF4',
+    'primaryBorderColor': '#81A1C1',
+    'lineColor': '#88C0D0',
+    'secondaryColor': '#D08770',
+    'tertiaryColor': '#B48EAD',
+    'mainBkg': '#2E3440',
+    'nodeBorder': '#4C566A',
+    'clusterBkg': '#3B4252',
+    'titleColor': '#8FBCBB'
   }
 }}%%
 
 sequenceDiagram
+    autonumber
     participant App as 📱 Client App
-    participant Integration as 🔌 Integration Service
-    participant TokenCache as 💾 Token Cache
-    participant ExternalAPI as 🌐 External API
-    participant AuthServer as 🔐 Auth Server
+    participant IS as 🔌 Integration Service
+    participant Cache as 💾 Token Cache
+    participant API as 🌐 External API
+    participant Auth as 🔐 Auth Server
 
-    App->>+Integration: 🚀 Initialize Service
-    Integration->>+TokenCache: 🔍 Check Cached Token
+    Note over App, Auth: 🟢 PHASE 1: PRE-FLIGHT AUTHENTICATION
+
+    App->>+IS: 🚀 Initialize Service
+    IS->>+Cache: 🔍 Check Cached Token
     
-    alt ✅ Token Exists and Valid
-        TokenCache-->>-Integration: 🎯 Return Valid Token
-        Integration-->>-App: ✅ Ready for API Calls
-    else ❌ Token Missing or Expired
-        Integration->>+AuthServer: 🔐 Authenticate
-        
-        alt 🔑 Bearer Token Auth
-            AuthServer-->>Integration: 🎫 Return Access Token
-        else 🗝️ API Key Auth
-            Note over Integration: 🔧 Use Configured API Key
-        else 🔐 OAuth2 Auth
-            AuthServer-->>Integration: 🎫 Return Access + Refresh Token
-        end
-        
-        AuthServer-->>-Integration: 🎫 Authentication Complete
-        Integration->>+TokenCache: 💾 Store Token with TTL
-        TokenCache-->>-Integration: ✅ Token Stored
-        Integration-->>-App: ✅ Ready for API Calls
+    alt Token Found
+        Cache-->>IS: 🎯 Valid Token
+    else Token Missing/Expired
+        Cache-->>IS: [None]
+        IS->>+Auth: 🔐 Authenticate
+        Auth-->>-IS: 🎫 New Token Issued
+        IS->>Cache: 💾 Store Token (TTL)
     end
     
-    App->>+Integration: 📡 Make API Call
-    Integration->>+TokenCache: 🔍 Get Current Token
-    TokenCache-->>-Integration: 🎫 Return Token
-    Integration->>+ExternalAPI: 🌐 API Request with Auth
+    IS-->>-App: ✅ Service Ready
+
+    Note over App, Auth: 🔵 PHASE 2: RESILIENT API CALLS
+
+    App->>+IS: 📡 Execute Request
+    IS->>Cache: 🔍 Fetch Token
+    Cache-->>IS: 🎫 Bearer Token
+    IS->>+API: 🌐 Authorized Request
     
-    alt ✅ Request Success
-        ExternalAPI-->>-Integration: ✅ Success Response
-        Integration-->>-App: 📦 Return Response
-    else ❌ Auth Error (401)
-        ExternalAPI-->>Integration: ❌ 401 Unauthorized
-        Integration->>+AuthServer: 🔄 Re-authenticate
-        AuthServer-->>-Integration: 🎫 New Token
-        Integration->>+TokenCache: 🔄 Update Token
-        TokenCache-->>-Integration: ✅ Token Updated
-        Integration->>+ExternalAPI: 🔄 Retry with New Token
-        ExternalAPI-->>-Integration: ✅ Success Response
-        Integration-->>-App: 📦 Return Response
+    alt Success (200 OK)
+        API-->>IS: ✅ Data Response
+    else Expired during call (401)
+        Note right of API: Trigger Self-Healing Flow
+        API-->>-IS: ❌ 401 Unauthorized
+        IS->>+Auth: 🔄 Refresh Token
+        Auth-->>-IS: 🎫 New Token
+        IS->>Cache: 🔄 Update Cache
+        IS->>+API: 🔄 Retry with New Token
+        API-->>-IS: ✅ Data Response
     end
+    
+    IS-->>-App: 📦 Delivery Response
 ```
 
 ### **Authentication Strategy Details**
