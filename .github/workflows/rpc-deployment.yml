@@ -843,7 +843,7 @@ jobs:
   deploy-staging:
     needs: [performance-test, security-scan]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/rpc'
+    if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/gateway' || github.ref == 'refs/heads/feature/cross-service-infrastructure' || github.ref == 'refs/heads/main-rpc'
     environment: staging
 
     steps:
@@ -884,7 +884,7 @@ jobs:
   deploy-production:
     needs: deploy-staging
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-rpc'
     environment: production
 
     steps:
