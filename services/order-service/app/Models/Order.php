@@ -540,10 +540,11 @@ class Order extends Model
     public function transitionToState(string $stateClass, ?string $reason = null): void
     {
         if (!$this->canTransitionTo($stateClass)) {
-            throw new \Exception("Cannot transition from {$this->state::class} to {$stateClass}");
+            $currentStateClass = get_class($this->state);
+            throw new \Exception("Cannot transition from {$currentStateClass} to {$stateClass}");
         }
 
-        $oldState = $this->state::class;
+        $oldState = get_class($this->state);
         
         // Perform the state transition
         $this->state->transitionTo($stateClass);
