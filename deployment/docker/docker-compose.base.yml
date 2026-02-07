@@ -61,6 +61,85 @@ services:
       retries: 3
       start_period: 60s
 
+  # Gateway Service - RPC Gateway with Cross-Service Infrastructure
+  gateway-service:
+    image: reversetender/gateway-service:${APP_VERSION:-latest}
+    container_name: rt_gateway_service
+    ports:
+      - "${GATEWAY_SERVICE_PORT:-8100}:8000"
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_URL=${GATEWAY_SERVICE_URL:-https://gateway.reversetender.com}
+      - DB_HOST=${DB_HOST:-mysql-primary}
+      - DB_DATABASE=${GATEWAY_DB_DATABASE:-reverse_tender_gateway}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis-primary}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      # RPC Configuration
+      - RPC_ENABLED=${RPC_ENABLED:-true}
+      - RPC_TIMEOUT=${RPC_TIMEOUT:-30}
+      - RPC_RETRY_ATTEMPTS=${RPC_RETRY_ATTEMPTS:-3}
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=${CIRCUIT_BREAKER_ENABLED:-true}
+      - CIRCUIT_BREAKER_FAILURE_THRESHOLD=${CIRCUIT_BREAKER_FAILURE_THRESHOLD:-5}
+      - CIRCUIT_BREAKER_TIMEOUT=${CIRCUIT_BREAKER_TIMEOUT:-30}
+      - CIRCUIT_BREAKER_RECOVERY_TIMEOUT=${CIRCUIT_BREAKER_RECOVERY_TIMEOUT:-60}
+      # Workflow Orchestration
+      - WORKFLOW_ENABLED=${WORKFLOW_ENABLED:-true}
+      - WORKFLOW_MAX_RETRIES=${WORKFLOW_MAX_RETRIES:-3}
+      - WORKFLOW_TIMEOUT=${WORKFLOW_TIMEOUT:-300}
+      # Service Discovery
+      - SERVICE_DISCOVERY_ENABLED=${SERVICE_DISCOVERY_ENABLED:-true}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth-service:8001}
+      - USER_SERVICE_URL=${USER_SERVICE_URL:-http://user-service:8002}
+      - BIDDING_SERVICE_URL=${BIDDING_SERVICE_URL:-http://bidding-service:8002}
+      - ORDER_SERVICE_URL=${ORDER_SERVICE_URL:-http://order-service:8003}
+      - PAYMENT_SERVICE_URL=${PAYMENT_SERVICE_URL:-http://payment-service:8004}
+      - ANALYTICS_SERVICE_URL=${ANALYTICS_SERVICE_URL:-http://analytics-service:8005}
+      - VIN_OCR_SERVICE_URL=${VIN_OCR_SERVICE_URL:-http://vin-ocr-service:8006}
+      - NOTIFICATION_SERVICE_URL=${NOTIFICATION_SERVICE_URL:-http://notification-service:8007}
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
+      - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
+      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-512M}
+      # FrankenPHP Configuration
+      - FRANKENPHP_WORKER_MODE=${FRANKENPHP_WORKER_MODE:-true}
+      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-4}
+      # Performance Optimization
+      - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-256}
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
+    volumes:
+      - ./logs/gateway-service:/var/www/storage/logs
+      - ./config/frankenphp:/etc/frankenphp:ro
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - mysql-primary
+      - redis-primary
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/octane/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
   # Auth Service - Authentication and authorization
   auth-service:
     image: reversetender/auth-service:${APP_VERSION:-latest}
@@ -83,6 +162,12 @@ services:
       - TWILIO_SID=${TWILIO_SID}
       - TWILIO_TOKEN=${TWILIO_TOKEN}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      # RPC Configuration
+      - RPC_ENABLED=${RPC_ENABLED:-true}
+      - RPC_PORT=${AUTH_SERVICE_PORT:-8001}
+      - GATEWAY_SERVICE_URL=${GATEWAY_SERVICE_URL:-http://gateway-service:8000}
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=${CIRCUIT_BREAKER_ENABLED:-true}
       # Laravel Octane Configuration
       - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
       - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
@@ -106,6 +191,7 @@ services:
     depends_on:
       - mysql-primary
       - redis-primary
+      - gateway-service
     restart: unless-stopped
     deploy:
       resources:
