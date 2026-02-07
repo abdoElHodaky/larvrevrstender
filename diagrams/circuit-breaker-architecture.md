@@ -130,24 +130,21 @@ graph TB
 ### **State Transition Diagram**
 
 ```mermaid
-%%{init: {
-  'theme': 'dark',
+   %%{init: {
+  'theme': 'base',
   'themeVariables': {
-    'primaryColor': '#FF4757',
+    'background': '#0B0F14',
+    'primaryColor': '#2ECC71',
     'primaryTextColor': '#FFFFFF',
-    'primaryBorderColor': '#FF6B7A',
+    'primaryBorderColor': '#27AE60',
     'lineColor': '#4ECDC4',
-    'secondaryColor': '#45B7D1',
-    'tertiaryColor': '#96CEB4',
-    'background': '#0F172A',
-    'mainBkg': '#1E293B',
-    'secondBkg': '#334155',
-    'tertiaryBkg': '#475569',
-    'stateBkg': '#1E293B',
-    'stateBorder': '#FF4757',
-    'stateTextColor': '#FFFFFF',
-    'transitionColor': '#4ECDC4',
-    'transitionLabelColor': '#FFFFFF'
+    'secondaryColor': '#FF4757',
+    'tertiaryColor': '#F1C40F',
+    'mainBkg': '#161B22',
+    'clusterBkg': 'rgba(255, 255, 255, 0.03)',
+    'clusterBorder': '#334155',
+    'edgeLabelBackground':'#1A1D23',
+    'fontFamily': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'
   }
 }}%%
 
@@ -155,17 +152,12 @@ stateDiagram-v2
     [*] --> CLOSED: Initialize Circuit Breaker
     
     state "🛡️ Circuit Breaker States" as CBStates {
-        CLOSED --> OPEN: Failure threshold exceeded<br/>(5 failures in 60s)
-        OPEN --> HALF_OPEN: Timeout elapsed<br/>(30s recovery period)
-        HALF_OPEN --> CLOSED: Test request succeeds<br/>(Service recovered)
-        HALF_OPEN --> OPEN: Test request fails<br/>(Service still down)
-        
         state CLOSED {
             [*] --> Processing
             Processing --> Success: Request succeeds
             Processing --> Failure: Request fails
-            Success --> Processing: Continue processing
-            Failure --> Processing: Track failure count
+            Success --> Processing: [Count < Threshold]<br/>Continue processing
+            Failure --> Processing: [Count++]<br/>Track failure count
         }
         
         state OPEN {
@@ -179,9 +171,23 @@ stateDiagram-v2
             Testing --> SingleRequest: Allow one test request
             SingleRequest --> Evaluating: Monitor response
         }
-    }
+
+        CLOSED --> OPEN: [Failure > 5 in 60s]<br/>Trip Circuit
+        OPEN --> HALF_OPEN: [Timer > 30s]<br/>Attempt Reset
+        HALF_OPEN --> CLOSED: [Test SUCCESS]<br/>Service recovered
+        HALF_OPEN --> OPEN: [Test FAILURE]<br/>Service still down
+    }   
     
     CBStates --> [*]: Circuit breaker shutdown
+
+    %% Hybrid Class Definitions
+    classDef closedState fill:#064E3B,stroke:#00F2FE,color:#fff,stroke-width:2px
+    classDef openState fill:#450A0A,stroke:#FF4757,color:#fff,stroke-width:2px
+    classDef halfOpenState fill:#451A03,stroke:#FDCB6E,color:#fff,stroke-width:2px
+
+    class CLOSED closedState
+    class OPEN openState
+    class HALF_OPEN halfOpenState
 ```
 
 ## ⚙️ **Configuration & Thresholds**
