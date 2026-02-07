@@ -511,7 +511,7 @@ jobs:
   deploy-helm-kind:
     needs: [performance-test, security-scan]
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/rpc' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/gateway' || github.ref == 'refs/heads/feature/cross-service-infrastructure' || github.ref == 'refs/heads/main-rpc' || github.event_name == 'pull_request'
 
     steps:
     - name: Checkout code
