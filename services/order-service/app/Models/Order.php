@@ -55,6 +55,8 @@ class Order extends Model
         'zatca_invoice_hash',
         'zatca_metadata',
         'metadata',
+        'workflow_id',
+        'saga_data',
     ];
 
     /**
@@ -75,6 +77,7 @@ class Order extends Model
         'status_history' => 'array',
         'zatca_metadata' => 'array',
         'metadata' => 'array',
+        'saga_data' => 'array',
         'state' => OrderState::class,
     ];
 
@@ -570,5 +573,76 @@ class Order extends Model
         ];
 
         $this->update(['status_history' => $statusHistory]);
+    }
+
+    /**
+     * Workflow Integration Methods
+     */
+
+    /**
+     * Associate order with a workflow execution
+     */
+    public function setWorkflow(string $workflowId, array $sagaData = []): void
+    {
+        $this->update([
+            'workflow_id' => $workflowId,
+            'saga_data' => $sagaData
+        ]);
+    }
+
+    /**
+     * Get workflow status if associated with a workflow
+     */
+    public function getWorkflowStatus(): ?string
+    {
+        if (!$this->workflow_id) {
+            return null;
+        }
+
+        // TODO: Query workflow status from Laravel Workflow
+        // This would require accessing the workflow engine
+        return 'unknown';
+    }
+
+    /**
+     * Check if order is managed by a workflow
+     */
+    public function hasWorkflow(): bool
+    {
+        return !empty($this->workflow_id);
+    }
+
+    /**
+     * Update saga data
+     */
+    public function updateSagaData(array $data): void
+    {
+        $currentData = $this->saga_data ?? [];
+        $mergedData = array_merge($currentData, $data);
+        
+        $this->update(['saga_data' => $mergedData]);
+    }
+
+    /**
+     * Get saga data for a specific key
+     */
+    public function getSagaData(string $key = null)
+    {
+        if ($key === null) {
+            return $this->saga_data ?? [];
+        }
+
+        return $this->saga_data[$key] ?? null;
+    }
+
+    /**
+     * Clear workflow association (for completed or failed workflows)
+     */
+    public function clearWorkflow(): void
+    {
+        $this->update([
+            'workflow_id' => null,
+            'saga_data' => null
+        ]);
     }
 }
