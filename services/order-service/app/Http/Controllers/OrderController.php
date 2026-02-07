@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Services\NotificationService;
 use App\Services\OrderService;
 use App\Services\WorkflowEventPublisher;
+use App\Services\WorkflowSignalHandler;
 use App\Http\Resources\OrderStateResource;
 use App\Workflows\OrderSagaWorkflow;
 use Illuminate\Http\JsonResponse;
@@ -29,14 +30,18 @@ class OrderController extends Controller
 
     protected WorkflowEventPublisher $eventPublisher;
 
+    protected WorkflowSignalHandler $signalHandler;
+
     public function __construct(
         OrderService $orderService,
         NotificationService $notificationService,
-        WorkflowEventPublisher $eventPublisher
+        WorkflowEventPublisher $eventPublisher,
+        WorkflowSignalHandler $signalHandler
     ) {
         $this->orderService = $orderService;
         $this->notificationService = $notificationService;
         $this->eventPublisher = $eventPublisher;
+        $this->signalHandler = $signalHandler;
         $this->middleware('auth:sanctum');
     }
 
@@ -948,6 +953,343 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve workflow history',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Pause workflow execution
+     */
+    public function pauseWorkflow(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'reason' => 'required|string|max:500',
+            'user_id' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $order = Order::findOrFail($id);
+
+            if (!$order->hasWorkflow()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order does not have an active workflow',
+                ], 404);
+            }
+
+            $result = $this->signalHandler->pauseWorkflow(
+                $order->workflow_id,
+                $request->reason,
+                $request->get('user_id', 'system')
+            );
+
+            Log::info('Workflow paused', [
+                'order_id' => $order->id,
+                'workflow_id' => $order->workflow_id,
+                'reason' => $request->reason,
+                'user_id' => $request->get('user_id', 'system'),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Workflow paused successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to pause workflow', [
+                'order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to pause workflow',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Resume workflow execution
+     */
+    public function resumeWorkflow(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $order = Order::findOrFail($id);
+
+            if (!$order->hasWorkflow()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order does not have an active workflow',
+                ], 404);
+            }
+
+            $result = $this->signalHandler->resumeWorkflow(
+                $order->workflow_id,
+                $request->get('user_id', 'system')
+            );
+
+            Log::info('Workflow resumed', [
+                'order_id' => $order->id,
+                'workflow_id' => $order->workflow_id,
+                'user_id' => $request->get('user_id', 'system'),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Workflow resumed successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to resume workflow', [
+                'order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to resume workflow',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get workflow signals
+     */
+    public function getWorkflowSignals(int $id): JsonResponse
+    {
+        try {
+            $order = Order::findOrFail($id);
+
+            if (!$order->hasWorkflow()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order does not have an active workflow',
+                ], 404);
+            }
+
+            $signals = $this->signalHandler->getWorkflowSignals($order->workflow_id);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'order_id' => $order->id,
+                    'workflow_id' => $order->workflow_id,
+                    'signals' => $signals,
+                ],
+                'message' => 'Workflow signals retrieved successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get workflow signals', [
+                'order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve workflow signals',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Request manual intervention
+     */
+    public function requestManualIntervention(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'reason' => 'required|string|max:1000',
+            'priority' => 'sometimes|string|in:low,medium,high,critical',
+            'requester_id' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $order = Order::findOrFail($id);
+
+            if (!$order->hasWorkflow()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order does not have an active workflow',
+                ], 404);
+            }
+
+            $result = $this->signalHandler->requestManualIntervention(
+                $order->workflow_id,
+                $request->reason,
+                $request->get('priority', 'medium'),
+                $request->get('requester_id', 'system')
+            );
+
+            Log::info('Manual intervention requested', [
+                'order_id' => $order->id,
+                'workflow_id' => $order->workflow_id,
+                'intervention_id' => $result['intervention_id'],
+                'reason' => $request->reason,
+                'priority' => $request->get('priority', 'medium'),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Manual intervention requested successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to request manual intervention', [
+                'order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to request manual intervention',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Resolve manual intervention
+     */
+    public function resolveManualIntervention(Request $request, int $id, string $interventionId): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'resolution_status' => 'required|in:resolved,escalated',
+            'resolution_notes' => 'nullable|string|max:1000',
+            'resolver_id' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $order = Order::findOrFail($id);
+
+            if (!$order->hasWorkflow()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order does not have an active workflow',
+                ], 404);
+            }
+
+            $result = $this->signalHandler->completeManualIntervention(
+                $interventionId,
+                $request->resolution_status,
+                $request->get('resolution_notes', ''),
+                $request->get('resolver_id', 'system')
+            );
+
+            Log::info('Manual intervention resolved', [
+                'order_id' => $order->id,
+                'workflow_id' => $order->workflow_id,
+                'intervention_id' => $interventionId,
+                'resolution_status' => $request->resolution_status,
+                'resolver_id' => $request->get('resolver_id', 'system'),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Manual intervention resolved successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to resolve manual intervention', [
+                'order_id' => $id,
+                'intervention_id' => $interventionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to resolve manual intervention',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get pending interventions for workflow
+     */
+    public function getPendingInterventions(int $id): JsonResponse
+    {
+        try {
+            $order = Order::findOrFail($id);
+
+            if (!$order->hasWorkflow()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order does not have an active workflow',
+                ], 404);
+            }
+
+            $interventions = $this->signalHandler->getPendingInterventions($order->workflow_id);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'order_id' => $order->id,
+                    'workflow_id' => $order->workflow_id,
+                    'pending_interventions' => $interventions,
+                    'count' => count($interventions),
+                ],
+                'message' => 'Pending interventions retrieved successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get pending interventions', [
+                'order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve pending interventions',
                 'error' => $e->getMessage(),
             ], 500);
         }

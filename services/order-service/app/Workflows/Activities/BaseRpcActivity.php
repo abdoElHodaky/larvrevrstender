@@ -7,6 +7,8 @@ use Workflow\Activity;
 use Workflow\ActivityStub;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use App\Services\CorrelationService;
+use App\Services\WorkflowTracingService;
 
 /**
  * Base RPC Activity for Laravel Workflow
@@ -17,10 +19,14 @@ use Illuminate\Support\Facades\Log;
 abstract class BaseRpcActivity extends Activity
 {
     protected CrossServiceProcedure $rpcClient;
+    protected CorrelationService $correlationService;
+    protected WorkflowTracingService $tracingService;
     
     public function __construct()
     {
         $this->rpcClient = new CrossServiceProcedure();
+        $this->correlationService = app(CorrelationService::class);
+        $this->tracingService = app(WorkflowTracingService::class);
     }
     
     /**
@@ -34,34 +40,120 @@ abstract class BaseRpcActivity extends Activity
      */
     protected function callRpc(string $service, string $method, array $data): array
     {
+        $startTime = microtime(true);
+        $correlationId = $this->getCorrelationId();
+        $spanId = null;
+        
         try {
+            // Create child span for RPC call
+            if ($correlationId) {
+                $childSpan = $this->correlationService->createChildSpan(
+                    $correlationId,
+                    "rpc-{$service}-{$method}",
+                    [
+                        'service' => $service,
+                        'method' => $method,
+                        'activity' => static::class,
+                    ]
+                );
+                $spanId = $childSpan['span_id'];
+            }
+            
+            // Get correlation headers for RPC call
+            $correlationHeaders = $correlationId 
+                ? $this->correlationService->getCorrelationHeaders($correlationId, $spanId)
+                : [];
+            
             $sagaContext = [
                 'data' => $data,
                 'saga_id' => $this->getSagaId(),
-                'correlation_id' => $this->getCorrelationId(),
+                'correlation_id' => $correlationId,
                 'activity_name' => static::class,
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toISOString(),
+                'correlation_headers' => $correlationHeaders,
             ];
             
             Log::info("RPC call initiated", [
                 'service' => $service,
                 'method' => $method,
                 'saga_id' => $this->getSagaId(),
+                'correlation_id' => $correlationId,
+                'span_id' => $spanId,
                 'activity' => static::class
             ]);
             
             $result = $this->rpcClient->callRpc($service, $method, $sagaContext);
             
+            $duration = microtime(true) - $startTime;
+            $success = $result['success'] ?? false;
+            
+            // Complete span
+            if ($correlationId && $spanId) {
+                $this->correlationService->completeSpan(
+                    $correlationId,
+                    $spanId,
+                    $success,
+                    $result,
+                    $success ? null : ($result['error'] ?? 'Unknown RPC error')
+                );
+            }
+            
+            // Record RPC call in correlation service
+            if ($correlationId) {
+                $this->correlationService->recordRpcCall(
+                    $correlationId,
+                    $service,
+                    $method,
+                    "rpc://{$service}/{$method}",
+                    $data,
+                    $result,
+                    $duration,
+                    $success,
+                    $success ? null : ($result['error'] ?? 'Unknown RPC error')
+                );
+            }
+            
             Log::info("RPC call completed", [
                 'service' => $service,
                 'method' => $method,
                 'saga_id' => $this->getSagaId(),
-                'success' => $result['success'] ?? false
+                'correlation_id' => $correlationId,
+                'span_id' => $spanId,
+                'duration_ms' => round($duration * 1000, 2),
+                'success' => $success
             ]);
             
             return $result;
             
         } catch (Exception $e) {
+            $duration = microtime(true) - $startTime;
+            
+            // Complete span with error
+            if ($correlationId && $spanId) {
+                $this->correlationService->completeSpan(
+                    $correlationId,
+                    $spanId,
+                    false,
+                    [],
+                    $e->getMessage()
+                );
+            }
+            
+            // Record failed RPC call
+            if ($correlationId) {
+                $this->correlationService->recordRpcCall(
+                    $correlationId,
+                    $service,
+                    $method,
+                    "rpc://{$service}/{$method}",
+                    $data,
+                    [],
+                    $duration,
+                    false,
+                    $e->getMessage()
+                );
+            }
+            
             $this->logError($e, $service, $method);
             throw new Exception("RPC call failed: {$e->getMessage()}", $e->getCode(), $e);
         }
@@ -137,4 +229,3 @@ abstract class BaseRpcActivity extends Activity
         ];
     }
 }
-

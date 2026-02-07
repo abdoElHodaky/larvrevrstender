@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Global middleware for correlation tracking
+        $middleware->append(\App\Http\Middleware\CorrelationMiddleware::class);
+        
         // API middleware stack with Sanctum for stateful requests
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
@@ -28,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
             'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+            'correlation' => \App\Http\Middleware\CorrelationMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
