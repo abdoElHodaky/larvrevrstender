@@ -3,7 +3,7 @@
         'name' => 'reversetender/order-service',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '1b5699e2388c6b0192de90e32d9e5c9d84bb61bd',
+        'reference' => 'a3bb1b50037ecad9d1d229e56abd65a3ef8667d5',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -943,7 +943,7 @@
         'reversetender/order-service' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '1b5699e2388c6b0192de90e32d9e5c9d84bb61bd',
+            'reference' => 'a3bb1b50037ecad9d1d229e56abd65a3ef8667d5',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

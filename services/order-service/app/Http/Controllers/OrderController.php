@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Services\NotificationService;
 use App\Services\OrderService;
+use App\Services\WorkflowEventPublisher;
 use App\Http\Resources\OrderStateResource;
 use App\Workflows\OrderSagaWorkflow;
 use Illuminate\Http\JsonResponse;
@@ -26,12 +27,16 @@ class OrderController extends Controller
 
     protected NotificationService $notificationService;
 
+    protected WorkflowEventPublisher $eventPublisher;
+
     public function __construct(
         OrderService $orderService,
-        NotificationService $notificationService
+        NotificationService $notificationService,
+        WorkflowEventPublisher $eventPublisher
     ) {
         $this->orderService = $orderService;
         $this->notificationService = $notificationService;
+        $this->eventPublisher = $eventPublisher;
         $this->middleware('auth:sanctum');
     }
 
@@ -682,6 +687,9 @@ class OrderController extends Controller
 
             // Start workflow execution
             $workflowResult = $workflow->start($workflowData);
+
+            // Publish workflow initiated event
+            $this->eventPublisher->publishWorkflowInitiated($order, $workflowId, $workflowData);
 
             Log::info("Order workflow initiated", [
                 'order_id' => $order->id,

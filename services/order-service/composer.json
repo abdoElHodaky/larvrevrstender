@@ -12,7 +12,7 @@
         "laravel/horizon": "^5.28",
         "laravel/octane": "^2.0",
         "laravel/sanctum": "^4.0",
-        "laravel/telescope": "^5.2",
+        "laravel/telescope": "^5.17",
         "laravel/tinker": "^2.10.1",
         "predis/predis": "^2.2",
         "sajya/client": "^1.4",
