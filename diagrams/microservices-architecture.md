@@ -7,21 +7,42 @@ The Laravel Reverse Tender Platform features an **enterprise-grade microservices
 ## 📊 **Complete System Architecture**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#4ECDC4',
+    'edgeLabelBackground': '#334155',
+    'nodeTextColor': '#FFFFFF',
+    'edgeColor': '#4ECDC4'
+  }
+}}%%
+
 graph TB
-    subgraph "Client Layer"
+    subgraph "🌐 CLIENT LAYER"
         WEB[🌐 Web Application<br/>React/Vue Frontend]
         MOBILE[📱 Mobile App<br/>React Native/Flutter]
         API_CLIENT[🔌 API Clients<br/>Third-party Integrations]
     end
 
-    subgraph "Gateway Layer"
+    subgraph "🚪 GATEWAY LAYER"
         GATEWAY[🚪 Gateway Service<br/>Port: 8000<br/>Routing & Load Balancing]
     end
 
-    subgraph "Cross-Service Infrastructure Hub"
+    subgraph "🎯 CROSS-SERVICE INFRASTRUCTURE HUB"
         SHARED[🎯 Shared Service<br/>Port: 8001<br/>Orchestration Hub]
         
-        subgraph "Micro Procedures (8 Total)"
+        subgraph "⚡ Micro Procedures (8 Total)"
             EVENT[📡 Event Publishing<br/>Async Messaging]
             CACHE[💾 Cache Management<br/>Redis Operations]
             NOTIFY[📢 Notification<br/>Multi-channel]
@@ -32,13 +53,13 @@ graph TB
             TPI[🔌 Third-Party Integration<br/>External Services]
         end
         
-        subgraph "Macro Procedures (2 Types)"
+        subgraph "🔄 Macro Procedures (2 Types)"
             WF[🔄 Workflow Orchestration<br/>Complex Processes]
             BL[🎯 Business Logic<br/>Domain Workflows]
         end
     end
 
-    subgraph "Core Microservices (8 Total)"
+    subgraph "⚡ CORE MICROSERVICES (8 Total)"
         AUTH[🔑 Auth Service<br/>Port: 8002<br/>Authentication]
         TENDER[📋 Tender Service<br/>Port: 8003<br/>Tender Management]
         BID[💰 Bidding Service<br/>Port: 8004<br/>Bid Processing]
@@ -49,7 +70,7 @@ graph TB
         ADMIN[⚙️ Admin Service<br/>Port: 8009<br/>Administration]
     end
 
-    subgraph "External Services"
+    subgraph "🌐 EXTERNAL SERVICES"
         STRIPE[💳 Stripe API<br/>Payment Processing]
         MAILGUN[📧 Mailgun API<br/>Email Service]
         TWILIO[📱 Twilio API<br/>SMS Service]
@@ -57,7 +78,7 @@ graph TB
         GOOGLE[🔍 Google APIs<br/>OAuth & Maps]
     end
 
-    subgraph "Data Layer"
+    subgraph "💾 DATA LAYER"
         REDIS[(🔴 Redis Cluster<br/>Cache & Circuit State<br/>Session Management)]
         DB[(🗄️ MySQL/PostgreSQL<br/>Primary Database<br/>ACID Transactions)]
         QUEUE[(📬 Queue System<br/>Job Processing<br/>Laravel Queues)]
@@ -121,15 +142,15 @@ graph TB
     BID --> SEARCH
     ANALYTICS --> SEARCH
 
-    %% Styling
-    classDef clientStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
-    classDef gatewayStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000
-    classDef sharedStyle fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000
-    classDef microStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
-    classDef macroStyle fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000
-    classDef serviceStyle fill:#fff8e1,stroke:#f57c00,stroke-width:2px,color:#000
-    classDef externalStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px,color:#000
-    classDef dataStyle fill:#f1f8e9,stroke:#33691e,stroke-width:2px,color:#000
+    %% Distinguished Eye-Catching Styling
+    classDef clientStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef gatewayStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef sharedStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef microStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef macroStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef serviceStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef externalStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
 
     class WEB,MOBILE,API_CLIENT clientStyle
     class GATEWAY gatewayStyle
@@ -146,8 +167,23 @@ graph TB
 ### **Micro Procedures (8 Total)**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#4ECDC4',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#7ED6D1',
+    'lineColor': '#4ECDC4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#4ECDC4',
+    'nodeTextColor': '#FFFFFF'
+  }
+}}%%
+
 graph LR
-    subgraph "Micro Procedures Layer"
+    subgraph "⚡ MICRO PROCEDURES LAYER"
         EVENT[📡 Event Publishing<br/>• Async messaging<br/>• Event routing<br/>• Service decoupling]
         CACHE[💾 Cache Management<br/>• Redis operations<br/>• TTL management<br/>• Cache invalidation]
         NOTIFY[📢 Notification<br/>• Multi-channel delivery<br/>• Template management<br/>• Delivery tracking]
@@ -158,19 +194,35 @@ graph LR
         TPI[🔌 Third-Party Integration<br/>• External APIs<br/>• Authentication<br/>• Webhook handling]
     end
 
-    classDef microStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+    classDef microStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
     class EVENT,CACHE,NOTIFY,VALID,SEC,CB,QCB,TPI microStyle
 ```
 
 ### **Macro Procedures (2 Types)**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#5F27CD',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#7B4AE0',
+    'lineColor': '#4ECDC4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#5F27CD',
+    'nodeTextColor': '#FFFFFF',
+    'edgeColor': '#4ECDC4'
+  }
+}}%%
+
 graph TB
-    subgraph "Macro Procedures Layer"
+    subgraph "🔄 MACRO PROCEDURES LAYER"
         WF[🔄 Workflow Orchestration<br/>• Complex process management<br/>• State persistence<br/>• Compensation logic]
         BL[🎯 Business Logic<br/>• Domain-specific workflows<br/>• Order processing<br/>• User onboarding]
         
-        subgraph "Built-in Workflows"
+        subgraph "✨ Built-in Workflows"
             USER_WF[👤 User Onboarding<br/>• Registration<br/>• Verification<br/>• Setup]
             ORDER_WF[📦 Order Processing<br/>• Validation<br/>• Payment<br/>• Fulfillment]
             DATA_WF[🔄 Data Sync<br/>• Cross-service sync<br/>• Consistency<br/>• Verification]
@@ -183,8 +235,8 @@ graph TB
     BL --> USER_WF
     BL --> ORDER_WF
 
-    classDef macroStyle fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000
-    classDef workflowStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef macroStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef workflowStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
     
     class WF,BL macroStyle
     class USER_WF,ORDER_WF,DATA_WF workflowStyle
@@ -193,19 +245,35 @@ graph TB
 ## 🛡️ **Dual Circuit Breaker Architecture**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF4757',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF6B7A',
+    'lineColor': '#4ECDC4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#FF4757',
+    'nodeTextColor': '#FFFFFF',
+    'edgeColor': '#4ECDC4'
+  }
+}}%%
+
 graph TB
-    subgraph "Circuit Breaker Protection"
-        subgraph "Synchronous Protection"
+    subgraph "🛡️ CIRCUIT BREAKER PROTECTION"
+        subgraph "⚡ Synchronous Protection"
             SYNC_CB[🛡️ HTTP Circuit Breaker<br/>• REST API calls<br/>• External services<br/>• Real-time requests]
             SYNC_STATES[States: CLOSED → OPEN → HALF_OPEN]
         end
         
-        subgraph "Asynchronous Protection"
+        subgraph "🔄 Asynchronous Protection"
             ASYNC_CB[⚡ Queue Circuit Breaker<br/>• Laravel Fuse<br/>• Job processing<br/>• Background tasks]
             ASYNC_STATES[States: CLOSED → OPEN → HALF_OPEN]
         end
         
-        subgraph "State Management"
+        subgraph "💾 State Management"
             REDIS_STATE[(🔴 Redis<br/>Circuit States<br/>Metrics<br/>Recovery Timers)]
         end
     end
@@ -215,8 +283,8 @@ graph TB
     SYNC_CB --> SYNC_STATES
     ASYNC_CB --> ASYNC_STATES
 
-    classDef cbStyle fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    classDef stateStyle fill:#f1f8e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef cbStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef stateStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
     
     class SYNC_CB,ASYNC_CB cbStyle
     class SYNC_STATES,ASYNC_STATES,REDIS_STATE stateStyle
@@ -225,18 +293,34 @@ graph TB
 ## 🔌 **Third-Party Integration Framework**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#54A0FF',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#7BB3FF',
+    'lineColor': '#4ECDC4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#54A0FF',
+    'nodeTextColor': '#FFFFFF',
+    'edgeColor': '#4ECDC4'
+  }
+}}%%
+
 graph TB
-    subgraph "Integration Framework"
+    subgraph "🔌 INTEGRATION FRAMEWORK"
         BASE_INT[🔌 Base Integration<br/>• Authentication<br/>• Rate limiting<br/>• Circuit breaker protection]
         
-        subgraph "Service Integrations"
+        subgraph "🌐 Service Integrations"
             STRIPE_INT[💳 Stripe Integration<br/>• Payment processing<br/>• Webhook handling<br/>• Refund management]
             MAILGUN_INT[📧 Mailgun Integration<br/>• Email delivery<br/>• Template management<br/>• Delivery tracking]
             TWILIO_INT[📱 Twilio Integration<br/>• SMS delivery<br/>• Voice calls<br/>• Verification codes]
             AWS_INT[☁️ AWS Integration<br/>• S3 storage<br/>• SES email<br/>• CloudWatch metrics]
         end
         
-        subgraph "Authentication Strategies"
+        subgraph "🔐 Authentication Strategies"
             BEARER[🔑 Bearer Token<br/>• JWT tokens<br/>• API keys<br/>• OAuth2]
             API_KEY[🗝️ API Key<br/>• Header-based<br/>• Query parameter<br/>• Custom headers]
         end
@@ -250,9 +334,9 @@ graph TB
     BASE_INT --> BEARER
     BASE_INT --> API_KEY
 
-    classDef integrationStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
-    classDef serviceStyle fill:#fff8e1,stroke:#f57c00,stroke-width:2px,color:#000
-    classDef authStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    classDef integrationStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef serviceStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef authStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
     
     class BASE_INT integrationStyle
     class STRIPE_INT,MAILGUN_INT,TWILIO_INT,AWS_INT serviceStyle
@@ -262,9 +346,24 @@ graph TB
 ## 📡 **API Architecture Overview**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#45B7D1',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#6BC5D8',
+    'lineColor': '#4ECDC4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#45B7D1',
+    'nodeTextColor': '#FFFFFF'
+  }
+}}%%
+
 graph TB
-    subgraph "API Layer (80+ Endpoints)"
-        subgraph "Core Infrastructure APIs"
+    subgraph "📡 API LAYER (80+ Endpoints)"
+        subgraph "⚡ Core Infrastructure APIs"
             EVENT_API[📡 Event Publishing API<br/>• /api/event-publishing/*<br/>• Publish, subscribe, status]
             CACHE_API[💾 Cache Management API<br/>• /api/cache-management/*<br/>• Set, get, delete, flush]
             NOTIFY_API[📢 Notification API<br/>• /api/notification/*<br/>• Send, bulk, status]
@@ -272,20 +371,20 @@ graph TB
             SEC_API[🔐 Security API<br/>• /api/security/*<br/>• Encrypt, decrypt, tokens]
         end
         
-        subgraph "Circuit Breaker APIs"
+        subgraph "🛡️ Circuit Breaker APIs"
             CB_API[🛡️ Circuit Breaker API<br/>• /api/circuit-breaker/*<br/>• Stats, reset, force-open]
             QCB_API[⚡ Queue Circuit Breaker API<br/>• /api/queue-circuit-breaker/*<br/>• Dispatch, stats, health]
         end
         
-        subgraph "Integration & Workflow APIs"
+        subgraph "🔌 Integration & Workflow APIs"
             TPI_API[🔌 Third-Party Integration API<br/>• /api/third-party-integration/*<br/>• Initialize, call, webhook]
             WF_API[🔄 Workflow API<br/>• /api/workflow/*<br/>• Start, status, register]
         end
     end
 
-    classDef apiStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
-    classDef cbApiStyle fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    classDef intApiStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef apiStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef cbApiStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef intApiStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
     
     class EVENT_API,CACHE_API,NOTIFY_API,VALID_API,SEC_API apiStyle
     class CB_API,QCB_API cbApiStyle
@@ -297,13 +396,30 @@ graph TB
 ### **Request Flow with Circuit Breaker Protection**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'actorBkg': '#FF6B6B',
+    'actorBorder': '#FF8E8E',
+    'actorTextColor': '#FFFFFF',
+    'activationBkgColor': '#4ECDC4',
+    'activationBorderColor': '#7ED6D1',
+    'noteBkgColor': '#FECA57',
+    'noteTextColor': '#000000',
+    'noteBorderColor': '#FED876',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'primaryTextColor': '#FFFFFF'
+  }
+}}%%
+
 sequenceDiagram
-    participant Client
-    participant Gateway
-    participant Shared
-    participant CircuitBreaker
-    participant Service
-    participant External
+    participant Client as 🌐 Client
+    participant Gateway as 🚪 Gateway
+    participant Shared as 🎯 Shared
+    participant CircuitBreaker as 🛡️ Circuit Breaker
+    participant Service as ⚡ Service
+    participant External as 🌐 External
 
     Client->>Gateway: HTTP Request
     Gateway->>Shared: Route to Procedure
@@ -426,4 +542,3 @@ sequenceDiagram
 - **Performance Monitoring** with execution time tracking
 
 This enhanced microservices architecture provides enterprise-grade capabilities with advanced workflow orchestration, comprehensive fault tolerance, and secure third-party integration capabilities.
-

@@ -7,27 +7,48 @@ The **Workflow Orchestration Framework** provides enterprise-grade capabilities 
 ## 🏗️ **Complete Workflow Architecture**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#5F27CD',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#7B4AE0',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#5F27CD',
+    'edgeLabelBackground': '#334155',
+    'nodeTextColor': '#FFFFFF',
+    'edgeColor': '#4ECDC4'
+  }
+}}%%
+
 graph TB
-    subgraph "Workflow Orchestration Layer"
+    subgraph "🔄 WORKFLOW ORCHESTRATION LAYER"
         WF_ENGINE[🎯 Workflow Orchestrator<br/>• Central coordination<br/>• State management<br/>• Step execution]
         STATE_MGR[💾 State Manager<br/>• Workflow persistence<br/>• Progress tracking<br/>• Recovery handling]
         COMP_ENGINE[🔄 Compensation Engine<br/>• Rollback logic<br/>• LIFO execution<br/>• Error recovery]
     end
 
-    subgraph "Execution Patterns"
+    subgraph "⚡ EXECUTION PATTERNS"
         SEQ[📋 Sequential Execution<br/>• Step-by-step processing<br/>• Data passing<br/>• Ordered execution]
         PAR[⚡ Parallel Execution<br/>• Concurrent processing<br/>• Performance optimization<br/>• Independent steps]
         COND[🔀 Conditional Execution<br/>• Dynamic branching<br/>• Business logic<br/>• Runtime decisions]
     end
 
-    subgraph "Macro Procedures Framework"
+    subgraph "🏗️ MACRO PROCEDURES FRAMEWORK"
         BASE_MACRO[🏗️ Base Macro Procedure<br/>• Abstract foundation<br/>• Common functionality<br/>• State management]
         ORDER_PROC[📦 Order Processing<br/>• Complete order lifecycle<br/>• Payment integration<br/>• Fulfillment workflow]
         USER_PROC[👤 User Onboarding<br/>• Registration process<br/>• Verification workflow<br/>• Setup automation]
         CUSTOM_PROC[🎯 Custom Procedures<br/>• Business-specific<br/>• Domain workflows<br/>• Extensible framework]
     end
 
-    subgraph "Micro Procedures Integration"
+    subgraph "🔧 MICRO PROCEDURES INTEGRATION"
         EVENT_MP[📡 Event Publishing<br/>• Workflow events<br/>• Step notifications<br/>• Progress updates]
         CACHE_MP[💾 Cache Management<br/>• State caching<br/>• Step results<br/>• Performance optimization]
         NOTIFY_MP[📢 Notification<br/>• Step notifications<br/>• Completion alerts<br/>• Error notifications]
@@ -38,7 +59,7 @@ graph TB
         TPI_MP[🔌 Third-Party Integration<br/>• External services<br/>• API calls<br/>• Webhook handling]
     end
 
-    subgraph "State Persistence"
+    subgraph "💾 STATE PERSISTENCE"
         WORKFLOW_STATE[(🗄️ Workflow State<br/>Redis Cache<br/>• Current step<br/>• Execution history<br/>• Compensation stack)]
         STEP_RESULTS[(📊 Step Results<br/>Redis Cache<br/>• Step outputs<br/>• Intermediate data<br/>• Error information)]
     end
@@ -76,12 +97,12 @@ graph TB
     NOTIFY_MP -.->|Failure| COMP_ENGINE
     VALID_MP -.->|Failure| COMP_ENGINE
 
-    %% Styling
-    classDef orchestrationStyle fill:#e3f2fd,stroke:#0277bd,stroke-width:2px,color:#000
-    classDef executionStyle fill:#f1f8e9,stroke:#388e3c,stroke-width:2px,color:#000
-    classDef macroStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
-    classDef microStyle fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:#000
-    classDef stateStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    %% Distinguished Eye-Catching Styling
+    classDef orchestrationStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef executionStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef macroStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef microStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef stateStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
 
     class WF_ENGINE,STATE_MGR,COMP_ENGINE orchestrationStyle
     class SEQ,PAR,COND executionStyle
@@ -95,14 +116,31 @@ graph TB
 ### **Complete Workflow Lifecycle**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'actorBkg': '#5F27CD',
+    'actorBorder': '#7B4AE0',
+    'actorTextColor': '#FFFFFF',
+    'activationBkgColor': '#4ECDC4',
+    'activationBorderColor': '#7ED6D1',
+    'noteBkgColor': '#FECA57',
+    'noteTextColor': '#000000',
+    'noteBorderColor': '#FED876',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'primaryTextColor': '#FFFFFF'
+  }
+}}%%
+
 sequenceDiagram
-    participant Client
-    participant Orchestrator
-    participant StateManager
-    participant StepExecutor
-    participant MicroProcedure
-    participant CompensationEngine
-    participant Cache
+    participant Client as 🌐 Client
+    participant Orchestrator as 🎯 Orchestrator
+    participant StateManager as 💾 State Manager
+    participant StepExecutor as ⚡ Step Executor
+    participant MicroProcedure as 🔧 Micro Procedure
+    participant CompensationEngine as 🔄 Compensation Engine
+    participant Cache as 💾 Cache
 
     Client->>Orchestrator: Start Workflow
     Orchestrator->>StateManager: Initialize Workflow State
@@ -461,4 +499,3 @@ graph TB
 - **Error Tracking** with detailed failure information
 
 This workflow orchestration architecture provides enterprise-grade capabilities for managing complex business processes with comprehensive fault tolerance, state management, and monitoring capabilities.
-
