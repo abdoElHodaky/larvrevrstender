@@ -23,6 +23,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(FileUploadService::class, function ($app) {
             return new FileUploadService('order-service');
         });
+
+        // Register workflow services
+        $this->app->singleton(\App\Services\WorkflowSignalHandler::class);
+        $this->app->singleton(\App\Services\WorkflowDeadLetterQueue::class);
+        $this->app->singleton(\App\Services\CorrelationService::class);
+        $this->app->singleton(\App\Services\WorkflowEventPublisher::class);
+        $this->app->singleton(\App\Services\WorkflowTracingService::class);
     }
 
     /**
