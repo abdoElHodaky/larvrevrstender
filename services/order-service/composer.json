@@ -15,6 +15,7 @@
         "laravel/horizon": "^5.28",
         "laravel/telescope": "^5.2",
         "spatie/laravel-medialibrary": "^11.9",
+        "spatie/laravel-model-states": "^2.7",
         "sajya/server": "^7.0",
         "sajya/client": "^1.4"
     },

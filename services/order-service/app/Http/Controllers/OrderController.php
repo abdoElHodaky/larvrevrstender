@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Services\NotificationService;
 use App\Services\OrderService;
+use App\Http\Resources\OrderStateResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -441,6 +442,174 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Search failed',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get order state information
+     */
+    public function getState(int $id): JsonResponse
+    {
+        try {
+            $order = Order::findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => new OrderStateResource($order),
+                'message' => 'Order state retrieved successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve order state',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Transition order to new state
+     */
+    public function transitionState(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'state' => 'required|string',
+            'reason' => 'sometimes|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $order = Order::findOrFail($id);
+            $newStateClass = $request->state;
+            $reason = $request->get('reason');
+
+            // Validate state class exists
+            if (!class_exists($newStateClass)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid state class',
+                ], 400);
+            }
+
+            // Check if transition is allowed
+            if (!$order->canTransitionTo($newStateClass)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid state transition',
+                    'current_state' => $order->state::class,
+                    'available_transitions' => $order->getAvailableTransitions(),
+                ], 400);
+            }
+
+            // Perform the transition
+            $order->transitionToState($newStateClass, $reason);
+
+            return response()->json([
+                'success' => true,
+                'data' => new OrderStateResource($order->fresh()),
+                'message' => 'Order state transitioned successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to transition order state',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get available state transitions for an order
+     */
+    public function getAvailableTransitions(int $id): JsonResponse
+    {
+        try {
+            $order = Order::findOrFail($id);
+            $availableTransitions = collect($order->getAvailableTransitions())->map(function ($stateClass) use ($order) {
+                $state = new $stateClass($order);
+                return [
+                    'class' => $stateClass,
+                    'name' => $state::$name,
+                    'label' => $state->label(),
+                    'description' => $state->description(),
+                    'color' => $state->color(),
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'current_state' => [
+                        'class' => $order->state::class,
+                        'name' => $order->state::$name,
+                        'label' => $order->state->label(),
+                        'description' => $order->state->description(),
+                        'color' => $order->state->color(),
+                    ],
+                    'available_transitions' => $availableTransitions,
+                ],
+                'message' => 'Available transitions retrieved successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve available transitions',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get orders by state
+     */
+    public function getByState(Request $request, string $state): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'per_page' => 'sometimes|integer|min:1|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            // Validate state class exists
+            if (!class_exists($state)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid state class',
+                ], 400);
+            }
+
+            $orders = Order::where('state', $state)
+                ->paginate($request->get('per_page', 15));
+
+            return response()->json([
+                'success' => true,
+                'data' => $orders,
+                'message' => 'Orders retrieved successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve orders by state',
                 'error' => $e->getMessage(),
             ], 500);
         }

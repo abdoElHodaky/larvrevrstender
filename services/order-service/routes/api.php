@@ -52,6 +52,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{order}', [App\Http\Controllers\OrderController::class, 'cancel']);
         Route::get('/{order}/tracking', [App\Http\Controllers\OrderController::class, 'getTracking']);
         Route::post('/{order}/confirm', [App\Http\Controllers\OrderController::class, 'confirm']);
+        
+        // State machine routes
+        Route::get('/{order}/state', [App\Http\Controllers\OrderController::class, 'getState']);
+        Route::post('/{order}/transition-state', [App\Http\Controllers\OrderController::class, 'transitionState']);
+        Route::get('/{order}/available-transitions', [App\Http\Controllers\OrderController::class, 'getAvailableTransitions']);
+        Route::get('/by-state/{state}', [App\Http\Controllers\OrderController::class, 'getByState']);
     });
 
     Route::prefix('cart')->group(function () {

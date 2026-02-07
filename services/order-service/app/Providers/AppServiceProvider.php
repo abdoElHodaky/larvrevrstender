@@ -56,6 +56,31 @@ class AppServiceProvider extends ServiceProvider
      */
     private function registerEventListeners(): void
     {
-        // Add event listeners here
+        // Register cross-service event listeners
+        \Event::listen(
+            \App\Events\OrderCreated::class,
+            \App\Listeners\OrderCreatedListener::class
+        );
+
+        // Listen for PaymentCompleted events from PaymentService
+        // This will be triggered via cross-service event publishing
+        \Event::listen(
+            'payment.completed',
+            \App\Listeners\PaymentCompletedListener::class
+        );
+
+        // Listen for PaymentFailed events from PaymentService
+        \Event::listen(
+            'payment.failed',
+            function ($event) {
+                \Log::info('PaymentFailed event received', [
+                    'payment_id' => $event->payment->id ?? null,
+                    'order_id' => $event->payment->order_id ?? null,
+                    'reason' => $event->reason ?? 'Unknown'
+                ]);
+                
+                // TODO: Handle payment failure - potentially cancel order or retry
+            }
+        );
     }
 }
