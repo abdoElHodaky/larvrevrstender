@@ -6,10 +6,13 @@ use App\Models\Order;
 use App\Services\NotificationService;
 use App\Services\OrderService;
 use App\Http\Resources\OrderStateResource;
+use App\Workflows\OrderSagaWorkflow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use Workflow\WorkflowStub;
 
 /**
  * Order Controller
@@ -613,5 +616,350 @@ class OrderController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Workflow Management Methods
+     */
+
+    /**
+     * Initiate order processing workflow (saga)
+     */
+    public function initiateWorkflow(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'payment_data' => 'required|array',
+            'payment_data.method' => 'required|string',
+            'payment_data.details' => 'required|array',
+            'shipping_address' => 'required|array',
+            'shipping_method' => 'sometimes|string|in:standard,express,overnight',
+            'priority' => 'sometimes|string|in:normal,high,urgent',
+            'special_instructions' => 'sometimes|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $order = Order::findOrFail($id);
+
+            // Check if order is in a state that can start workflow
+            if ($order->hasWorkflow()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order already has an active workflow',
+                    'workflow_id' => $order->workflow_id,
+                ], 400);
+            }
+
+            // Prepare workflow data
+            $workflowData = [
+                'order_id' => $order->id,
+                'customer_id' => $order->customer_id,
+                'amount' => $order->total_amount,
+                'currency' => $order->currency ?? 'SAR',
+                'payment_data' => $request->payment_data,
+                'shipping_address' => $request->shipping_address,
+                'shipping_method' => $request->get('shipping_method', 'standard'),
+                'priority' => $request->get('priority', 'normal'),
+                'special_instructions' => $request->get('special_instructions'),
+                'items' => $this->prepareOrderItems($order),
+            ];
+
+            // Start the workflow
+            $workflowId = 'order-saga-' . $order->id . '-' . uniqid();
+            
+            // Create workflow stub
+            $workflow = WorkflowStub::make(OrderSagaWorkflow::class, $workflowId);
+            
+            // Associate order with workflow
+            $order->setWorkflow($workflowId, $workflowData);
+
+            // Start workflow execution
+            $workflowResult = $workflow->start($workflowData);
+
+            Log::info("Order workflow initiated", [
+                'order_id' => $order->id,
+                'workflow_id' => $workflowId,
+                'customer_id' => $order->customer_id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'order_id' => $order->id,
+                    'workflow_id' => $workflowId,
+                    'status' => 'initiated',
+                    'workflow_data' => $workflowData,
+                ],
+                'message' => 'Order workflow initiated successfully',
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error("Failed to initiate order workflow", [
+                'order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to initiate workflow',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get workflow status for an order
+     */
+    public function getWorkflowStatus(int $id): JsonResponse
+    {
+        try {
+            $order = Order::findOrFail($id);
+
+            if (!$order->hasWorkflow()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order does not have an associated workflow',
+                ], 404);
+            }
+
+            // Get workflow status
+            $workflowStatus = $order->getWorkflowStatus();
+            $sagaData = $order->getSagaData();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'order_id' => $order->id,
+                    'workflow_id' => $order->workflow_id,
+                    'workflow_status' => $workflowStatus,
+                    'order_state' => $order->state::class,
+                    'saga_data' => $sagaData,
+                    'created_at' => $order->created_at,
+                    'updated_at' => $order->updated_at,
+                ],
+                'message' => 'Workflow status retrieved successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve workflow status',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel an active workflow
+     */
+    public function cancelWorkflow(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'reason' => 'required|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $order = Order::findOrFail($id);
+
+            if (!$order->hasWorkflow()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order does not have an active workflow',
+                ], 404);
+            }
+
+            $workflowId = $order->workflow_id;
+            $reason = $request->reason;
+
+            // TODO: Cancel the workflow via Laravel Workflow
+            // This would require accessing the workflow engine to cancel the running workflow
+            // For now, we'll clear the workflow association and update the order state
+
+            // Clear workflow association
+            $order->clearWorkflow();
+
+            // Update order state to cancelled
+            $order->transitionToState(\App\States\Orders\Cancelled::class, "Workflow cancelled: {$reason}");
+
+            Log::info("Order workflow cancelled", [
+                'order_id' => $order->id,
+                'workflow_id' => $workflowId,
+                'reason' => $reason
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'order_id' => $order->id,
+                    'workflow_id' => $workflowId,
+                    'status' => 'cancelled',
+                    'reason' => $reason,
+                ],
+                'message' => 'Workflow cancelled successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Failed to cancel workflow", [
+                'order_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to cancel workflow',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Retry a failed workflow
+     */
+    public function retryWorkflow(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'from_step' => 'sometimes|string|in:payment,inventory,shipping',
+            'updated_data' => 'sometimes|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $order = Order::findOrFail($id);
+
+            // For retry, we'll create a new workflow with updated data
+            $fromStep = $request->get('from_step', 'payment');
+            $updatedData = $request->get('updated_data', []);
+
+            // Get original saga data and merge with updates
+            $originalData = $order->getSagaData();
+            $workflowData = array_merge($originalData, $updatedData);
+
+            // Clear old workflow association
+            $order->clearWorkflow();
+
+            // Create new workflow
+            $workflowId = 'order-saga-retry-' . $order->id . '-' . uniqid();
+            
+            // Create workflow stub
+            $workflow = WorkflowStub::make(OrderSagaWorkflow::class, $workflowId);
+            
+            // Associate order with new workflow
+            $order->setWorkflow($workflowId, $workflowData);
+
+            // Start workflow execution
+            $workflowResult = $workflow->start($workflowData);
+
+            Log::info("Order workflow retried", [
+                'order_id' => $order->id,
+                'new_workflow_id' => $workflowId,
+                'from_step' => $fromStep,
+                'updated_data' => $updatedData
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'order_id' => $order->id,
+                    'workflow_id' => $workflowId,
+                    'status' => 'retrying',
+                    'from_step' => $fromStep,
+                    'workflow_data' => $workflowData,
+                ],
+                'message' => 'Workflow retry initiated successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Failed to retry workflow", [
+                'order_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retry workflow',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get workflow execution history
+     */
+    public function getWorkflowHistory(int $id): JsonResponse
+    {
+        try {
+            $order = Order::findOrFail($id);
+
+            // Get order status history which includes workflow state changes
+            $statusHistory = $order->status_history ?? [];
+            
+            // Filter for workflow-related entries
+            $workflowHistory = collect($statusHistory)->filter(function ($entry) {
+                return isset($entry['reason']) && 
+                       (str_contains($entry['reason'], 'workflow') || 
+                        str_contains($entry['reason'], 'saga') ||
+                        str_contains($entry['reason'], 'compensation'));
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'order_id' => $order->id,
+                    'workflow_id' => $order->workflow_id,
+                    'current_state' => $order->state::class,
+                    'workflow_history' => $workflowHistory->values(),
+                    'full_status_history' => $statusHistory,
+                ],
+                'message' => 'Workflow history retrieved successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve workflow history',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Prepare order items for workflow
+     */
+    private function prepareOrderItems(Order $order): array
+    {
+        // This would typically extract items from the order
+        // For now, we'll create a basic structure based on order data
+        return [
+            [
+                'id' => $order->id,
+                'name' => $order->title ?? 'Order Item',
+                'quantity' => 1,
+                'price' => $order->total_amount,
+                'description' => $order->description ?? '',
+            ]
+        ];
     }
 }

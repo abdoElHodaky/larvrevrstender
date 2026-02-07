@@ -58,6 +58,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{order}/transition-state', [App\Http\Controllers\OrderController::class, 'transitionState']);
         Route::get('/{order}/available-transitions', [App\Http\Controllers\OrderController::class, 'getAvailableTransitions']);
         Route::get('/by-state/{state}', [App\Http\Controllers\OrderController::class, 'getByState']);
+        
+        // Workflow management routes
+        Route::post('/{order}/workflow/initiate', [App\Http\Controllers\OrderController::class, 'initiateWorkflow']);
+        Route::get('/{order}/workflow/status', [App\Http\Controllers\OrderController::class, 'getWorkflowStatus']);
+        Route::post('/{order}/workflow/cancel', [App\Http\Controllers\OrderController::class, 'cancelWorkflow']);
+        Route::post('/{order}/workflow/retry', [App\Http\Controllers\OrderController::class, 'retryWorkflow']);
+        Route::get('/{order}/workflow/history', [App\Http\Controllers\OrderController::class, 'getWorkflowHistory']);
     });
 
     Route::prefix('cart')->group(function () {
