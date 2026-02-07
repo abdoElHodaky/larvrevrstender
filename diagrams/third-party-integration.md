@@ -122,24 +122,24 @@ graph TB
     RATE_LIMITER --> RATE_CACHE
     CB_PROTECTION --> CB_STATE
 
-    %% Distinguished Eye-Catching Styling
-    classDef managementStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef baseStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef authStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef protectionStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef serviceStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef externalStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef webhookStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef stateStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
+    %% Style Guide Compliant Styling
+    classDef supportStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef coreStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef securityStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef errorStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef externalStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef clientStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef successStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
 
-    class INT_PROC,INT_MANAGER managementStyle
-    class BASE_INT baseStyle
-    class BEARER_AUTH,API_KEY_AUTH,OAUTH_AUTH authStyle
-    class RATE_LIMITER,RETRY_LOGIC,CB_PROTECTION protectionStyle
-    class STRIPE_INT,MAILGUN_INT,TWILIO_INT,AWS_INT,CUSTOM_INT serviceStyle
-    class STRIPE_API,MAILGUN_API,TWILIO_API,AWS_API,CUSTOM_API externalStyle
-    class WEBHOOK_HANDLER,SIG_VERIFIER,EVENT_PROCESSOR webhookStyle
-    class TOKEN_CACHE,RATE_CACHE,CB_STATE stateStyle
+    class INT_PROC,INT_MANAGER supportStyle
+    class BASE_INT coreStyle
+    class BEARER_AUTH,API_KEY_AUTH,OAUTH_AUTH securityStyle
+    class RATE_LIMITER,RETRY_LOGIC,CB_PROTECTION errorStyle
+    class STRIPE_INT,MAILGUN_INT,TWILIO_INT,AWS_INT,CUSTOM_INT externalStyle
+    class STRIPE_API,MAILGUN_API,TWILIO_API,AWS_API,CUSTOM_API clientStyle
+    class WEBHOOK_HANDLER,SIG_VERIFIER,EVENT_PROCESSOR successStyle
+    class TOKEN_CACHE,RATE_CACHE,CB_STATE dataStyle
 ```
 
 ## 🔐 **Authentication Strategies**
@@ -150,64 +150,74 @@ graph TB
 %%{init: {
   'theme': 'dark',
   'themeVariables': {
-    'actorBkg': '#54A0FF',
-    'actorBorder': '#7BB3FF',
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'actorBkg': '#FF6B6B',
+    'actorBorder': '#FF8E8E',
     'actorTextColor': '#FFFFFF',
     'activationBkgColor': '#4ECDC4',
     'activationBorderColor': '#7ED6D1',
     'noteBkgColor': '#FECA57',
     'noteTextColor': '#000000',
-    'noteBorderColor': '#FED876',
-    'background': '#0F172A',
-    'mainBkg': '#1E293B',
-    'primaryTextColor': '#FFFFFF'
+    'noteBorderColor': '#FED876'
   }
 }}%%
 
 sequenceDiagram
-    participant App as 🌐 App
-    participant Integration as 🔌 Integration
+    participant App as 📱 Client App
+    participant Integration as 🔌 Integration Service
     participant TokenCache as 💾 Token Cache
     participant ExternalAPI as 🌐 External API
     participant AuthServer as 🔐 Auth Server
 
-    App->>Integration: Initialize Service
-    Integration->>TokenCache: Check Cached Token
+    App->>+Integration: 🚀 Initialize Service
+    Integration->>+TokenCache: 🔍 Check Cached Token
     
-    alt Token Exists and Valid
-        TokenCache-->>Integration: Return Valid Token
-        Integration-->>App: Ready for API Calls
-    else Token Missing or Expired
-        Integration->>AuthServer: Authenticate
+    alt ✅ Token Exists and Valid
+        TokenCache-->>-Integration: 🎯 Return Valid Token
+        Integration-->>-App: ✅ Ready for API Calls
+    else ❌ Token Missing or Expired
+        Integration->>+AuthServer: 🔐 Authenticate
         
-        alt Bearer Token Auth
-            AuthServer-->>Integration: Return Access Token
-        else API Key Auth
-            Note over Integration: Use Configured API Key
-        else OAuth2 Auth
-            AuthServer-->>Integration: Return Access + Refresh Token
+        alt 🔑 Bearer Token Auth
+            AuthServer-->>Integration: 🎫 Return Access Token
+        else 🗝️ API Key Auth
+            Note over Integration: 🔧 Use Configured API Key
+        else 🔐 OAuth2 Auth
+            AuthServer-->>Integration: 🎫 Return Access + Refresh Token
         end
         
-        Integration->>TokenCache: Store Token with TTL
-        Integration-->>App: Ready for API Calls
+        AuthServer-->>-Integration: 🎫 Authentication Complete
+        Integration->>+TokenCache: 💾 Store Token with TTL
+        TokenCache-->>-Integration: ✅ Token Stored
+        Integration-->>-App: ✅ Ready for API Calls
     end
     
-    App->>Integration: Make API Call
-    Integration->>TokenCache: Get Current Token
-    TokenCache-->>Integration: Return Token
-    Integration->>ExternalAPI: API Request with Auth
+    App->>+Integration: 📡 Make API Call
+    Integration->>+TokenCache: 🔍 Get Current Token
+    TokenCache-->>-Integration: 🎫 Return Token
+    Integration->>+ExternalAPI: 🌐 API Request with Auth
     
-    alt Request Success
-        ExternalAPI-->>Integration: Success Response
-        Integration-->>App: Return Response
-    else Auth Error (401)
-        ExternalAPI-->>Integration: 401 Unauthorized
-        Integration->>AuthServer: Re-authenticate
-        AuthServer-->>Integration: New Token
-        Integration->>TokenCache: Update Token
-        Integration->>ExternalAPI: Retry with New Token
-        ExternalAPI-->>Integration: Success Response
-        Integration-->>App: Return Response
+    alt ✅ Request Success
+        ExternalAPI-->>-Integration: ✅ Success Response
+        Integration-->>-App: 📦 Return Response
+    else ❌ Auth Error (401)
+        ExternalAPI-->>Integration: ❌ 401 Unauthorized
+        Integration->>+AuthServer: 🔄 Re-authenticate
+        AuthServer-->>-Integration: 🎫 New Token
+        Integration->>+TokenCache: 🔄 Update Token
+        TokenCache-->>-Integration: ✅ Token Updated
+        Integration->>+ExternalAPI: 🔄 Retry with New Token
+        ExternalAPI-->>-Integration: ✅ Success Response
+        Integration-->>-App: 📦 Return Response
     end
 ```
 
@@ -440,18 +450,18 @@ graph TD
     
     REJECT_REQUEST --> ERROR_RESPONSE[❌ Return 400 Error]
 
-    classDef receiveStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
-    classDef processStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    classDef handlerStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
-    classDef actionStyle fill:#f1f8e9,stroke:#388e3c,stroke-width:2px,color:#000
-    classDef responseStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    classDef errorStyle fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    classDef infraStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef securityStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef supportStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef coreStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef successStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef errorStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
 
-    class WEBHOOK_RECEIVED,EXTRACT_HEADERS receiveStyle
-    class VERIFY_SIG,PARSE_EVENT,IDENTIFY_TYPE processStyle
-    class PAYMENT_SUCCESS,PAYMENT_FAILED,CUSTOMER_CREATED,INVOICE_PAID,LOG_UNKNOWN handlerStyle
-    class UPDATE_ORDER,HANDLE_FAILURE,SYNC_CUSTOMER,UPDATE_SUBSCRIPTION actionStyle
-    class SUCCESS_RESPONSE responseStyle
+    class WEBHOOK_RECEIVED,EXTRACT_HEADERS infraStyle
+    class VERIFY_SIG,PARSE_EVENT,IDENTIFY_TYPE securityStyle
+    class PAYMENT_SUCCESS,PAYMENT_FAILED,CUSTOMER_CREATED,INVOICE_PAID,LOG_UNKNOWN supportStyle
+    class UPDATE_ORDER,HANDLE_FAILURE,SYNC_CUSTOMER,UPDATE_SUBSCRIPTION coreStyle
+    class SUCCESS_RESPONSE successStyle
     class REJECT_REQUEST,ERROR_RESPONSE errorStyle
 ```
 
@@ -486,64 +496,88 @@ graph TB
     CHECK_LIMIT --> REDIS_COUNTER
     CHECK_LIMIT --> LIMIT_CONFIG
 
-    classDef requestStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
-    classDef allowStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    classDef blockStyle fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    classDef storageStyle fill:#f1f8e9,stroke:#388e3c,stroke-width:2px,color:#000
-    classDef configStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef infraStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef successStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef errorStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
+    classDef supportStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
 
-    class REQUEST_IN,MAKE_REQUEST requestStyle
-    class ALLOW_REQUEST,UPDATE_COUNTER allowStyle
-    class BLOCK_REQUEST,WAIT_RESET,RETRY_REQUEST blockStyle
-    class REDIS_COUNTER storageStyle
-    class LIMIT_CONFIG configStyle
+    class REQUEST_IN,MAKE_REQUEST infraStyle
+    class ALLOW_REQUEST,UPDATE_COUNTER successStyle
+    class BLOCK_REQUEST,WAIT_RESET,RETRY_REQUEST errorStyle
+    class REDIS_COUNTER dataStyle
+    class LIMIT_CONFIG supportStyle
 ```
 
 ### **Retry Logic with Exponential Backoff**
 
 ```mermaid
-sequenceDiagram
-    participant Integration
-    participant RetryLogic
-    participant ExternalAPI
-    participant Timer
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'actorBkg': '#FF6B6B',
+    'actorBorder': '#FF8E8E',
+    'actorTextColor': '#FFFFFF',
+    'activationBkgColor': '#4ECDC4',
+    'activationBorderColor': '#7ED6D1',
+    'noteBkgColor': '#FECA57',
+    'noteTextColor': '#000000',
+    'noteBorderColor': '#FED876'
+  }
+}}%%
 
-    Integration->>RetryLogic: Make API Call
-    RetryLogic->>ExternalAPI: Attempt 1
+sequenceDiagram
+    participant Integration as 🔌 Integration Service
+    participant RetryLogic as 🔄 Retry Logic
+    participant ExternalAPI as 🌐 External API
+    participant Timer as ⏰ Timer
+
+    Integration->>+RetryLogic: 📡 Make API Call
+    RetryLogic->>+ExternalAPI: 🎯 Attempt 1
     
-    alt Request Success
-        ExternalAPI-->>RetryLogic: 200 OK
-        RetryLogic-->>Integration: Success Response
-    else Retryable Error (5xx, timeout)
-        ExternalAPI-->>RetryLogic: 503 Service Unavailable
-        RetryLogic->>Timer: Wait 1 second (2^0)
-        Timer-->>RetryLogic: Wait Complete
+    alt ✅ Request Success
+        ExternalAPI-->>-RetryLogic: ✅ 200 OK
+        RetryLogic-->>-Integration: 📦 Success Response
+    else ⚠️ Retryable Error (5xx, timeout)
+        ExternalAPI-->>RetryLogic: ❌ 503 Service Unavailable
+        RetryLogic->>+Timer: ⏳ Wait 1 second (2^0)
+        Timer-->>-RetryLogic: ✅ Wait Complete
         
-        RetryLogic->>ExternalAPI: Attempt 2
-        alt Still Failing
-            ExternalAPI-->>RetryLogic: 502 Bad Gateway
-            RetryLogic->>Timer: Wait 2 seconds (2^1)
-            Timer-->>RetryLogic: Wait Complete
+        RetryLogic->>+ExternalAPI: 🎯 Attempt 2
+        alt ❌ Still Failing
+            ExternalAPI-->>-RetryLogic: ❌ 502 Bad Gateway
+            RetryLogic->>+Timer: ⏳ Wait 2 seconds (2^1)
+            Timer-->>-RetryLogic: ✅ Wait Complete
             
-            RetryLogic->>ExternalAPI: Attempt 3
-            alt Final Attempt
-                ExternalAPI-->>RetryLogic: 500 Internal Error
-                RetryLogic->>Timer: Wait 4 seconds (2^2)
-                Timer-->>RetryLogic: Wait Complete
+            RetryLogic->>+ExternalAPI: 🎯 Attempt 3
+            alt 🔄 Final Attempt
+                ExternalAPI-->>-RetryLogic: ❌ 500 Internal Error
+                RetryLogic->>+Timer: ⏳ Wait 4 seconds (2^2)
+                Timer-->>-RetryLogic: ✅ Wait Complete
                 
-                RetryLogic->>ExternalAPI: Attempt 4 (Final)
-                alt Success
-                    ExternalAPI-->>RetryLogic: 200 OK
-                    RetryLogic-->>Integration: Success Response
-                else Max Retries Exceeded
-                    ExternalAPI-->>RetryLogic: Still Failing
-                    RetryLogic-->>Integration: Max Retries Exceeded
+                RetryLogic->>+ExternalAPI: 🎯 Attempt 4 (Final)
+                alt ✅ Success
+                    ExternalAPI-->>-RetryLogic: ✅ 200 OK
+                    RetryLogic-->>-Integration: 📦 Success Response
+                else 💥 Max Retries Exceeded
+                    ExternalAPI-->>RetryLogic: ❌ Still Failing
+                    RetryLogic-->>-Integration: 💥 Max Retries Exceeded
                 end
             end
         end
-    else Non-Retryable Error (4xx)
-        ExternalAPI-->>RetryLogic: 400 Bad Request
-        RetryLogic-->>Integration: Client Error (No Retry)
+    else 🚫 Non-Retryable Error (4xx)
+        ExternalAPI-->>-RetryLogic: 🚫 400 Bad Request
+        RetryLogic-->>-Integration: 🚫 Client Error (No Retry)
     end
 ```
 
@@ -594,17 +628,17 @@ graph TB
     WEBHOOK_METRICS --> PERFORMANCE_ALERTS
     SECURITY_METRICS --> PERFORMANCE_ALERTS
 
-    classDef overviewStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
-    classDef healthStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    classDef cbStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
-    classDef webhookStyle fill:#f1f8e9,stroke:#388e3c,stroke-width:2px,color:#000
-    classDef alertStyle fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    classDef infraStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef coreStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef supportStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef successStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef errorStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
 
-    class OVERVIEW overviewStyle
-    class AUTH_STATUS,API_METRICS,RATE_METRICS healthStyle
-    class CB_STATUS,CB_METRICS cbStyle
-    class WEBHOOK_METRICS,SECURITY_METRICS webhookStyle
-    class SERVICE_ALERTS,PERFORMANCE_ALERTS alertStyle
+    class OVERVIEW infraStyle
+    class AUTH_STATUS,API_METRICS,RATE_METRICS coreStyle
+    class CB_STATUS,CB_METRICS supportStyle
+    class WEBHOOK_METRICS,SECURITY_METRICS successStyle
+    class SERVICE_ALERTS,PERFORMANCE_ALERTS errorStyle
 ```
 
 ## 🎯 **Key Benefits**
