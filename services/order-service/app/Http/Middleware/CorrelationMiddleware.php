@@ -116,7 +116,7 @@ class CorrelationMiddleware
     /**
      * Add correlation headers to response
      */
-    private function addCorrelationHeadersToResponse(Response $response, string $correlationId): void
+    private function addCorrelationHeadersToResponse(\Symfony\Component\HttpFoundation\Response $response, string $correlationId): void
     {
         $correlationData = $this->correlationService->getCorrelationHeaders($correlationId);
         
