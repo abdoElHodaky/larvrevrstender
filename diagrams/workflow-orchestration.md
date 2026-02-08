@@ -8,8 +8,9 @@ The **Workflow Orchestration Framework** provides enterprise-grade capabilities 
 
 ```mermaid
 %%{init: {
-  'theme': 'dark',
+  'theme': 'base',
   'themeVariables': {
+    'darkMode': true,
     'primaryColor': '#5F27CD',
     'primaryTextColor': '#FFFFFF',
     'primaryBorderColor': '#7B4AE0',
@@ -24,7 +25,10 @@ The **Workflow Orchestration Framework** provides enterprise-grade capabilities 
     'clusterBorder': '#5F27CD',
     'edgeLabelBackground': '#334155',
     'nodeTextColor': '#FFFFFF',
-    'edgeColor': '#4ECDC4'
+    'edgeColor': '#4ECDC4',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px',
+    'fontWeight': 'bold'
   }
 }}%%
 
@@ -97,12 +101,12 @@ graph TB
     NOTIFY_MP -.->|Failure| COMP_ENGINE
     VALID_MP -.->|Failure| COMP_ENGINE
 
-    %% Distinguished Eye-Catching Styling
-    classDef orchestrationStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef executionStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef macroStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef microStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef stateStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
+    %% 🎨 Distinguished Eye-Catching Styling with Enhanced Visual Effects
+    classDef orchestrationStyle fill:#5F27CD,stroke:#7B4AE0,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:15px,rx:12,ry:12
+    classDef executionStyle fill:#2ED573,stroke:#54E68A,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:10,ry:10
+    classDef macroStyle fill:#FF6B6B,stroke:#FF8E8E,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:12,ry:12
+    classDef microStyle fill:#4ECDC4,stroke:#7ED6D1,stroke-width:3px,color:#FFFFFF,font-weight:bold,font-size:13px,rx:8,ry:8
+    classDef stateStyle fill:#FECA57,stroke:#FED876,stroke-width:4px,color:#000000,font-weight:bold,font-size:14px,rx:10,ry:10
 
     class WF_ENGINE,STATE_MGR,COMP_ENGINE orchestrationStyle
     class SEQ,PAR,COND executionStyle
@@ -117,8 +121,9 @@ graph TB
 
 ```mermaid
 %%{init: {
-  'theme': 'dark',
+  'theme': 'base',
   'themeVariables': {
+    'darkMode': true,
     'actorBkg': '#5F27CD',
     'actorBorder': '#7B4AE0',
     'actorTextColor': '#FFFFFF',
@@ -129,7 +134,10 @@ graph TB
     'noteBorderColor': '#FED876',
     'background': '#0F172A',
     'mainBkg': '#1E293B',
-    'primaryTextColor': '#FFFFFF'
+    'primaryTextColor': '#FFFFFF',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px',
+    'fontWeight': 'bold'
   }
 }}%%
 

@@ -8,8 +8,9 @@ The Laravel Reverse Tender Platform features an **enterprise-grade microservices
 
 ```mermaid
 %%{init: {
-  'theme': 'dark',
+  'theme': 'base',
   'themeVariables': {
+    'darkMode': true,
     'primaryColor': '#FF6B6B',
     'primaryTextColor': '#FFFFFF',
     'primaryBorderColor': '#FF8E8E',
@@ -24,7 +25,10 @@ The Laravel Reverse Tender Platform features an **enterprise-grade microservices
     'clusterBorder': '#4ECDC4',
     'edgeLabelBackground': '#334155',
     'nodeTextColor': '#FFFFFF',
-    'edgeColor': '#4ECDC4'
+    'edgeColor': '#4ECDC4',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px',
+    'fontWeight': 'bold'
   }
 }}%%
 
@@ -142,15 +146,15 @@ graph TB
     BID --> SEARCH
     ANALYTICS --> SEARCH
 
-    %% Distinguished Eye-Catching Styling
-    classDef clientStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef gatewayStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef sharedStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef microStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef macroStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef serviceStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef externalStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
+    %% 🎨 Distinguished Eye-Catching Styling with Enhanced Visual Effects
+    classDef clientStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:12,ry:12
+    classDef gatewayStyle fill:#FF6B6B,stroke:#FF8E8E,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:16px,rx:15,ry:15
+    classDef sharedStyle fill:#96CEB4,stroke:#B2D8C4,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:15px,rx:12,ry:12
+    classDef microStyle fill:#4ECDC4,stroke:#7ED6D1,stroke-width:3px,color:#FFFFFF,font-weight:bold,font-size:13px,rx:10,ry:10
+    classDef macroStyle fill:#5F27CD,stroke:#7B4AE0,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:12,ry:12
+    classDef serviceStyle fill:#45B7D1,stroke:#6BC5D8,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:12,ry:12
+    classDef externalStyle fill:#54A0FF,stroke:#7BB3FF,stroke-width:3px,color:#FFFFFF,font-weight:bold,font-size:13px,rx:8,ry:8
+    classDef dataStyle fill:#FECA57,stroke:#FED876,stroke-width:4px,color:#000000,font-weight:bold,font-size:14px,rx:10,ry:10
 
     class WEB,MOBILE,API_CLIENT clientStyle
     class GATEWAY gatewayStyle
@@ -168,8 +172,9 @@ graph TB
 
 ```mermaid
 %%{init: {
-  'theme': 'dark',
+  'theme': 'base',
   'themeVariables': {
+    'darkMode': true,
     'primaryColor': '#4ECDC4',
     'primaryTextColor': '#FFFFFF',
     'primaryBorderColor': '#7ED6D1',
@@ -178,7 +183,10 @@ graph TB
     'mainBkg': '#1E293B',
     'clusterBkg': '#1E293B',
     'clusterBorder': '#4ECDC4',
-    'nodeTextColor': '#FFFFFF'
+    'nodeTextColor': '#FFFFFF',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px',
+    'fontWeight': 'bold'
   }
 }}%%
 
@@ -194,7 +202,7 @@ graph LR
         TPI[🔌 Third-Party Integration<br/>• External APIs<br/>• Authentication<br/>• Webhook handling]
     end
 
-    classDef microStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef microStyle fill:#4ECDC4,stroke:#7ED6D1,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:12,ry:12
     class EVENT,CACHE,NOTIFY,VALID,SEC,CB,QCB,TPI microStyle
 ```
 

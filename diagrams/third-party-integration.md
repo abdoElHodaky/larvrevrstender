@@ -8,8 +8,9 @@ The **Third-Party Integration Framework** provides standardized patterns for con
 
 ```mermaid
 %%{init: {
-  'theme': 'dark',
+  'theme': 'base',
   'themeVariables': {
+    'darkMode': true,
     'primaryColor': '#54A0FF',
     'primaryTextColor': '#FFFFFF',
     'primaryBorderColor': '#7BB3FF',
@@ -24,7 +25,10 @@ The **Third-Party Integration Framework** provides standardized patterns for con
     'clusterBorder': '#54A0FF',
     'edgeLabelBackground': '#334155',
     'nodeTextColor': '#FFFFFF',
-    'edgeColor': '#4ECDC4'
+    'edgeColor': '#4ECDC4',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px',
+    'fontWeight': 'bold'
   }
 }}%%
 
@@ -122,15 +126,15 @@ graph TB
     RATE_LIMITER --> RATE_CACHE
     CB_PROTECTION --> CB_STATE
 
-    %% Style Guide Compliant Styling
-    classDef supportStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef coreStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef securityStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef errorStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef externalStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef clientStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef successStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
+    %% 🎨 Distinguished Eye-Catching Styling with Enhanced Visual Effects
+    classDef supportStyle fill:#96CEB4,stroke:#B2D8C4,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:12,ry:12
+    classDef coreStyle fill:#45B7D1,stroke:#6BC5D8,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:15px,rx:12,ry:12
+    classDef securityStyle fill:#4ECDC4,stroke:#7ED6D1,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:10,ry:10
+    classDef errorStyle fill:#FF4757,stroke:#FF6B7A,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:10,ry:10
+    classDef externalStyle fill:#54A0FF,stroke:#7BB3FF,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:12,ry:12
+    classDef clientStyle fill:#FF9FF3,stroke:#FFB8F7,stroke-width:3px,color:#FFFFFF,font-weight:bold,font-size:13px,rx:8,ry:8
+    classDef successStyle fill:#2ED573,stroke:#54E68A,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:10,ry:10
+    classDef dataStyle fill:#FECA57,stroke:#FED876,stroke-width:4px,color:#000000,font-weight:bold,font-size:14px,rx:10,ry:10
 
     class INT_PROC,INT_MANAGER supportStyle
     class BASE_INT coreStyle

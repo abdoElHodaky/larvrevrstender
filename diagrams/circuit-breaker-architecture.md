@@ -8,8 +8,9 @@ The **Dual Circuit Breaker Architecture** provides comprehensive fault tolerance
 
 ```mermaid
 %%{init: {
-  'theme': 'dark',
+  'theme': 'base',
   'themeVariables': {
+    'darkMode': true,
     'primaryColor': '#FF4757',
     'primaryTextColor': '#FFFFFF',
     'primaryBorderColor': '#FF6B7A',
@@ -24,7 +25,10 @@ The **Dual Circuit Breaker Architecture** provides comprehensive fault tolerance
     'clusterBorder': '#FF4757',
     'edgeLabelBackground': '#334155',
     'nodeTextColor': '#FFFFFF',
-    'edgeColor': '#4ECDC4'
+    'edgeColor': '#4ECDC4',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px',
+    'fontWeight': 'bold'
   }
 }}%%
 
@@ -105,15 +109,15 @@ graph TB
     ASYNC_HALF -.->|Test Success| ASYNC_CLOSED
     ASYNC_HALF -.->|Test Failure| ASYNC_OPEN
 
-    %% Distinguished Eye-Catching Styling
-    classDef appStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef syncStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef asyncStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef serviceStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef stateStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
-    classDef closedStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef openStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef halfStyle fill:#FFD93D,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
+    %% 🎨 Distinguished Eye-Catching Styling with Enhanced Visual Effects
+    classDef appStyle fill:#FF9FF3,stroke:#FFB8F7,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:12,ry:12
+    classDef syncStyle fill:#FF4757,stroke:#FF6B7A,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:15px,rx:12,ry:12
+    classDef asyncStyle fill:#5F27CD,stroke:#7B4AE0,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:15px,rx:12,ry:12
+    classDef serviceStyle fill:#45B7D1,stroke:#6BC5D8,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:10,ry:10
+    classDef stateStyle fill:#FECA57,stroke:#FED876,stroke-width:4px,color:#000000,font-weight:bold,font-size:14px,rx:10,ry:10
+    classDef closedStyle fill:#2ED573,stroke:#54E68A,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:8,ry:8
+    classDef openStyle fill:#FF4757,stroke:#FF6B7A,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:8,ry:8
+    classDef halfStyle fill:#FFD93D,stroke:#FFE066,stroke-width:4px,color:#000000,font-weight:bold,font-size:14px,rx:8,ry:8
 
     class APP_REQUEST appStyle
     class SYNC_CB,SYNC_STATE syncStyle
@@ -130,21 +134,24 @@ graph TB
 ### **State Transition Diagram**
 
 ```mermaid
-   %%{init: {
+%%{init: {
   'theme': 'base',
   'themeVariables': {
-    'background': '#0B0F14',
-    'primaryColor': '#2ECC71',
+    'darkMode': true,
+    'background': '#0F172A',
+    'primaryColor': '#2ED573',
     'primaryTextColor': '#FFFFFF',
-    'primaryBorderColor': '#27AE60',
+    'primaryBorderColor': '#54E68A',
     'lineColor': '#4ECDC4',
     'secondaryColor': '#FF4757',
-    'tertiaryColor': '#F1C40F',
-    'mainBkg': '#161B22',
-    'clusterBkg': 'rgba(255, 255, 255, 0.03)',
-    'clusterBorder': '#334155',
-    'edgeLabelBackground':'#1A1D23',
-    'fontFamily': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'
+    'tertiaryColor': '#FFD93D',
+    'mainBkg': '#1E293B',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#4ECDC4',
+    'edgeLabelBackground': '#334155',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px',
+    'fontWeight': 'bold'
   }
 }}%%
 
@@ -283,4 +290,3 @@ graph TB
 - **📊 Observability**: Real-time monitoring
 - **🎯 Reliability**: Service protection
 - **🚀 Scalability**: Distributed state management
-
