@@ -1,8 +1,8 @@
-# Developer Integration Guide - Laravel Workflow Saga Pattern
+# Developer Integration Guide - Laravel WorkflowCore Enterprise
 
 ## 📋 Overview
 
-This guide provides comprehensive instructions for developers to integrate with the Laravel Workflow Saga Pattern implementation. It covers API usage, SDK examples, best practices, and common integration patterns.
+This guide provides comprehensive instructions for developers to integrate with the Laravel WorkflowCore Enterprise implementation. It covers API usage, SDK examples, best practices, and common integration patterns.
 
 ---
 

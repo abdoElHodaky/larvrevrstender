@@ -1,4 +1,4 @@
-# Monitoring & Alerting Guide - Laravel Workflow Saga Pattern
+# Monitoring & Alerting Guide - Laravel WorkflowCore Enterprise
 
 ## 📋 Table of Contents
 
@@ -950,4 +950,4 @@ php artisan cache:forget dashboard:*
 - [ ] Update alert escalation procedures
 - [ ] Conduct monitoring system maintenance
 
-This monitoring and alerting guide provides comprehensive coverage for maintaining visibility into the Laravel Workflow Saga Pattern system's health, performance, and business impact.
+This monitoring and alerting guide provides comprehensive coverage for maintaining visibility into the Laravel WorkflowCore Enterprise system's health, performance, and business impact.

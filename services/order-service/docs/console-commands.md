@@ -1,8 +1,8 @@
-# Console Commands - Laravel Workflow Saga Pattern
+# Console Commands - Laravel WorkflowCore Enterprise
 
 ## 📋 Overview
 
-This document provides comprehensive documentation for all console commands implemented in the Laravel Workflow Saga Pattern. These commands enable operational management, monitoring, and maintenance of the workflow system.
+This document provides comprehensive documentation for all console commands implemented in the Laravel WorkflowCore Enterprise. These commands enable operational management, monitoring, and maintenance of the workflow system.
 
 ---
 

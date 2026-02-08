@@ -1,8 +1,8 @@
-# Service Architecture - Laravel Workflow Saga Pattern
+# Service Architecture - Laravel WorkflowCore Enterprise
 
 ## 📋 Overview
 
-This document provides detailed documentation of the service architecture for the Laravel Workflow Saga Pattern implementation. It covers service layer design, component interactions, dependency management, and integration patterns.
+This document provides detailed documentation of the service architecture for the Laravel WorkflowCore Enterprise implementation. It covers service layer design, component interactions, dependency management, and integration patterns.
 
 ---
 

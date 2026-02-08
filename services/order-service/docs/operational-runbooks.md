@@ -1,4 +1,4 @@
-# Operational Runbooks - Laravel Workflow Saga Pattern
+# Operational Runbooks - Laravel WorkflowCore Enterprise
 
 ## 📋 Table of Contents
 
@@ -891,4 +891,4 @@ sudo systemctl restart mysql
 # Update database configuration in Laravel
 ```
 
-This operational runbook provides comprehensive procedures for maintaining, troubleshooting, and recovering the Laravel Workflow Saga Pattern system in production environments.
+This operational runbook provides comprehensive procedures for maintaining, troubleshooting, and recovering the Laravel WorkflowCore Enterprise system in production environments.

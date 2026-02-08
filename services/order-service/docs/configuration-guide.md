@@ -1,4 +1,4 @@
-# Configuration Guide - Laravel Workflow Saga Pattern
+# Configuration Guide - Laravel WorkflowCore Enterprise
 
 ## 📋 Table of Contents
 
@@ -23,7 +23,7 @@ Create a comprehensive `.env` file with the following workflow-specific configur
 
 ```bash
 # Application Configuration
-APP_NAME="Laravel Workflow Saga"
+APP_NAME="Laravel WorkflowCore Enterprise"
 APP_ENV=production
 APP_KEY=base64:your-app-key-here
 APP_DEBUG=false
@@ -735,4 +735,4 @@ save 300 10
 save 60 10000
 ```
 
-This configuration guide provides comprehensive setup instructions for deploying the Laravel Workflow Saga Pattern in production environments with optimal performance and security.
+This configuration guide provides comprehensive setup instructions for deploying the Laravel WorkflowCore Enterprise in production environments with optimal performance and security.

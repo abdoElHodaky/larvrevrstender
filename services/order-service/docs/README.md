@@ -1,8 +1,8 @@
-# Laravel Workflow Saga Pattern - Complete Implementation Guide
+# Laravel WorkflowCore Enterprise - Complete Implementation Guide
 
 ## 🎯 Overview
 
-This documentation provides a comprehensive guide to the **Laravel Workflow Saga Pattern** implementation, featuring enterprise-grade distributed transaction management with advanced event publishing, workflow signal handling, dead letter queue management, sophisticated correlation tracking, comprehensive monitoring dashboards, intelligent alerting systems, and full observability across the microservice ecosystem.
+This documentation provides a comprehensive guide to the **Laravel WorkflowCore Enterprise** implementation, featuring enterprise-grade distributed transaction management with advanced event publishing, workflow signal handling, dead letter queue management, sophisticated correlation tracking, comprehensive monitoring dashboards, intelligent alerting systems, and full observability across the microservice ecosystem.
 
 ## 📋 Table of Contents
 
@@ -21,7 +21,7 @@ This documentation provides a comprehensive guide to the **Laravel Workflow Saga
 
 ### System Architecture
 
-The Laravel Workflow Saga Pattern implementation consists of multiple interconnected layers:
+The Laravel WorkflowCore Enterprise implementation consists of multiple interconnected layers:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
