@@ -407,40 +407,11 @@ graph TB
     end
     
     subgraph "Success Response Example"
-        SUCCESS_EXAMPLE[```json
-{
-  "success": true,
-  "data": {
-    "workflow_id": "wf_abc123",
-    "status": "running",
-    "progress": 45.5
-  },
-  "error": null,
-  "metadata": {
-    "procedure": "startWorkflow",
-    "execution_time_ms": 123.45,
-    "trace_id": "req_xyz789",
-    "timestamp": "2024-01-01T12:00:00Z",
-    "api_version": "v1"
-  }
-}```]
+        SUCCESS_EXAMPLE["✅ Success Response:<br/>{<br/>  success: true,<br/>  data: { workflow_id, status, progress },<br/>  error: null,<br/>  metadata: { procedure, execution_time_ms, trace_id }<br/>}"]
     end
     
     subgraph "Error Response Example"
-        ERROR_EXAMPLE[```json
-{
-  "success": false,
-  "data": null,
-  "error": "Validation failed: email is required",
-  "metadata": {
-    "procedure": "validateData",
-    "execution_time_ms": 45.67,
-    "trace_id": "req_abc456",
-    "timestamp": "2024-01-01T12:00:00Z",
-    "api_version": "v1",
-    "error_code": "VALIDATION_ERROR"
-  }
-}```]
+        ERROR_EXAMPLE["❌ Error Response:<br/>{<br/>  success: false,<br/>  data: null,<br/>  error: 'Validation failed',<br/>  metadata: { procedure, error_code, trace_id }<br/>}"]
     end
 
     classDef responseStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
