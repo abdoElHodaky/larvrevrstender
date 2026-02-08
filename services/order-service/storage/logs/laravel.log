@@ -460,3 +460,7 @@
 #29 /tmp/abdoElHodaky/larvrevrstender/services/order-service/artisan(51): Illuminate\\Foundation\\Console\\Kernel->terminate()
 #30 {main}
 "} 
+[2026-02-08 13:57:10] local.ERROR: Cannot redeclare App\Services\OrderService::createOrderFromBid() {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Cannot redeclare App\\Services\\OrderService::createOrderFromBid() at /tmp/abdoElHodaky/larvrevrstender/services/order-service/app/Services/OrderService.php:546)
+[stacktrace]
+#0 {main}
+"} 

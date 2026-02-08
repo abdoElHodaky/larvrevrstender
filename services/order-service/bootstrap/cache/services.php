@@ -41,6 +41,8 @@
     37 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
     38 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
     39 => 'App\\Providers\\AppServiceProvider',
+    40 => 'App\\Providers\\EventServiceProvider',
+    41 => 'App\\Providers\\TelescopeServiceProvider',
   ),
   'eager' => 
   array (
@@ -69,6 +71,8 @@
     22 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
     23 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
     24 => 'App\\Providers\\AppServiceProvider',
+    25 => 'App\\Providers\\EventServiceProvider',
+    26 => 'App\\Providers\\TelescopeServiceProvider',
   ),
   'deferred' => 
   array (

@@ -128,4 +128,24 @@ Route::middleware('auth:sanctum')->group(function () {
             ]);
         });
     });
+
+    // Workflow signal management routes
+    Route::prefix('workflow/signals')->group(function () {
+        Route::post('/pause', [App\Http\Controllers\WorkflowSignalController::class, 'pauseWorkflow']);
+        Route::post('/resume', [App\Http\Controllers\WorkflowSignalController::class, 'resumeWorkflow']);
+        Route::post('/intervention', [App\Http\Controllers\WorkflowSignalController::class, 'requestIntervention']);
+        Route::post('/external', [App\Http\Controllers\WorkflowSignalController::class, 'sendExternalSignal']);
+        Route::get('/active', [App\Http\Controllers\WorkflowSignalController::class, 'getActiveSignals']);
+        Route::get('/{workflowId}', [App\Http\Controllers\WorkflowSignalController::class, 'getWorkflowSignals']);
+        Route::delete('/{signalId}', [App\Http\Controllers\WorkflowSignalController::class, 'deleteSignal']);
+    });
+
+    // Workflow correlation and tracing routes
+    Route::prefix('correlation')->group(function () {
+        Route::get('/stats', [App\Http\Controllers\WorkflowCorrelationController::class, 'getCorrelationStats']);
+        Route::post('/context/propagate', [App\Http\Controllers\WorkflowCorrelationController::class, 'propagateContext']);
+        Route::get('/{correlationId}/trace', [App\Http\Controllers\WorkflowCorrelationController::class, 'getTrace']);
+        Route::get('/{correlationId}/spans', [App\Http\Controllers\WorkflowCorrelationController::class, 'getSpans']);
+        Route::get('/{correlationId}/rpc-calls', [App\Http\Controllers\WorkflowCorrelationController::class, 'getRpcCalls']);
+    });
 });

@@ -167,9 +167,9 @@ This documentation is organized into the following detailed sections:
 2. **[Service Architecture](service-architecture.md)** - Detailed service layer documentation and patterns
 3. **[Console Commands](console-commands.md)** - Command usage and operational examples
 4. **[Developer Integration Guide](developer-integration.md)** - Integration patterns and SDK examples
-5. **[Monitoring & Alerting](monitoring-alerting.md)** - Dashboard and alert configuration *(Coming Soon)*
-6. **[Operational Runbooks](operational-runbooks.md)** - Troubleshooting and procedures *(Coming Soon)*
-7. **[Configuration Guide](configuration-guide.md)** - Environment and setup configuration *(Coming Soon)*
+5. **[Monitoring & Alerting](monitoring-alerting.md)** - Dashboard and alert configuration
+6. **[Operational Runbooks](operational-runbooks.md)** - Troubleshooting and procedures
+7. **[Configuration Guide](configuration-guide.md)** - Environment and setup configuration
 
 ---
 
