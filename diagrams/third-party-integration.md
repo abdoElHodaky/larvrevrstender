@@ -407,12 +407,12 @@ graph TD
     WEBHOOK_RECEIVED[🎣 Webhook Received] --> EXTRACT_HEADERS[📋 Extract Headers]
     EXTRACT_HEADERS --> VERIFY_SIG[🔐 Verify Signature]
     
-    VERIFY_SIG --> SIG_VALID{✅ Signature Valid?}
+    VERIFY_SIG --> SIG_VALID[✅ Signature Valid?]
     SIG_VALID -->|Yes| PARSE_EVENT[📊 Parse Event Data]
     SIG_VALID -->|No| REJECT_REQUEST[❌ Reject Request]
     
     PARSE_EVENT --> IDENTIFY_TYPE[🏷️ Identify Event Type]
-    IDENTIFY_TYPE --> ROUTE_HANDLER{🔀 Route to Handler}
+    IDENTIFY_TYPE --> ROUTE_HANDLER[🔀 Route to Handler]
     
     ROUTE_HANDLER -->|payment_intent.succeeded| PAYMENT_SUCCESS[💰 Handle Payment Success]
     ROUTE_HANDLER -->|payment_intent.failed| PAYMENT_FAILED[❌ Handle Payment Failure]
@@ -460,7 +460,7 @@ graph TD
 ```mermaid
 graph TB
     subgraph "Rate Limiting System"
-        REQUEST_IN[📥 Incoming Request] --> CHECK_LIMIT{📊 Check Rate Limit}
+        REQUEST_IN[📥 Incoming Request] --> CHECK_LIMIT[📊 Check Rate Limit]
         
         CHECK_LIMIT -->|Within Limit| ALLOW_REQUEST[✅ Allow Request]
         CHECK_LIMIT -->|Limit Exceeded| BLOCK_REQUEST[🚫 Block Request]
