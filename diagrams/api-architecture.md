@@ -392,25 +392,25 @@ sequenceDiagram
 ### **Consistent Response Structure**
 
 ```mermaid
-graph TB
-    subgraph "Standard Response Format"
-        RESPONSE[📋 API Response] --> SUCCESS_FLAG[✅ success: boolean]
-        RESPONSE --> DATA_FIELD[📊 data: object|array|null]
-        RESPONSE --> ERROR_FIELD[❌ error: string|null]
-        RESPONSE --> METADATA[📋 metadata: object]
+flowchart TB
+    subgraph Standard["Standard Response Format"]
+        RESPONSE["📋 API Response"] --> SUCCESS_FLAG["✅ success: boolean"]
+        RESPONSE --> DATA_FIELD["📊 data: object|array|null"]
+        RESPONSE --> ERROR_FIELD["❌ error: string|null"]
+        RESPONSE --> METADATA["📋 metadata: object"]
         
-        METADATA --> PROCEDURE[🎯 procedure: string]
-        METADATA --> EXEC_TIME[⏱️ execution_time_ms: number]
-        METADATA --> TRACE_ID[🔍 trace_id: string]
-        METADATA --> TIMESTAMP[📅 timestamp: string]
-        METADATA --> VERSION[🏷️ api_version: string]
+        METADATA --> PROCEDURE["🎯 procedure: string"]
+        METADATA --> EXEC_TIME["⏱️ execution_time_ms: number"]
+        METADATA --> TRACE_ID["🔍 trace_id: string"]
+        METADATA --> TIMESTAMP["📅 timestamp: string"]
+        METADATA --> VERSION["🏷️ api_version: string"]
     end
     
-    subgraph "Success Response Example"
+    subgraph SuccessExample["Success Response Example"]
         SUCCESS_EXAMPLE["✅ Success Response:<br/>{<br/>  success: true,<br/>  data: { workflow_id, status, progress },<br/>  error: null,<br/>  metadata: { procedure, execution_time_ms, trace_id }<br/>}"]
     end
     
-    subgraph "Error Response Example"
+    subgraph ErrorExample["Error Response Example"]
         ERROR_EXAMPLE["❌ Error Response:<br/>{<br/>  success: false,<br/>  data: null,<br/>  error: 'Validation failed',<br/>  metadata: { procedure, error_code, trace_id }<br/>}"]
     end
 
