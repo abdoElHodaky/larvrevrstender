@@ -163,13 +163,13 @@ app(WorkflowSignalHandler::class)->pauseWorkflow($workflowId, 'Manual review req
 
 This documentation is organized into the following detailed sections:
 
-1. **[API Documentation](api-documentation.md)** - Complete endpoint documentation
-2. **[Service Architecture](service-architecture.md)** - Detailed service layer documentation
-3. **[Console Commands](console-commands.md)** - Command usage and examples
-4. **[Monitoring & Alerting](monitoring-alerting.md)** - Dashboard and alert configuration
-5. **[Developer Integration](developer-integration.md)** - Integration patterns and examples
-6. **[Operational Runbooks](operational-runbooks.md)** - Troubleshooting and procedures
-7. **[Configuration Guide](configuration-guide.md)** - Environment and setup configuration
+1. **[API Documentation](api-documentation.md)** - Complete endpoint documentation for all 33 APIs
+2. **[Service Architecture](service-architecture.md)** - Detailed service layer documentation and patterns
+3. **[Console Commands](console-commands.md)** - Command usage and operational examples
+4. **[Developer Integration Guide](developer-integration.md)** - Integration patterns and SDK examples
+5. **[Monitoring & Alerting](monitoring-alerting.md)** - Dashboard and alert configuration *(Coming Soon)*
+6. **[Operational Runbooks](operational-runbooks.md)** - Troubleshooting and procedures *(Coming Soon)*
+7. **[Configuration Guide](configuration-guide.md)** - Environment and setup configuration *(Coming Soon)*
 
 ---
 
