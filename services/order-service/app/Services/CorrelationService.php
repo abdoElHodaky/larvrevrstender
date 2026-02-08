@@ -287,34 +287,29 @@ class CorrelationService
         $rpcSpanId = $this->generateSpanId("rpc-{$targetService}-{$method}");
 
         // Record RPC call in Telescope
-        Telescope::recordEvent(
-            IncomingEntry::make([
-                'name' => 'correlation.rpc',
-                'content' => [
-                    'correlation_id' => $correlationId,
-                    'trace_id' => $correlationData['trace_id'],
-                    'span_id' => $rpcSpanId,
-                    'parent_span_id' => $correlationData['span_id'],
-                    'source_service' => $correlationData['service_name'],
-                    'target_service' => $targetService,
-                    'method' => $method,
-                    'endpoint' => $endpoint,
-                    'request_data' => $requestData,
-                    'response_data' => $responseData,
-                    'duration_ms' => round($duration * 1000, 2),
-                    'success' => $success,
-                    'error_message' => $errorMessage,
-                    'timestamp' => microtime(true),
-                    'tags' => [
-                        'correlation_id' => $correlationId,
-                        'source_service' => $correlationData['service_name'],
-                        'target_service' => $targetService,
-                        'method' => $method,
-                        'status' => $success ? 'success' : 'failure',
-                    ],
-                ],
-            ])
-        );
+        $this->recordTelescopeEvent('correlation.rpc', [
+            'correlation_id' => $correlationId,
+            'trace_id' => $correlationData['trace_id'],
+            'span_id' => $rpcSpanId,
+            'parent_span_id' => $correlationData['span_id'],
+            'source_service' => $correlationData['service_name'],
+            'target_service' => $targetService,
+            'method' => $method,
+            'endpoint' => $endpoint,
+            'request_data' => $requestData,
+            'response_data' => $responseData,
+            'duration_ms' => round($duration * 1000, 2),
+            'success' => $success,
+            'error_message' => $errorMessage,
+            'timestamp' => microtime(true),
+            'tags' => [
+                'correlation_id' => $correlationId,
+                'source_service' => $correlationData['service_name'],
+                'target_service' => $targetService,
+                'method' => $method,
+                'status' => $success ? 'success' : 'failure',
+            ],
+        ]);
     }
 
     /**
@@ -405,32 +400,50 @@ class CorrelationService
     }
 
     /**
+     * Safely record event in Telescope if available
+     */
+    private function recordTelescopeEvent(string $name, array $content): void
+    {
+        try {
+            if (class_exists(Telescope::class) && config('telescope.enabled', false)) {
+                Telescope::recordEvent(
+                    IncomingEntry::make([
+                        'name' => $name,
+                        'content' => $content,
+                    ])
+                );
+            }
+        } catch (\Exception $e) {
+            // Silently fail if Telescope is not available
+            Log::debug('Failed to record event in Telescope', [
+                'event' => $name,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Record correlation start in Telescope
      */
     private function recordCorrelationStart(array $correlationData): void
     {
-        Telescope::recordEvent(
-            IncomingEntry::make([
-                'name' => 'correlation.start',
-                'content' => [
-                    'correlation_id' => $correlationData['correlation_id'],
-                    'trace_id' => $correlationData['trace_id'],
-                    'span_id' => $correlationData['span_id'],
-                    'service_name' => $correlationData['service_name'],
-                    'operation' => $correlationData['operation'],
-                    'request_id' => $correlationData['request_id'],
-                    'status' => 'started',
-                    'started_at' => $correlationData['started_at'],
-                    'context' => $correlationData['context'],
-                    'tags' => [
-                        'correlation_id' => $correlationData['correlation_id'],
-                        'service' => $correlationData['service_name'],
-                        'operation' => $correlationData['operation'],
-                        'status' => 'started',
-                    ],
-                ],
-            ])
-        );
+        $this->recordTelescopeEvent('correlation.start', [
+            'correlation_id' => $correlationData['correlation_id'],
+            'trace_id' => $correlationData['trace_id'],
+            'span_id' => $correlationData['span_id'],
+            'service_name' => $correlationData['service_name'],
+            'operation' => $correlationData['operation'],
+            'request_id' => $correlationData['request_id'],
+            'status' => 'started',
+            'started_at' => $correlationData['started_at'],
+            'context' => $correlationData['context'],
+            'tags' => [
+                'correlation_id' => $correlationData['correlation_id'],
+                'service' => $correlationData['service_name'],
+                'operation' => $correlationData['operation'],
+                'status' => 'started',
+            ],
+        ]);
     }
 
     /**
@@ -438,28 +451,23 @@ class CorrelationService
      */
     private function recordSpanStart(array $spanData): void
     {
-        Telescope::recordEvent(
-            IncomingEntry::make([
-                'name' => 'correlation.span.start',
-                'content' => [
-                    'correlation_id' => $spanData['correlation_id'],
-                    'trace_id' => $spanData['trace_id'],
-                    'span_id' => $spanData['span_id'],
-                    'parent_span_id' => $spanData['parent_span_id'],
-                    'service_name' => $spanData['service_name'],
-                    'operation' => $spanData['operation'],
-                    'status' => 'started',
-                    'started_at' => $spanData['started_at'],
-                    'context' => $spanData['context'],
-                    'tags' => [
-                        'correlation_id' => $spanData['correlation_id'],
-                        'service' => $spanData['service_name'],
-                        'operation' => $spanData['operation'],
-                        'status' => 'started',
-                    ],
-                ],
-            ])
-        );
+        $this->recordTelescopeEvent('correlation.span.start', [
+            'correlation_id' => $spanData['correlation_id'],
+            'trace_id' => $spanData['trace_id'],
+            'span_id' => $spanData['span_id'],
+            'parent_span_id' => $spanData['parent_span_id'],
+            'service_name' => $spanData['service_name'],
+            'operation' => $spanData['operation'],
+            'status' => 'started',
+            'started_at' => $spanData['started_at'],
+            'context' => $spanData['context'],
+            'tags' => [
+                'correlation_id' => $spanData['correlation_id'],
+                'service' => $spanData['service_name'],
+                'operation' => $spanData['operation'],
+                'status' => 'started',
+            ],
+        ]);
     }
 
     /**
@@ -467,30 +475,25 @@ class CorrelationService
      */
     private function recordSpanCompletion(array $spanData): void
     {
-        Telescope::recordEvent(
-            IncomingEntry::make([
-                'name' => 'correlation.span.complete',
-                'content' => [
-                    'correlation_id' => $spanData['correlation_id'],
-                    'trace_id' => $spanData['trace_id'],
-                    'span_id' => $spanData['span_id'],
-                    'parent_span_id' => $spanData['parent_span_id'],
-                    'service_name' => $spanData['service_name'],
-                    'operation' => $spanData['operation'],
-                    'status' => $spanData['success'] ? 'completed' : 'failed',
-                    'duration_ms' => $spanData['duration_ms'],
-                    'result' => $spanData['result'],
-                    'error_message' => $spanData['error_message'],
-                    'completed_at' => $spanData['completed_at'],
-                    'tags' => [
-                        'correlation_id' => $spanData['correlation_id'],
-                        'service' => $spanData['service_name'],
-                        'operation' => $spanData['operation'],
-                        'status' => $spanData['success'] ? 'success' : 'failure',
-                    ],
-                ],
-            ])
-        );
+        $this->recordTelescopeEvent('correlation.span.complete', [
+            'correlation_id' => $spanData['correlation_id'],
+            'trace_id' => $spanData['trace_id'],
+            'span_id' => $spanData['span_id'],
+            'parent_span_id' => $spanData['parent_span_id'],
+            'service_name' => $spanData['service_name'],
+            'operation' => $spanData['operation'],
+            'status' => $spanData['success'] ? 'completed' : 'failed',
+            'duration_ms' => $spanData['duration_ms'],
+            'result' => $spanData['result'],
+            'error_message' => $spanData['error_message'],
+            'completed_at' => $spanData['completed_at'],
+            'tags' => [
+                'correlation_id' => $spanData['correlation_id'],
+                'service' => $spanData['service_name'],
+                'operation' => $spanData['operation'],
+                'status' => $spanData['success'] ? 'success' : 'failure',
+            ],
+        ]);
     }
 
     /**
@@ -498,30 +501,25 @@ class CorrelationService
      */
     private function recordCorrelationCompletion(array $correlationData): void
     {
-        Telescope::recordEvent(
-            IncomingEntry::make([
-                'name' => 'correlation.complete',
-                'content' => [
-                    'correlation_id' => $correlationData['correlation_id'],
-                    'trace_id' => $correlationData['trace_id'],
-                    'span_id' => $correlationData['span_id'],
-                    'service_name' => $correlationData['service_name'],
-                    'operation' => $correlationData['operation'],
-                    'request_id' => $correlationData['request_id'],
-                    'status' => $correlationData['success'] ? 'completed' : 'failed',
-                    'total_duration_ms' => $correlationData['total_duration_ms'],
-                    'child_spans_count' => count($correlationData['child_spans']),
-                    'final_result' => $correlationData['final_result'],
-                    'error_message' => $correlationData['error_message'],
-                    'completed_at' => $correlationData['completed_at'],
-                    'tags' => [
-                        'correlation_id' => $correlationData['correlation_id'],
-                        'service' => $correlationData['service_name'],
-                        'operation' => $correlationData['operation'],
-                        'status' => $correlationData['success'] ? 'success' : 'failure',
-                    ],
-                ],
-            ])
-        );
+        $this->recordTelescopeEvent('correlation.complete', [
+            'correlation_id' => $correlationData['correlation_id'],
+            'trace_id' => $correlationData['trace_id'],
+            'span_id' => $correlationData['span_id'],
+            'service_name' => $correlationData['service_name'],
+            'operation' => $correlationData['operation'],
+            'request_id' => $correlationData['request_id'],
+            'status' => $correlationData['success'] ? 'completed' : 'failed',
+            'total_duration_ms' => $correlationData['total_duration_ms'],
+            'child_spans_count' => count($correlationData['child_spans']),
+            'final_result' => $correlationData['final_result'],
+            'error_message' => $correlationData['error_message'],
+            'completed_at' => $correlationData['completed_at'],
+            'tags' => [
+                'correlation_id' => $correlationData['correlation_id'],
+                'service' => $correlationData['service_name'],
+                'operation' => $correlationData['operation'],
+                'status' => $correlationData['success'] ? 'success' : 'failure',
+            ],
+        ]);
     }
 }
