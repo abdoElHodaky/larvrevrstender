@@ -30,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Services\CorrelationService::class);
         $this->app->singleton(\App\Services\WorkflowEventPublisher::class);
         $this->app->singleton(\App\Services\WorkflowTracingService::class);
+        $this->app->singleton(\App\Services\WorkflowAlertingService::class);
     }
 
     /**

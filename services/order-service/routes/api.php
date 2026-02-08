@@ -102,4 +102,30 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/compensations', [App\Http\Controllers\WorkflowMetricsController::class, 'getCompensationMetrics']);
         Route::get('/performance', [App\Http\Controllers\WorkflowMetricsController::class, 'getPerformanceMetrics']);
     });
+
+    // Workflow dashboard routes
+    Route::prefix('workflow/dashboard')->group(function () {
+        Route::get('/executive', [App\Http\Controllers\WorkflowDashboardController::class, 'getExecutiveDashboard']);
+        Route::get('/operations', [App\Http\Controllers\WorkflowDashboardController::class, 'getOperationsDashboard']);
+        Route::get('/performance', [App\Http\Controllers\WorkflowDashboardController::class, 'getPerformanceDashboard']);
+    });
+
+    // Workflow alerts routes
+    Route::prefix('workflow/alerts')->group(function () {
+        Route::get('/recent', function () {
+            $alertingService = app(\App\Services\WorkflowAlertingService::class);
+            return response()->json([
+                'success' => true,
+                'data' => $alertingService->getRecentAlerts(20),
+            ]);
+        });
+        
+        Route::get('/statistics', function () {
+            $alertingService = app(\App\Services\WorkflowAlertingService::class);
+            return response()->json([
+                'success' => true,
+                'data' => $alertingService->getAlertStatistics(),
+            ]);
+        });
+    });
 });
