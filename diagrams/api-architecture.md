@@ -155,39 +155,55 @@ graph TB
 ### **Core Infrastructure APIs (40+ Endpoints)**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TB
-    subgraph "Event Publishing API (/api/event-publishing/)"
+    subgraph "🚀 EVENT PUBLISHING API"
         EP_PUBLISH[📤 POST /publish<br/>• Publish events<br/>• Target services<br/>• Priority levels]
         EP_SUBSCRIBE[📥 POST /subscribe<br/>• Service subscription<br/>• Event types<br/>• Webhook URLs]
-        EP_STATUS[📊 GET /status/{eventId}<br/>• Event delivery status<br/>• Target confirmations<br/>• Error tracking]
+        EP_STATUS[📊 GET /status/EVENT_ID<br/>• Event delivery status<br/>• Target confirmations<br/>• Error tracking]
         EP_UNSUBSCRIBE[📤 DELETE /unsubscribe<br/>• Remove subscription<br/>• Service cleanup<br/>• Event filtering]
         EP_HISTORY[📜 GET /history<br/>• Event history<br/>• Filtering options<br/>• Pagination]
     end
     
-    subgraph "Cache Management API (/api/cache-management/)"
+    subgraph "💾 CACHE MANAGEMENT API"
         CM_SET[💾 POST /set<br/>• Store cache data<br/>• TTL configuration<br/>• Tag management]
-        CM_GET[📥 GET /get/{key}<br/>• Retrieve cached data<br/>• Key-based lookup<br/>• Expiration check]
-        CM_DELETE[🗑️ DELETE /delete/{key}<br/>• Remove cache entry<br/>• Key cleanup<br/>• Cascade deletion]
+        CM_GET[📥 GET /get/CACHE_KEY<br/>• Retrieve cached data<br/>• Key-based lookup<br/>• Expiration check]
+        CM_DELETE[🗑️ DELETE /delete/CACHE_KEY<br/>• Remove cache entry<br/>• Key cleanup<br/>• Cascade deletion]
         CM_FLUSH[🧹 POST /flush-tags<br/>• Tag-based flush<br/>• Bulk operations<br/>• Pattern matching]
         CM_STATS[📊 GET /stats<br/>• Cache statistics<br/>• Hit/miss ratios<br/>• Memory usage]
     end
     
-    subgraph "Notification API (/api/notification/)"
+    subgraph "📢 NOTIFICATION API"
         N_SEND[📤 POST /send<br/>• Single notification<br/>• Multi-channel<br/>• Template support]
         N_BULK[📦 POST /send-bulk<br/>• Batch notifications<br/>• Parallel processing<br/>• Progress tracking]
-        N_STATUS[📊 GET /status/{notificationId}<br/>• Delivery status<br/>• Channel results<br/>• Error details]
+        N_STATUS[📊 GET /status/NOTIFICATION_ID<br/>• Delivery status<br/>• Channel results<br/>• Error details]
         N_TEMPLATES[📋 GET /templates<br/>• Available templates<br/>• Template metadata<br/>• Preview support]
         N_PREFERENCES[⚙️ POST /preferences<br/>• User preferences<br/>• Channel settings<br/>• Opt-in/out]
     end
     
-    subgraph "Validation API (/api/validation/)"
+    subgraph "✅ VALIDATION API"
         V_VALIDATE[✅ POST /validate<br/>• Data validation<br/>• Rule-based checks<br/>• Custom validators]
         V_CUSTOM[🎯 POST /custom<br/>• Custom validation<br/>• Business rules<br/>• Domain logic]
         V_RULES[📋 GET /rules<br/>• Available rules<br/>• Rule documentation<br/>• Examples]
         V_BATCH[📦 POST /batch<br/>• Batch validation<br/>• Multiple datasets<br/>• Parallel processing]
     end
     
-    subgraph "Security API (/api/security/)"
+    subgraph "🔐 SECURITY API"
         S_ENCRYPT[🔐 POST /encrypt<br/>• Data encryption<br/>• Algorithm selection<br/>• Key management]
         S_DECRYPT[🔓 POST /decrypt<br/>• Data decryption<br/>• Key validation<br/>• Access control]
         S_TOKEN[🎫 POST /generate-token<br/>• JWT generation<br/>• Claims management<br/>• Expiration control]
@@ -195,11 +211,11 @@ graph TB
         S_HASH[#️⃣ POST /hash<br/>• Password hashing<br/>• Salt generation<br/>• Algorithm selection]
     end
 
-    classDef eventStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    classDef cacheStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
-    classDef notifyStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
-    classDef validStyle fill:#f1f8e9,stroke:#388e3c,stroke-width:2px,color:#000
-    classDef secStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef eventStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF
+    classDef cacheStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#000000
+    classDef notifyStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000
+    classDef validStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#000000
+    classDef secStyle fill:#A8E6CF,stroke:#000000,stroke-width:3px,color:#000000
 
     class EP_PUBLISH,EP_SUBSCRIBE,EP_STATUS,EP_UNSUBSCRIBE,EP_HISTORY eventStyle
     class CM_SET,CM_GET,CM_DELETE,CM_FLUSH,CM_STATS cacheStyle
@@ -211,25 +227,41 @@ graph TB
 ### **Circuit Breaker APIs (10+ Endpoints)**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TB
-    subgraph "Synchronous Circuit Breaker API (/api/circuit-breaker/)"
-        CB_STATS[📊 GET /stats/{serviceName?}<br/>• Circuit breaker statistics<br/>• Service-specific metrics<br/>• Failure rate analysis]
+    subgraph "⚡ SYNCHRONOUS CIRCUIT BREAKER API"
+        CB_STATS[📊 GET /stats/SERVICE_NAME<br/>• Circuit breaker statistics<br/>• Service-specific metrics<br/>• Failure rate analysis]
         CB_RESET[🔄 POST /reset<br/>• Reset circuit breaker<br/>• Service restoration<br/>• Manual intervention]
         CB_FORCE_OPEN[🚨 POST /force-open<br/>• Force circuit open<br/>• Maintenance mode<br/>• Emergency protection]
         CB_HEALTH[💚 GET /health<br/>• Overall health status<br/>• Service availability<br/>• System overview]
-        CB_CONFIG[⚙️ GET /config/{serviceName}<br/>• Configuration details<br/>• Threshold settings<br/>• Timeout values]
+        CB_CONFIG[⚙️ GET /config/SERVICE_NAME<br/>• Configuration details<br/>• Threshold settings<br/>• Timeout values]
     end
     
-    subgraph "Queue Circuit Breaker API (/api/queue-circuit-breaker/)"
+    subgraph "🔄 QUEUE CIRCUIT BREAKER API"
         QCB_DISPATCH[📤 POST /dispatch<br/>• Protected job dispatch<br/>• Circuit state check<br/>• Queue management]
-        QCB_STATS[📊 GET /stats/{serviceName?}<br/>• Queue circuit statistics<br/>• Job success rates<br/>• Release metrics]
+        QCB_STATS[📊 GET /stats/SERVICE_NAME<br/>• Queue circuit statistics<br/>• Job success rates<br/>• Release metrics]
         QCB_RESET[🔄 POST /reset<br/>• Reset queue circuit<br/>• Clear failure counts<br/>• Service recovery]
         QCB_FORCE_OPEN[🚨 POST /force-open<br/>• Force queue circuit open<br/>• Block job dispatch<br/>• Maintenance mode]
-        QCB_HEALTH[💚 GET /health?queue={queueName}<br/>• Queue health status<br/>• Job processing rates<br/>• Failed job counts]
+        QCB_HEALTH[💚 GET /health/QUEUE_NAME<br/>• Queue health status<br/>• Job processing rates<br/>• Failed job counts]
     end
 
-    classDef cbStyle fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    classDef qcbStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef cbStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF
+    classDef qcbStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000
 
     class CB_STATS,CB_RESET,CB_FORCE_OPEN,CB_HEALTH,CB_CONFIG cbStyle
     class QCB_DISPATCH,QCB_STATS,QCB_RESET,QCB_FORCE_OPEN,QCB_HEALTH qcbStyle
@@ -238,29 +270,45 @@ graph TB
 ### **Integration & Workflow APIs (20+ Endpoints)**
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569'
+  }
+}}%%
+
 graph TB
-    subgraph "Third-Party Integration API (/api/third-party-integration/)"
+    subgraph "🔌 THIRD-PARTY INTEGRATION API"
         TPI_INIT[🔌 POST /initialize<br/>• Service initialization<br/>• Authentication setup<br/>• Configuration validation]
         TPI_CALL[📞 POST /api-call<br/>• Protected API calls<br/>• Circuit breaker protection<br/>• Rate limiting]
         TPI_WEBHOOK[🎣 POST /webhook<br/>• Webhook processing<br/>• Signature verification<br/>• Event routing]
         TPI_TEST[🧪 POST /test-connection<br/>• Connection testing<br/>• Service validation<br/>• Health checks]
-        TPI_STATS[📊 GET /stats/{serviceName?}<br/>• Integration statistics<br/>• Performance metrics<br/>• Error tracking]
+        TPI_STATS[📊 GET /stats/SERVICE_NAME<br/>• Integration statistics<br/>• Performance metrics<br/>• Error tracking]
         TPI_RESET_CB[🔄 POST /reset-circuit-breaker<br/>• Reset integration circuit<br/>• Service recovery<br/>• Manual intervention]
     end
     
-    subgraph "Workflow Orchestration API (/api/workflow/)"
+    subgraph "⚡ WORKFLOW ORCHESTRATION API"
         WF_START[🚀 POST /start<br/>• Start workflow execution<br/>• Parameter validation<br/>• State initialization]
-        WF_STATUS[📊 GET /status/{workflowId}<br/>• Workflow status<br/>• Progress tracking<br/>• Step details]
+        WF_STATUS[📊 GET /status/WORKFLOW_ID<br/>• Workflow status<br/>• Progress tracking<br/>• Step details]
         WF_REGISTER[📋 POST /register<br/>• Register workflow definition<br/>• Validation & storage<br/>• Version management]
         WF_EXECUTE[⚡ POST /execute-simple<br/>• Execute inline workflow<br/>• Simple orchestration<br/>• Quick processing]
         WF_LIST[📜 GET /list<br/>• List workflows<br/>• Filtering options<br/>• Pagination support]
-        WF_CANCEL[❌ POST /cancel/{workflowId}<br/>• Cancel workflow<br/>• Compensation execution<br/>• Cleanup operations]
-        WF_RETRY[🔄 POST /retry/{workflowId}<br/>• Retry failed workflow<br/>• Resume from failure<br/>• State recovery]
-        WF_HISTORY[📜 GET /history/{workflowId}<br/>• Execution history<br/>• Step timeline<br/>• Error details]
+        WF_CANCEL[❌ POST /cancel/WORKFLOW_ID<br/>• Cancel workflow<br/>• Compensation execution<br/>• Cleanup operations]
+        WF_RETRY[🔄 POST /retry/WORKFLOW_ID<br/>• Retry failed workflow<br/>• Resume from failure<br/>• State recovery]
+        WF_HISTORY[📜 GET /history/WORKFLOW_ID<br/>• Execution history<br/>• Step timeline<br/>• Error details]
     end
 
-    classDef tpiStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
-    classDef wfStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    classDef tpiStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#000000
+    classDef wfStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF
 
     class TPI_INIT,TPI_CALL,TPI_WEBHOOK,TPI_TEST,TPI_STATS,TPI_RESET_CB tpiStyle
     class WF_START,WF_STATUS,WF_REGISTER,WF_EXECUTE,WF_LIST,WF_CANCEL,WF_RETRY,WF_HISTORY wfStyle

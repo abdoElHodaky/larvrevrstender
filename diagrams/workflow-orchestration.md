@@ -190,7 +190,7 @@ graph TD
     ENCRYPT --> CREATE_USER[👤 Create User Account]
     CREATE_USER --> GEN_TOKEN[🎫 Generate Verification Token]
     
-    GEN_TOKEN --> PARALLEL_COMM{📢 Send Welcome Communications}
+    GEN_TOKEN --> PARALLEL_COMM[📢 Send Welcome Communications]
     PARALLEL_COMM --> EMAIL[📧 Verification Email]
     PARALLEL_COMM --> WELCOME[📨 Welcome Email]
     PARALLEL_COMM --> SMS[📱 Welcome SMS]
@@ -234,7 +234,7 @@ graph TD
     PROCESS_PAYMENT --> CREATE_ORDER[📋 Create Order Record]
     CREATE_ORDER --> UPDATE_INVENTORY[📦 Update Inventory]
     
-    UPDATE_INVENTORY --> PARALLEL_NOTIFY{📢 Send Confirmations}
+    UPDATE_INVENTORY --> PARALLEL_NOTIFY[📢 Send Confirmations]
     PARALLEL_NOTIFY --> CUSTOMER_EMAIL[📧 Customer Email]
     PARALLEL_NOTIFY --> CUSTOMER_SMS[📱 Customer SMS]
     PARALLEL_NOTIFY --> FULFILLMENT[📦 Fulfillment Notification]
@@ -295,14 +295,14 @@ graph LR
 
 ```mermaid
 graph TB
-    START[🚀 Start Parallel Execution] --> FORK{🔀 Fork Execution}
+    START[🚀 Start Parallel Execution] --> FORK[🔀 Fork Execution]
     
     FORK --> BRANCH1[📧 Email Notification]
     FORK --> BRANCH2[📱 SMS Notification]
     FORK --> BRANCH3[📊 Analytics Event]
     FORK --> BRANCH4[💾 Cache Update]
     
-    BRANCH1 --> JOIN{🔗 Join Results}
+    BRANCH1 --> JOIN[🔗 Join Results]
     BRANCH2 --> JOIN
     BRANCH3 --> JOIN
     BRANCH4 --> JOIN
@@ -324,7 +324,7 @@ graph TB
 
 ```mermaid
 graph TD
-    START[🚀 Start Conditional Workflow] --> CONDITION{🔀 Evaluate Condition}
+    START[🚀 Start Conditional Workflow] --> CONDITION[🔀 Evaluate Condition]
     
     CONDITION -->|Premium User| PREMIUM_PATH[⭐ Premium Processing]
     CONDITION -->|Standard User| STANDARD_PATH[📋 Standard Processing]
