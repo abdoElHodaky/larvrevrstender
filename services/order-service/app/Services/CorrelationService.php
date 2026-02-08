@@ -287,10 +287,9 @@ class CorrelationService
         $rpcSpanId = $this->generateSpanId("rpc-{$targetService}-{$method}");
 
         // Record RPC call in Telescope
-        Telescope::recordEntry(
+        Telescope::recordEvent(
             IncomingEntry::make([
-                'type' => 'correlation_rpc',
-                'family_hash' => $correlationData['trace_id'],
+                'name' => 'correlation.rpc',
                 'content' => [
                     'correlation_id' => $correlationId,
                     'trace_id' => $correlationData['trace_id'],
@@ -410,10 +409,9 @@ class CorrelationService
      */
     private function recordCorrelationStart(array $correlationData): void
     {
-        Telescope::recordEntry(
+        Telescope::recordEvent(
             IncomingEntry::make([
-                'type' => 'correlation',
-                'family_hash' => $correlationData['trace_id'],
+                'name' => 'correlation.start',
                 'content' => [
                     'correlation_id' => $correlationData['correlation_id'],
                     'trace_id' => $correlationData['trace_id'],
@@ -440,10 +438,9 @@ class CorrelationService
      */
     private function recordSpanStart(array $spanData): void
     {
-        Telescope::recordEntry(
+        Telescope::recordEvent(
             IncomingEntry::make([
-                'type' => 'correlation_span',
-                'family_hash' => $spanData['trace_id'],
+                'name' => 'correlation.span.start',
                 'content' => [
                     'correlation_id' => $spanData['correlation_id'],
                     'trace_id' => $spanData['trace_id'],
@@ -470,10 +467,9 @@ class CorrelationService
      */
     private function recordSpanCompletion(array $spanData): void
     {
-        Telescope::recordEntry(
+        Telescope::recordEvent(
             IncomingEntry::make([
-                'type' => 'correlation_span',
-                'family_hash' => $spanData['trace_id'],
+                'name' => 'correlation.span.complete',
                 'content' => [
                     'correlation_id' => $spanData['correlation_id'],
                     'trace_id' => $spanData['trace_id'],
@@ -502,10 +498,9 @@ class CorrelationService
      */
     private function recordCorrelationCompletion(array $correlationData): void
     {
-        Telescope::recordEntry(
+        Telescope::recordEvent(
             IncomingEntry::make([
-                'type' => 'correlation',
-                'family_hash' => $correlationData['trace_id'],
+                'name' => 'correlation.complete',
                 'content' => [
                     'correlation_id' => $correlationData['correlation_id'],
                     'trace_id' => $correlationData['trace_id'],

@@ -24,10 +24,9 @@ class WorkflowTracingService
         $spanId = $this->generateSpanId('workflow-root');
 
         // Record workflow start in Telescope
-        Telescope::recordEntry(
+        Telescope::recordEvent(
             IncomingEntry::make([
-                'type' => 'workflow',
-                'family_hash' => $traceId,
+                'name' => 'workflow.start',
                 'content' => [
                     'trace_id' => $traceId,
                     'span_id' => $spanId,
@@ -85,10 +84,9 @@ class WorkflowTracingService
         }
 
         // Record activity start in Telescope
-        Telescope::recordEntry(
+        Telescope::recordEvent(
             IncomingEntry::make([
-                'type' => 'workflow_activity',
-                'family_hash' => $traceContext['trace_id'],
+                'name' => 'workflow.activity.start',
                 'content' => [
                     'trace_id' => $traceContext['trace_id'],
                     'span_id' => $spanId,
@@ -145,10 +143,9 @@ class WorkflowTracingService
         $duration = $endTime - $activitySpan['started_at'];
 
         // Record activity completion in Telescope
-        Telescope::recordEntry(
+        Telescope::recordEvent(
             IncomingEntry::make([
-                'type' => 'workflow_activity',
-                'family_hash' => $traceContext['trace_id'],
+                'name' => 'workflow.activity.complete',
                 'content' => [
                     'trace_id' => $traceContext['trace_id'],
                     'span_id' => $activitySpan['span_id'],
@@ -201,10 +198,9 @@ class WorkflowTracingService
         $rpcSpanId = $this->generateSpanId("rpc-{$service}-{$method}");
 
         // Record RPC call in Telescope
-        Telescope::recordEntry(
+        Telescope::recordEvent(
             IncomingEntry::make([
-                'type' => 'workflow_rpc',
-                'family_hash' => $traceContext['trace_id'],
+                'name' => 'workflow.rpc',
                 'content' => [
                     'trace_id' => $traceContext['trace_id'],
                     'span_id' => $rpcSpanId,
@@ -256,10 +252,9 @@ class WorkflowTracingService
         $duration = $endTime - $traceContext['started_at'];
 
         // Record workflow completion in Telescope
-        Telescope::recordEntry(
+        Telescope::recordEvent(
             IncomingEntry::make([
-                'type' => 'workflow',
-                'family_hash' => $traceContext['trace_id'],
+                'name' => 'workflow.complete',
                 'content' => [
                     'trace_id' => $traceContext['trace_id'],
                     'span_id' => $traceContext['root_span_id'],
