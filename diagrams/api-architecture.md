@@ -8,8 +8,9 @@ The **Complete API Architecture** provides **80+ endpoints** across multiple ser
 
 ```mermaid
 %%{init: {
-  'theme': 'dark',
+  'theme': 'base',
   'themeVariables': {
+    'darkMode': true,
     'primaryColor': '#45B7D1',
     'primaryTextColor': '#FFFFFF',
     'primaryBorderColor': '#6BC5D8',
@@ -24,7 +25,10 @@ The **Complete API Architecture** provides **80+ endpoints** across multiple ser
     'clusterBorder': '#45B7D1',
     'edgeLabelBackground': '#334155',
     'nodeTextColor': '#FFFFFF',
-    'edgeColor': '#4ECDC4'
+    'edgeColor': '#4ECDC4',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px',
+    'fontWeight': 'bold'
   }
 }}%%
 
@@ -128,16 +132,16 @@ graph TB
     TPI_API --> SHARED_SERVICE
     WF_API --> SHARED_SERVICE
 
-    %% Distinguished Eye-Catching Styling
-    classDef clientStyle fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef gatewayStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef protocolStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef coreApiStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef cbApiStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef intApiStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef domainApiStyle fill:#5F27CD,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef sharedStyle fill:#54A0FF,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
-    classDef responseStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
+    %% 🎨 Distinguished Eye-Catching Styling with Enhanced Visual Effects
+    classDef clientStyle fill:#FF9FF3,stroke:#FFB8F7,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:13px,rx:8,ry:8
+    classDef gatewayStyle fill:#FF6B6B,stroke:#FF8E8E,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:16px,rx:15,ry:15
+    classDef protocolStyle fill:#2ED573,stroke:#54E68A,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:15px,rx:12,ry:12
+    classDef coreApiStyle fill:#45B7D1,stroke:#6BC5D8,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:10,ry:10
+    classDef cbApiStyle fill:#FF4757,stroke:#FF6B7A,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:10,ry:10
+    classDef intApiStyle fill:#96CEB4,stroke:#B2D8C4,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:10,ry:10
+    classDef domainApiStyle fill:#5F27CD,stroke:#7B4AE0,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:12,ry:12
+    classDef sharedStyle fill:#54A0FF,stroke:#7BB3FF,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:15px,rx:12,ry:12
+    classDef responseStyle fill:#FECA57,stroke:#FED876,stroke-width:4px,color:#000000,font-weight:bold,font-size:14px,rx:10,ry:10
 
     class WEB_CLIENT,API_CLIENT clientStyle
     class GATEWAY gatewayStyle
