@@ -100,16 +100,37 @@ services:
 
   # Payment Service - Development configuration
   payment-service:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/Dockerfile.payment
+      args:
+        SERVICE_NAME: payment-service
     environment:
       <<: *octane-dev-env
       APP_ENV: local
       APP_DEBUG: true
       LOG_LEVEL: debug
+      # Development payment gateway settings
+      STRIPE_ENABLED: true
+      PAYPAL_ENABLED: true
+      PAYPAL_MODE: sandbox
+      MADA_ENABLED: false
+      STC_PAY_ENABLED: false
+      RAZORPAY_ENABLED: false
+      SQUARE_ENABLED: false
+      # Development security settings
+      PAYMENT_ENCRYPTION_KEY: dev-encryption-key-change-in-production
+      WEBHOOK_SIGNATURE_VERIFICATION: false
+      # Development analytics
+      PAYMENT_ANALYTICS_ENABLED: true
+      PAYMENT_METRICS_ENABLED: true
+      PAYMENT_AUDIT_ENABLED: true
     volumes:
       - ../../services/payment-service:/var/www:cached
       - ./logs/payment-service:/var/www/storage/logs
+      - ./config/payment-service:/var/www/config:ro
     ports:
-      - "8006:8006"
+      - "8004:8004"
 
   # Analytics Service - Development configuration
   analytics-service:
