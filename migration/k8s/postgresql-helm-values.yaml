@@ -1,0 +1,308 @@
+# PostgreSQL Helm Chart Values for Laravel Microservices Migration
+# This configuration sets up PostgreSQL with all required databases and extensions
+
+# Global PostgreSQL Configuration
+global:
+  postgresql:
+    auth:
+      postgresPassword: "postgres_password"
+      username: "postgres"
+      password: "postgres_password"
+      database: "postgres"
+  storageClass: "standard"
+
+# Primary PostgreSQL Configuration
+primary:
+  # Resource allocation
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+  
+  # Persistence configuration
+  persistence:
+    enabled: true
+    size: "20Gi"
+    storageClass: "standard"
+    accessModes:
+      - ReadWriteOnce
+  
+  # PostgreSQL configuration
+  pgHbaConfiguration: |
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    local   all             all                                     trust
+    host    all             all             127.0.0.1/32            md5
+    host    all             all             ::1/128                 md5
+    host    all             all             0.0.0.0/0               md5
+  
+  configuration: |
+    # Connection settings
+    max_connections = 200
+    max_prepared_transactions = 100
+    
+    # Memory settings
+    shared_buffers = 256MB
+    effective_cache_size = 1GB
+    maintenance_work_mem = 64MB
+    work_mem = 4MB
+    
+    # WAL settings
+    wal_buffers = 16MB
+    checkpoint_completion_target = 0.9
+    
+    # Query tuning
+    default_statistics_target = 100
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    
+    # Logging
+    log_statement = 'all'
+    log_min_duration_statement = 1000
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+    
+    # Extensions
+    shared_preload_libraries = 'pg_stat_statements'
+    
+    # Timezone
+    timezone = 'UTC'
+    
+    # pg_stat_statements configuration
+    pg_stat_statements.track = all
+    pg_stat_statements.max = 10000
+    pg_stat_statements.track_utility = on
+  
+  # Initialization scripts
+  initdb:
+    scripts:
+      init-databases.sql: |
+        -- Create databases for all microservices
+        CREATE DATABASE gateway_service;
+        CREATE DATABASE auth_service;
+        CREATE DATABASE user_service;
+        CREATE DATABASE analytics_service;
+        CREATE DATABASE order_service;
+        CREATE DATABASE payment_service;
+        CREATE DATABASE bidding_service;
+        CREATE DATABASE auction_service;
+        CREATE DATABASE notification_service;
+        CREATE DATABASE vin_ocr_service;
+        
+        -- Create service-specific users
+        CREATE USER gateway_user WITH ENCRYPTED PASSWORD 'gateway_password';
+        CREATE USER auth_user WITH ENCRYPTED PASSWORD 'auth_password';
+        CREATE USER user_user WITH ENCRYPTED PASSWORD 'user_password';
+        CREATE USER analytics_user WITH ENCRYPTED PASSWORD 'analytics_password';
+        CREATE USER order_user WITH ENCRYPTED PASSWORD 'order_password';
+        CREATE USER payment_user WITH ENCRYPTED PASSWORD 'payment_password';
+        CREATE USER bidding_user WITH ENCRYPTED PASSWORD 'bidding_password';
+        CREATE USER auction_user WITH ENCRYPTED PASSWORD 'auction_password';
+        CREATE USER notification_user WITH ENCRYPTED PASSWORD 'notification_password';
+        CREATE USER vin_ocr_user WITH ENCRYPTED PASSWORD 'vin_ocr_password';
+        
+        -- Grant privileges
+        GRANT ALL PRIVILEGES ON DATABASE gateway_service TO gateway_user;
+        GRANT ALL PRIVILEGES ON DATABASE auth_service TO auth_user;
+        GRANT ALL PRIVILEGES ON DATABASE user_service TO user_user;
+        GRANT ALL PRIVILEGES ON DATABASE analytics_service TO analytics_user;
+        GRANT ALL PRIVILEGES ON DATABASE order_service TO order_user;
+        GRANT ALL PRIVILEGES ON DATABASE payment_service TO payment_user;
+        GRANT ALL PRIVILEGES ON DATABASE bidding_service TO bidding_user;
+        GRANT ALL PRIVILEGES ON DATABASE auction_service TO auction_user;
+        GRANT ALL PRIVILEGES ON DATABASE notification_service TO notification_user;
+        GRANT ALL PRIVILEGES ON DATABASE vin_ocr_service TO vin_ocr_user;
+      
+      init-extensions.sql: |
+        -- Install extensions for each database
+        \c gateway_service;
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+        CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+        GRANT ALL ON SCHEMA public TO gateway_user;
+        
+        \c auth_service;
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+        CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+        CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+        GRANT ALL ON SCHEMA public TO auth_user;
+        
+        \c user_service;
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+        CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+        GRANT ALL ON SCHEMA public TO user_user;
+        
+        \c analytics_service;
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+        CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+        CREATE EXTENSION IF NOT EXISTS "btree_gin";
+        CREATE EXTENSION IF NOT EXISTS "btree_gist";
+        GRANT ALL ON SCHEMA public TO analytics_user;
+        
+        \c order_service;
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+        CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+        GRANT ALL ON SCHEMA public TO order_user;
+        
+        \c payment_service;
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+        CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+        CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+        GRANT ALL ON SCHEMA public TO payment_user;
+        
+        \c bidding_service;
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+        CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+        GRANT ALL ON SCHEMA public TO bidding_user;
+        
+        \c auction_service;
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+        CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+        GRANT ALL ON SCHEMA public TO auction_user;
+        
+        \c notification_service;
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+        CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+        GRANT ALL ON SCHEMA public TO notification_user;
+        
+        \c vin_ocr_service;
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+        CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+        GRANT ALL ON SCHEMA public TO vin_ocr_user;
+
+# Read Replicas Configuration (for analytics workloads)
+readReplicas:
+  replicaCount: 1
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "125m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  persistence:
+    enabled: true
+    size: "10Gi"
+
+# PgBouncer Configuration
+pgbouncer:
+  enabled: true
+  replicaCount: 2
+  
+  # Connection pooling settings
+  poolMode: "transaction"
+  maxClientConnections: 1000
+  defaultPoolSize: 25
+  minPoolSize: 5
+  reservePoolSize: 5
+  serverLifetime: 3600
+  serverIdleTimeout: 600
+  
+  # Resources
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Metrics and Monitoring
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: "monitoring"
+  prometheusRule:
+    enabled: true
+    namespace: "monitoring"
+
+# Backup Configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: "7d"
+  storageClass: "standard"
+
+# Security Configuration
+auth:
+  enablePostgresUser: true
+  postgresPassword: "postgres_password"
+  username: "postgres"
+  password: "postgres_password"
+  database: "postgres"
+
+# Network Policy
+networkPolicy:
+  enabled: true
+  allowExternal: true
+  explicitNamespacesSelector: {}
+
+# Service Configuration
+service:
+  type: ClusterIP
+  port: 5432
+  annotations: {}
+
+# Ingress Configuration (if needed for external access)
+ingress:
+  enabled: false
+
+# Pod Security Context
+podSecurityContext:
+  fsGroup: 1001
+  runAsUser: 1001
+  runAsNonRoot: true
+
+# Container Security Context
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1001
+
+# Liveness and Readiness Probes
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+# Volume Permissions
+volumePermissions:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: bitnami/bitnami-shell
+    tag: 11-debian-11-r92
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+

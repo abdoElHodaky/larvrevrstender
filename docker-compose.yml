@@ -17,6 +17,57 @@ services:
     networks:
       - reverse_tender_network
 
+  # PostgreSQL Database (Migration Target)
+  postgresql:
+    image: postgres:15-alpine
+    container_name: reverse_tender_postgresql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+      - ./migration/docker/postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - reverse_tender_network
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c pg_stat_statements.max=10000
+      -c log_statement=all
+      -c log_min_duration_statement=1000
+
+  # PgBouncer Connection Pooler
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    container_name: reverse_tender_pgbouncer
+    restart: unless-stopped
+    environment:
+      DATABASES_HOST: postgresql
+      DATABASES_PORT: 5432
+      DATABASES_USER: postgres
+      DATABASES_PASSWORD: postgres_password
+      DATABASES_DBNAME: postgres
+      POOL_MODE: transaction
+      SERVER_RESET_QUERY: DISCARD ALL
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 25
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 5
+      SERVER_LIFETIME: 3600
+      SERVER_IDLE_TIMEOUT: 600
+    ports:
+      - "6432:5432"
+    depends_on:
+      - postgresql
+    networks:
+      - reverse_tender_network
+
   redis:
     image: redis:7-alpine
     container_name: reverse_tender_redis
@@ -438,6 +489,8 @@ services:
 
 volumes:
   mysql_data:
+    driver: local
+  postgresql_data:
     driver: local
   redis_data:
     driver: local
