@@ -1,0 +1,87 @@
+{
+    "timestamp": "2026-02-09 18:41:15",
+    "tests": {
+        "postgresql_connectivity": {
+            "name": "PostgreSQL Connectivity",
+            "status": "failed",
+            "details": [],
+            "errors": [
+                "SQLSTATE[08006] [7] could not translate host name \"postgresql\" to address: Name or service not known"
+            ]
+        },
+        "database_setup": {
+            "name": "Database Setup",
+            "status": "failed",
+            "details": [],
+            "errors": [
+                "SQLSTATE[08006] [7] could not translate host name \"postgresql\" to address: Name or service not known"
+            ]
+        },
+        "extensions": {
+            "name": "PostgreSQL Extensions",
+            "status": "failed",
+            "details": [],
+            "errors": [
+                "SQLSTATE[08006] [7] could not translate host name \"postgresql\" to address: Name or service not known"
+            ]
+        },
+        "pgbouncer": {
+            "name": "PgBouncer Connectivity",
+            "status": "failed",
+            "details": [],
+            "errors": [
+                "SQLSTATE[08006] [7] could not translate host name \"pgbouncer\" to address: Name or service not known"
+            ]
+        },
+        "performance_settings": {
+            "name": "Performance Settings",
+            "status": "failed",
+            "details": [],
+            "errors": [
+                "SQLSTATE[08006] [7] could not translate host name \"postgresql\" to address: Name or service not known"
+            ]
+        },
+        "backup_recovery": {
+            "name": "Backup and Recovery",
+            "status": "failed",
+            "details": [],
+            "errors": [
+                "pg_dump not found in PATH"
+            ]
+        },
+        "connection_pooling": {
+            "name": "Connection Pooling",
+            "status": "failed",
+            "details": [],
+            "errors": [
+                "SQLSTATE[08006] [7] could not translate host name \"postgresql\" to address: Name or service not known"
+            ]
+        },
+        "monitoring": {
+            "name": "Monitoring Setup",
+            "status": "failed",
+            "details": [],
+            "errors": [
+                "SQLSTATE[08006] [7] could not translate host name \"postgresql\" to address: Name or service not known"
+            ]
+        }
+    },
+    "overall_status": "failed",
+    "errors": [
+        "SQLSTATE[08006] [7] could not translate host name \"postgresql\" to address: Name or service not known",
+        "SQLSTATE[08006] [7] could not translate host name \"postgresql\" to address: Name or service not known",
+        "SQLSTATE[08006] [7] could not translate host name \"postgresql\" to address: Name or service not known",
+        "SQLSTATE[08006] [7] could not translate host name \"pgbouncer\" to address: Name or service not known",
+        "SQLSTATE[08006] [7] could not translate host name \"postgresql\" to address: Name or service not known",
+        "pg_dump not found in PATH",
+        "SQLSTATE[08006] [7] could not translate host name \"postgresql\" to address: Name or service not known",
+        "SQLSTATE[08006] [7] could not translate host name \"postgresql\" to address: Name or service not known"
+    ],
+    "warnings": [],
+    "summary": {
+        "total_tests": 8,
+        "passed_tests": 0,
+        "failed_tests": 8,
+        "success_rate": 0
+    }
+}

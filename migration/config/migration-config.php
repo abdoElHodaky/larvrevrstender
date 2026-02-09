@@ -6,6 +6,32 @@
  * Central configuration file for MySQL to PostgreSQL migration
  */
 
+/**
+ * Helper function to get environment variable
+ */
+if (!function_exists('env')) {
+    function env($key, $default = null)
+    {
+        $value = getenv($key);
+        
+        if ($value === false) {
+            return $default;
+        }
+        
+        // Convert string representations of boolean values
+        if (in_array(strtolower($value), ['true', 'false'])) {
+            return strtolower($value) === 'true';
+        }
+        
+        // Convert numeric strings to numbers
+        if (is_numeric($value)) {
+            return strpos($value, '.') !== false ? (float)$value : (int)$value;
+        }
+        
+        return $value;
+    }
+}
+
 return [
     // Database Connections
     'mysql' => [
@@ -328,28 +354,3 @@ return [
         ],
     ],
 ];
-
-/**
- * Helper function to get environment variable
- */
-function env($key, $default = null)
-{
-    $value = getenv($key);
-    
-    if ($value === false) {
-        return $default;
-    }
-    
-    // Convert string representations of boolean values
-    if (in_array(strtolower($value), ['true', 'false'])) {
-        return strtolower($value) === 'true';
-    }
-    
-    // Convert numeric strings to numbers
-    if (is_numeric($value)) {
-        return strpos($value, '.') !== false ? (float)$value : (int)$value;
-    }
-    
-    return $value;
-}
-
