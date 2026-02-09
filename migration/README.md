@@ -12,13 +12,16 @@ migration/
 │   ├── data-volume-analysis.sql      # PostgreSQL compatibility analysis
 │   ├── mysql-baseline-report.md      # Baseline performance report template
 │   └── service-dependencies.md       # Service dependency analysis
-├── scripts/                          # Phase 3: Migration execution scripts
+├── scripts/                          # Phase 3-4: Migration execution scripts
 │   ├── benchmark-mysql.sh            # MySQL performance benchmarking
 │   ├── mysql-to-postgresql-schema.php # Schema conversion script
 │   ├── data-migration.php            # Data migration with validation
 │   ├── validate-migration.php        # Comprehensive validation framework
 │   ├── rollback-migration.php        # Rollback and recovery procedures
-│   └── migration-orchestrator.php    # Central orchestration script
+│   ├── migration-orchestrator.php    # Central orchestration script
+│   ├── validate-infrastructure.php   # Infrastructure validation (Phase 4)
+│   ├── generate-baseline-report.php  # Baseline report generator (Phase 4)
+│   └── pilot-migration.php           # Pilot migration manager (Phase 4)
 ├── config/                           # Configuration files
 │   └── migration-config.php          # Central migration configuration
 ├── docker/                           # Phase 2: Docker infrastructure
@@ -60,7 +63,23 @@ php migration/scripts/migration-orchestrator.php full-migration
 php migration/scripts/validate-migration.php gateway-service full
 ```
 
-### 3. Rollback (if needed)
+### 3. Phase 4: Pilot Migration
+
+```bash
+# Infrastructure validation
+php migration/scripts/validate-infrastructure.php
+
+# Generate baseline report
+php migration/scripts/generate-baseline-report.php
+
+# Execute pilot migration
+php migration/scripts/pilot-migration.php
+
+# Monitor pilot results
+tail -f migration/logs/pilot_migration_$(date +%Y-%m-%d).log
+```
+
+### 4. Rollback (if needed)
 
 ```bash
 # Configuration rollback only
@@ -304,4 +323,3 @@ Based on dependency analysis, services are migrated in this order:
 ---
 
 For detailed migration procedures and troubleshooting, refer to the complete migration plan in `PostgreSQL-Migration-Plan.md`.
-
