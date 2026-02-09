@@ -25,7 +25,7 @@ class CorrelationMiddleware
     /**
      * Handle an incoming request.
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
         // Extract correlation context from request headers
         $extractedCorrelation = $this->correlationService->extractCorrelationFromRequest($request);
