@@ -677,14 +677,16 @@ jobs:
           --set replica.replicaCount=1 \
           --wait
         
-        # Install MySQL
+        # Install MySQL with increased timeout
         helm install mysql bitnami/mysql \
           --namespace rpc-services \
           --set auth.rootPassword=root \
           --set auth.database=reversetender \
           --set auth.username=laravel \
           --set auth.password=password \
-          --wait
+          --set primary.persistence.enabled=false \
+          --set secondary.persistence.enabled=false \
+          --wait --timeout=15m
         
         # Check if Helm chart exists
         if [ -d "deployment/helm/rpc-services" ]; then
@@ -826,7 +828,14 @@ jobs:
       if: failure()
       run: |
         echo "📋 Exporting cluster logs for debugging..."
-        kubectl logs --all-containers=true --tail=100 -n rpc-services > kind-cluster-logs.txt
+        # Get logs from all pods in the namespace
+        kubectl get pods -n rpc-services --no-headers -o custom-columns=":metadata.name" | while read pod; do
+          if [ ! -z "$pod" ]; then
+            echo "=== Logs for pod: $pod ===" >> kind-cluster-logs.txt
+            kubectl logs "$pod" --all-containers=true --tail=100 -n rpc-services >> kind-cluster-logs.txt 2>&1 || echo "Failed to get logs for $pod" >> kind-cluster-logs.txt
+            echo "" >> kind-cluster-logs.txt
+          fi
+        done
         kubectl describe pods -n rpc-services > kind-pod-descriptions.txt
 
     - name: Upload Kind cluster artifacts
@@ -859,7 +868,8 @@ jobs:
     - name: Configure kubectl
       run: |
         echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
-        export KUBECONFIG=kubeconfig
+        export KUBECONFIG=$(pwd)/kubeconfig
+        echo "KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
 
     - name: Deploy to staging
       run: |
@@ -900,7 +910,8 @@ jobs:
     - name: Configure kubectl
       run: |
         echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
-        export KUBECONFIG=kubeconfig
+        export KUBECONFIG=$(pwd)/kubeconfig
+        echo "KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
 
     - name: Deploy to production
       run: |
@@ -951,7 +962,7 @@ jobs:
           if [ -n "${{ secrets.KUBE_CONFIG_PRODUCTION }}" ]; then
             echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
             echo "NAMESPACE=reversetender-prod" >> $GITHUB_ENV
-            echo "KUBECONFIG=kubeconfig" >> $GITHUB_ENV
+            echo "KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
           else
             echo "⚠️ KUBE_CONFIG_PRODUCTION secret not available - skipping kubectl configuration"
             echo "NAMESPACE=reversetender-prod" >> $GITHUB_ENV
@@ -960,7 +971,7 @@ jobs:
           if [ -n "${{ secrets.KUBE_CONFIG_STAGING }}" ]; then
             echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
             echo "NAMESPACE=reversetender-staging" >> $GITHUB_ENV
-            echo "KUBECONFIG=kubeconfig" >> $GITHUB_ENV
+            echo "KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
           else
             echo "⚠️ KUBE_CONFIG_STAGING secret not available - skipping kubectl configuration"
             echo "NAMESPACE=reversetender-staging" >> $GITHUB_ENV
