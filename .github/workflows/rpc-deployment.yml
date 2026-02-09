@@ -42,7 +42,8 @@ jobs:
           bidding-service,
           notification-service,
           vin-ocr-service,
-          gateway-service
+          gateway-service,
+          auction-service
         ]
     
     steps:
@@ -236,6 +237,7 @@ jobs:
         touch /tmp/bidding_service_test.sqlite
         touch /tmp/vin_ocr_service_test.sqlite
         touch /tmp/gateway_service_test.sqlite
+        touch /tmp/auction_service_test.sqlite
         echo "✅ SQLite database files created successfully"
         
         # Ensure SQLite is available
@@ -356,7 +358,8 @@ jobs:
           payment-service,
           bidding-service,
           notification-service,
-          vin-ocr-service
+          vin-ocr-service,
+          auction-service
         ]
 
     steps:
