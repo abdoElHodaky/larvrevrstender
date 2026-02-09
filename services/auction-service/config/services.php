@@ -50,4 +50,8 @@ return [
     'bidding_service' => [
         'url' => env('BIDDING_SERVICE_URL', 'http://bidding-service:8000'),
     ],
+
+    'notification_service' => [
+        'url' => env('NOTIFICATION_SERVICE_URL', 'http://notification-service:8000'),
+    ],
 ];

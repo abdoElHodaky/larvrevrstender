@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\AuctionCreated;
 use App\Http\Clients\AuthServiceClient;
 use App\Models\Auction;
 use Illuminate\Http\Request;
@@ -128,6 +129,9 @@ class AuctionController extends Controller
                 'auction_title' => $auction->title,
                 'starting_price' => $auction->starting_price
             ]);
+
+            // Fire auction created event for notifications
+            event(new AuctionCreated($auction, $user));
 
             return response()->json([
                 'success' => true,

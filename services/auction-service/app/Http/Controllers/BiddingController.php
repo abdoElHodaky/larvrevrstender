@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\BidPlaced;
 use App\Http\Clients\AuthServiceClient;
 use App\Http\Clients\BiddingServiceClient;
 use App\Models\Auction;
@@ -106,6 +107,23 @@ class BiddingController extends Controller
                 'bid_amount' => $validated['amount'],
                 'bid_id' => $bidResult['id'] ?? null
             ]);
+
+            // Get previous bidder information if exists
+            $previousBidder = null;
+            if ($highestBid) {
+                $previousBidder = $this->authService->getUser($highestBid['user_id']);
+                if ($previousBidder) {
+                    $previousBidder['bid_amount'] = $highestBid['amount'];
+                }
+            }
+
+            // Fire bid placed event for notifications
+            event(new BidPlaced(
+                $auction,
+                $bidResult,
+                $user,
+                $previousBidder
+            ));
 
             return response()->json([
                 'success' => true,
