@@ -14,10 +14,12 @@ use Illuminate\Support\Facades\Log;
 class CorrelationMiddleware
 {
     protected CorrelationService $correlationService;
+    protected float $startTime;
 
     public function __construct(CorrelationService $correlationService)
     {
         $this->correlationService = $correlationService;
+        $this->startTime = microtime(true);
     }
 
     /**
@@ -127,6 +129,9 @@ class CorrelationMiddleware
         // Add service identification
         $response->headers->set('X-Service-Name', 'order-service');
         $response->headers->set('X-Service-Version', config('app.version', '1.0.0'));
-        $response->headers->set('X-Response-Time', microtime(true) - LARAVEL_START);
+        
+        // Calculate response time (handle case where LARAVEL_START is not defined, e.g., during testing)
+        $startTime = defined('LARAVEL_START') ? LARAVEL_START : $this->startTime;
+        $response->headers->set('X-Response-Time', microtime(true) - $startTime);
     }
 }
