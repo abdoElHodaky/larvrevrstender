@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Clients\BiddingServiceClient;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -38,11 +39,30 @@ class Auction extends Model
     ];
 
     /**
-     * Get the bids for the auction.
+     * Get the bidding service client instance.
      */
-    public function bids(): HasMany
+    protected function getBiddingServiceClient(): BiddingServiceClient
     {
-        return $this->hasMany(Bid::class);
+        return app(BiddingServiceClient::class);
+    }
+
+    /**
+     * Get the bids for the auction via RPC call to bidding-service.
+     * 
+     * @param array $filters Optional filters for the bids
+     * @return array
+     */
+    public function bids(array $filters = []): array
+    {
+        try {
+            return $this->getBiddingServiceClient()->getAuctionBids($this->id, $filters);
+        } catch (\Exception $e) {
+            \Log::error('Failed to get auction bids via RPC', [
+                'auction_id' => $this->id,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
     }
 
     /**
@@ -62,11 +82,56 @@ class Auction extends Model
     }
 
     /**
-     * Get the highest bid for the auction.
+     * Get the highest bid for the auction via RPC call to bidding-service.
      */
-    public function highestBid()
+    public function highestBid(): ?array
     {
-        return $this->bids()->orderBy('amount', 'desc')->first();
+        try {
+            return $this->getBiddingServiceClient()->getHighestBid($this->id);
+        } catch (\Exception $e) {
+            \Log::error('Failed to get highest bid via RPC', [
+                'auction_id' => $this->id,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Get the bid count for the auction via RPC call to bidding-service.
+     */
+    public function getBidCount(): int
+    {
+        try {
+            return $this->getBiddingServiceClient()->getBidCount($this->id);
+        } catch (\Exception $e) {
+            \Log::error('Failed to get bid count via RPC', [
+                'auction_id' => $this->id,
+                'error' => $e->getMessage()
+            ]);
+            return 0;
+        }
+    }
+
+    /**
+     * Get bid history for the auction via RPC call to bidding-service.
+     */
+    public function getBidHistory(int $limit = 50, int $offset = 0): array
+    {
+        try {
+            return $this->getBiddingServiceClient()->getBidHistory($this->id, $limit, $offset);
+        } catch (\Exception $e) {
+            \Log::error('Failed to get bid history via RPC', [
+                'auction_id' => $this->id,
+                'error' => $e->getMessage()
+            ]);
+            return [
+                'data' => [],
+                'total' => 0,
+                'limit' => $limit,
+                'offset' => $offset
+            ];
+        }
     }
 
     /**
