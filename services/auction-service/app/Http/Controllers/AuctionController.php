@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Clients\AuthServiceClient;
 use App\Models\Auction;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -9,6 +10,12 @@ use Illuminate\Validation\ValidationException;
 
 class AuctionController extends Controller
 {
+    protected AuthServiceClient $authService;
+
+    public function __construct(AuthServiceClient $authService)
+    {
+        $this->authService = $authService;
+    }
     /**
      * Display a listing of auctions.
      */
@@ -76,6 +83,17 @@ class AuctionController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
+            // Get authenticated user
+            $userId = $request->attributes->get('user_id');
+            $user = $request->attributes->get('user');
+
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authentication required'
+                ], 401);
+            }
+
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
@@ -84,13 +102,32 @@ class AuctionController extends Controller
                 'reserve_price' => 'nullable|numeric|min:0',
                 'starts_at' => 'required|date|after:now',
                 'ends_at' => 'required|date|after:starts_at',
-                'created_by' => 'required|integer',
             ]);
 
+            // Validate auction creation authorization
+            $authResult = $this->authService->validateAuctionCreation($userId, $validated);
+            
+            if (!$authResult['authorized']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Auction creation not authorized',
+                    'reason' => $authResult['reason']
+                ], 403);
+            }
+
+            // Set the authenticated user as the creator
+            $validated['created_by'] = $userId;
             $validated['status'] = 'pending';
             $validated['current_highest_bid'] = null;
 
             $auction = Auction::create($validated);
+
+            // Log the activity
+            $this->authService->logAuctionActivity($userId, 'auction.created', [
+                'auction_id' => $auction->id,
+                'auction_title' => $auction->title,
+                'starting_price' => $auction->starting_price
+            ]);
 
             return response()->json([
                 'success' => true,

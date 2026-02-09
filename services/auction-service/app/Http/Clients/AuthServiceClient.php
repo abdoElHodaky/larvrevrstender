@@ -87,4 +87,190 @@ class AuthServiceClient extends BaseServiceClient
             return [];
         }
     }
+
+    /**
+     * Validate JWT token and get user information.
+     */
+    public function validateJwtToken(string $token): ?array
+    {
+        try {
+            $response = $this->post('/auth/validate-jwt', [
+                'token' => $token
+            ]);
+
+            return $response->successful() ? $response->json('user') : null;
+        } catch (\Exception $e) {
+            \Log::error('Failed to validate JWT token', [
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Get user details by ID.
+     */
+    public function getUser(int $userId): ?array
+    {
+        try {
+            $response = $this->get("/auth/users/{$userId}");
+
+            return $response->successful() ? $response->json('user') : null;
+        } catch (\Exception $e) {
+            \Log::error('Failed to get user details', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Check if user has specific permission.
+     */
+    public function hasPermission(int $userId, string $permission): bool
+    {
+        try {
+            $response = $this->get("/auth/users/{$userId}/permissions/{$permission}");
+
+            return $response->successful() && $response->json('has_permission', false);
+        } catch (\Exception $e) {
+            \Log::error('Failed to check user permission', [
+                'user_id' => $userId,
+                'permission' => $permission,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Check if user has any of the specified roles.
+     */
+    public function hasRole(int $userId, array $roles): bool
+    {
+        try {
+            $response = $this->post("/auth/users/{$userId}/check-roles", [
+                'roles' => $roles
+            ]);
+
+            return $response->successful() && $response->json('has_role', false);
+        } catch (\Exception $e) {
+            \Log::error('Failed to check user roles', [
+                'user_id' => $userId,
+                'roles' => $roles,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Validate auction creation authorization.
+     */
+    public function validateAuctionCreation(int $userId, array $auctionData): array
+    {
+        try {
+            $response = $this->post('/auth/validate-auction-creation', [
+                'user_id' => $userId,
+                'auction_data' => $auctionData
+            ]);
+
+            if ($response->successful()) {
+                return [
+                    'authorized' => $response->json('authorized', false),
+                    'reason' => $response->json('reason'),
+                    'limits' => $response->json('limits', [])
+                ];
+            }
+
+            return ['authorized' => false, 'reason' => 'Service unavailable'];
+        } catch (\Exception $e) {
+            \Log::error('Failed to validate auction creation', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            return ['authorized' => false, 'reason' => 'Authorization check failed'];
+        }
+    }
+
+    /**
+     * Check if user can access/modify specific auction.
+     */
+    public function canAccessAuction(int $userId, int $auctionId, string $action = 'view'): bool
+    {
+        try {
+            $response = $this->post('/auth/check-auction-access', [
+                'user_id' => $userId,
+                'auction_id' => $auctionId,
+                'action' => $action
+            ]);
+
+            return $response->successful() && $response->json('can_access', false);
+        } catch (\Exception $e) {
+            \Log::error('Failed to check auction access', [
+                'user_id' => $userId,
+                'auction_id' => $auctionId,
+                'action' => $action,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Validate user eligibility for bidding on auction.
+     */
+    public function validateBiddingEligibility(int $userId, int $auctionId): array
+    {
+        try {
+            $response = $this->post('/auth/validate-bidding-eligibility', [
+                'user_id' => $userId,
+                'auction_id' => $auctionId
+            ]);
+
+            if ($response->successful()) {
+                return [
+                    'eligible' => $response->json('eligible', false),
+                    'reason' => $response->json('reason'),
+                    'restrictions' => $response->json('restrictions', [])
+                ];
+            }
+
+            return ['eligible' => false, 'reason' => 'Service unavailable'];
+        } catch (\Exception $e) {
+            \Log::error('Failed to validate bidding eligibility', [
+                'user_id' => $userId,
+                'auction_id' => $auctionId,
+                'error' => $e->getMessage()
+            ]);
+            return ['eligible' => false, 'reason' => 'Eligibility check failed'];
+        }
+    }
+
+    /**
+     * Log auction activity for audit trail.
+     */
+    public function logAuctionActivity(int $userId, string $action, array $data): bool
+    {
+        try {
+            $response = $this->post('/auth/audit/auction', [
+                'user_id' => $userId,
+                'action' => $action,
+                'data' => $data,
+                'timestamp' => now()->toISOString(),
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent()
+            ]);
+
+            return $response->successful();
+        } catch (\Exception $e) {
+            \Log::error('Failed to log auction activity', [
+                'user_id' => $userId,
+                'action' => $action,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
 }

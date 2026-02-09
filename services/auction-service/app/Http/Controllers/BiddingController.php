@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Clients\AuthServiceClient;
 use App\Http\Clients\BiddingServiceClient;
 use App\Models\Auction;
 use Illuminate\Http\Request;
@@ -11,10 +12,12 @@ use Illuminate\Validation\ValidationException;
 class BiddingController extends Controller
 {
     protected BiddingServiceClient $biddingService;
+    protected AuthServiceClient $authService;
 
-    public function __construct(BiddingServiceClient $biddingService)
+    public function __construct(BiddingServiceClient $biddingService, AuthServiceClient $authService)
     {
         $this->biddingService = $biddingService;
+        $this->authService = $authService;
     }
 
     /**
@@ -23,13 +26,26 @@ class BiddingController extends Controller
     public function placeBid(Request $request): JsonResponse
     {
         try {
+            // Get authenticated user
+            $userId = $request->attributes->get('user_id');
+            $user = $request->attributes->get('user');
+
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authentication required'
+                ], 401);
+            }
+
             $validated = $request->validate([
                 'auction_id' => 'required|integer|exists:auctions,id',
-                'user_id' => 'required|integer',
                 'amount' => 'required|numeric|min:0',
                 'currency' => 'nullable|string|max:3',
                 'notes' => 'nullable|string|max:1000',
             ]);
+
+            // Set the authenticated user as the bidder
+            $validated['user_id'] = $userId;
 
             // Verify auction exists and is active
             $auction = Auction::findOrFail($validated['auction_id']);
@@ -39,6 +55,17 @@ class BiddingController extends Controller
                     'success' => false,
                     'message' => 'Auction is not active'
                 ], 422);
+            }
+
+            // Validate bidding eligibility
+            $eligibilityResult = $this->authService->validateBiddingEligibility($userId, $validated['auction_id']);
+            
+            if (!$eligibilityResult['eligible']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bidding not allowed',
+                    'reason' => $eligibilityResult['reason']
+                ], 403);
             }
 
             // Validate bid amount against starting price and current highest bid
@@ -71,6 +98,14 @@ class BiddingController extends Controller
             if (!$auction->current_highest_bid || $validated['amount'] > $auction->current_highest_bid) {
                 $auction->update(['current_highest_bid' => $validated['amount']]);
             }
+
+            // Log the bidding activity
+            $this->authService->logAuctionActivity($userId, 'bid.placed', [
+                'auction_id' => $validated['auction_id'],
+                'auction_title' => $auction->title,
+                'bid_amount' => $validated['amount'],
+                'bid_id' => $bidResult['id'] ?? null
+            ]);
 
             return response()->json([
                 'success' => true,
