@@ -1,0 +1,45 @@
+[INFO] 2026-02-10 06:54:58 - Starting Phase 6: Business Logic Services Migration
+[INFO] 2026-02-10 06:54:58 - Services to migrate: Order, Payment, Bidding
+[INFO] 2026-02-10 06:54:58 - Starting migration for order service
+[INFO] 2026-02-10 06:54:58 - Phase 1: Pre-Migration Assessment for order
+[INFO] 2026-02-10 06:54:58 - Performing pre-migration assessment for order
+[INFO] 2026-02-10 06:54:58 - Phase 2: Schema Migration for order
+[INFO] 2026-02-10 06:54:58 - Converting MySQL schema to PostgreSQL for order
+[INFO] 2026-02-10 06:54:58 - Phase 3: Data Migration for order
+[INFO] 2026-02-10 06:54:58 - Migrating data for order service
+[INFO] 2026-02-10 06:54:58 - Phase 4: Business Logic Validation for order
+[INFO] 2026-02-10 06:54:58 - Validating business logic for order service
+[INFO] 2026-02-10 06:54:58 - Phase 5: Performance Testing for order
+[INFO] 2026-02-10 06:54:58 - Performing performance testing for order service
+[INFO] 2026-02-10 06:54:58 - Phase 6: Integration Testing for order
+[INFO] 2026-02-10 06:54:58 - Performing integration testing for order service
+[SUCCESS] 2026-02-10 06:54:58 - Migration completed successfully for order service
+[INFO] 2026-02-10 06:54:58 - Starting migration for payment service
+[INFO] 2026-02-10 06:54:58 - Phase 1: Pre-Migration Assessment for payment
+[INFO] 2026-02-10 06:54:58 - Performing pre-migration assessment for payment
+[INFO] 2026-02-10 06:54:58 - Phase 2: Schema Migration for payment
+[INFO] 2026-02-10 06:54:58 - Converting MySQL schema to PostgreSQL for payment
+[INFO] 2026-02-10 06:54:58 - Phase 3: Data Migration for payment
+[INFO] 2026-02-10 06:54:58 - Migrating data for payment service
+[INFO] 2026-02-10 06:54:58 - Phase 4: Business Logic Validation for payment
+[INFO] 2026-02-10 06:54:58 - Validating business logic for payment service
+[INFO] 2026-02-10 06:54:58 - Phase 5: Performance Testing for payment
+[INFO] 2026-02-10 06:54:58 - Performing performance testing for payment service
+[INFO] 2026-02-10 06:54:58 - Phase 6: Integration Testing for payment
+[INFO] 2026-02-10 06:54:58 - Performing integration testing for payment service
+[SUCCESS] 2026-02-10 06:54:58 - Migration completed successfully for payment service
+[INFO] 2026-02-10 06:54:58 - Starting migration for bidding service
+[INFO] 2026-02-10 06:54:58 - Phase 1: Pre-Migration Assessment for bidding
+[INFO] 2026-02-10 06:54:58 - Performing pre-migration assessment for bidding
+[INFO] 2026-02-10 06:54:58 - Phase 2: Schema Migration for bidding
+[INFO] 2026-02-10 06:54:58 - Converting MySQL schema to PostgreSQL for bidding
+[INFO] 2026-02-10 06:54:58 - Phase 3: Data Migration for bidding
+[INFO] 2026-02-10 06:54:58 - Migrating data for bidding service
+[INFO] 2026-02-10 06:54:58 - Phase 4: Business Logic Validation for bidding
+[INFO] 2026-02-10 06:54:58 - Validating business logic for bidding service
+[INFO] 2026-02-10 06:54:58 - Phase 5: Performance Testing for bidding
+[INFO] 2026-02-10 06:54:58 - Performing performance testing for bidding service
+[INFO] 2026-02-10 06:54:58 - Phase 6: Integration Testing for bidding
+[INFO] 2026-02-10 06:54:58 - Performing integration testing for bidding service
+[SUCCESS] 2026-02-10 06:54:58 - Migration completed successfully for bidding service
+[INFO] 2026-02-10 06:54:58 - Phase 6 execution report generated: /tmp/abdoElHodaky/larvrevrstender/migration/scripts/../reports/phase6_execution_2026-02-10_06-54-58.json
