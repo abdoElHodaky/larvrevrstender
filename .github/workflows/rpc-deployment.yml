@@ -42,7 +42,8 @@ jobs:
           bidding-service,
           notification-service,
           vin-ocr-service,
-          gateway-service
+          gateway-service,
+          auction-service
         ]
     
     steps:
@@ -236,6 +237,7 @@ jobs:
         touch /tmp/bidding_service_test.sqlite
         touch /tmp/vin_ocr_service_test.sqlite
         touch /tmp/gateway_service_test.sqlite
+        touch /tmp/auction_service_test.sqlite
         echo "✅ SQLite database files created successfully"
         
         # Ensure SQLite is available
@@ -356,7 +358,8 @@ jobs:
           payment-service,
           bidding-service,
           notification-service,
-          vin-ocr-service
+          vin-ocr-service,
+          auction-service
         ]
 
     steps:
@@ -667,7 +670,7 @@ jobs:
           --create-namespace \
           --set controller.service.type=NodePort \
           --set controller.hostPort.enabled=true \
-          --wait
+          --wait --timeout=5m
         
         # Install Redis
         helm install redis bitnami/redis \
@@ -675,7 +678,9 @@ jobs:
           --create-namespace \
           --set auth.enabled=false \
           --set replica.replicaCount=1 \
-          --wait
+          --set master.persistence.enabled=false \
+          --set replica.persistence.enabled=false \
+          --wait --timeout=5m
         
         # Install MySQL with increased timeout
         helm install mysql bitnami/mysql \
@@ -686,6 +691,7 @@ jobs:
           --set auth.password=password \
           --set primary.persistence.enabled=false \
           --set secondary.persistence.enabled=false \
+<<<<<<< HEAD
           --wait --timeout=15m
         
         # Install PostgreSQL for migration testing
@@ -695,6 +701,8 @@ jobs:
           --set auth.database=postgres \
           --set primary.persistence.enabled=false \
           --set readReplicas.persistence.enabled=false \
+=======
+>>>>>>> origin/codegen-bot/phase3-service-integration-1770627073
           --wait --timeout=10m
         
         # Check if Helm chart exists
@@ -838,12 +846,10 @@ jobs:
       run: |
         echo "📋 Exporting cluster logs for debugging..."
         # Get logs from all pods in the namespace
-        kubectl get pods -n rpc-services --no-headers -o custom-columns=":metadata.name" | while read pod; do
-          if [ ! -z "$pod" ]; then
-            echo "=== Logs for pod: $pod ===" >> kind-cluster-logs.txt
-            kubectl logs "$pod" --all-containers=true --tail=100 -n rpc-services >> kind-cluster-logs.txt 2>&1 || echo "Failed to get logs for $pod" >> kind-cluster-logs.txt
-            echo "" >> kind-cluster-logs.txt
-          fi
+        kubectl get pods -n rpc-services -o name | while read pod; do
+          echo "=== Logs for $pod ===" >> kind-cluster-logs.txt
+          kubectl logs $pod --all-containers=true --tail=100 -n rpc-services >> kind-cluster-logs.txt 2>&1 || echo "Failed to get logs for $pod" >> kind-cluster-logs.txt
+          echo "" >> kind-cluster-logs.txt
         done
         kubectl describe pods -n rpc-services > kind-pod-descriptions.txt
 
