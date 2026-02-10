@@ -682,7 +682,7 @@ jobs:
           --set replica.persistence.enabled=false \
           --wait --timeout=5m
         
-        # Install MySQL
+        # Install MySQL with increased timeout
         helm install mysql bitnami/mysql \
           --namespace rpc-services \
           --set auth.rootPassword=root \
@@ -691,7 +691,7 @@ jobs:
           --set auth.password=password \
           --set primary.persistence.enabled=false \
           --set secondary.persistence.enabled=false \
-          --wait --timeout=10m
+          --wait --timeout=15m
         
         # Check if Helm chart exists
         if [ -d "deployment/helm/rpc-services" ]; then
