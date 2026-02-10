@@ -29,36 +29,47 @@ Route::get('/info', function () {
     ]);
 });
 
-// Inter-service Routes
+// Inter-service Routes (for RPC and service-to-service communication)
 Route::middleware('service.auth')->group(function () {
+    // Bidding routes
     Route::post('/bids', [App\Http\Controllers\BiddingController::class, 'placeBid']);
     Route::get('/bids/{bidId}', [App\Http\Controllers\BiddingController::class, 'getBid']);
     Route::get('/users/{userId}/bids', [App\Http\Controllers\BiddingController::class, 'getUserBids']);
     Route::get('/auctions/{auctionId}/bids', [App\Http\Controllers\BiddingController::class, 'getAuctionBids']);
     Route::put('/bids/{bidId}/status', [App\Http\Controllers\BiddingController::class, 'updateBidStatus']);
+    Route::get('/auctions/{auctionId}/statistics', [App\Http\Controllers\BiddingController::class, 'getBidStatistics']);
+    
+    // Auction routes
+    Route::get('/auctions', [App\Http\Controllers\AuctionController::class, 'index']);
+    Route::post('/auctions', [App\Http\Controllers\AuctionController::class, 'store']);
+    Route::get('/auctions/{auctionId}', [App\Http\Controllers\AuctionController::class, 'show']);
+    Route::put('/auctions/{auctionId}/status', [App\Http\Controllers\AuctionController::class, 'updateStatus']);
+    Route::get('/auctions/{auctionId}/with-bids', [App\Http\Controllers\AuctionController::class, 'getAuctionWithBids']);
 });
 
-// External API Routes
+// External API Routes (for direct client access)
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
 
+    // Bidding endpoints
     Route::prefix('bids')->group(function () {
-        Route::get('/', [App\Http\Controllers\BiddingController::class, 'index']);
-        Route::post('/', [App\Http\Controllers\BiddingController::class, 'store']);
-        Route::get('/{bid}', [App\Http\Controllers\BiddingController::class, 'show']);
-        Route::put('/{bid}', [App\Http\Controllers\BiddingController::class, 'update']);
-        Route::delete('/{bid}', [App\Http\Controllers\BiddingController::class, 'cancel']);
+        Route::get('/', [App\Http\Controllers\BiddingController::class, 'getUserBids']);
+        Route::post('/', [App\Http\Controllers\BiddingController::class, 'placeBid']);
+        Route::get('/{bidId}', [App\Http\Controllers\BiddingController::class, 'getBid']);
+        Route::put('/{bidId}/status', [App\Http\Controllers\BiddingController::class, 'updateBidStatus']);
+        Route::post('/{bidId}/withdraw', [App\Http\Controllers\BiddingController::class, 'withdrawBid']);
     });
 
+    // Auction endpoints
     Route::prefix('auctions')->group(function () {
         Route::get('/', [App\Http\Controllers\AuctionController::class, 'index']);
         Route::post('/', [App\Http\Controllers\AuctionController::class, 'store']);
-        Route::get('/{auction}', [App\Http\Controllers\AuctionController::class, 'show']);
-        Route::put('/{auction}', [App\Http\Controllers\AuctionController::class, 'update']);
-        Route::delete('/{auction}', [App\Http\Controllers\AuctionController::class, 'destroy']);
-        Route::get('/{auction}/bids', [App\Http\Controllers\AuctionController::class, 'getBids']);
-        Route::post('/{auction}/close', [App\Http\Controllers\AuctionController::class, 'close']);
+        Route::get('/{auctionId}', [App\Http\Controllers\AuctionController::class, 'show']);
+        Route::put('/{auctionId}/status', [App\Http\Controllers\AuctionController::class, 'updateStatus']);
+        Route::get('/{auctionId}/bids', [App\Http\Controllers\BiddingController::class, 'getAuctionBids']);
+        Route::get('/{auctionId}/statistics', [App\Http\Controllers\BiddingController::class, 'getBidStatistics']);
+        Route::get('/{auctionId}/with-bids', [App\Http\Controllers\AuctionController::class, 'getAuctionWithBids']);
     });
 });

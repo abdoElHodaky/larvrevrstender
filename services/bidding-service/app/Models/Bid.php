@@ -20,6 +20,13 @@ class Bid extends Model
         'amount',
         'status',
         'submitted_at',
+        'notes',
+        'currency',
+        'bid_increment',
+        'is_automatic',
+        'max_amount',
+        'metadata',
+        'expires_at',
     ];
 
     /**
@@ -27,7 +34,12 @@ class Bid extends Model
      */
     protected $casts = [
         'amount' => 'decimal:2',
+        'bid_increment' => 'decimal:2',
+        'max_amount' => 'decimal:2',
         'submitted_at' => 'datetime',
+        'expires_at' => 'datetime',
+        'is_automatic' => 'boolean',
+        'metadata' => 'array',
     ];
 
     /**
