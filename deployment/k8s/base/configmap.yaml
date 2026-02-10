@@ -14,12 +14,14 @@ data:
   APP_TIMEZONE: "UTC"
   APP_LOCALE: "en"
   
-  # Database Configuration
-  DB_CONNECTION: "mysql"
-  DB_PORT: "3306"
+  # Database Configuration - Neon PostgreSQL
+  DB_CONNECTION: "pgsql"
+  DB_PORT: "5432"
+  # Note: DB_HOST will be provided via secrets (NEON_DB_HOST)
   
-  # Redis Configuration
+  # Redis Configuration - Upstash Redis
   REDIS_PORT: "6379"
+  # Note: REDIS_HOST will be provided via secrets (UPSTASH_REDIS_URL)
   
   # Cache and Session Configuration
   CACHE_DRIVER: "redis"
@@ -96,4 +98,3 @@ data:
             respond "{http.error.status_code} {http.error.status_text}"
         }
     }
-

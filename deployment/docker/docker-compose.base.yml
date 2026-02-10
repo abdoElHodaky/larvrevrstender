@@ -14,12 +14,15 @@ services:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
       - APP_URL=${APP_URL:-https://reversetender.com}
-      - DB_HOST=${DB_HOST}
-      - DB_DATABASE=${DB_DATABASE:-reverse_tender}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_SSLMODE=${DB_SSLMODE:-require}
-      - REDIS_URL=${REDIS_URL}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      - DB_SSLMODE=require
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
       - JWT_SECRET=${JWT_SECRET}
       - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
       # Laravel Octane Configuration
@@ -42,9 +45,6 @@ services:
       - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
-    depends_on:
-      - mysql-primary
-      - redis-primary
     restart: unless-stopped
     deploy:
       resources:
@@ -71,12 +71,14 @@ services:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
       - APP_URL=${GATEWAY_SERVICE_URL:-https://gateway.reversetender.com}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${GATEWAY_DB_DATABASE:-reverse_tender_gateway}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_gateway}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
       - JWT_SECRET=${JWT_SECRET}
       # RPC Configuration
       - RPC_ENABLED=${RPC_ENABLED:-true}
