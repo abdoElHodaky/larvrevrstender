@@ -682,16 +682,8 @@ jobs:
           --set replica.persistence.enabled=false \
           --wait --timeout=5m
         
-        # Install MySQL with increased timeout
-        helm install mysql bitnami/mysql \
-          --namespace rpc-services \
-          --set auth.rootPassword=root \
-          --set auth.database=reversetender \
-          --set auth.username=laravel \
-          --set auth.password=password \
-          --set primary.persistence.enabled=false \
-          --set secondary.persistence.enabled=false \
-          --wait --timeout=15m
+        # MySQL removed - using cloud-managed Neon PostgreSQL instead
+        echo "✅ Skipping MySQL installation - using Neon PostgreSQL"
         
         # Check if Helm chart exists
         if [ -d "deployment/helm/rpc-services" ]; then

@@ -539,25 +539,10 @@ jobs:
           replica:
             replicaCount: 0  # Disable replica for testing
             
-        mysql:
-          enabled: true
-          auth:
-            rootPassword: "root"
-            database: "reversetender"
-            username: "laravel"
-            password: "password"
-          primary:
-            persistence:
-              enabled: false
-            resources:
-              requests:
-                memory: "256Mi"
-                cpu: "100m"
-              limits:
-                memory: "512Mi"
-                cpu: "200m"
-          secondary:
-            replicaCount: 0  # Disable secondary for testing
+        # MySQL removed - using cloud-managed Neon PostgreSQL
+        postgresql:
+          enabled: false  # Using external Neon PostgreSQL service
+          # Connection details managed via environment variables
         EOF
 
     # Optimization: Parallel infrastructure deployment
@@ -594,24 +579,11 @@ jobs:
         wait
         echo "✅ Infrastructure components deployed successfully"
 
-    # Optimization: MySQL with optimized settings
-    - name: Deploy MySQL with optimizations
+    # MySQL removed - using cloud-managed Neon PostgreSQL instead
+    - name: Skip MySQL deployment (using Neon PostgreSQL)
       run: |
-        echo "🗄️ Deploying optimized MySQL..."
-        helm install mysql bitnami/mysql \
-          --namespace rpc-services \
-          --set auth.rootPassword=root \
-          --set auth.database=reversetender \
-          --set auth.username=laravel \
-          --set auth.password=password \
-          --set primary.persistence.enabled=false \
-          --set secondary.replicaCount=0 \
-          --set primary.resources.requests.memory=256Mi \
-          --set primary.resources.requests.cpu=100m \
-          --set primary.resources.limits.memory=512Mi \
-          --set primary.resources.limits.cpu=200m \
-          --set primary.configuration="[mysqld]\nmax_connections=50\ninnodb_buffer_pool_size=128M\ninnodb_log_file_size=32M" \
-          --wait --timeout=10m
+        echo "✅ Skipping MySQL installation - using cloud-managed Neon PostgreSQL"
+        echo "🌐 Database services now managed by Neon PostgreSQL cloud service"
 
     # Optimization: Conditional service deployment
     - name: Deploy RPC services (if Helm chart exists)
@@ -635,9 +607,9 @@ jobs:
         kubectl get services -n rpc-services
         kubectl get ingress -n rpc-services
         
-        # Quick connectivity test
-        kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=mysql -n rpc-services --timeout=300s || true
+        # Quick connectivity test (MySQL removed - using Neon PostgreSQL)
         kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=redis -n rpc-services --timeout=300s || true
+        echo "🌐 Database connectivity: Using external Neon PostgreSQL service"
         
         echo "✅ Deployment verification completed"
 

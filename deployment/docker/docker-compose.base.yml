@@ -124,8 +124,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -151,12 +151,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${AUTH_DB_DATABASE:-reverse_tender_auth}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_auth}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       - JWT_SECRET=${JWT_SECRET}
       - JWT_TTL=${JWT_TTL:-900}
       - REFRESH_TTL=${REFRESH_TTL:-43200}
@@ -191,9 +194,9 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
       - gateway-service
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -220,12 +223,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${BIDDING_DB_DATABASE:-reverse_tender_bidding}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_bidding}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       - BROADCAST_DRIVER=reverb
       - REVERB_APP_ID=${REVERB_APP_ID:-reverse-tender}
       - REVERB_APP_KEY=${REVERB_APP_KEY:-reverse-tender-key}
@@ -254,8 +260,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -281,12 +287,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${USER_DB_DATABASE:-reverse_tender_users}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_users}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       - S3_BUCKET=${S3_BUCKET}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
@@ -313,8 +322,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -340,12 +349,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${ORDER_DB_DATABASE:-reverse_tender_orders}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_orders}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       - S3_BUCKET=${S3_BUCKET}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
@@ -371,8 +383,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -398,12 +410,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${NOTIFICATION_DB_DATABASE:-reverse_tender_notifications}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_notifications}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       - FCM_SERVER_KEY=${FCM_SERVER_KEY}
       - APNS_KEY_ID=${APNS_KEY_ID}
       - APNS_TEAM_ID=${APNS_TEAM_ID}
@@ -431,8 +446,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -459,12 +474,15 @@ services:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
       - APP_URL=${PAYMENT_SERVICE_URL:-https://payments.reversetender.com}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${PAYMENT_DB_DATABASE:-reverse_tender_payments}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_payments}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       - JWT_SECRET=${JWT_SECRET}
       
       # Multi-Gateway Payment Configuration
@@ -568,8 +586,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -595,12 +613,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${ANALYTICS_DB_DATABASE:-reverse_tender_analytics}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_analytics}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       # Laravel Octane Configuration
       - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
       - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
@@ -622,8 +643,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -649,12 +670,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${VIN_OCR_DB_DATABASE:-reverse_tender_vehicles}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_vehicles}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       - GOOGLE_CLOUD_VISION_KEY=${GOOGLE_CLOUD_VISION_KEY}
       - TESSERACT_ENABLED=${TESSERACT_ENABLED:-true}
       - S3_BUCKET=${S3_BUCKET}
@@ -682,8 +706,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -700,29 +724,8 @@ services:
       retries: 3
       start_period: 60s
 
-  # MySQL Primary Database
-  mysql-primary:
-    image: mysql:8.0
-    container_name: rt_mysql_primary
-    ports:
-      - "${MYSQL_PORT:-3306}:3306"
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${DB_DATABASE:-reverse_tender}
-      - MYSQL_USER=${DB_USERNAME}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
-    volumes:
-      - mysql_primary_data:/var/lib/mysql
-      - ./database/init:/docker-entrypoint-initdb.d
-      - ./database/config/mysql.cnf:/etc/mysql/conf.d/custom.cnf
-    networks:
-      - reverse-tender-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+  # MySQL removed - using cloud-managed Neon PostgreSQL instead
+  # Database services now managed by Neon PostgreSQL cloud service
 
   # Redis Primary Cache
   redis-primary:
@@ -769,8 +772,7 @@ services:
       retries: 3
 
 volumes:
-  mysql_primary_data:
-    driver: local
+  # mysql_primary_data removed - using cloud-managed Neon PostgreSQL
   redis_primary_data:
     driver: local
 
