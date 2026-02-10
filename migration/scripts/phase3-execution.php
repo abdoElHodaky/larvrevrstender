@@ -1,19 +1,19 @@
 <?php
 
 /**
- * Phase 6 Execution: Business Logic Services Migration
+ * Phase 3 Execution: Business Logic Services Migration
  * 
  * Executes migration of Order, Payment, and Bidding services
- * Based on the comprehensive framework established in Phase 1-5
+ * Based on the comprehensive framework established in Phase 1-2
  */
 
 // Load configuration
 $config = require __DIR__ . '/../config/migration-config.php';
 
 /**
- * Simple logger for Phase 6 execution
+ * Simple logger for Phase 3 execution
  */
-class Phase6Logger
+class Phase3Logger
 {
     private $logFile;
     
@@ -23,7 +23,7 @@ class Phase6Logger
         if (!is_dir($logDir)) {
             mkdir($logDir, 0755, true);
         }
-        $this->logFile = $logDir . '/phase6_execution_' . date('Y-m-d_H-i-s') . '.log';
+        $this->logFile = $logDir . '/phase3_execution_' . date('Y-m-d_H-i-s') . '.log';
     }
     
     public function info($message)
@@ -52,9 +52,9 @@ class Phase6Logger
 }
 
 /**
- * Phase 6 Migration Executor
+ * Phase 3 Migration Executor
  */
-class Phase6Executor
+class Phase3Executor
 {
     private $config;
     private $logger;
@@ -64,10 +64,10 @@ class Phase6Executor
     public function __construct($config)
     {
         $this->config = $config;
-        $this->logger = new Phase6Logger();
+        $this->logger = new Phase3Logger();
         $this->startTime = date('Y-m-d H:i:s');
         $this->results = [
-            'phase' => 'Phase 6: Business Logic Services Migration',
+            'phase' => 'Phase 3: Business Logic Services Migration',
             'start_time' => $this->startTime,
             'services' => [],
             'overall_status' => 'in_progress',
@@ -76,11 +76,11 @@ class Phase6Executor
     }
     
     /**
-     * Execute Phase 6 migration for all business logic services
+     * Execute Phase 3 migration for all business logic services
      */
-    public function executePhase6()
+    public function executePhase3()
     {
-        $this->logger->info("Starting Phase 6: Business Logic Services Migration");
+        $this->logger->info("Starting Phase 3: Business Logic Services Migration");
         $this->logger->info("Services to migrate: Order, Payment, Bidding");
         
         $services = ['order', 'payment', 'bidding'];
@@ -593,12 +593,12 @@ class Phase6Executor
 
 // CLI execution
 if (php_sapi_name() === 'cli') {
-    echo "=== Phase 6: Business Logic Services Migration ===\n\n";
+    echo "=== Phase 3: Business Logic Services Migration ===\n\n";
     
-    $executor = new Phase6Executor($config);
-    $result = $executor->executePhase6();
+    $executor = new Phase3Executor($config);
+    $result = $executor->executePhase3();
     
-    echo "\n=== Phase 6 Execution Summary ===\n";
+    echo "\n=== Phase 3 Execution Summary ===\n";
     echo "Overall Status: " . strtoupper($result['overall_status']) . "\n";
     echo "Services Migrated: " . $result['summary']['successful_services'] . "/" . $result['summary']['total_services'] . "\n";
     echo "Total Records Migrated: " . number_format($result['summary']['total_records_migrated']) . "\n";
@@ -612,5 +612,5 @@ if (php_sapi_name() === 'cli') {
         }
     }
     
-    echo "\nPhase 6 execution completed!\n";
+    echo "\nPhase 3 execution completed!\n";
 }

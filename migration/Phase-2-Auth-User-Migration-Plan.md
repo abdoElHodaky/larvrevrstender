@@ -1,4 +1,4 @@
-# Phase 5: Auth and User Services Migration
+# Phase 2: Auth and User Services Migration
 
 This document outlines the comprehensive plan for migrating the Auth and User services from MySQL to PostgreSQL, building on the lessons learned from the Gateway Service pilot migration.
 
@@ -401,4 +401,3 @@ The enhanced procedures and lessons learned from the Gateway Service pilot provi
 ---
 
 *For detailed technical procedures, refer to the migration scripts in `migration/scripts/` and the comprehensive setup guide in `migration/SETUP-GUIDE.md`.*
-

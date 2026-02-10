@@ -1,4 +1,4 @@
-# Phase 4: Pilot Migration with Gateway Service
+# Phase 1: Pilot Migration with Gateway Service
 
 This document provides comprehensive guidance for executing the pilot migration of the Gateway Service from MySQL to PostgreSQL.
 
@@ -452,4 +452,3 @@ The comprehensive approach outlined in this guide ensures thorough validation of
 
 *For detailed technical procedures, refer to the migration scripts in the `migration/scripts/` directory.*
 *For troubleshooting and support, consult the comprehensive logs in `migration/logs/`.*
-
