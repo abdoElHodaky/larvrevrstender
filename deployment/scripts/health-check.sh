@@ -113,8 +113,9 @@ check_octane_health() {
 }
 
 check_database_health() {
-    log "Checking PostgreSQL database health..."
+    log "Checking Neon PostgreSQL database health..."
     
+    local database_url=${DATABASE_URL:-""}
     local db_host=${DB_HOST:-"localhost"}
     local db_port=${DB_PORT:-"5432"}
     local db_user=${DB_USERNAME:-"postgres"}
@@ -123,21 +124,39 @@ check_database_health() {
     
     # Check if PostgreSQL is responding
     if command -v psql > /dev/null 2>&1; then
-        export PGPASSWORD="$db_password"
-        if psql -h "$db_host" -p "$db_port" -U "$db_user" -d "$db_name" -c "SELECT 1;" > /dev/null 2>&1; then
-            success "PostgreSQL database is healthy"
-            
-            # Get database status
-            local connections=$(psql -h "$db_host" -p "$db_port" -U "$db_user" -d "$db_name" -t -c "SELECT count(*) FROM pg_stat_activity;" 2>/dev/null | xargs || echo "unknown")
-            local uptime=$(psql -h "$db_host" -p "$db_port" -U "$db_user" -d "$db_name" -t -c "SELECT EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time()));" 2>/dev/null | xargs | cut -d. -f1 || echo "unknown")
-            
-            info "PostgreSQL connections: $connections, uptime: ${uptime}s"
-            unset PGPASSWORD
-            return 0
+        # Use DATABASE_URL if available (Neon format)
+        if [ -n "$database_url" ]; then
+            if psql "$database_url" -c "SELECT 1;" > /dev/null 2>&1; then
+                success "Neon PostgreSQL database is healthy"
+                
+                # Get database status using URL connection
+                local connections=$(psql "$database_url" -t -c "SELECT count(*) FROM pg_stat_activity;" 2>/dev/null | xargs || echo "unknown")
+                local uptime=$(psql "$database_url" -t -c "SELECT EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time()));" 2>/dev/null | xargs | cut -d. -f1 || echo "unknown")
+                
+                info "Neon PostgreSQL connections: $connections, uptime: ${uptime}s"
+                return 0
+            else
+                error "Neon PostgreSQL database is not responding via URL"
+                return 1
+            fi
         else
-            error "PostgreSQL database is not responding"
-            unset PGPASSWORD
-            return 1
+            # Fallback to individual parameters
+            export PGPASSWORD="$db_password"
+            if psql -h "$db_host" -p "$db_port" -U "$db_user" -d "$db_name" -c "SELECT 1;" > /dev/null 2>&1; then
+                success "PostgreSQL database is healthy (fallback connection)"
+                
+                # Get database status using individual parameters
+                local connections=$(psql -h "$db_host" -p "$db_port" -U "$db_user" -d "$db_name" -t -c "SELECT count(*) FROM pg_stat_activity;" 2>/dev/null | xargs || echo "unknown")
+                local uptime=$(psql -h "$db_host" -p "$db_port" -U "$db_user" -d "$db_name" -t -c "SELECT EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time()));" 2>/dev/null | xargs | cut -d. -f1 || echo "unknown")
+                
+                info "PostgreSQL connections: $connections, uptime: ${uptime}s"
+                unset PGPASSWORD
+                return 0
+            else
+                error "PostgreSQL database is not responding"
+                unset PGPASSWORD
+                return 1
+            fi
         fi
     else
         # Try TCP connection test
