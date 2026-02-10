@@ -60,7 +60,7 @@ variable "kubernetes_max_nodes" {
 variable "database_engine" {
   description = "Database engine"
   type        = string
-  default     = "mysql"
+  default     = "postgresql"
 }
 
 variable "database_version" {
@@ -87,23 +87,11 @@ variable "database_backup_enabled" {
   default     = true
 }
 
-# Redis Configuration
-variable "redis_version" {
-  description = "Redis version"
+# External Redis Configuration (Upstash)
+variable "redis_url" {
+  description = "External Redis URL (Upstash)"
   type        = string
-  default     = "7.0"
-}
-
-variable "redis_instance_class" {
-  description = "Redis instance class"
-  type        = string
-  default     = "db-s-1vcpu-1gb"
-}
-
-variable "redis_node_count" {
-  description = "Number of Redis nodes"
-  type        = number
-  default     = 1
+  sensitive   = true
 }
 
 # Network Configuration

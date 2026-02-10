@@ -351,7 +351,7 @@ validate_docker_compose_file() {
     
     # Check for required services in base file
     if [[ "$file" == *"base.yml" ]]; then
-        local required_services=("api-gateway" "auth-service" "mysql-primary" "redis-primary")
+        local required_services=("api-gateway" "auth-service")
         for service in "${required_services[@]}"; do
             if ! grep -q "^  ${service}:" "$file"; then
                 log_error "Required service not found in base Docker Compose: $service"
@@ -550,4 +550,3 @@ show_validation_summary() {
 
 # Run main function
 main "$@"
-

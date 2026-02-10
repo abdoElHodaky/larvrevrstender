@@ -75,12 +75,9 @@ module "common" {
     backup_enabled = var.database_backup_enabled
   }
   
-  # Redis configuration
-  redis_config = {
-    version        = var.redis_version
-    instance_class = var.redis_instance_class
-    node_count     = var.redis_node_count
-  }
+  # External Redis configuration (Upstash)
+  # Note: Redis is now external (Upstash) - no infrastructure provisioning needed
+  redis_external = true
   
   # Monitoring configuration
   monitoring_enabled = var.monitoring_enabled
@@ -171,9 +168,8 @@ module "kubernetes_apps" {
   database_username = module.common.database_username
   database_password = module.common.database_password
   
-  # Redis connection
-  redis_host     = module.common.redis_endpoint
-  redis_password = module.common.redis_password
+  # External Redis connection (Upstash)
+  redis_url = var.redis_url
   
   # Load balancer
   load_balancer_ip = module.cloud_provider.load_balancer_ip
