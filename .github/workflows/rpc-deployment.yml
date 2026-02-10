@@ -691,19 +691,7 @@ jobs:
           --set auth.password=password \
           --set primary.persistence.enabled=false \
           --set secondary.persistence.enabled=false \
-<<<<<<< HEAD
           --wait --timeout=15m
-        
-        # Install PostgreSQL for migration testing
-        helm install postgresql bitnami/postgresql \
-          --namespace rpc-services \
-          --set auth.postgresPassword=postgres_password \
-          --set auth.database=postgres \
-          --set primary.persistence.enabled=false \
-          --set readReplicas.persistence.enabled=false \
-=======
->>>>>>> origin/codegen-bot/phase3-service-integration-1770627073
-          --wait --timeout=10m
         
         # Check if Helm chart exists
         if [ -d "deployment/helm/rpc-services" ]; then
