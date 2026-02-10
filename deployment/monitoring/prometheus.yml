@@ -96,17 +96,9 @@ scrape_configs:
     scrape_interval: 10s
 
   # Infrastructure monitoring
-  - job_name: 'mysql'
-    static_configs:
-      - targets: ['mysql-primary:3306']
-    metrics_path: '/metrics'
-    scrape_interval: 30s
-
-  - job_name: 'redis'
-    static_configs:
-      - targets: ['redis-primary:6379']
-    metrics_path: '/metrics'
-    scrape_interval: 30s
+  # Note: PostgreSQL and Upstash Redis monitoring handled externally
+  # PostgreSQL: Use managed PostgreSQL monitoring dashboard
+  # Upstash Redis: Use Upstash Console for Redis monitoring
 
   # Node exporter for system metrics
   - job_name: 'node-exporter'
@@ -133,4 +125,3 @@ scrape_configs:
 #     basic_auth:
 #       username: "${REMOTE_WRITE_USERNAME}"
 #       password: "${REMOTE_WRITE_PASSWORD}"
-
