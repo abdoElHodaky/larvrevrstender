@@ -14,12 +14,12 @@ services:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
       - APP_URL=${APP_URL:-https://reversetender.com}
-      - DB_HOST=${DB_HOST:-mysql-primary}
+      - DB_HOST=${DB_HOST}
       - DB_DATABASE=${DB_DATABASE:-reverse_tender}
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - DB_SSLMODE=${DB_SSLMODE:-require}
+      - REDIS_URL=${REDIS_URL}
       - JWT_SECRET=${JWT_SECRET}
       - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
       # Laravel Octane Configuration

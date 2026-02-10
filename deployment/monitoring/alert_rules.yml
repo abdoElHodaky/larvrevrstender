@@ -51,34 +51,14 @@ groups:
           summary: "Slow response time for {{ $labels.service }}"
           description: "95th percentile response time is {{ $value }}s for {{ $labels.service }}."
 
-      - alert: DatabaseConnectionsHigh
-        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections * 100 > 80
-        for: 2m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High database connections"
-          description: "MySQL connections are at {{ $value }}% of maximum."
+      # Note: Database connection monitoring moved to managed PostgreSQL service
+      # Monitor PostgreSQL connections through your managed database provider's dashboard
 
   - name: infrastructure
     rules:
-      - alert: RedisDown
-        expr: up{job="redis"} == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Redis is down"
-          description: "Redis has been down for more than 1 minute."
-
-      - alert: MySQLDown
-        expr: up{job="mysql"} == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "MySQL is down"
-          description: "MySQL has been down for more than 1 minute."
+      # Note: Redis and PostgreSQL monitoring moved to external managed services
+      # Redis: Monitor through Upstash Console - https://console.upstash.com/
+      # PostgreSQL: Monitor through your managed database provider's dashboard
 
       - alert: DiskSpaceHigh
         expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
@@ -108,4 +88,3 @@ groups:
         annotations:
           summary: "High WebSocket message queue"
           description: "Laravel Reverb message queue has {{ $value }} pending messages."
-

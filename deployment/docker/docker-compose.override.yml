@@ -158,30 +158,9 @@ services:
     ports:
       - "8008:8008"
 
-  # MySQL Primary - Development configuration
-  mysql-primary:
-    environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=reverse_tender_dev
-      - MYSQL_USER=developer
-      - MYSQL_PASSWORD=developer
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_dev_data:/var/lib/mysql
-      - ./database/init:/docker-entrypoint-initdb.d
-      - ./database/config/mysql-dev.cnf:/etc/mysql/conf.d/custom.cnf
-
-  # Redis Primary - Development configuration
-  redis-primary:
-    environment:
-      - REDIS_PASSWORD=redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_dev_data:/data
-      - ./database/config/redis-dev.conf:/usr/local/etc/redis/redis.conf
-    command: redis-server /usr/local/etc/redis/redis.conf --requirepass redis
+  # Note: PostgreSQL and Redis are now external services
+  # PostgreSQL: Use managed PostgreSQL instance
+  # Redis: Use Upstash Redis (configured via REDIS_URL environment variable)
 
   # Nginx - Development configuration
   nginx:
@@ -204,39 +183,23 @@ services:
       - reverse-tender-network
     restart: unless-stopped
 
-  # Development Tools - phpMyAdmin
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
-    container_name: rt_phpmyadmin
+  # Development Tools - pgAdmin (PostgreSQL Administration)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: rt_pgadmin
     environment:
-      - PMA_HOST=mysql-primary
-      - PMA_USER=developer
-      - PMA_PASSWORD=developer
-      - MYSQL_ROOT_PASSWORD=root
+      - PGADMIN_DEFAULT_EMAIL=admin@reversetender.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_CONFIG_SERVER_MODE=False
     ports:
       - "8080:80"
     networks:
       - reverse-tender-network
-    depends_on:
-      - mysql-primary
     restart: unless-stopped
 
-  # Development Tools - Redis Commander
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: rt_redis_commander
-    environment:
-      - REDIS_HOSTS=local:redis-primary:6379:0:redis
-    ports:
-      - "8081:8081"
-    networks:
-      - reverse-tender-network
-    depends_on:
-      - redis-primary
-    restart: unless-stopped
+  # Note: Redis Commander removed - use Upstash Redis Console instead
+  # Access Upstash Redis management through: https://console.upstash.com/
 
 volumes:
-  mysql_dev_data:
-    driver: local
-  redis_dev_data:
-    driver: local
+  # Note: Local database and Redis volumes removed
+  # PostgreSQL and Redis are now external managed services
