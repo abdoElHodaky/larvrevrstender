@@ -206,6 +206,8 @@ jobs:
     - name: Run PHPUnit tests
       if: steps.check.outputs.test == 'true'
       working-directory: services/${{ matrix.service }}
+      env:
+        XDEBUG_MODE: coverage
       run: |
         if [ -f "phpunit.xml" ] || [ -f "phpunit.xml.dist" ]; then
           echo "🧪 Running PHPUnit tests for ${{ matrix.service }}..."
