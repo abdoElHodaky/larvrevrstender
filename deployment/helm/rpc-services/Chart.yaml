@@ -1,0 +1,22 @@
+apiVersion: v2
+name: rpc-services
+description: A Helm chart for RPC Services microservices deployment
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - rpc
+  - microservices
+  - laravel
+  - php
+home: https://github.com/abdoElHodaky/larvrevrstender
+sources:
+  - https://github.com/abdoElHodaky/larvrevrstender
+maintainers:
+  - name: RPC Services Team
+    email: team@rpcservices.com
+dependencies:
+  - name: redis
+    version: "18.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
