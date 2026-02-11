@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Procedures;
+namespace App\RPC\Procedures;
 
 use App\Models\PushSubscription;
 use App\Services\WebPushService;

@@ -12,6 +12,7 @@ use Shared\Config\CrossServiceConfig;
 use Shared\Procedures\Micro\EventPublishingProcedure;
 use Shared\Procedures\Micro\CacheManagementProcedure;
 use Shared\Procedures\Micro\NotificationProcedure;
+use Shared\Procedures\Micro\WebPushProcedure;
 use Shared\Procedures\Micro\ValidationProcedure;
 use Shared\Procedures\Micro\SecurityProcedure;
 use Shared\Procedures\Micro\CircuitBreakerProcedure;
@@ -31,6 +32,7 @@ class CrossServiceProcedure extends BaseProcedure
     use EventPublishingProcedure;
     use CacheManagementProcedure;
     use NotificationProcedure;
+    use WebPushProcedure;
     use ValidationProcedure;
     use SecurityProcedure;
     use CircuitBreakerProcedure;
