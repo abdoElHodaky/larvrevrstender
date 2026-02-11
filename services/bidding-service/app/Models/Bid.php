@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Bid extends Model
 {
@@ -19,6 +20,13 @@ class Bid extends Model
         'amount',
         'status',
         'submitted_at',
+        'notes',
+        'currency',
+        'bid_increment',
+        'is_automatic',
+        'max_amount',
+        'metadata',
+        'expires_at',
     ];
 
     /**
@@ -26,7 +34,12 @@ class Bid extends Model
      */
     protected $casts = [
         'amount' => 'decimal:2',
+        'bid_increment' => 'decimal:2',
+        'max_amount' => 'decimal:2',
         'submitted_at' => 'datetime',
+        'expires_at' => 'datetime',
+        'is_automatic' => 'boolean',
+        'metadata' => 'array',
     ];
 
     /**
@@ -43,5 +56,37 @@ class Bid extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the attachments for the bid.
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(BidAttachment::class);
+    }
+
+    /**
+     * Check if the bid has attachments.
+     */
+    public function hasAttachments(): bool
+    {
+        return $this->attachments()->exists();
+    }
+
+    /**
+     * Get the total number of attachments.
+     */
+    public function getAttachmentCountAttribute(): int
+    {
+        return $this->attachments()->count();
+    }
+
+    /**
+     * Get attachments by type.
+     */
+    public function getAttachmentsByType(string $type)
+    {
+        return $this->attachments()->byType($type)->get();
     }
 }

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="/tmp/abdoElHodaky/larvrevrstender/services/user-service/phpunit.xml" tests="14" assertions="96" errors="0" failures="0" skipped="0" time="0.279451">
+    <testsuite name="Unit" tests="13" assertions="95" errors="0" failures="0" skipped="0" time="0.036953">
+      <testsuite name="Tests\Unit\ExampleTest" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/ExampleTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.012813">
+        <testcase name="test_that_true_is_true" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/ExampleTest.php" line="9" class="Tests\Unit\ExampleTest" classname="Tests.Unit.ExampleTest" assertions="1" time="0.012813"/>
+      </testsuite>
+      <testsuite name="Tests\Unit\UserServiceTest" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/UserServiceTest.php" tests="12" assertions="94" errors="0" failures="0" skipped="0" time="0.024140">
+        <testcase name="it_validates_user_type" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/UserServiceTest.php" line="10" class="Tests\Unit\UserServiceTest" classname="Tests.Unit.UserServiceTest" assertions="6" time="0.001944"/>
+        <testcase name="it_validates_national_id_format" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/UserServiceTest.php" line="26" class="Tests\Unit\UserServiceTest" classname="Tests.Unit.UserServiceTest" assertions="8" time="0.002762"/>
+        <testcase name="it_validates_commercial_registration_format" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/UserServiceTest.php" line="44" class="Tests\Unit\UserServiceTest" classname="Tests.Unit.UserServiceTest" assertions="9" time="0.002067"/>
+        <testcase name="it_validates_vat_number_format" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/UserServiceTest.php" line="62" class="Tests\Unit\UserServiceTest" classname="Tests.Unit.UserServiceTest" assertions="9" time="0.001966"/>
+        <testcase name="it_validates_vin_format" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/UserServiceTest.php" line="80" class="Tests\Unit\UserServiceTest" classname="Tests.Unit.UserServiceTest" assertions="9" time="0.001971"/>
+        <testcase name="it_validates_vehicle_year_range" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/UserServiceTest.php" line="98" class="Tests\Unit\UserServiceTest" classname="Tests.Unit.UserServiceTest" assertions="10" time="0.001966"/>
+        <testcase name="it_validates_verification_status" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/UserServiceTest.php" line="118" class="Tests\Unit\UserServiceTest" classname="Tests.Unit.UserServiceTest" assertions="9" time="0.001636"/>
+        <testcase name="it_calculates_profile_completion_percentage" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/UserServiceTest.php" line="134" class="Tests\Unit\UserServiceTest" classname="Tests.Unit.UserServiceTest" assertions="2" time="0.002011"/>
+        <testcase name="it_validates_preference_keys" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/UserServiceTest.php" line="179" class="Tests\Unit\UserServiceTest" classname="Tests.Unit.UserServiceTest" assertions="4" time="0.002341"/>
+        <testcase name="it_validates_address_required_fields" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/UserServiceTest.php" line="209" class="Tests\Unit\UserServiceTest" classname="Tests.Unit.UserServiceTest" assertions="7" time="0.002147"/>
+        <testcase name="it_validates_business_types" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/UserServiceTest.php" line="243" class="Tests\Unit\UserServiceTest" classname="Tests.Unit.UserServiceTest" assertions="12" time="0.001688"/>
+        <testcase name="it_validates_company_size_categories" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Unit/UserServiceTest.php" line="262" class="Tests\Unit\UserServiceTest" classname="Tests.Unit.UserServiceTest" assertions="9" time="0.001642"/>
+      </testsuite>
+    </testsuite>
+    <testsuite name="Feature" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.242498">
+      <testsuite name="Tests\Feature\ExampleTest" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Feature/ExampleTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.242498">
+        <testcase name="test_the_application_returns_a_successful_response" file="/tmp/abdoElHodaky/larvrevrstender/services/user-service/tests/Feature/ExampleTest.php" line="12" class="Tests\Feature\ExampleTest" classname="Tests.Feature.ExampleTest" assertions="1" time="0.242498"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

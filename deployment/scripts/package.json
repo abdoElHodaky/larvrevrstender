@@ -1,0 +1,14 @@
+{
+  "name": "rpc-performance-tests",
+  "version": "1.0.0",
+  "description": "Performance testing scripts for RPC Services Deployment Pipeline",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Performance tests not implemented yet\" && exit 0"
+  },
+  "keywords": ["performance", "testing", "rpc", "microservices"],
+  "author": "RPC Services Team",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}

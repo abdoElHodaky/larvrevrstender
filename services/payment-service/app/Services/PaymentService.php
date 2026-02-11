@@ -654,4 +654,69 @@ class PaymentService
 
         return $results;
     }
+
+    /**
+     * Hold funds for escrow.
+     */
+    public function holdFunds(int $paymentId, float $amount, string $reason): array
+    {
+        try {
+            $payment = $this->getPayment($paymentId);
+
+            if ($payment->status !== Payment::STATUS_COMPLETED) {
+                throw new \Exception('Payment must be completed before funds can be held');
+            }
+
+            if ($amount > $payment->amount) {
+                throw new \Exception('Hold amount cannot exceed payment amount');
+            }
+
+            // For now, we'll mark this as a hold operation
+            // In a real implementation, this would interact with the payment gateway
+            // to place an authorization hold on the funds
+            
+            return [
+                'success' => true,
+                'payment_id' => $paymentId,
+                'held_amount' => $amount,
+                'reason' => $reason,
+                'reference' => 'HOLD_' . $payment->payment_reference . '_' . time(),
+                'held_at' => now()->toISOString()
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'payment_id' => $paymentId
+            ];
+        }
+    }
+
+    /**
+     * Release held funds from escrow.
+     */
+    public function releaseFunds(int $paymentId, float $amount, string $reason): array
+    {
+        try {
+            $payment = $this->getPayment($paymentId);
+
+            // In a real implementation, this would interact with the payment gateway
+            // to release the authorization hold and transfer funds to the merchant
+            
+            return [
+                'success' => true,
+                'payment_id' => $paymentId,
+                'released_amount' => $amount,
+                'reason' => $reason,
+                'reference' => 'RELEASE_' . $payment->payment_reference . '_' . time(),
+                'released_at' => now()->toISOString()
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'payment_id' => $paymentId
+            ];
+        }
+    }
 }

@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('brands', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique()->index();
+            $table->string('name')->unique();
             $table->string('logo_url')->nullable();
-            $table->boolean('active')->default(true)->index();
+            $table->boolean('active')->default(true);
             $table->timestamps();
 
             // Indexes for performance

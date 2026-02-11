@@ -28,6 +28,37 @@ services:
       timeout: 20s
       retries: 10
 
+  # Gateway Service for Testing
+  gateway-service:
+    build:
+      context: ./services/gateway-service
+      dockerfile: Dockerfile
+    environment:
+      - APP_ENV=testing
+      - APP_DEBUG=true
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=gateway_service_test
+      - DB_USERNAME=root
+      - DB_PASSWORD=root_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # RPC Configuration
+      - RPC_ENABLED=true
+      - RPC_TIMEOUT=30
+      - RPC_RETRY_ATTEMPTS=3
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=true
+      # Service Discovery
+      - SERVICE_DISCOVERY_ENABLED=true
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
   # Integration Test Runner
   integration-tests:
     build:

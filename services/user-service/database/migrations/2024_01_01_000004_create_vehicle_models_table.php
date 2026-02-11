@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('vehicle_models', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('brand_id');
-            $table->string('name')->index();
+            $table->string('name');
             $table->integer('year_start');
             $table->integer('year_end')->nullable();
-            $table->boolean('active')->default(true)->index();
+            $table->boolean('active')->default(true);
             $table->timestamps();
 
             // Foreign key constraints

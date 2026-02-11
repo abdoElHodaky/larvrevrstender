@@ -102,11 +102,11 @@ graph TD
     DS8 --> P4
     DS8 --> P5
     
-    %% Styling
-    classDef entity fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef process fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef datastore fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef system fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    %% Distinguished Eye-Catching Styling
+    classDef entity fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef process fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef datastore fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
+    classDef system fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
     
     class CUSTOMER,MERCHANT,ADMIN,ZATCA,SMS_PROVIDER,EMAIL_PROVIDER entity
     class P1,P2,P3,P4,P5,P6,P7 process
@@ -146,9 +146,9 @@ graph TD
     P12 --> P5
     P14 --> P5
     
-    classDef process fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef entity fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef datastore fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef process fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef entity fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef datastore fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
     
     class P11,P12,P13,P14,P15,P5 process
     class CUSTOMER,MERCHANT entity
@@ -185,9 +185,9 @@ graph TD
     P23 --> P3
     P25 --> P4
     
-    classDef process fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef entity fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef datastore fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef process fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef entity fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef datastore fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
     
     class P21,P22,P23,P24,P25,P3,P4,P5,P7 process
     class CUSTOMER entity
@@ -232,9 +232,9 @@ graph TD
     DS3 --> P35
     DS3 --> P36
     
-    classDef process fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef entity fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef datastore fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef process fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef entity fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef datastore fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
     
     class P31,P32,P33,P34,P35,P36,P4,P5 process
     class CUSTOMER,MERCHANT entity
@@ -274,10 +274,10 @@ graph TD
     DS4 --> P44
     DS4 --> P45
     
-    classDef process fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef entity fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef datastore fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef external fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef process fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef entity fill:#FF9FF3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef datastore fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
+    classDef external fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
     
     class P41,P42,P43,P44,P45,P5 process
     class CUSTOMER,ADMIN entity

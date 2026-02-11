@@ -1,0 +1,428 @@
+openapi: 3.0.3
+info:
+  title: Reverse Tender Platform - Cloud Storage Integration API
+  description: |
+    Comprehensive API documentation for cloud storage integration across the Reverse Tender Platform microservices architecture.
+    
+    This API provides unified file upload, management, and processing capabilities across multiple services including:
+    - User profile management (avatars)
+    - KYC document verification workflow
+    - VIN OCR image processing
+    
+    ## Features
+    - **Multi-Cloud Support**: DigitalOcean Spaces, Linode Object Storage, AWS S3 compatibility
+    - **Automatic Optimization**: Image compression, resizing, and format optimization
+    - **Security**: Document encryption for sensitive files, secure access controls
+    - **Scalability**: Distributed across microservices with service-specific configurations
+    - **Audit Trail**: Complete file lifecycle tracking and metadata management
+    
+    ## Architecture
+    The platform uses a microservices architecture with the following services:
+    - **user-service**: Profile and KYC document management
+    - **vin-ocr-service**: Vehicle identification number processing
+    - **auth-service**: Authentication and authorization
+    - **bidding-service**: Auction and bidding operations
+    - **order-service**: Order management
+    - **payment-service**: Payment processing
+    - **notification-service**: Communication services
+    - **analytics-service**: Data analysis and reporting
+    
+    ## Authentication
+    All endpoints require JWT authentication obtained from the auth-service.
+    Include the token in the Authorization header: `Bearer <your-jwt-token>`
+    
+    ## Error Handling
+    All endpoints follow consistent error response patterns:
+    - **400**: Bad Request - Invalid input or validation errors
+    - **401**: Unauthorized - Authentication required or invalid token
+    - **403**: Forbidden - Insufficient permissions
+    - **404**: Not Found - Resource not found
+    - **413**: Payload Too Large - File size exceeds limits
+    - **422**: Unprocessable Entity - Validation errors
+    - **500**: Internal Server Error - Server-side errors
+    
+    ## Rate Limiting
+    API endpoints are rate-limited to ensure fair usage:
+    - **File Upload**: 100 requests per hour per user
+    - **File Retrieval**: 1000 requests per hour per user
+    - **VIN Processing**: 50 requests per hour per user
+    
+    ## File Size Limits
+    - **Avatar Images**: 5MB maximum
+    - **KYC Documents**: 10MB maximum
+    - **VIN Images**: 10MB maximum
+    
+    ## Supported File Formats
+    - **Images**: JPEG, PNG, GIF, WebP, BMP
+    - **Documents**: PDF, JPEG, PNG
+    
+  version: 1.0.0
+  contact:
+    name: Reverse Tender Platform API Support
+    email: api-support@reversetender.com
+    url: https://support.reversetender.com
+  license:
+    name: Proprietary
+    url: https://reversetender.com/license
+  termsOfService: https://reversetender.com/terms
+
+servers:
+  - url: https://api.reversetender.com
+    description: Production server
+  - url: https://staging-api.reversetender.com
+    description: Staging server
+  - url: http://localhost:8000
+    description: Development server (API Gateway)
+
+paths:
+  # User Service Endpoints
+  /user-service/api/profile/avatar:
+    $ref: './profile-endpoints.yaml#/paths/~1api~1profile~1avatar'
+  
+  /user-service/api/kyc/documents:
+    $ref: './kyc-endpoints.yaml#/paths/~1api~1kyc~1documents'
+  
+  /user-service/api/kyc/documents/{id}:
+    $ref: './kyc-endpoints.yaml#/paths/~1api~1kyc~1documents~1{id}'
+  
+  /user-service/api/kyc/status:
+    $ref: './kyc-endpoints.yaml#/paths/~1api~1kyc~1status'
+  
+  /user-service/api/kyc/submit:
+    $ref: './kyc-endpoints.yaml#/paths/~1api~1kyc~1submit'
+  
+  # VIN OCR Service Endpoints
+  /vin-ocr-service/api/vin/process:
+    $ref: './vin-ocr-endpoints.yaml#/paths/~1api~1vin~1process'
+  
+  /vin-ocr-service/api/vin/validate:
+    $ref: './vin-ocr-endpoints.yaml#/paths/~1api~1vin~1validate'
+
+  # Health Check Endpoints
+  /health:
+    get:
+      summary: API Health Check
+      description: Check the overall health of the cloud storage integration across all services
+      operationId: healthCheck
+      tags:
+        - System
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-02-05T18:30:00Z"
+                  services:
+                    type: object
+                    properties:
+                      user-service:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: "healthy"
+                          storage_provider:
+                            type: string
+                            example: "s3"
+                          last_check:
+                            type: string
+                            format: date-time
+                            example: "2026-02-05T18:29:45Z"
+                      vin-ocr-service:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            example: "healthy"
+                          storage_provider:
+                            type: string
+                            example: "s3"
+                          last_check:
+                            type: string
+                            format: date-time
+                            example: "2026-02-05T18:29:45Z"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "unhealthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-02-05T18:30:00Z"
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                    example: ["user-service storage connection failed"]
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from auth-service authentication endpoint
+
+  schemas:
+    # Common schemas used across all services
+    FileMetadata:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique file identifier
+        file_path:
+          type: string
+          description: Storage path in cloud storage
+        file_name:
+          type: string
+          description: Generated filename with UUID
+        original_name:
+          type: string
+          description: Original filename from user
+        file_size:
+          type: integer
+          description: File size in bytes
+        mime_type:
+          type: string
+          description: File MIME type
+        storage_provider:
+          type: string
+          description: Cloud storage provider (s3, digitalocean, linode)
+        url:
+          type: string
+          description: CDN or public URL for file access
+        created_at:
+          type: string
+          format: date-time
+          description: File creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: File last update timestamp
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          description: Human-readable error message
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: Detailed validation errors by field
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validation failed"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: Field-specific validation errors
+
+    PaginationInfo:
+      type: object
+      properties:
+        current_page:
+          type: integer
+          description: Current page number
+        per_page:
+          type: integer
+          description: Items per page
+        total:
+          type: integer
+          description: Total number of items
+        last_page:
+          type: integer
+          description: Last page number
+        from:
+          type: integer
+          description: First item number on current page
+        to:
+          type: integer
+          description: Last item number on current page
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required or invalid token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Unauthenticated"
+
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Forbidden"
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Resource not found"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Internal server error"
+
+    PayloadTooLargeError:
+      description: File size exceeds maximum allowed limit
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "File size exceeds maximum allowed limit"
+
+tags:
+  - name: Profile Management
+    description: User profile management operations including avatar handling
+  - name: KYC Management
+    description: Know Your Customer document management and verification workflow
+  - name: VIN Processing
+    description: Vehicle Identification Number processing and validation
+  - name: System
+    description: System health and monitoring endpoints
+
+externalDocs:
+  description: Complete API documentation and integration guides
+  url: https://docs.reversetender.com/api
+
+# Webhooks for real-time notifications
+webhooks:
+  kycStatusChanged:
+    post:
+      summary: KYC Status Changed
+      description: Triggered when a KYC document status changes (approved, rejected, etc.)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event:
+                  type: string
+                  example: "kyc.status.changed"
+                user_id:
+                  type: integer
+                  example: 123
+                document_id:
+                  type: integer
+                  example: 456
+                old_status:
+                  type: string
+                  example: "under_review"
+                new_status:
+                  type: string
+                  example: "approved"
+                timestamp:
+                  type: string
+                  format: date-time
+                  example: "2026-02-05T18:30:00Z"
+      responses:
+        '200':
+          description: Webhook received successfully
+
+  vinProcessed:
+    post:
+      summary: VIN Processing Completed
+      description: Triggered when VIN OCR processing is completed
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event:
+                  type: string
+                  example: "vin.processed"
+                user_id:
+                  type: integer
+                  example: 123
+                vin:
+                  type: string
+                  example: "1HGBH41JXMN109186"
+                confidence:
+                  type: number
+                  format: float
+                  example: 0.95
+                is_valid:
+                  type: boolean
+                  example: true
+                timestamp:
+                  type: string
+                  format: date-time
+                  example: "2026-02-05T18:30:00Z"
+      responses:
+        '200':
+          description: Webhook received successfully
+

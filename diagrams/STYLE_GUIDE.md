@@ -271,6 +271,73 @@ This style guide establishes the unified visual identity for all architectural d
 }
 ```
 
+### **🚀 CI/CD & DevOps Components**
+
+```css
+/* Build Pipelines, Testing, Deployment */
+.cicdStyle {
+  fill: #00D2D3;
+  stroke: #FFFFFF;
+  stroke-width: 3px;
+  color: #FFFFFF;
+  font-weight: bold;
+}
+
+/* Staging Environment */
+.stagingStyle {
+  fill: #FFA502;
+  stroke: #FFFFFF;
+  stroke-width: 3px;
+  color: #FFFFFF;
+  font-weight: bold;
+}
+
+/* Production Environment */
+.productionStyle {
+  fill: #2ED573;
+  stroke: #FFFFFF;
+  stroke-width: 3px;
+  color: #FFFFFF;
+  font-weight: bold;
+}
+
+/* Failed/Error States */
+.errorStyle {
+  fill: #FF4757;
+  stroke: #FFFFFF;
+  stroke-width: 3px;
+  color: #FFFFFF;
+  font-weight: bold;
+}
+
+/* Success/Completed States */
+.successStyle {
+  fill: #2ED573;
+  stroke: #FFFFFF;
+  stroke-width: 3px;
+  color: #FFFFFF;
+  font-weight: bold;
+}
+
+/* Pending/In-Progress States */
+.pendingStyle {
+  fill: #FFD93D;
+  stroke: #000000;
+  stroke-width: 3px;
+  color: #000000;
+  font-weight: bold;
+}
+
+/* Skipped/Disabled States */
+.skippedStyle {
+  fill: #A4B0BE;
+  stroke: #FFFFFF;
+  stroke-width: 2px;
+  color: #FFFFFF;
+  font-style: italic;
+}
+```
+
 ---
 
 ## 📐 Typography & Text Standards
@@ -500,6 +567,91 @@ sequenceDiagram
     Service-->>User: Result
 ```
 
+### **🚀 CI/CD Pipeline Diagram Template**
+
+```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#00D2D3',
+    'primaryTextColor': '#FFFFFF',
+    'lineColor': '#4ECDC4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B'
+  }
+}}%%
+
+graph LR
+    subgraph "🔄 CI/CD PIPELINE"
+        TEST[🧪 Tests]
+        BUILD[🏗️ Build]
+        STAGING[🎭 Staging]
+        PROD[🚀 Production]
+    end
+    
+    TEST --> BUILD
+    BUILD --> STAGING
+    STAGING --> PROD
+    
+    classDef testStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF
+    classDef buildStyle fill:#00D2D3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF
+    classDef stagingStyle fill:#FFA502,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF
+    classDef prodStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF
+    
+    class TEST testStyle
+    class BUILD buildStyle
+    class STAGING stagingStyle
+    class PROD prodStyle
+```
+
+### **🔄 Deployment Flow Diagram Template**
+
+```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'lineColor': '#4ECDC4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B'
+  }
+}}%%
+
+flowchart TD
+    START([🚀 Deploy Start])
+    CONDITION{Branch Check}
+    STAGING[🎭 Deploy to Staging]
+    PROD[🚀 Deploy to Production]
+    SKIP[⏭️ Skip Deployment]
+    SUCCESS([✅ Success])
+    FAIL([❌ Failed])
+    
+    START --> CONDITION
+    CONDITION -->|main/rpc/gateway| STAGING
+    CONDITION -->|other| SKIP
+    STAGING --> PROD
+    PROD --> SUCCESS
+    STAGING --> FAIL
+    PROD --> FAIL
+    
+    classDef startStyle fill:#00D2D3,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF
+    classDef conditionStyle fill:#FFD93D,stroke:#000000,stroke-width:3px,color:#000000
+    classDef stagingStyle fill:#FFA502,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF
+    classDef prodStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF
+    classDef skipStyle fill:#A4B0BE,stroke:#FFFFFF,stroke-width:2px,color:#FFFFFF
+    classDef successStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF
+    classDef failStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF
+    
+    class START startStyle
+    class CONDITION conditionStyle
+    class STAGING stagingStyle
+    class PROD prodStyle
+    class SKIP skipStyle
+    class SUCCESS successStyle
+    class FAIL failStyle
+```
+
 ---
 
 ## 🎯 Accessibility Guidelines
@@ -528,11 +680,27 @@ sequenceDiagram
 
 ### **🔧 Version Control**
 
-- **Style Guide Version**: 1.0.0
+- **Style Guide Version**: 1.1.0
 - **Last Updated**: February 2026
 - **Next Review**: March 2026
+
+### **📝 Changelog**
+
+#### **Version 1.1.0** (February 2026)
+- ✅ Added CI/CD & DevOps component styling
+- ✅ Added deployment pipeline color schemes
+- ✅ Added CI/CD pipeline diagram templates
+- ✅ Added deployment flow diagram templates
+- ✅ Enhanced state-based styling (success, error, pending, skipped)
+- ✅ Updated workflow condition styling guidelines
+
+#### **Version 1.0.0** (February 2026)
+- 🎉 Initial style guide release
+- 🎨 Established dark theme design system
+- 🌈 Defined master color palette
+- 📐 Created component categorization system
+- 📋 Added accessibility guidelines
 
 ---
 
 **🎨 This style guide is a living document that evolves with our design needs while maintaining consistency and visual excellence across all architectural diagrams.**
-

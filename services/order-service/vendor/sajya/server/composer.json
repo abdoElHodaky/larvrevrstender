@@ -1,0 +1,66 @@
+{
+    "name": "sajya/server",
+    "description": "Easy implementation of the JSON-RPC 2.0 server for the Laravel framework.",
+    "keywords": [
+        "rpc",
+        "json-prc",
+        "api"
+    ],
+    "homepage": "https://sajya.github.io",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Alexandr Chernyaev",
+            "email": "bliz48rus@gmail.com"
+        }
+    ],
+    "require": {
+        "ext-json": "*",
+        "laravel/framework": "^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^v1.20",
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^10.5|^11.0",
+        "phpunit/php-code-coverage": "^10.|^11.0|^12.0",
+        "vimeo/psalm": "^5.0 | ^6.0"
+    },
+    "conflict": {
+        "league/flysystem": "<3.0.16",
+        "mockery/mockery": "<1.6.1",
+        "laravel/framework": ">=10.0.0,<=10.48.27 || >11.0.0,<=11.42.0",
+        "orchestra/testbench": ">=9.0.0,<9.8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Sajya\\Server\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Sajya\\Server\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "suggest": {
+        "ext-zlib": "Required to compress the response into gzip",
+        "sajya/client": "HTTP(S) client for JSON-RPC 2.0"
+    },
+    "prefer-stable": true,
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Sajya\\Server\\ServerServiceProvider"
+            ],
+            "aliases": {
+                "RPC": "Sajya\\Server\\Facades\\RPC"
+            }
+        }
+    }
+}

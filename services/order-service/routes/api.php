@@ -52,6 +52,29 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{order}', [App\Http\Controllers\OrderController::class, 'cancel']);
         Route::get('/{order}/tracking', [App\Http\Controllers\OrderController::class, 'getTracking']);
         Route::post('/{order}/confirm', [App\Http\Controllers\OrderController::class, 'confirm']);
+        
+        // State machine routes
+        Route::get('/{order}/state', [App\Http\Controllers\OrderController::class, 'getState']);
+        Route::post('/{order}/transition-state', [App\Http\Controllers\OrderController::class, 'transitionState']);
+        Route::get('/{order}/available-transitions', [App\Http\Controllers\OrderController::class, 'getAvailableTransitions']);
+        Route::get('/by-state/{state}', [App\Http\Controllers\OrderController::class, 'getByState']);
+        
+        // Workflow management routes
+        Route::post('/{order}/workflow/initiate', [App\Http\Controllers\OrderController::class, 'initiateWorkflow']);
+        Route::get('/{order}/workflow/status', [App\Http\Controllers\OrderController::class, 'getWorkflowStatus']);
+        Route::post('/{order}/workflow/cancel', [App\Http\Controllers\OrderController::class, 'cancelWorkflow']);
+        Route::post('/{order}/workflow/retry', [App\Http\Controllers\OrderController::class, 'retryWorkflow']);
+        Route::get('/{order}/workflow/history', [App\Http\Controllers\OrderController::class, 'getWorkflowHistory']);
+        
+        // Workflow signal handling routes
+        Route::post('/{order}/workflow/pause', [App\Http\Controllers\OrderController::class, 'pauseWorkflow']);
+        Route::post('/{order}/workflow/resume', [App\Http\Controllers\OrderController::class, 'resumeWorkflow']);
+        Route::get('/{order}/workflow/signals', [App\Http\Controllers\OrderController::class, 'getWorkflowSignals']);
+        
+        // Manual intervention routes
+        Route::post('/{order}/workflow/intervention', [App\Http\Controllers\OrderController::class, 'requestManualIntervention']);
+        Route::post('/{order}/workflow/intervention/{interventionId}/resolve', [App\Http\Controllers\OrderController::class, 'resolveManualIntervention']);
+        Route::get('/{order}/workflow/interventions', [App\Http\Controllers\OrderController::class, 'getPendingInterventions']);
     });
 
     Route::prefix('cart')->group(function () {
@@ -61,5 +84,68 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/items/{item}', [App\Http\Controllers\CartController::class, 'removeItem']);
         Route::delete('/', [App\Http\Controllers\CartController::class, 'clear']);
         Route::post('/checkout', [App\Http\Controllers\CartController::class, 'checkout']);
+    });
+
+    // Dead Letter Queue management routes
+    Route::prefix('workflow/dlq')->group(function () {
+        Route::get('/statistics', [App\Http\Controllers\WorkflowDlqController::class, 'getStatistics']);
+        Route::get('/manual-interventions', [App\Http\Controllers\WorkflowDlqController::class, 'getManualInterventionQueue']);
+        Route::post('/retry/{failureId}', [App\Http\Controllers\WorkflowDlqController::class, 'retryFailedActivity']);
+        Route::post('/resolve/{failureId}', [App\Http\Controllers\WorkflowDlqController::class, 'resolveManualIntervention']);
+        Route::post('/process-retry-queue', [App\Http\Controllers\WorkflowDlqController::class, 'processRetryQueue']);
+    });
+
+    // Workflow metrics and monitoring routes
+    Route::prefix('workflow/metrics')->group(function () {
+        Route::get('/overview', [App\Http\Controllers\WorkflowMetricsController::class, 'getOverview']);
+        Route::get('/activities', [App\Http\Controllers\WorkflowMetricsController::class, 'getActivityMetrics']);
+        Route::get('/compensations', [App\Http\Controllers\WorkflowMetricsController::class, 'getCompensationMetrics']);
+        Route::get('/performance', [App\Http\Controllers\WorkflowMetricsController::class, 'getPerformanceMetrics']);
+    });
+
+    // Workflow dashboard routes
+    Route::prefix('workflow/dashboard')->group(function () {
+        Route::get('/executive', [App\Http\Controllers\WorkflowDashboardController::class, 'getExecutiveDashboard']);
+        Route::get('/operations', [App\Http\Controllers\WorkflowDashboardController::class, 'getOperationsDashboard']);
+        Route::get('/performance', [App\Http\Controllers\WorkflowDashboardController::class, 'getPerformanceDashboard']);
+    });
+
+    // Workflow alerts routes
+    Route::prefix('workflow/alerts')->group(function () {
+        Route::get('/recent', function () {
+            $alertingService = app(\App\Services\WorkflowAlertingService::class);
+            return response()->json([
+                'success' => true,
+                'data' => $alertingService->getRecentAlerts(20),
+            ]);
+        });
+        
+        Route::get('/statistics', function () {
+            $alertingService = app(\App\Services\WorkflowAlertingService::class);
+            return response()->json([
+                'success' => true,
+                'data' => $alertingService->getAlertStatistics(),
+            ]);
+        });
+    });
+
+    // Workflow signal management routes
+    Route::prefix('workflow/signals')->group(function () {
+        Route::post('/pause', [App\Http\Controllers\WorkflowSignalController::class, 'pauseWorkflow']);
+        Route::post('/resume', [App\Http\Controllers\WorkflowSignalController::class, 'resumeWorkflow']);
+        Route::post('/intervention', [App\Http\Controllers\WorkflowSignalController::class, 'requestIntervention']);
+        Route::post('/external', [App\Http\Controllers\WorkflowSignalController::class, 'sendExternalSignal']);
+        Route::get('/active', [App\Http\Controllers\WorkflowSignalController::class, 'getActiveSignals']);
+        Route::get('/{workflowId}', [App\Http\Controllers\WorkflowSignalController::class, 'getWorkflowSignals']);
+        Route::delete('/{signalId}', [App\Http\Controllers\WorkflowSignalController::class, 'deleteSignal']);
+    });
+
+    // Workflow correlation and tracing routes
+    Route::prefix('correlation')->group(function () {
+        Route::get('/stats', [App\Http\Controllers\WorkflowCorrelationController::class, 'getCorrelationStats']);
+        Route::post('/context/propagate', [App\Http\Controllers\WorkflowCorrelationController::class, 'propagateContext']);
+        Route::get('/{correlationId}/trace', [App\Http\Controllers\WorkflowCorrelationController::class, 'getTrace']);
+        Route::get('/{correlationId}/spans', [App\Http\Controllers\WorkflowCorrelationController::class, 'getSpans']);
+        Route::get('/{correlationId}/rpc-calls', [App\Http\Controllers\WorkflowCorrelationController::class, 'getRpcCalls']);
     });
 });

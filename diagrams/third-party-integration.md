@@ -1,0 +1,662 @@
+# 🔌 Third-Party Integration Framework
+
+## 🎯 **Overview**
+
+The **Third-Party Integration Framework** provides standardized patterns for connecting with external services, featuring authentication strategies, rate limiting, circuit breaker protection, and secure webhook handling.
+
+## 🏗️ **Complete Integration Architecture**
+
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'darkMode': true,
+    'primaryColor': '#54A0FF',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#7BB3FF',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#54A0FF',
+    'edgeLabelBackground': '#334155',
+    'nodeTextColor': '#FFFFFF',
+    'edgeColor': '#4ECDC4',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px',
+    'fontWeight': 'bold'
+  }
+}}%%
+
+graph TB
+    subgraph "🔧 INTEGRATION MANAGEMENT LAYER"
+        INT_PROC[🔌 Third-Party Integration Procedure<br/>• Service initialization<br/>• API call management<br/>• Webhook handling]
+        INT_MANAGER[⚙️ Integration Manager<br/>• Service registry<br/>• Configuration management<br/>• Instance lifecycle]
+    end
+
+    subgraph "🏗️ BASE INTEGRATION FRAMEWORK"
+        BASE_INT[🏗️ Base Third-Party Integration<br/>• Common functionality<br/>• Authentication handling<br/>• Error management]
+        
+        subgraph "🔐 Authentication Strategies"
+            BEARER_AUTH[🔑 Bearer Token Authentication<br/>• JWT tokens<br/>• API keys<br/>• OAuth2 tokens]
+            API_KEY_AUTH[🗝️ API Key Authentication<br/>• Header-based keys<br/>• Query parameter keys<br/>• Custom header formats]
+            OAUTH_AUTH[🔐 OAuth2 Authentication<br/>• Authorization code flow<br/>• Client credentials<br/>• Token refresh]
+        end
+        
+        subgraph "🛡️ Protection Mechanisms"
+            RATE_LIMITER[⏳ Rate Limiting<br/>• Request throttling<br/>• Sliding window<br/>• Per-service limits]
+            RETRY_LOGIC[🔄 Retry Logic<br/>• Exponential backoff<br/>• Configurable delays<br/>• Max retry limits]
+            CB_PROTECTION[🛡️ Circuit Breaker<br/>• Request protection<br/>• Failure detection<br/>• Auto recovery]
+        end
+    end
+
+    subgraph "⚡ SERVICE INTEGRATIONS"
+        STRIPE_INT[💳 Stripe Integration<br/>• Payment processing<br/>• Customer management<br/>• Webhook handling]
+        MAILGUN_INT[📧 Mailgun Integration<br/>• Email delivery<br/>• Template management<br/>• Delivery tracking]
+        TWILIO_INT[📱 Twilio Integration<br/>• SMS delivery<br/>• Voice calls<br/>• Verification codes]
+        AWS_INT[☁️ AWS Integration<br/>• S3 storage<br/>• SES email<br/>• CloudWatch metrics]
+        CUSTOM_INT[🎯 Custom Integrations<br/>• Business-specific<br/>• Domain services<br/>• Legacy systems]
+    end
+
+    subgraph "🌐 EXTERNAL SERVICES"
+        STRIPE_API[💳 Stripe API<br/>api.stripe.com]
+        MAILGUN_API[📧 Mailgun API<br/>api.mailgun.net]
+        TWILIO_API[📱 Twilio API<br/>api.twilio.com]
+        AWS_API[☁️ AWS Services<br/>Various endpoints]
+        CUSTOM_API[🌐 Custom APIs<br/>External services]
+    end
+
+    subgraph "🎣 EVENT HANDLING"
+        WEBHOOK_HANDLER[🎣 Webhook Handler<br/>• Signature verification<br/>• Event routing<br/>• Processing logic]
+        SIG_VERIFIER[🔐 Signature Verifier<br/>• HMAC validation<br/>• Timestamp checking<br/>• Replay protection]
+        EVENT_PROCESSOR[⚡ Event Processor<br/>• Event parsing<br/>• Business logic<br/>• Response handling]
+    end
+
+    subgraph "💾 STATE MANAGEMENT"
+        TOKEN_CACHE[(🔴 Token Cache<br/>Redis<br/>• Access tokens<br/>• Refresh tokens<br/>• Expiration tracking)]
+        RATE_CACHE[(📊 Rate Limit Cache<br/>Redis<br/>• Request counters<br/>• Window tracking<br/>• Quota management)]
+        CB_STATE[(🛡️ Circuit Breaker State<br/>Redis<br/>• Circuit status<br/>• Failure metrics<br/>• Recovery timers)]
+    end
+
+    %% Integration management connections
+    INT_PROC --> INT_MANAGER
+    INT_MANAGER --> BASE_INT
+
+    %% Base integration to auth strategies
+    BASE_INT --> BEARER_AUTH
+    BASE_INT --> API_KEY_AUTH
+    BASE_INT --> OAUTH_AUTH
+
+    %% Base integration to protection mechanisms
+    BASE_INT --> RATE_LIMITER
+    BASE_INT --> RETRY_LOGIC
+    BASE_INT --> CB_PROTECTION
+
+    %% Base integration to service integrations
+    BASE_INT --> STRIPE_INT
+    BASE_INT --> MAILGUN_INT
+    BASE_INT --> TWILIO_INT
+    BASE_INT --> AWS_INT
+    BASE_INT --> CUSTOM_INT
+
+    %% Service integrations to external APIs
+    STRIPE_INT --> STRIPE_API
+    MAILGUN_INT --> MAILGUN_API
+    TWILIO_INT --> TWILIO_API
+    AWS_INT --> AWS_API
+    CUSTOM_INT --> CUSTOM_API
+
+    %% Webhook handling
+    STRIPE_API -.->|Webhooks| WEBHOOK_HANDLER
+    MAILGUN_API -.->|Webhooks| WEBHOOK_HANDLER
+    TWILIO_API -.->|Webhooks| WEBHOOK_HANDLER
+    
+    WEBHOOK_HANDLER --> SIG_VERIFIER
+    SIG_VERIFIER --> EVENT_PROCESSOR
+
+    %% State management connections
+    BEARER_AUTH --> TOKEN_CACHE
+    API_KEY_AUTH --> TOKEN_CACHE
+    OAUTH_AUTH --> TOKEN_CACHE
+    
+    RATE_LIMITER --> RATE_CACHE
+    CB_PROTECTION --> CB_STATE
+
+    %% 🎨 Distinguished Eye-Catching Styling with Enhanced Visual Effects
+    classDef supportStyle fill:#96CEB4,stroke:#B2D8C4,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:12,ry:12
+    classDef coreStyle fill:#45B7D1,stroke:#6BC5D8,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:15px,rx:12,ry:12
+    classDef securityStyle fill:#4ECDC4,stroke:#7ED6D1,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:10,ry:10
+    classDef errorStyle fill:#FF4757,stroke:#FF6B7A,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:10,ry:10
+    classDef externalStyle fill:#54A0FF,stroke:#7BB3FF,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:12,ry:12
+    classDef clientStyle fill:#FF9FF3,stroke:#FFB8F7,stroke-width:3px,color:#FFFFFF,font-weight:bold,font-size:13px,rx:8,ry:8
+    classDef successStyle fill:#2ED573,stroke:#54E68A,stroke-width:4px,color:#FFFFFF,font-weight:bold,font-size:14px,rx:10,ry:10
+    classDef dataStyle fill:#FECA57,stroke:#FED876,stroke-width:4px,color:#000000,font-weight:bold,font-size:14px,rx:10,ry:10
+
+    class INT_PROC,INT_MANAGER supportStyle
+    class BASE_INT coreStyle
+    class BEARER_AUTH,API_KEY_AUTH,OAUTH_AUTH securityStyle
+    class RATE_LIMITER,RETRY_LOGIC,CB_PROTECTION errorStyle
+    class STRIPE_INT,MAILGUN_INT,TWILIO_INT,AWS_INT,CUSTOM_INT externalStyle
+    class STRIPE_API,MAILGUN_API,TWILIO_API,AWS_API,CUSTOM_API clientStyle
+    class WEBHOOK_HANDLER,SIG_VERIFIER,EVENT_PROCESSOR successStyle
+    class TOKEN_CACHE,RATE_CACHE,CB_STATE dataStyle
+```
+
+## 🔐 **Authentication Strategies**
+
+### **Authentication Flow Diagram**
+
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#5E81AC',
+    'primaryTextColor': '#ECEFF4',
+    'primaryBorderColor': '#81A1C1',
+    'lineColor': '#88C0D0',
+    'secondaryColor': '#D08770',
+    'tertiaryColor': '#B48EAD',
+    'mainBkg': '#2E3440',
+    'nodeBorder': '#4C566A',
+    'clusterBkg': '#3B4252',
+    'titleColor': '#8FBCBB'
+  }
+}}%%
+
+sequenceDiagram
+    autonumber
+    participant App as 📱 Client App
+    participant IS as 🔌 Integration Service
+    participant Cache as 💾 Token Cache
+    participant API as 🌐 External API
+    participant Auth as 🔐 Auth Server
+
+    Note over App, Auth: 🟢 PHASE 1: PRE-FLIGHT AUTHENTICATION
+
+    App->>+IS: 🚀 Initialize Service
+    IS->>+Cache: 🔍 Check Cached Token
+    
+    alt Token Found
+        Cache-->>IS: 🎯 Valid Token
+    else Token Missing/Expired
+        Cache-->>IS: [None]
+        IS->>+Auth: 🔐 Authenticate
+        Auth-->>-IS: 🎫 New Token Issued
+        IS->>Cache: 💾 Store Token (TTL)
+    end
+    
+    IS-->>-App: ✅ Service Ready
+
+    Note over App, Auth: 🔵 PHASE 2: RESILIENT API CALLS
+
+    App->>+IS: 📡 Execute Request
+    IS->>Cache: 🔍 Fetch Token
+    Cache-->>IS: 🎫 Bearer Token
+    IS->>+API: 🌐 Authorized Request
+    
+    alt Success (200 OK)
+        API-->>IS: ✅ Data Response
+    else Expired during call (401)
+        Note right of API: Trigger Self-Healing Flow
+        API-->>-IS: ❌ 401 Unauthorized
+        IS->>+Auth: 🔄 Refresh Token
+        Auth-->>-IS: 🎫 New Token
+        IS->>Cache: 🔄 Update Cache
+        IS->>+API: 🔄 Retry with New Token
+        API-->>-IS: ✅ Data Response
+    end
+    
+    IS-->>-App: 📦 Delivery Response
+```
+
+### **Authentication Strategy Details**
+
+```mermaid
+graph TB
+    subgraph "Bearer Token Authentication"
+        BEARER_START[🔑 Bearer Token Strategy]
+        BEARER_CONFIG[📋 Configuration<br/>• Token endpoint<br/>• Client credentials<br/>• Scope requirements]
+        BEARER_REQUEST[📤 Token Request<br/>• POST to auth endpoint<br/>• Client credentials<br/>• Grant type]
+        BEARER_RESPONSE[📥 Token Response<br/>• Access token<br/>• Token type<br/>• Expires in]
+        BEARER_USAGE[🔗 Token Usage<br/>• Authorization header<br/>• Bearer prefix<br/>• Request signing]
+    end
+    
+    subgraph "API Key Authentication"
+        API_KEY_START[🗝️ API Key Strategy]
+        API_KEY_CONFIG[📋 Configuration<br/>• API key value<br/>• Header name<br/>• Key format]
+        API_KEY_STORAGE[💾 Secure Storage<br/>• Environment variables<br/>• Encrypted config<br/>• Key rotation]
+        API_KEY_USAGE[🔗 Key Usage<br/>• Custom headers<br/>• Query parameters<br/>• Request signing]
+    end
+    
+    subgraph "OAuth2 Authentication"
+        OAUTH_START[🔐 OAuth2 Strategy]
+        OAUTH_CONFIG[📋 Configuration<br/>• Client ID/Secret<br/>• Authorization URL<br/>• Token URL<br/>• Scopes]
+        OAUTH_FLOW[🔄 Authorization Flow<br/>• Authorization code<br/>• Client credentials<br/>• Refresh token]
+        OAUTH_TOKENS[🎫 Token Management<br/>• Access token<br/>• Refresh token<br/>• Auto refresh]
+    end
+
+    BEARER_START --> BEARER_CONFIG
+    BEARER_CONFIG --> BEARER_REQUEST
+    BEARER_REQUEST --> BEARER_RESPONSE
+    BEARER_RESPONSE --> BEARER_USAGE
+
+    API_KEY_START --> API_KEY_CONFIG
+    API_KEY_CONFIG --> API_KEY_STORAGE
+    API_KEY_STORAGE --> API_KEY_USAGE
+
+    OAUTH_START --> OAUTH_CONFIG
+    OAUTH_CONFIG --> OAUTH_FLOW
+    OAUTH_FLOW --> OAUTH_TOKENS
+
+    classDef bearerStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    classDef apiKeyStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef oauthStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
+
+    class BEARER_START,BEARER_CONFIG,BEARER_REQUEST,BEARER_RESPONSE,BEARER_USAGE bearerStyle
+    class API_KEY_START,API_KEY_CONFIG,API_KEY_STORAGE,API_KEY_USAGE apiKeyStyle
+    class OAUTH_START,OAUTH_CONFIG,OAUTH_FLOW,OAUTH_TOKENS oauthStyle
+```
+
+## 💳 **Stripe Integration Example**
+
+### **Complete Stripe Integration Flow**
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant StripeIntegration
+    participant CircuitBreaker
+    participant RateLimiter
+    participant StripeAPI
+    participant WebhookHandler
+    participant Database
+
+    %% Payment Intent Creation
+    App->>StripeIntegration: Create Payment Intent
+    StripeIntegration->>CircuitBreaker: Check Circuit State
+    
+    alt Circuit Closed
+        CircuitBreaker-->>StripeIntegration: Allow Request
+        StripeIntegration->>RateLimiter: Check Rate Limit
+        
+        alt Rate Limit OK
+            RateLimiter-->>StripeIntegration: Allow Request
+            StripeIntegration->>StripeAPI: POST /payment_intents
+            StripeAPI-->>StripeIntegration: Payment Intent Created
+            StripeIntegration->>Database: Store Payment Record
+            StripeIntegration-->>App: Return Payment Intent
+        else Rate Limited
+            RateLimiter-->>StripeIntegration: Rate Limited
+            StripeIntegration-->>App: Rate Limit Error
+        end
+    else Circuit Open
+        CircuitBreaker-->>StripeIntegration: Circuit Open
+        StripeIntegration-->>App: Service Unavailable
+    end
+    
+    %% Webhook Processing
+    StripeAPI->>WebhookHandler: Payment Intent Succeeded
+    WebhookHandler->>WebhookHandler: Verify Signature
+    
+    alt Signature Valid
+        WebhookHandler->>StripeIntegration: Process Event
+        StripeIntegration->>Database: Update Payment Status
+        StripeIntegration->>App: Trigger Business Logic
+        WebhookHandler-->>StripeAPI: 200 OK
+    else Invalid Signature
+        WebhookHandler-->>StripeAPI: 400 Bad Request
+    end
+```
+
+### **Stripe Service Integration Details**
+
+```mermaid
+graph TB
+    subgraph "Stripe Integration Components"
+        STRIPE_CLIENT[💳 Stripe Integration Client<br/>• Payment processing<br/>• Customer management<br/>• Subscription handling]
+        
+        subgraph "Payment Operations"
+            CREATE_INTENT[💰 Create Payment Intent<br/>• Amount & currency<br/>• Customer info<br/>• Metadata]
+            CONFIRM_PAYMENT[✅ Confirm Payment<br/>• Payment method<br/>• Return URL<br/>• Confirmation]
+            CREATE_CUSTOMER[👤 Create Customer<br/>• Email & name<br/>• Payment methods<br/>• Metadata]
+            PROCESS_REFUND[💸 Process Refund<br/>• Refund amount<br/>• Reason code<br/>• Metadata]
+        end
+        
+        subgraph "Webhook Handling"
+            WEBHOOK_RECEIVER[🎣 Webhook Receiver<br/>• Signature verification<br/>• Event parsing<br/>• Route to handlers]
+            EVENT_HANDLERS[⚡ Event Handlers<br/>• payment_intent.succeeded<br/>• payment_intent.failed<br/>• customer.created]
+        end
+        
+        subgraph "Configuration"
+            STRIPE_CONFIG[⚙️ Stripe Configuration<br/>• Secret key<br/>• Webhook secret<br/>• API version]
+            RATE_CONFIG[📊 Rate Limiting<br/>• 100 req/sec<br/>• Burst handling<br/>• Backoff strategy]
+            CB_CONFIG[🛡️ Circuit Breaker<br/>• 50% threshold<br/>• 60s timeout<br/>• Auto recovery]
+        end
+    end
+
+    STRIPE_CLIENT --> CREATE_INTENT
+    STRIPE_CLIENT --> CONFIRM_PAYMENT
+    STRIPE_CLIENT --> CREATE_CUSTOMER
+    STRIPE_CLIENT --> PROCESS_REFUND
+    
+    STRIPE_CLIENT --> WEBHOOK_RECEIVER
+    WEBHOOK_RECEIVER --> EVENT_HANDLERS
+    
+    STRIPE_CLIENT --> STRIPE_CONFIG
+    STRIPE_CLIENT --> RATE_CONFIG
+    STRIPE_CLIENT --> CB_CONFIG
+
+    classDef stripeStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    classDef paymentStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef webhookStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef configStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+
+    class STRIPE_CLIENT stripeStyle
+    class CREATE_INTENT,CONFIRM_PAYMENT,CREATE_CUSTOMER,PROCESS_REFUND paymentStyle
+    class WEBHOOK_RECEIVER,EVENT_HANDLERS webhookStyle
+    class STRIPE_CONFIG,RATE_CONFIG,CB_CONFIG configStyle
+```
+
+## 🎣 **Webhook Security & Processing**
+
+### **Webhook Security Flow**
+
+```mermaid
+sequenceDiagram
+    participant ExternalService
+    participant WebhookEndpoint
+    participant SignatureVerifier
+    participant EventProcessor
+    participant BusinessLogic
+    participant Database
+
+    ExternalService->>WebhookEndpoint: POST /webhook
+    Note over ExternalService: Includes signature header
+    
+    WebhookEndpoint->>SignatureVerifier: Verify Signature
+    SignatureVerifier->>SignatureVerifier: Extract Signature Components
+    SignatureVerifier->>SignatureVerifier: Check Timestamp (5min tolerance)
+    SignatureVerifier->>SignatureVerifier: Calculate Expected Signature
+    SignatureVerifier->>SignatureVerifier: Compare Signatures
+    
+    alt Signature Valid
+        SignatureVerifier-->>WebhookEndpoint: Signature Valid
+        WebhookEndpoint->>EventProcessor: Process Event
+        EventProcessor->>EventProcessor: Parse Event Data
+        EventProcessor->>EventProcessor: Route to Handler
+        EventProcessor->>BusinessLogic: Execute Business Logic
+        BusinessLogic->>Database: Update Records
+        BusinessLogic-->>EventProcessor: Processing Complete
+        EventProcessor-->>WebhookEndpoint: Event Processed
+        WebhookEndpoint-->>ExternalService: 200 OK
+    else Invalid Signature
+        SignatureVerifier-->>WebhookEndpoint: Invalid Signature
+        WebhookEndpoint-->>ExternalService: 400 Bad Request
+        Note over WebhookEndpoint: Log security incident
+    else Timestamp Too Old
+        SignatureVerifier-->>WebhookEndpoint: Timestamp Invalid
+        WebhookEndpoint-->>ExternalService: 400 Bad Request
+        Note over WebhookEndpoint: Prevent replay attacks
+    end
+```
+
+### **Webhook Event Processing**
+
+```mermaid
+graph TD
+    WEBHOOK_RECEIVED[🎣 Webhook Received] --> EXTRACT_HEADERS[📋 Extract Headers]
+    EXTRACT_HEADERS --> VERIFY_SIG[🔐 Verify Signature]
+    
+    VERIFY_SIG --> SIG_VALID[✅ Signature Valid?]
+    SIG_VALID -->|Yes| PARSE_EVENT[📊 Parse Event Data]
+    SIG_VALID -->|No| REJECT_REQUEST[❌ Reject Request]
+    
+    PARSE_EVENT --> IDENTIFY_TYPE[🏷️ Identify Event Type]
+    IDENTIFY_TYPE --> ROUTE_HANDLER[🔀 Route to Handler]
+    
+    ROUTE_HANDLER -->|payment_intent.succeeded| PAYMENT_SUCCESS[💰 Handle Payment Success]
+    ROUTE_HANDLER -->|payment_intent.failed| PAYMENT_FAILED[❌ Handle Payment Failure]
+    ROUTE_HANDLER -->|customer.created| CUSTOMER_CREATED[👤 Handle Customer Creation]
+    ROUTE_HANDLER -->|invoice.payment_succeeded| INVOICE_PAID[📄 Handle Invoice Payment]
+    ROUTE_HANDLER -->|Unknown Event| LOG_UNKNOWN[📝 Log Unknown Event]
+    
+    PAYMENT_SUCCESS --> UPDATE_ORDER[📦 Update Order Status]
+    PAYMENT_FAILED --> HANDLE_FAILURE[🔄 Handle Payment Failure]
+    CUSTOMER_CREATED --> SYNC_CUSTOMER[👤 Sync Customer Data]
+    INVOICE_PAID --> UPDATE_SUBSCRIPTION[📋 Update Subscription]
+    
+    UPDATE_ORDER --> SEND_CONFIRMATION[📧 Send Confirmation]
+    HANDLE_FAILURE --> NOTIFY_FAILURE[📱 Notify Failure]
+    SYNC_CUSTOMER --> UPDATE_PROFILE[👤 Update Profile]
+    UPDATE_SUBSCRIPTION --> SEND_RECEIPT[📄 Send Receipt]
+    
+    SEND_CONFIRMATION --> SUCCESS_RESPONSE[✅ Return 200 OK]
+    NOTIFY_FAILURE --> SUCCESS_RESPONSE
+    UPDATE_PROFILE --> SUCCESS_RESPONSE
+    SEND_RECEIPT --> SUCCESS_RESPONSE
+    LOG_UNKNOWN --> SUCCESS_RESPONSE
+    
+    REJECT_REQUEST --> ERROR_RESPONSE[❌ Return 400 Error]
+
+    classDef infraStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef securityStyle fill:#4ECDC4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef supportStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef coreStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef successStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef errorStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+
+    class WEBHOOK_RECEIVED,EXTRACT_HEADERS infraStyle
+    class VERIFY_SIG,PARSE_EVENT,IDENTIFY_TYPE securityStyle
+    class PAYMENT_SUCCESS,PAYMENT_FAILED,CUSTOMER_CREATED,INVOICE_PAID,LOG_UNKNOWN supportStyle
+    class UPDATE_ORDER,HANDLE_FAILURE,SYNC_CUSTOMER,UPDATE_SUBSCRIPTION coreStyle
+    class SUCCESS_RESPONSE successStyle
+    class REJECT_REQUEST,ERROR_RESPONSE errorStyle
+```
+
+## ⏳ **Rate Limiting & Retry Logic**
+
+### **Rate Limiting Implementation**
+
+```mermaid
+graph TB
+    subgraph "Rate Limiting System"
+        REQUEST_IN[📥 Incoming Request] --> CHECK_LIMIT[📊 Check Rate Limit]
+        
+        CHECK_LIMIT -->|Within Limit| ALLOW_REQUEST[✅ Allow Request]
+        CHECK_LIMIT -->|Limit Exceeded| BLOCK_REQUEST[🚫 Block Request]
+        
+        ALLOW_REQUEST --> UPDATE_COUNTER[📈 Update Request Counter]
+        UPDATE_COUNTER --> MAKE_REQUEST[🌐 Make API Request]
+        
+        BLOCK_REQUEST --> WAIT_RESET[⏰ Wait for Reset]
+        WAIT_RESET --> RETRY_REQUEST[🔄 Retry Request]
+        
+        subgraph "Rate Limit Storage"
+            REDIS_COUNTER[(🔴 Redis Counter<br/>• Request count<br/>• Window start time<br/>• TTL expiration)]
+        end
+        
+        subgraph "Rate Limit Configuration"
+            LIMIT_CONFIG[⚙️ Limit Configuration<br/>• Max requests<br/>• Time window<br/>• Burst allowance]
+        end
+    end
+
+    UPDATE_COUNTER --> REDIS_COUNTER
+    CHECK_LIMIT --> REDIS_COUNTER
+    CHECK_LIMIT --> LIMIT_CONFIG
+
+    classDef infraStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef successStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef errorStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef dataStyle fill:#FECA57,stroke:#000000,stroke-width:3px,color:#000000,font-weight:bold
+    classDef supportStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+
+    class REQUEST_IN,MAKE_REQUEST infraStyle
+    class ALLOW_REQUEST,UPDATE_COUNTER successStyle
+    class BLOCK_REQUEST,WAIT_RESET,RETRY_REQUEST errorStyle
+    class REDIS_COUNTER dataStyle
+    class LIMIT_CONFIG supportStyle
+```
+
+### **Retry Logic with Exponential Backoff**
+
+```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'primaryColor': '#FF6B6B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FF8E8E',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'tertiaryBkg': '#475569',
+    'actorBkg': '#FF6B6B',
+    'actorBorder': '#FF8E8E',
+    'actorTextColor': '#FFFFFF',
+    'activationBkgColor': '#4ECDC4',
+    'activationBorderColor': '#7ED6D1',
+    'noteBkgColor': '#FECA57',
+    'noteTextColor': '#000000',
+    'noteBorderColor': '#FED876'
+  }
+}}%%
+
+sequenceDiagram
+    participant Integration as 🔌 Integration Service
+    participant RetryLogic as 🔄 Retry Logic
+    participant ExternalAPI as 🌐 External API
+    participant Timer as ⏰ Timer
+
+    Integration->>+RetryLogic: 📡 Make API Call
+    RetryLogic->>+ExternalAPI: 🎯 Attempt 1
+    
+    alt ✅ Request Success
+        ExternalAPI-->>-RetryLogic: ✅ 200 OK
+        RetryLogic-->>-Integration: 📦 Success Response
+    else ⚠️ Retryable Error (5xx, timeout)
+        ExternalAPI-->>RetryLogic: ❌ 503 Service Unavailable
+        RetryLogic->>+Timer: ⏳ Wait 1 second (2^0)
+        Timer-->>-RetryLogic: ✅ Wait Complete
+        
+        RetryLogic->>+ExternalAPI: 🎯 Attempt 2
+        alt ❌ Still Failing
+            ExternalAPI-->>-RetryLogic: ❌ 502 Bad Gateway
+            RetryLogic->>+Timer: ⏳ Wait 2 seconds (2^1)
+            Timer-->>-RetryLogic: ✅ Wait Complete
+            
+            RetryLogic->>+ExternalAPI: 🎯 Attempt 3
+            alt 🔄 Final Attempt
+                ExternalAPI-->>-RetryLogic: ❌ 500 Internal Error
+                RetryLogic->>+Timer: ⏳ Wait 4 seconds (2^2)
+                Timer-->>-RetryLogic: ✅ Wait Complete
+                
+                RetryLogic->>+ExternalAPI: 🎯 Attempt 4 (Final)
+                alt ✅ Success
+                    ExternalAPI-->>-RetryLogic: ✅ 200 OK
+                    RetryLogic-->>-Integration: 📦 Success Response
+                else 💥 Max Retries Exceeded
+                    ExternalAPI-->>RetryLogic: ❌ Still Failing
+                    RetryLogic-->>-Integration: 💥 Max Retries Exceeded
+                end
+            end
+        end
+    else 🚫 Non-Retryable Error (4xx)
+        ExternalAPI-->>-RetryLogic: 🚫 400 Bad Request
+        RetryLogic-->>-Integration: 🚫 Client Error (No Retry)
+    end
+```
+
+## 📊 **Integration Monitoring**
+
+### **Integration Health Dashboard**
+
+```mermaid
+graph TB
+    subgraph "Integration Monitoring Dashboard"
+        OVERVIEW[📊 Integration Overview<br/>• Service status<br/>• Success rates<br/>• Response times]
+        
+        subgraph "Service Health Metrics"
+            AUTH_STATUS[🔐 Authentication Status<br/>• Token validity<br/>• Auth success rate<br/>• Token refresh frequency]
+            API_METRICS[📈 API Call Metrics<br/>• Request volume<br/>• Success/failure rates<br/>• Response time trends]
+            RATE_METRICS[⏳ Rate Limit Metrics<br/>• Current usage<br/>• Limit utilization<br/>• Throttling events]
+        end
+        
+        subgraph "Circuit Breaker Monitoring"
+            CB_STATUS[🛡️ Circuit Breaker Status<br/>• Circuit states<br/>• Failure thresholds<br/>• Recovery attempts]
+            CB_METRICS[📊 Circuit Breaker Metrics<br/>• State transitions<br/>• Failure patterns<br/>• Recovery times]
+        end
+        
+        subgraph "Webhook Monitoring"
+            WEBHOOK_METRICS[🎣 Webhook Metrics<br/>• Event volume<br/>• Processing times<br/>• Success rates]
+            SECURITY_METRICS[🔐 Security Metrics<br/>• Signature failures<br/>• Replay attempts<br/>• Invalid requests]
+        end
+        
+        subgraph "Alerting System"
+            SERVICE_ALERTS[🚨 Service Alerts<br/>• Service outages<br/>• High failure rates<br/>• Auth failures]
+            PERFORMANCE_ALERTS[⚡ Performance Alerts<br/>• Slow responses<br/>• Rate limit hits<br/>• Circuit breaker trips]
+        end
+    end
+
+    OVERVIEW --> AUTH_STATUS
+    OVERVIEW --> API_METRICS
+    OVERVIEW --> RATE_METRICS
+    
+    AUTH_STATUS --> CB_STATUS
+    API_METRICS --> CB_METRICS
+    RATE_METRICS --> CB_STATUS
+    
+    CB_STATUS --> WEBHOOK_METRICS
+    CB_METRICS --> SECURITY_METRICS
+    
+    API_METRICS --> SERVICE_ALERTS
+    CB_METRICS --> SERVICE_ALERTS
+    WEBHOOK_METRICS --> PERFORMANCE_ALERTS
+    SECURITY_METRICS --> PERFORMANCE_ALERTS
+
+    classDef infraStyle fill:#FF6B6B,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef coreStyle fill:#45B7D1,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef supportStyle fill:#96CEB4,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef successStyle fill:#2ED573,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+    classDef errorStyle fill:#FF4757,stroke:#FFFFFF,stroke-width:3px,color:#FFFFFF,font-weight:bold
+
+    class OVERVIEW infraStyle
+    class AUTH_STATUS,API_METRICS,RATE_METRICS coreStyle
+    class CB_STATUS,CB_METRICS supportStyle
+    class WEBHOOK_METRICS,SECURITY_METRICS successStyle
+    class SERVICE_ALERTS,PERFORMANCE_ALERTS errorStyle
+```
+
+## 🎯 **Key Benefits**
+
+### **🔌 Standardized Integration Patterns**
+- **Consistent API** for all external service integrations
+- **Pluggable Authentication** strategies for different services
+- **Unified Error Handling** across all integrations
+- **Common Configuration** patterns and management
+
+### **🛡️ Comprehensive Protection**
+- **Circuit Breaker Protection** for external service failures
+- **Rate Limiting** to respect service quotas and limits
+- **Retry Logic** with intelligent exponential backoff
+- **Authentication Management** with automatic token refresh
+
+### **🔐 Security & Reliability**
+- **Webhook Signature Verification** for secure event handling
+- **Replay Attack Prevention** with timestamp validation
+- **Secure Token Storage** with encryption and TTL management
+- **Comprehensive Logging** for security audit trails
+
+### **📈 Monitoring & Observability**
+- **Real-time Integration Health** monitoring and alerting
+- **Performance Metrics** for optimization and troubleshooting
+- **Security Metrics** for threat detection and prevention
+- **Historical Analytics** for capacity planning and optimization
+
+This third-party integration framework provides enterprise-grade capabilities for secure, reliable, and scalable external service connectivity with comprehensive monitoring and fault tolerance.

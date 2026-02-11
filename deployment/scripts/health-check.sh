@@ -41,7 +41,7 @@ info() {
 
 # Configuration
 SERVICES=("api-gateway" "auth-service" "user-service" "bidding-service" "order-service" "payment-service" "notification-service" "analytics-service" "vin-ocr-service")
-INFRASTRUCTURE=("mysql" "redis" "prometheus" "grafana" "jaeger")
+INFRASTRUCTURE=("postgresql" "upstash-redis" "prometheus" "grafana" "jaeger")
 TIMEOUT=10
 RETRY_COUNT=3
 HEALTH_ENDPOINT="/octane/health"
@@ -113,69 +113,104 @@ check_octane_health() {
 }
 
 check_database_health() {
-    log "Checking database health..."
+    log "Checking Neon PostgreSQL database health..."
     
+    local database_url=${DATABASE_URL:-""}
     local db_host=${DB_HOST:-"localhost"}
-    local db_port=${DB_PORT:-"3306"}
-    local db_user=${DB_USERNAME:-"root"}
+    local db_port=${DB_PORT:-"5432"}
+    local db_user=${DB_USERNAME:-"postgres"}
     local db_password=${DB_PASSWORD:-""}
+    local db_name=${DB_DATABASE:-"postgres"}
     
-    # Check if MySQL is responding
-    if command -v mysql > /dev/null 2>&1; then
-        if mysql -h "$db_host" -P "$db_port" -u "$db_user" ${db_password:+-p"$db_password"} -e "SELECT 1;" > /dev/null 2>&1; then
-            success "MySQL database is healthy"
-            
-            # Get database status
-            local connections=$(mysql -h "$db_host" -P "$db_port" -u "$db_user" ${db_password:+-p"$db_password"} -e "SHOW STATUS LIKE 'Threads_connected';" 2>/dev/null | tail -n 1 | awk '{print $2}' || echo "unknown")
-            local uptime=$(mysql -h "$db_host" -P "$db_port" -u "$db_user" ${db_password:+-p"$db_password"} -e "SHOW STATUS LIKE 'Uptime';" 2>/dev/null | tail -n 1 | awk '{print $2}' || echo "unknown")
-            
-            info "MySQL connections: $connections, uptime: ${uptime}s"
-            return 0
+    # Check if PostgreSQL is responding
+    if command -v psql > /dev/null 2>&1; then
+        # Use DATABASE_URL if available (Neon format)
+        if [ -n "$database_url" ]; then
+            if psql "$database_url" -c "SELECT 1;" > /dev/null 2>&1; then
+                success "Neon PostgreSQL database is healthy"
+                
+                # Get database status using URL connection
+                local connections=$(psql "$database_url" -t -c "SELECT count(*) FROM pg_stat_activity;" 2>/dev/null | xargs || echo "unknown")
+                local uptime=$(psql "$database_url" -t -c "SELECT EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time()));" 2>/dev/null | xargs | cut -d. -f1 || echo "unknown")
+                
+                info "Neon PostgreSQL connections: $connections, uptime: ${uptime}s"
+                return 0
+            else
+                error "Neon PostgreSQL database is not responding via URL"
+                return 1
+            fi
         else
-            error "MySQL database is not responding"
-            return 1
+            # Fallback to individual parameters
+            export PGPASSWORD="$db_password"
+            if psql -h "$db_host" -p "$db_port" -U "$db_user" -d "$db_name" -c "SELECT 1;" > /dev/null 2>&1; then
+                success "PostgreSQL database is healthy (fallback connection)"
+                
+                # Get database status using individual parameters
+                local connections=$(psql -h "$db_host" -p "$db_port" -U "$db_user" -d "$db_name" -t -c "SELECT count(*) FROM pg_stat_activity;" 2>/dev/null | xargs || echo "unknown")
+                local uptime=$(psql -h "$db_host" -p "$db_port" -U "$db_user" -d "$db_name" -t -c "SELECT EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time()));" 2>/dev/null | xargs | cut -d. -f1 || echo "unknown")
+                
+                info "PostgreSQL connections: $connections, uptime: ${uptime}s"
+                unset PGPASSWORD
+                return 0
+            else
+                error "PostgreSQL database is not responding"
+                unset PGPASSWORD
+                return 1
+            fi
         fi
     else
         # Try TCP connection test
         if timeout $TIMEOUT bash -c "</dev/tcp/$db_host/$db_port" 2>/dev/null; then
-            success "MySQL port $db_port is open on $db_host"
+            success "PostgreSQL port $db_port is open on $db_host"
         else
-            error "Cannot connect to MySQL on $db_host:$db_port"
+            error "Cannot connect to PostgreSQL on $db_host:$db_port"
             return 1
         fi
     fi
 }
 
 check_redis_health() {
-    log "Checking Redis health..."
+    log "Checking Upstash Redis health..."
     
+    local redis_url=${REDIS_URL:-""}
     local redis_host=${REDIS_HOST:-"localhost"}
     local redis_port=${REDIS_PORT:-"6379"}
     local redis_password=${REDIS_PASSWORD:-""}
     
     # Check if Redis is responding
     if command -v redis-cli > /dev/null 2>&1; then
-        local redis_cmd="redis-cli -h $redis_host -p $redis_port"
-        if [ -n "$redis_password" ]; then
-            redis_cmd="$redis_cmd -a $redis_password"
+        local redis_cmd=""
+        
+        # Use Redis URL if available (Upstash format)
+        if [ -n "$redis_url" ]; then
+            redis_cmd="redis-cli -u $redis_url"
+        else
+            # Fallback to host/port/password format
+            redis_cmd="redis-cli -h $redis_host -p $redis_port"
+            if [ -n "$redis_password" ]; then
+                redis_cmd="$redis_cmd -a $redis_password"
+            fi
         fi
         
         if $redis_cmd ping | grep -q "PONG"; then
-            success "Redis is healthy"
+            success "Upstash Redis is healthy"
             
-            # Get Redis info
-            local memory_used=$($redis_cmd info memory | grep "used_memory_human" | cut -d: -f2 | tr -d '\r' || echo "unknown")
-            local connected_clients=$($redis_cmd info clients | grep "connected_clients" | cut -d: -f2 | tr -d '\r' || echo "unknown")
+            # Get Redis info (some commands may be restricted in Upstash)
+            local memory_used=$($redis_cmd info memory 2>/dev/null | grep "used_memory_human" | cut -d: -f2 | tr -d '\r' || echo "restricted")
+            local connected_clients=$($redis_cmd info clients 2>/dev/null | grep "connected_clients" | cut -d: -f2 | tr -d '\r' || echo "restricted")
             
-            info "Redis memory used: $memory_used, connected clients: $connected_clients"
+            info "Upstash Redis memory used: $memory_used, connected clients: $connected_clients"
             return 0
         else
-            error "Redis is not responding"
+            error "Upstash Redis is not responding"
             return 1
         fi
     else
-        # Try TCP connection test
-        if timeout $TIMEOUT bash -c "</dev/tcp/$redis_host/$redis_port" 2>/dev/null; then
+        # Try TCP connection test (may not work with Upstash due to TLS)
+        if [ -n "$redis_url" ]; then
+            warning "redis-cli not available, cannot test Upstash Redis connection"
+            return 1
+        elif timeout $TIMEOUT bash -c "</dev/tcp/$redis_host/$redis_port" 2>/dev/null; then
             success "Redis port $redis_port is open on $redis_host"
         else
             error "Cannot connect to Redis on $redis_host:$redis_port"
@@ -508,4 +543,3 @@ main() {
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     main "$@"
 fi
-

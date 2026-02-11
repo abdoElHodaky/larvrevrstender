@@ -2,14 +2,24 @@
 
 namespace App\Models;
 
+use App\States\OrderState;
+use App\States\Draft;
+use App\States\AwaitingPayment;
+use App\States\Paid;
+use App\States\Processing;
+use App\States\Shipped;
+use App\States\Delivered;
+use App\States\Completed;
+use App\States\Cancelled;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
+use Spatie\ModelStates\HasStates;
 
 class Order extends Model
 {
-    use HasFactory;
+    use HasFactory, HasStates;
 
     /**
      * The attributes that are mass assignable.
@@ -45,6 +55,8 @@ class Order extends Model
         'zatca_invoice_hash',
         'zatca_metadata',
         'metadata',
+        'workflow_id',
+        'saga_data',
     ];
 
     /**
@@ -65,6 +77,8 @@ class Order extends Model
         'status_history' => 'array',
         'zatca_metadata' => 'array',
         'metadata' => 'array',
+        'saga_data' => 'array',
+        'state' => OrderState::class,
     ];
 
     /**
@@ -100,6 +114,14 @@ class Order extends Model
                 $order->order_number = $order->generateOrderNumber();
             }
         });
+    }
+
+    /**
+     * Configure the state machine
+     */
+    protected function registerStates(): void
+    {
+        $this->addState('state', OrderState::config());
     }
 
     /**
@@ -420,6 +442,207 @@ class Order extends Model
             'platform_fee' => $this->calculatePlatformFee(),
             'tax_amount' => $this->calculateTaxAmount(),
             'total_amount' => $this->part_cost + $this->delivery_cost + $this->calculatePlatformFee() + $this->calculateTaxAmount(),
+        ]);
+    }
+
+    /**
+     * State transition hooks for cross-service coordination
+     */
+
+    /**
+     * Hook: Entering AwaitingPayment state - trigger payment creation
+     */
+    public function enteringAwaitingPayment(): void
+    {
+        // TODO: Trigger PaymentService to create invoice and initiate payment
+        // This will be implemented when we create the cross-service coordination
+        \Log::info("Order {$this->id} entering AwaitingPayment state - should trigger payment creation");
+    }
+
+    /**
+     * Hook: Entering Paid state - confirm payment and start processing
+     */
+    public function enteringPaid(): void
+    {
+        // Update payment timestamp
+        $this->update(['paid_at' => now()]);
+        
+        // TODO: Trigger next workflow steps (inventory reservation, fulfillment)
+        \Log::info("Order {$this->id} entering Paid state - payment confirmed");
+    }
+
+    /**
+     * Hook: Entering Processing state - start fulfillment workflow
+     */
+    public function enteringProcessing(): void
+    {
+        // TODO: Trigger FulfillmentService to start order processing
+        \Log::info("Order {$this->id} entering Processing state - should trigger fulfillment");
+    }
+
+    /**
+     * Hook: Entering Shipped state - update tracking information
+     */
+    public function enteringShipped(): void
+    {
+        // TODO: Trigger NotificationService to send shipping notification
+        \Log::info("Order {$this->id} entering Shipped state - should send shipping notification");
+    }
+
+    /**
+     * Hook: Entering Delivered state - confirm delivery
+     */
+    public function enteringDelivered(): void
+    {
+        $this->update(['actual_delivery' => now()]);
+        
+        // TODO: Trigger NotificationService to send delivery confirmation
+        \Log::info("Order {$this->id} entering Delivered state - delivery confirmed");
+    }
+
+    /**
+     * Hook: Entering Completed state - finalize order
+     */
+    public function enteringCompleted(): void
+    {
+        // TODO: Trigger AnalyticsService to record completion metrics
+        // TODO: Trigger NotificationService to request customer review
+        \Log::info("Order {$this->id} entering Completed state - order finalized");
+    }
+
+    /**
+     * Hook: Entering Cancelled state - handle cancellation
+     */
+    public function enteringCancelled(): void
+    {
+        // TODO: Trigger PaymentService to process refund if payment was made
+        // TODO: Trigger InventoryService to release reserved items
+        // TODO: Trigger NotificationService to send cancellation notification
+        \Log::info("Order {$this->id} entering Cancelled state - should handle refunds and notifications");
+    }
+
+    /**
+     * Get available state transitions for current user
+     */
+    public function getAvailableTransitions(): array
+    {
+        return $this->state->getNextStates();
+    }
+
+    /**
+     * Check if order can transition to specific state
+     */
+    public function canTransitionTo(string $stateClass): bool
+    {
+        return in_array($stateClass, $this->getAvailableTransitions());
+    }
+
+    /**
+     * Transition to new state with validation and hooks
+     */
+    public function transitionToState(string $stateClass, ?string $reason = null): void
+    {
+        if (!$this->canTransitionTo($stateClass)) {
+            $currentStateClass = get_class($this->state);
+            throw new \Exception("Cannot transition from {$currentStateClass} to {$stateClass}");
+        }
+
+        $oldState = get_class($this->state);
+        
+        // Perform the state transition
+        $this->state->transitionTo($stateClass);
+        
+        // Add to status history for backward compatibility
+        $this->addStatusHistory($oldState, $stateClass, $reason);
+        
+        // Fire state transition event
+        event(new \App\Events\OrderStateChanged($this, $oldState, $stateClass, $reason));
+    }
+
+    /**
+     * Add status history entry for backward compatibility
+     */
+    private function addStatusHistory(string $fromState, string $toState, ?string $reason = null): void
+    {
+        $statusHistory = $this->status_history ?? [];
+        $statusHistory[] = [
+            'from_state' => $fromState,
+            'to_state' => $toState,
+            'changed_at' => now()->toISOString(),
+            'reason' => $reason,
+        ];
+
+        $this->update(['status_history' => $statusHistory]);
+    }
+
+    /**
+     * Workflow Integration Methods
+     */
+
+    /**
+     * Associate order with a workflow execution
+     */
+    public function setWorkflow(string $workflowId, array $sagaData = []): void
+    {
+        $this->update([
+            'workflow_id' => $workflowId,
+            'saga_data' => $sagaData
+        ]);
+    }
+
+    /**
+     * Get workflow status if associated with a workflow
+     */
+    public function getWorkflowStatus(): ?string
+    {
+        if (!$this->workflow_id) {
+            return null;
+        }
+
+        // TODO: Query workflow status from Laravel Workflow
+        // This would require accessing the workflow engine
+        return 'unknown';
+    }
+
+    /**
+     * Check if order is managed by a workflow
+     */
+    public function hasWorkflow(): bool
+    {
+        return !empty($this->workflow_id);
+    }
+
+    /**
+     * Update saga data
+     */
+    public function updateSagaData(array $data): void
+    {
+        $currentData = $this->saga_data ?? [];
+        $mergedData = array_merge($currentData, $data);
+        
+        $this->update(['saga_data' => $mergedData]);
+    }
+
+    /**
+     * Get saga data for a specific key
+     */
+    public function getSagaData(string $key = null)
+    {
+        if ($key === null) {
+            return $this->saga_data ?? [];
+        }
+
+        return $this->saga_data[$key] ?? null;
+    }
+
+    /**
+     * Clear workflow association (for completed or failed workflows)
+     */
+    public function clearWorkflow(): void
+    {
+        $this->update([
+            'workflow_id' => null,
+            'saga_data' => null
         ]);
     }
 }

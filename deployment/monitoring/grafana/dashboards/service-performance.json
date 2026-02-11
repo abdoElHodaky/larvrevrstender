@@ -562,16 +562,7 @@
           "legendFormat": "MySQL - Active Connections",
           "refId": "A"
         },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "redis_connected_clients{service=~\".*redis.*\"}",
-          "interval": "",
-          "legendFormat": "Redis - Connected Clients",
-          "refId": "B"
-        }
+
       ],
       "title": "Database Connections",
       "type": "timeseries"
@@ -627,4 +618,3 @@
   "version": 1,
   "weekStart": ""
 }
-

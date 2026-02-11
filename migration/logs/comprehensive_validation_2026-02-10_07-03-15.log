@@ -1,0 +1,53 @@
+[INFO] 2026-02-10 07:03:15 - Starting Comprehensive Phase 6-8 Validation
+[INFO] 2026-02-10 07:03:15 - Validating all migrated services and integration
+[INFO] 2026-02-10 07:03:15 - Validating order service (Phase 6 - Business Logic)
+[INFO] 2026-02-10 07:03:15 - Validating data integrity for order
+[INFO] 2026-02-10 07:03:15 - Validating performance for order
+[INFO] 2026-02-10 07:03:15 - Validating business logic for order
+[INFO] 2026-02-10 07:03:15 - Validating security for order
+[INFO] 2026-02-10 07:03:15 - Validating API endpoints for order
+[SUCCESS] 2026-02-10 07:03:15 - Validation passed for order service
+[INFO] 2026-02-10 07:03:15 - Validating payment service (Phase 6 - Business Logic)
+[INFO] 2026-02-10 07:03:15 - Validating data integrity for payment
+[INFO] 2026-02-10 07:03:15 - Validating performance for payment
+[INFO] 2026-02-10 07:03:15 - Validating business logic for payment
+[INFO] 2026-02-10 07:03:15 - Validating security for payment
+[INFO] 2026-02-10 07:03:15 - Validating API endpoints for payment
+[SUCCESS] 2026-02-10 07:03:15 - Validation passed for payment service
+[INFO] 2026-02-10 07:03:15 - Validating bidding service (Phase 6 - Business Logic)
+[INFO] 2026-02-10 07:03:15 - Validating data integrity for bidding
+[INFO] 2026-02-10 07:03:15 - Validating performance for bidding
+[INFO] 2026-02-10 07:03:15 - Validating business logic for bidding
+[INFO] 2026-02-10 07:03:15 - Validating security for bidding
+[INFO] 2026-02-10 07:03:15 - Validating API endpoints for bidding
+[SUCCESS] 2026-02-10 07:03:15 - Validation passed for bidding service
+[INFO] 2026-02-10 07:03:15 - Validating auction service (Phase 7 - Extended Services)
+[INFO] 2026-02-10 07:03:15 - Validating data integrity for auction
+[INFO] 2026-02-10 07:03:15 - Validating performance for auction
+[INFO] 2026-02-10 07:03:15 - Validating business logic for auction
+[INFO] 2026-02-10 07:03:15 - Validating security for auction
+[INFO] 2026-02-10 07:03:15 - Validating API endpoints for auction
+[SUCCESS] 2026-02-10 07:03:15 - Validation passed for auction service
+[INFO] 2026-02-10 07:03:15 - Validating notification service (Phase 7 - Extended Services)
+[INFO] 2026-02-10 07:03:15 - Validating data integrity for notification
+[INFO] 2026-02-10 07:03:15 - Validating performance for notification
+[INFO] 2026-02-10 07:03:15 - Validating business logic for notification
+[INFO] 2026-02-10 07:03:15 - Validating security for notification
+[INFO] 2026-02-10 07:03:15 - Validating API endpoints for notification
+[SUCCESS] 2026-02-10 07:03:15 - Validation passed for notification service
+[INFO] 2026-02-10 07:03:15 - Validating vin_ocr service (Phase 7 - Extended Services)
+[INFO] 2026-02-10 07:03:15 - Validating data integrity for vin_ocr
+[INFO] 2026-02-10 07:03:15 - Validating performance for vin_ocr
+[INFO] 2026-02-10 07:03:15 - Validating business logic for vin_ocr
+[INFO] 2026-02-10 07:03:15 - Validating security for vin_ocr
+[INFO] 2026-02-10 07:03:15 - Validating API endpoints for vin_ocr
+[SUCCESS] 2026-02-10 07:03:15 - Validation passed for vin_ocr service
+[INFO] 2026-02-10 07:03:15 - Validating analytics service (Phase 8 - OLAP Implementation)
+[INFO] 2026-02-10 07:03:15 - Validating data integrity for analytics
+[INFO] 2026-02-10 07:03:15 - Validating performance for analytics
+[INFO] 2026-02-10 07:03:15 - Validating business logic for analytics
+[INFO] 2026-02-10 07:03:15 - Validating security for analytics
+[INFO] 2026-02-10 07:03:15 - Validating API endpoints for analytics
+[SUCCESS] 2026-02-10 07:03:15 - Validation passed for analytics service
+[INFO] 2026-02-10 07:03:15 - Performing cross-service integration validation
+[INFO] 2026-02-10 07:03:15 - Comprehensive validation report generated: /tmp/abdoElHodaky/larvrevrstender/migration/scripts/../reports/comprehensive_validation_2026-02-10_07-03-15.json

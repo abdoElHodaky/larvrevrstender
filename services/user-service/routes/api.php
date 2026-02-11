@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\HealthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -40,27 +40,39 @@ Route::middleware('service.auth')->group(function () {
     // User profile routes for inter-service communication
     Route::get('/users/{userId}', [App\Http\Controllers\UserController::class, 'getUserProfile']);
     Route::put('/users/{userId}', [App\Http\Controllers\UserController::class, 'updateUserProfile']);
-    
+
     // Wallet management routes
     Route::get('/users/{userId}/wallet', [App\Http\Controllers\WalletController::class, 'getUserWallet']);
     Route::post('/users/{userId}/wallet/transactions', [App\Http\Controllers\WalletController::class, 'updateWalletBalance']);
     Route::post('/users/{userId}/wallet/reserve', [App\Http\Controllers\WalletController::class, 'reserveFunds']);
     Route::post('/users/{userId}/wallet/release', [App\Http\Controllers\WalletController::class, 'releaseFunds']);
-    
+
     // User preferences routes
     Route::get('/users/{userId}/preferences', [App\Http\Controllers\UserController::class, 'getUserPreferences']);
     Route::put('/users/{userId}/preferences', [App\Http\Controllers\UserController::class, 'updateUserPreferences']);
-    
+
     // KYC management routes
     Route::get('/users/{userId}/kyc', [App\Http\Controllers\KycController::class, 'getKycStatus']);
     Route::put('/users/{userId}/kyc', [App\Http\Controllers\KycController::class, 'updateKycStatus']);
-    
+
     // Notification preferences routes
     Route::get('/users/{userId}/notification-preferences', [App\Http\Controllers\NotificationController::class, 'getNotificationPreferences']);
     Route::put('/users/{userId}/notification-preferences', [App\Http\Controllers\NotificationController::class, 'updateNotificationPreferences']);
-    
+
     // Bulk user operations
     Route::post('/users/search', [App\Http\Controllers\UserController::class, 'getUsersByCriteria']);
+
+    // Activity management routes
+    Route::prefix('activities')->group(function () {
+        Route::get('/', [App\Http\Controllers\ActivityController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\ActivityController::class, 'store']);
+        Route::post('/bulk', [App\Http\Controllers\ActivityController::class, 'bulkStore']);
+        Route::get('/{activityId}', [App\Http\Controllers\ActivityController::class, 'show']);
+        Route::delete('/{activityId}', [App\Http\Controllers\ActivityController::class, 'destroy']);
+        Route::get('/user/{userId}', [App\Http\Controllers\ActivityController::class, 'getUserActivities']);
+        Route::get('/user/{userId}/stats', [App\Http\Controllers\ActivityController::class, 'getUserActivityStats']);
+        Route::post('/subject', [App\Http\Controllers\ActivityController::class, 'getSubjectActivities']);
+    });
 });
 
 // External API Routes (Protected by Sanctum)
@@ -73,6 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('profile')->group(function () {
         Route::get('/', [App\Http\Controllers\ProfileController::class, 'show']);
         Route::put('/', [App\Http\Controllers\ProfileController::class, 'update']);
+        Route::get('/avatar', [App\Http\Controllers\ProfileController::class, 'getAvatar']);
         Route::post('/avatar', [App\Http\Controllers\ProfileController::class, 'uploadAvatar']);
         Route::delete('/avatar', [App\Http\Controllers\ProfileController::class, 'deleteAvatar']);
     });
@@ -99,7 +112,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [App\Http\Controllers\KycController::class, 'show']);
         Route::post('/submit', [App\Http\Controllers\KycController::class, 'submit']);
         Route::get('/status', [App\Http\Controllers\KycController::class, 'getStatus']);
+        Route::get('/documents', [App\Http\Controllers\KycController::class, 'getDocuments']);
         Route::post('/documents', [App\Http\Controllers\KycController::class, 'uploadDocument']);
+        Route::delete('/documents/{id}', [App\Http\Controllers\KycController::class, 'deleteDocument']);
     });
 
     // Address management

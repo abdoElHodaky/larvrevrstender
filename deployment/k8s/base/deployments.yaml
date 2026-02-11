@@ -31,21 +31,38 @@ spec:
           value: "production"
         - name: APP_DEBUG
           value: "false"
+        # Neon PostgreSQL Configuration
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DATABASE_URL
         - name: DB_HOST
           valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: DB_HOST
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_HOST
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_USERNAME
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: app-secrets
-              key: DB_PASSWORD
-        - name: REDIS_HOST
+              key: NEON_DB_PASSWORD
+        - name: DB_DATABASE
           valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: REDIS_HOST
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_DATABASE
+        # Upstash Redis Configuration
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: UPSTASH_REDIS_URL
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
@@ -129,16 +146,32 @@ spec:
           value: "production"
         - name: APP_DEBUG
           value: "false"
+        # Neon PostgreSQL Configuration
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DATABASE_URL
         - name: DB_HOST
           valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: DB_HOST
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_HOST
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_USERNAME
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: app-secrets
-              key: DB_PASSWORD
+              key: NEON_DB_PASSWORD
+        - name: DB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_DATABASE
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
@@ -196,16 +229,38 @@ spec:
           value: "0.0.0.0"
         - name: REVERB_PORT
           value: "8080"
+        # Neon PostgreSQL Configuration
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DATABASE_URL
         - name: DB_HOST
           valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: DB_HOST
-        - name: REDIS_HOST
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_HOST
+        - name: DB_USERNAME
           valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: REDIS_HOST
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_USERNAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_PASSWORD
+        - name: DB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_DATABASE
+        # Upstash Redis Configuration
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: UPSTASH_REDIS_URL
         livenessProbe:
           httpGet:
             path: /health
@@ -255,11 +310,32 @@ spec:
         env:
         - name: APP_ENV
           value: "production"
+        # Neon PostgreSQL Configuration
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DATABASE_URL
         - name: DB_HOST
           valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: DB_HOST
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_HOST
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_USERNAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_PASSWORD
+        - name: DB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_DATABASE
         - name: S3_BUCKET
           valueFrom:
             configMapKeyRef:
@@ -307,11 +383,32 @@ spec:
         env:
         - name: APP_ENV
           value: "production"
+        # Neon PostgreSQL Configuration
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DATABASE_URL
         - name: DB_HOST
           valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: DB_HOST
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_HOST
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_USERNAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_PASSWORD
+        - name: DB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_DATABASE
         livenessProbe:
           httpGet:
             path: /health
@@ -458,11 +555,32 @@ spec:
         env:
         - name: APP_ENV
           value: "production"
+        # Neon PostgreSQL Configuration
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DATABASE_URL
         - name: DB_HOST
           valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: DB_HOST
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_HOST
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_USERNAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_PASSWORD
+        - name: DB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEON_DB_DATABASE
         livenessProbe:
           httpGet:
             path: /health

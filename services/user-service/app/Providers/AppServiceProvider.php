@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Shared\Services\FileUploadService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,7 +16,12 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register service-specific bindings
         $this->app->singleton('user_service.service', function ($app) {
-            return new \App\Services\UserServiceService;
+            return new \App\Services\UserService;
+        });
+
+        // Register FileUploadService for user-service
+        $this->app->singleton(FileUploadService::class, function ($app) {
+            return new FileUploadService('user-service');
         });
     }
 

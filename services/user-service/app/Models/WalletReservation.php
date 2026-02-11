@@ -28,8 +28,11 @@ class WalletReservation extends Model
     ];
 
     const STATUS_ACTIVE = 'active';
+
     const STATUS_RELEASED = 'released';
+
     const STATUS_EXPIRED = 'expired';
+
     const STATUS_CONSUMED = 'consumed';
 
     /**
@@ -48,7 +51,7 @@ class WalletReservation extends Model
         return $query->where('status', self::STATUS_ACTIVE)
             ->where(function ($q) {
                 $q->whereNull('expires_at')
-                  ->orWhere('expires_at', '>', now());
+                    ->orWhere('expires_at', '>', now());
             });
     }
 

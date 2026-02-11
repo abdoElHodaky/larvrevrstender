@@ -41,4 +41,3 @@ class ServiceAuthentication
         return $next($request);
     }
 }
-

@@ -14,12 +14,15 @@ services:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
       - APP_URL=${APP_URL:-https://reversetender.com}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${DB_DATABASE:-reverse_tender}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      - DB_SSLMODE=require
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
       - JWT_SECRET=${JWT_SECRET}
       - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
       # Laravel Octane Configuration
@@ -42,9 +45,87 @@ services:
       - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/octane/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Gateway Service - RPC Gateway with Cross-Service Infrastructure
+  gateway-service:
+    image: reversetender/gateway-service:${APP_VERSION:-latest}
+    container_name: rt_gateway_service
+    ports:
+      - "${GATEWAY_SERVICE_PORT:-8100}:8000"
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_URL=${GATEWAY_SERVICE_URL:-https://gateway.reversetender.com}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_gateway}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      # RPC Configuration
+      - RPC_ENABLED=${RPC_ENABLED:-true}
+      - RPC_TIMEOUT=${RPC_TIMEOUT:-30}
+      - RPC_RETRY_ATTEMPTS=${RPC_RETRY_ATTEMPTS:-3}
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=${CIRCUIT_BREAKER_ENABLED:-true}
+      - CIRCUIT_BREAKER_FAILURE_THRESHOLD=${CIRCUIT_BREAKER_FAILURE_THRESHOLD:-5}
+      - CIRCUIT_BREAKER_TIMEOUT=${CIRCUIT_BREAKER_TIMEOUT:-30}
+      - CIRCUIT_BREAKER_RECOVERY_TIMEOUT=${CIRCUIT_BREAKER_RECOVERY_TIMEOUT:-60}
+      # Workflow Orchestration
+      - WORKFLOW_ENABLED=${WORKFLOW_ENABLED:-true}
+      - WORKFLOW_MAX_RETRIES=${WORKFLOW_MAX_RETRIES:-3}
+      - WORKFLOW_TIMEOUT=${WORKFLOW_TIMEOUT:-300}
+      # Service Discovery
+      - SERVICE_DISCOVERY_ENABLED=${SERVICE_DISCOVERY_ENABLED:-true}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth-service:8001}
+      - USER_SERVICE_URL=${USER_SERVICE_URL:-http://user-service:8002}
+      - BIDDING_SERVICE_URL=${BIDDING_SERVICE_URL:-http://bidding-service:8002}
+      - ORDER_SERVICE_URL=${ORDER_SERVICE_URL:-http://order-service:8003}
+      - PAYMENT_SERVICE_URL=${PAYMENT_SERVICE_URL:-http://payment-service:8004}
+      - ANALYTICS_SERVICE_URL=${ANALYTICS_SERVICE_URL:-http://analytics-service:8005}
+      - VIN_OCR_SERVICE_URL=${VIN_OCR_SERVICE_URL:-http://vin-ocr-service:8006}
+      - NOTIFICATION_SERVICE_URL=${NOTIFICATION_SERVICE_URL:-http://notification-service:8007}
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
+      - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
+      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-512M}
+      # FrankenPHP Configuration
+      - FRANKENPHP_WORKER_MODE=${FRANKENPHP_WORKER_MODE:-true}
+      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-4}
+      # Performance Optimization
+      - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-256}
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
+    volumes:
+      - ./logs/gateway-service:/var/www/storage/logs
+      - ./config/frankenphp:/etc/frankenphp:ro
+    networks:
+      - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -70,12 +151,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${AUTH_DB_DATABASE:-reverse_tender_auth}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_auth}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       - JWT_SECRET=${JWT_SECRET}
       - JWT_TTL=${JWT_TTL:-900}
       - REFRESH_TTL=${REFRESH_TTL:-43200}
@@ -83,6 +167,12 @@ services:
       - TWILIO_SID=${TWILIO_SID}
       - TWILIO_TOKEN=${TWILIO_TOKEN}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      # RPC Configuration
+      - RPC_ENABLED=${RPC_ENABLED:-true}
+      - RPC_PORT=${AUTH_SERVICE_PORT:-8001}
+      - GATEWAY_SERVICE_URL=${GATEWAY_SERVICE_URL:-http://gateway-service:8000}
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=${CIRCUIT_BREAKER_ENABLED:-true}
       # Laravel Octane Configuration
       - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
       - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
@@ -104,8 +194,9 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      - gateway-service
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -132,12 +223,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${BIDDING_DB_DATABASE:-reverse_tender_bidding}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_bidding}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       - BROADCAST_DRIVER=reverb
       - REVERB_APP_ID=${REVERB_APP_ID:-reverse-tender}
       - REVERB_APP_KEY=${REVERB_APP_KEY:-reverse-tender-key}
@@ -166,8 +260,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -193,12 +287,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${USER_DB_DATABASE:-reverse_tender_users}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_users}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       - S3_BUCKET=${S3_BUCKET}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
@@ -225,8 +322,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -252,12 +349,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${ORDER_DB_DATABASE:-reverse_tender_orders}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_orders}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       - S3_BUCKET=${S3_BUCKET}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
@@ -283,8 +383,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -310,12 +410,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${NOTIFICATION_DB_DATABASE:-reverse_tender_notifications}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_notifications}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       - FCM_SERVER_KEY=${FCM_SERVER_KEY}
       - APNS_KEY_ID=${APNS_KEY_ID}
       - APNS_TEAM_ID=${APNS_TEAM_ID}
@@ -343,8 +446,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -361,64 +464,145 @@ services:
       retries: 3
       start_period: 60s
 
-  # Payment Service - Payment processing and ZATCA
+  # Payment Service - Enterprise Payment Processing Infrastructure
   payment-service:
     image: reversetender/payment-service:${APP_VERSION:-latest}
     container_name: rt_payment_service
     ports:
-      - "${PAYMENT_SERVICE_PORT:-8006}:8006"
+      - "${PAYMENT_SERVICE_PORT:-8004}:8004"
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${PAYMENT_DB_DATABASE:-reverse_tender_payments}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - APP_URL=${PAYMENT_SERVICE_URL:-https://payments.reversetender.com}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_payments}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
+      - JWT_SECRET=${JWT_SECRET}
+      
+      # Multi-Gateway Payment Configuration
+      # Stripe Configuration
+      - STRIPE_ENABLED=${STRIPE_ENABLED:-true}
+      - STRIPE_PUBLIC_KEY=${STRIPE_PUBLIC_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_API_VERSION=${STRIPE_API_VERSION:-2023-10-16}
+      
+      # PayPal Configuration
+      - PAYPAL_ENABLED=${PAYPAL_ENABLED:-true}
+      - PAYPAL_MODE=${PAYPAL_MODE:-sandbox}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET}
+      - PAYPAL_WEBHOOK_ID=${PAYPAL_WEBHOOK_ID}
+      
+      # Mada Configuration (Saudi Arabia)
+      - MADA_ENABLED=${MADA_ENABLED:-true}
+      - MADA_MERCHANT_ID=${MADA_MERCHANT_ID}
+      - MADA_TERMINAL_ID=${MADA_TERMINAL_ID}
+      - MADA_SECRET_KEY=${MADA_SECRET_KEY}
+      - MADA_API_URL=${MADA_API_URL}
+      
+      # STC Pay Configuration (Saudi Arabia)
+      - STC_PAY_ENABLED=${STC_PAY_ENABLED:-true}
+      - STC_PAY_MERCHANT_ID=${STC_PAY_MERCHANT_ID}
+      - STC_PAY_SECRET_KEY=${STC_PAY_SECRET_KEY}
+      - STC_PAY_API_URL=${STC_PAY_API_URL}
+      
+      # Razorpay Configuration
+      - RAZORPAY_ENABLED=${RAZORPAY_ENABLED:-false}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET}
+      - RAZORPAY_WEBHOOK_SECRET=${RAZORPAY_WEBHOOK_SECRET}
+      
+      # Square Configuration
+      - SQUARE_ENABLED=${SQUARE_ENABLED:-false}
+      - SQUARE_APPLICATION_ID=${SQUARE_APPLICATION_ID}
+      - SQUARE_ACCESS_TOKEN=${SQUARE_ACCESS_TOKEN}
+      - SQUARE_WEBHOOK_SIGNATURE_KEY=${SQUARE_WEBHOOK_SIGNATURE_KEY}
+      - SQUARE_ENVIRONMENT=${SQUARE_ENVIRONMENT:-sandbox}
+      
+      # Payment Processing Configuration
+      - PAYMENT_DEFAULT_CURRENCY=${PAYMENT_DEFAULT_CURRENCY:-SAR}
+      - PAYMENT_SUPPORTED_CURRENCIES=${PAYMENT_SUPPORTED_CURRENCIES:-SAR,USD,EUR,AED}
+      - PAYMENT_MAX_AMOUNT=${PAYMENT_MAX_AMOUNT:-1000000}
+      - PAYMENT_MIN_AMOUNT=${PAYMENT_MIN_AMOUNT:-1}
+      - PAYMENT_TIMEOUT=${PAYMENT_TIMEOUT:-300}
+      - PAYMENT_RETRY_ATTEMPTS=${PAYMENT_RETRY_ATTEMPTS:-3}
+      
+      # Webhook Configuration
+      - WEBHOOK_TIMEOUT=${WEBHOOK_TIMEOUT:-30}
+      - WEBHOOK_RETRY_ATTEMPTS=${WEBHOOK_RETRY_ATTEMPTS:-5}
+      - WEBHOOK_RETRY_DELAY=${WEBHOOK_RETRY_DELAY:-60}
+      - WEBHOOK_SIGNATURE_VERIFICATION=${WEBHOOK_SIGNATURE_VERIFICATION:-true}
+      
+      # Security Configuration
+      - PAYMENT_ENCRYPTION_KEY=${PAYMENT_ENCRYPTION_KEY}
+      - PAYMENT_HASH_ALGORITHM=${PAYMENT_HASH_ALGORITHM:-sha256}
+      - PAYMENT_TOKEN_EXPIRY=${PAYMENT_TOKEN_EXPIRY:-3600}
+      - PAYMENT_RATE_LIMIT=${PAYMENT_RATE_LIMIT:-100}
+      
+      # Analytics and Monitoring
+      - PAYMENT_ANALYTICS_ENABLED=${PAYMENT_ANALYTICS_ENABLED:-true}
+      - PAYMENT_METRICS_ENABLED=${PAYMENT_METRICS_ENABLED:-true}
+      - PAYMENT_AUDIT_ENABLED=${PAYMENT_AUDIT_ENABLED:-true}
+      - PAYMENT_LOGGING_LEVEL=${PAYMENT_LOGGING_LEVEL:-info}
+      
+      # RPC Configuration
+      - RPC_ENABLED=${RPC_ENABLED:-true}
+      - RPC_TIMEOUT=${RPC_TIMEOUT:-30}
+      - RPC_RETRY_ATTEMPTS=${RPC_RETRY_ATTEMPTS:-3}
+      
+      # Legacy ZATCA Configuration (maintained for backward compatibility)
       - ZATCA_API_URL=${ZATCA_API_URL}
       - ZATCA_API_KEY=${ZATCA_API_KEY}
       - ZATCA_CERTIFICATE=${ZATCA_CERTIFICATE}
-      - PAYMENT_GATEWAY_URL=${PAYMENT_GATEWAY_URL}
-      - PAYMENT_GATEWAY_KEY=${PAYMENT_GATEWAY_KEY}
+      
       # Laravel Octane Configuration
       - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
       - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
-      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
-      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-6}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-8}
       - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
-      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-512M}
+      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-1G}
+      
       # FrankenPHP Configuration
       - FRANKENPHP_WORKER_MODE=${FRANKENPHP_WORKER_MODE:-true}
-      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-4}
+      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-6}
+      
       # Performance Optimization
       - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
-      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-256}
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-512}
       - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
       - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
       - ./logs/payment-service:/var/www/storage/logs
       - ./config/frankenphp:/etc/frankenphp:ro
+      - ./config/payment-service:/var/www/config:ro
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
         limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
           memory: 1G
           cpus: '1.0'
-        reservations:
-          memory: 512M
-          cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8006/octane/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8004/octane/health"]
       interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      timeout: 15s
+      retries: 5
+      start_period: 90s
 
   # Analytics Service - Business intelligence
   analytics-service:
@@ -429,12 +613,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${ANALYTICS_DB_DATABASE:-reverse_tender_analytics}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_analytics}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       # Laravel Octane Configuration
       - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
       - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
@@ -456,8 +643,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -483,12 +670,15 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_HOST=${DB_HOST:-mysql-primary}
-      - DB_DATABASE=${VIN_OCR_DB_DATABASE:-reverse_tender_vehicles}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis-primary}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_vehicles}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
       - GOOGLE_CLOUD_VISION_KEY=${GOOGLE_CLOUD_VISION_KEY}
       - TESSERACT_ENABLED=${TESSERACT_ENABLED:-true}
       - S3_BUCKET=${S3_BUCKET}
@@ -516,8 +706,8 @@ services:
     networks:
       - reverse-tender-network
     depends_on:
-      - mysql-primary
       - redis-primary
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
       resources:
@@ -534,29 +724,8 @@ services:
       retries: 3
       start_period: 60s
 
-  # MySQL Primary Database
-  mysql-primary:
-    image: mysql:8.0
-    container_name: rt_mysql_primary
-    ports:
-      - "${MYSQL_PORT:-3306}:3306"
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${DB_DATABASE:-reverse_tender}
-      - MYSQL_USER=${DB_USERNAME}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
-    volumes:
-      - mysql_primary_data:/var/lib/mysql
-      - ./database/init:/docker-entrypoint-initdb.d
-      - ./database/config/mysql.cnf:/etc/mysql/conf.d/custom.cnf
-    networks:
-      - reverse-tender-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+  # MySQL removed - using cloud-managed Neon PostgreSQL instead
+  # Database services now managed by Neon PostgreSQL cloud service
 
   # Redis Primary Cache
   redis-primary:
@@ -603,8 +772,7 @@ services:
       retries: 3
 
 volumes:
-  mysql_primary_data:
-    driver: local
+  # mysql_primary_data removed - using cloud-managed Neon PostgreSQL
   redis_primary_data:
     driver: local
 

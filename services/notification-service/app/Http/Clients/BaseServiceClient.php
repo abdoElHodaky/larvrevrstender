@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Log;
 abstract class BaseServiceClient
 {
     protected string $baseUrl;
+
     protected int $timeout;
+
     protected array $defaultHeaders;
 
     public function __construct(string $baseUrl, int $timeout = 30)
@@ -57,6 +59,7 @@ abstract class BaseServiceClient
 
             $duration = microtime(true) - $startTime;
             $this->logRequest($method, $url, $options, $response, $duration);
+
             return $response;
         } catch (\Exception $e) {
             $duration = microtime(true) - $startTime;
@@ -98,6 +101,7 @@ abstract class BaseServiceClient
     {
         try {
             $response = $this->get('/health');
+
             return $response->successful();
         } catch (\Exception $e) {
             return false;
@@ -108,10 +112,10 @@ abstract class BaseServiceClient
     {
         try {
             $response = $this->get('/info');
+
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
             return null;
         }
     }
 }
-

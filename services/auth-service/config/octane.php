@@ -10,7 +10,6 @@ use Laravel\Octane\Events\TickTerminated;
 use Laravel\Octane\Events\WorkerErrorOccurred;
 use Laravel\Octane\Events\WorkerStarting;
 use Laravel\Octane\Events\WorkerStopping;
-use Laravel\Octane\Facades\Octane;
 use Laravel\Octane\Listeners\EnsureUploadedFilesAreValid;
 use Laravel\Octane\Listeners\EnsureUploadedFilesCanBeMoved;
 use Laravel\Octane\Listeners\FlushTemporaryContainerInstances;
@@ -18,17 +17,14 @@ use Laravel\Octane\Listeners\ReportException;
 use Laravel\Octane\Listeners\StopWorkerIfNecessary;
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Octane Server
     |--------------------------------------------------------------------------
     |
-    | This value determines the default "server" that will be used by Octane
-    | when starting, restarting, or stopping your application server.
-    | You are free to change this to any of the supported servers.
-    |
-    | Supported: "frankenphp", "roadrunner", "swoole"
+    | This value determines the default "server" that will be used when
+    | starting Octane. This server is used when issuing the `octane:start`
+    | command or when the server is started via the Octane::start method.
     |
     */
 
@@ -40,8 +36,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | When this configuration value is set to "true", Octane will inform the
-    | framework that all absolute links must be generated using the HTTPS
-    | protocol. Otherwise your links may be generated using plain HTTP.
+    | framework that all absolute URLs should be generated using the HTTPS
+    | protocol. Otherwise, your application may generate insecure assets.
     |
     */
 
@@ -53,8 +49,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | All of the event listeners for Octane's events are defined below. These
-    | listeners are responsible for resetting your application's state for
-    | the next request. You may even add your own listeners to this list.
+    | listeners are responsible for resetting your application's state after
+    | each request. You may even add your own listeners to this array.
     |
     */
 
@@ -65,35 +61,31 @@ return [
         ],
 
         RequestReceived::class => [
-            // Note: Octane facade calls moved to runtime to avoid bootstrap issues
-            // ...Octane::prepareApplicationForNextOperation(),
-            // ...Octane::prepareApplicationForNextRequest(),
+            // Custom request received listeners
         ],
 
         RequestHandled::class => [
-            //
-        ],
-
-        RequestTerminated::class => [
             FlushTemporaryContainerInstances::class,
         ],
 
+        RequestTerminated::class => [
+            // Custom cleanup listeners
+        ],
+
         TaskReceived::class => [
-            // Note: Octane facade calls moved to runtime to avoid bootstrap issues
-            // ...Octane::prepareApplicationForNextOperation(),
+            // Task handling listeners
         ],
 
         TaskTerminated::class => [
-            //
+            // Task cleanup listeners
         ],
 
         TickReceived::class => [
-            // Note: Octane facade calls moved to runtime to avoid bootstrap issues
-            // ...Octane::prepareApplicationForNextOperation(),
+            // Periodic task listeners
         ],
 
         TickTerminated::class => [
-            //
+            // Periodic cleanup listeners
         ],
 
         WorkerErrorOccurred::class => [
@@ -102,7 +94,7 @@ return [
         ],
 
         WorkerStopping::class => [
-            //
+            // Worker cleanup listeners
         ],
     ],
 
@@ -118,13 +110,15 @@ return [
     */
 
     'warm' => [
-        // Note: Octane facade calls moved to runtime to avoid bootstrap issues
-        // ...Octane::defaultServicesToWarm(),
+        // Pre-warm these bindings when worker starts
+        'procedures' => [
+            \App\RPC\Procedures\HealthProcedure::class,
+            \App\RPC\Procedures\UtilityProcedure::class,
+        ],
     ],
 
     'flush' => [
-        // Note: Octane facade calls moved to runtime to avoid bootstrap issues
-        // ...Octane::defaultServicesToFlush(),
+        // Flush these bindings before each request
     ],
 
     /*
@@ -132,7 +126,7 @@ return [
     | Octane Cache Table
     |--------------------------------------------------------------------------
     |
-    | While using Swoole, you may leverage the Octane cache, which is powered
+    | While using Octane, you may leverage the Octane cache, which is powered
     | by a Swoole table. You may set the maximum number of rows as well as
     | the number of bytes per row using the configuration options below.
     |
@@ -148,16 +142,21 @@ return [
     | Octane Swoole Tables
     |--------------------------------------------------------------------------
     |
-    | While using Swoole, you may define additional tables as required by the
-    | application. These tables can be used to store data that needs to be
-    | quickly accessed by other workers on the particular Swoole server.
+    | While using Octane, you may leverage Swoole's powerful table feature
+    | as a fast, shared memory cache. You may register a table's structure
+    | using the "columns" array below along with the maximum rows allowed.
     |
     */
 
     'tables' => [
-        'example:1000' => [
-            'name' => 'string:1000',
-            'votes' => 'int',
+        'rpc_metrics' => [
+            'rows' => 1000,
+            'columns' => [
+                ['name' => 'method', 'type' => 'string', 'size' => 100],
+                ['name' => 'response_time', 'type' => 'float'],
+                ['name' => 'memory_usage', 'type' => 'int'],
+                ['name' => 'timestamp', 'type' => 'int'],
+            ],
         ],
     ],
 
@@ -167,8 +166,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | The following list of files and directories will be watched when using
-    | the --watch option offered by Octane. If any of the directories and
-    | files are changed, Octane will automatically reload your workers.
+    | the --watch option. If any of the files change, Octane will restart.
     |
     */
 
@@ -187,44 +185,82 @@ return [
     | Garbage Collection Threshold
     |--------------------------------------------------------------------------
     |
-    | When executing long-running tasks, memory leaks may be of concern. Here
-    | you may configure the maximum number of tasks that can execute before
-    | a worker is restarted. This provides a very crude form of protection
-    | against memory leaks or similar issues.
+    | When executing long-lived PHP scripts such as Octane, memory can build
+    | up before being cleared by PHP. You can force Octane to run garbage
+    | collection if memory usage exceeds the given number of megabytes.
     |
     */
 
-    'max_execution_time' => env('OCTANE_MAX_EXECUTION_TIME', 30),
+    'garbage' => 50,
 
     /*
     |--------------------------------------------------------------------------
-    | Octane Worker Count
+    | Maximum Execution Time
     |--------------------------------------------------------------------------
     |
-    | This value determines the default number of workers that will be started
-    | when starting your application server. You should provide this value
-    | based on the number of CPU cores available on your deployment server.
+    | The following setting configures the maximum execution time for requests
+    | handled by Octane. You may set this value to 0 to indicate that there
+    | should be no time limit on Octane request execution time.
     |
     */
 
-    'workers' => env('OCTANE_WORKERS', 4),
+    'max_execution_time' => 30,
 
     /*
     |--------------------------------------------------------------------------
-    | Octane Max Requests
+    | Octane Swoole Configuration
     |--------------------------------------------------------------------------
     |
-    | This value determines the number of requests that can be handled before
-    | the Octane worker is terminated and restarted. This provides a crude
-    | form of protection against memory leaks or other similar issues.
+    | Here you may configure some of the Swoole server options, including
+    | the host and port. Please consult the Swoole documentation for more
+    | information on the available configuration options.
     |
     */
 
-    'max_requests' => env('OCTANE_MAX_REQUESTS', 500),
+    'swoole' => [
+        'options' => [
+            'log_file' => storage_path('logs/swoole_http.log'),
+            'package_max_length' => 10 * 1024 * 1024,
+        ],
+    ],
 
     /*
     |--------------------------------------------------------------------------
-    | Octane RPC
+    | Octane RoadRunner Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure some of the RoadRunner server options, including
+    | the host and port. Please consult the RoadRunner documentation for more
+    | information on the available configuration options.
+    |
+    */
+
+    'roadrunner' => [
+        'binary_path' => env('RR_BINARY_PATH', 'rr'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Octane FrankenPHP Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure FrankenPHP server options. FrankenPHP is a modern
+    | application server for PHP built on top of the Caddy web server.
+    |
+    */
+
+    'frankenphp' => [
+        'host' => env('OCTANE_HOST', '127.0.0.1'),
+        'port' => env('OCTANE_PORT', 8000),
+        'workers' => env('OCTANE_WORKERS', 2),
+        'task_workers' => env('OCTANE_TASK_WORKERS', 4),
+        'max_requests' => env('OCTANE_MAX_REQUESTS', 500),
+        'caddyfile' => base_path('Caddyfile'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Octane RPC Configuration
     |--------------------------------------------------------------------------
     |
     | These settings configure the RPC settings for Octane when using the
@@ -235,20 +271,57 @@ return [
 
     'rpc' => [
         'host' => env('OCTANE_RPC_HOST', '127.0.0.1'),
-        'port' => env('OCTANE_RPC_PORT', 6001),
+        'port' => env('OCTANE_RPC_PORT', 6010),
+        'timeout' => env('OCTANE_RPC_TIMEOUT', 30),
+        'batch_size' => env('OCTANE_RPC_BATCH_SIZE', 10),
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | FrankenPHP
+    | Performance Optimization
     |--------------------------------------------------------------------------
     |
-    | FrankenPHP options. See: https://frankenphp.dev/docs/config/
+    | These settings help optimize Octane performance for RPC workloads.
     |
     */
 
-    'frankenphp' => [
-        'config' => base_path('Caddyfile'),
+    'performance' => [
+        'memory_limit' => env('OCTANE_MEMORY_LIMIT', '256M'),
+        'opcache_preload' => env('OCTANE_OPCACHE_PRELOAD', true),
+        'jit_enabled' => env('OCTANE_JIT_ENABLED', true),
+        'gc_probability' => env('OCTANE_GC_PROBABILITY', 0.01),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | RPC Procedure Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for RPC procedures and their caching behavior.
+    |
+    */
+
+    'procedures' => [
+        'cache_enabled' => env('RPC_CACHE_ENABLED', true),
+        'cache_ttl' => env('RPC_CACHE_TTL', 300), // 5 minutes
+        'validation_enabled' => env('RPC_VALIDATION_ENABLED', true),
+        'logging_enabled' => env('RPC_LOGGING_ENABLED', true),
+        'metrics_enabled' => env('RPC_METRICS_ENABLED', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Health Check Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for health check endpoints and monitoring.
+    |
+    */
+
+    'health' => [
+        'enabled' => env('OCTANE_HEALTH_ENABLED', true),
+        'endpoint' => env('OCTANE_HEALTH_ENDPOINT', '/health'),
+        'detailed_endpoint' => env('OCTANE_HEALTH_DETAILED_ENDPOINT', '/health/detailed'),
+        'metrics_endpoint' => env('OCTANE_METRICS_ENDPOINT', '/metrics'),
+    ],
 ];

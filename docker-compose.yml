@@ -17,6 +17,57 @@ services:
     networks:
       - reverse_tender_network
 
+  # PostgreSQL Database (Migration Target)
+  postgresql:
+    image: postgres:15-alpine
+    container_name: reverse_tender_postgresql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+      - ./migration/docker/postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - reverse_tender_network
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c pg_stat_statements.max=10000
+      -c log_statement=all
+      -c log_min_duration_statement=1000
+
+  # PgBouncer Connection Pooler
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    container_name: reverse_tender_pgbouncer
+    restart: unless-stopped
+    environment:
+      DATABASES_HOST: postgresql
+      DATABASES_PORT: 5432
+      DATABASES_USER: postgres
+      DATABASES_PASSWORD: postgres_password
+      DATABASES_DBNAME: postgres
+      POOL_MODE: transaction
+      SERVER_RESET_QUERY: DISCARD ALL
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 25
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 5
+      SERVER_LIFETIME: 3600
+      SERVER_IDLE_TIMEOUT: 600
+    ports:
+      - "6432:5432"
+    depends_on:
+      - postgresql
+    networks:
+      - reverse_tender_network
+
   redis:
     image: redis:7-alpine
     container_name: reverse_tender_redis
@@ -28,6 +79,59 @@ services:
     networks:
       - reverse_tender_network
 
+  # Gateway Service - RPC Gateway with Cross-Service Infrastructure
+  gateway-service:
+    build:
+      context: ./services/gateway-service
+      dockerfile: Dockerfile
+    container_name: gateway_service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=Gateway Service
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://localhost:8000
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=gateway_service
+      - DB_USERNAME=root
+      - DB_PASSWORD=root_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # RPC Configuration
+      - RPC_ENABLED=true
+      - RPC_TIMEOUT=30
+      - RPC_RETRY_ATTEMPTS=3
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=true
+      - CIRCUIT_BREAKER_FAILURE_THRESHOLD=5
+      - CIRCUIT_BREAKER_TIMEOUT=30
+      - CIRCUIT_BREAKER_RECOVERY_TIMEOUT=60
+      # Workflow Orchestration
+      - WORKFLOW_ENABLED=true
+      - WORKFLOW_MAX_RETRIES=3
+      - WORKFLOW_TIMEOUT=300
+      # Service Discovery
+      - SERVICE_DISCOVERY_ENABLED=true
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - USER_SERVICE_URL=http://user-service:8002
+      - BIDDING_SERVICE_URL=http://bidding-service:8003
+      - ORDER_SERVICE_URL=http://order-service:8004
+      - PAYMENT_SERVICE_URL=http://payment-service:8005
+      - ANALYTICS_SERVICE_URL=http://analytics-service:8006
+      - VIN_OCR_SERVICE_URL=http://vin-ocr-service:8007
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8008
+    depends_on:
+      - mysql
+      - redis
+    volumes:
+      - ./services/gateway-service:/var/www/html
+    networks:
+      - reverse_tender_network
+
   # Microservices
   auth-service:
     build:
@@ -36,12 +140,12 @@ services:
     container_name: auth_service
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       - APP_NAME=Auth Service
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=http://localhost:8000
+      - APP_URL=http://localhost:8001
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -50,9 +154,16 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # RPC Configuration
+      - RPC_ENABLED=true
+      - RPC_PORT=8001
+      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=true
     depends_on:
       - mysql
       - redis
+      - gateway-service
     volumes:
       - ./services/auth-service:/var/www/html
     networks:
@@ -65,12 +176,12 @@ services:
     container_name: user_service
     restart: unless-stopped
     ports:
-      - "8001:8000"
+      - "8002:8000"
     environment:
       - APP_NAME=User Service
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=http://localhost:8001
+      - APP_URL=http://localhost:8002
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -79,9 +190,18 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # RPC Configuration
+      - RPC_ENABLED=true
+      - RPC_PORT=8002
+      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=true
+      # Third-party Integration
+      - INTEGRATION_ENABLED=true
     depends_on:
       - mysql
       - redis
+      - gateway-service
     volumes:
       - ./services/user-service:/var/www/html
     networks:
@@ -94,12 +214,13 @@ services:
     container_name: bidding_service
     restart: unless-stopped
     ports:
-      - "8002:8000"
+      - "8003:8000"
+      - "8080:8080"  # Laravel Reverb WebSocket port
     environment:
       - APP_NAME=Bidding Service
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=http://localhost:8002
+      - APP_URL=http://localhost:8003
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -109,9 +230,18 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - BROADCAST_CONNECTION=pusher
+      # RPC Configuration
+      - RPC_ENABLED=true
+      - RPC_PORT=8003
+      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=true
+      # Third-party Integration
+      - INTEGRATION_ENABLED=true
     depends_on:
       - mysql
       - redis
+      - gateway-service
     volumes:
       - ./services/bidding-service:/var/www/html
     networks:
@@ -124,12 +254,12 @@ services:
     container_name: order_service
     restart: unless-stopped
     ports:
-      - "8003:8000"
+      - "8004:8000"
     environment:
       - APP_NAME=Order Service
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=http://localhost:8003
+      - APP_URL=http://localhost:8004
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -138,9 +268,18 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # RPC Configuration
+      - RPC_ENABLED=true
+      - RPC_PORT=8004
+      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=true
+      # Third-party Integration
+      - INTEGRATION_ENABLED=true
     depends_on:
       - mysql
       - redis
+      - gateway-service
     volumes:
       - ./services/order-service:/var/www/html
     networks:
@@ -153,12 +292,12 @@ services:
     container_name: payment_service
     restart: unless-stopped
     ports:
-      - "8004:8000"
+      - "8005:8000"
     environment:
       - APP_NAME=Payment Service
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=http://localhost:8004
+      - APP_URL=http://localhost:8005
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -167,9 +306,18 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # RPC Configuration
+      - RPC_ENABLED=true
+      - RPC_PORT=8005
+      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=true
+      # Third-party Integration
+      - INTEGRATION_ENABLED=true
     depends_on:
       - mysql
       - redis
+      - gateway-service
     volumes:
       - ./services/payment-service:/var/www/html
     networks:
@@ -182,12 +330,12 @@ services:
     container_name: analytics_service
     restart: unless-stopped
     ports:
-      - "8005:8000"
+      - "8006:8000"
     environment:
       - APP_NAME=Analytics Service
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=http://localhost:8005
+      - APP_URL=http://localhost:8006
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -196,9 +344,18 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # RPC Configuration
+      - RPC_ENABLED=true
+      - RPC_PORT=8006
+      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=true
+      # Third-party Integration
+      - INTEGRATION_ENABLED=true
     depends_on:
       - mysql
       - redis
+      - gateway-service
     volumes:
       - ./services/analytics-service:/var/www/html
     networks:
@@ -211,12 +368,12 @@ services:
     container_name: vin_ocr_service
     restart: unless-stopped
     ports:
-      - "8006:8000"
+      - "8007:8000"
     environment:
       - APP_NAME=VIN OCR Service
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=http://localhost:8006
+      - APP_URL=http://localhost:8007
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -225,9 +382,18 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # RPC Configuration
+      - RPC_ENABLED=true
+      - RPC_PORT=8007
+      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=true
+      # Third-party Integration
+      - INTEGRATION_ENABLED=true
     depends_on:
       - mysql
       - redis
+      - gateway-service
     volumes:
       - ./services/vin-ocr-service:/var/www/html
     networks:
@@ -240,12 +406,12 @@ services:
     container_name: notification_service
     restart: unless-stopped
     ports:
-      - "8007:8000"
+      - "8008:8000"
     environment:
       - APP_NAME=Notification Service
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=http://localhost:8007
+      - APP_URL=http://localhost:8008
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -254,9 +420,18 @@ services:
       - DB_PASSWORD=root_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # RPC Configuration
+      - RPC_ENABLED=true
+      - RPC_PORT=8008
+      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=true
+      # Third-party Integration
+      - INTEGRATION_ENABLED=true
     depends_on:
       - mysql
       - redis
+      - gateway-service
     volumes:
       - ./services/notification-service:/var/www/html
     networks:
@@ -275,6 +450,7 @@ services:
       - ./docker/nginx/conf.d:/etc/nginx/conf.d
       - ./docker/ssl:/etc/nginx/ssl
     depends_on:
+      - gateway-service
       - auth-service
       - user-service
       - bidding-service
@@ -298,8 +474,14 @@ services:
       - APP_ENV=production
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # RPC Configuration
+      - RPC_ENABLED=true
+      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=true
     depends_on:
       - redis
+      - gateway-service
     volumes:
       - ./services/auth-service:/var/www/html
     networks:
@@ -307,6 +489,8 @@ services:
 
 volumes:
   mysql_data:
+    driver: local
+  postgresql_data:
     driver: local
   redis_data:
     driver: local
