@@ -601,6 +601,10 @@ jobs:
       run: |
         if [ -d "deployment/helm/rpc-services" ]; then
           echo "📦 Deploying RPC services using optimized Helm chart..."
+          echo "🔧 Building Helm chart dependencies..."
+          cd deployment/helm/rpc-services
+          helm dependency build
+          cd ../../../
           helm install rpc-services deployment/helm/rpc-services \
             --namespace rpc-services \
             --create-namespace \
