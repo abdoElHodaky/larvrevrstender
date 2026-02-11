@@ -502,7 +502,10 @@ jobs:
           authService:
             enabled: true
             replicas: 1
-            image: ${{ env.IMAGE_NAME }}/auth-service
+            image:
+              repository: ${{ env.IMAGE_NAME }}/auth-service
+              tag: latest
+              pullPolicy: IfNotPresent
             port: 8000
             resources:
               requests:
@@ -515,7 +518,10 @@ jobs:
           userService:
             enabled: true
             replicas: 1
-            image: ${{ env.IMAGE_NAME }}/user-service
+            image:
+              repository: ${{ env.IMAGE_NAME }}/user-service
+              tag: latest
+              pullPolicy: IfNotPresent
             port: 8001
             resources:
               requests:
