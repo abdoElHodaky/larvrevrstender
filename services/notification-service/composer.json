@@ -15,7 +15,8 @@
         "laravel/horizon": "^5.28",
         "pusher/pusher-php-server": "^7.2",
         "sajya/server": "^7.0",
-        "sajya/client": "^1.4"
+        "sajya/client": "^1.4",
+        "laravel-notification-channels/webpush": "^8.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
