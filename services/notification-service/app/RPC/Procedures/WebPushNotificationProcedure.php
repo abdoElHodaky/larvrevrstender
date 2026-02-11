@@ -4,17 +4,16 @@ namespace App\RPC\Procedures;
 
 use App\Models\PushSubscription;
 use App\Services\WebPushService;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use Sajya\Server\Procedure;
+use Shared\Core\BaseProcedure;
+use Exception;
 
 /**
  * Cross-Service Web Push Notification Procedure
  * 
- * This procedure can be imported and used by other services via:
- * use App\Procedures\WebPushNotificationProcedure;
+ * This procedure extends the shared service BaseProcedure and provides
+ * web push notification functionality for cross-service operations.
  */
-class WebPushNotificationProcedure extends Procedure
+class WebPushNotificationProcedure extends BaseProcedure
 {
     /**
      * The procedure name for RPC calls.
@@ -28,6 +27,7 @@ class WebPushNotificationProcedure extends Procedure
 
     public function __construct(WebPushService $webPushService)
     {
+        parent::__construct();
         $this->webPushService = $webPushService;
     }
 
@@ -40,31 +40,27 @@ class WebPushNotificationProcedure extends Procedure
     public function sendToUser(array $params): array
     {
         try {
-            $validator = Validator::make($params, [
-                'user_id' => 'required|integer',
-                'title' => 'required|string|max:255',
-                'body' => 'required|string|max:1000',
-                'icon' => 'nullable|string|url',
-                'badge' => 'nullable|string|url',
-                'image' => 'nullable|string|url',
-                'url' => 'nullable|string|url',
-                'data' => 'nullable|array',
-                'actions' => 'nullable|array',
-                'category' => 'nullable|string|in:order,bid,payment,auction,system',
-                'urgency' => 'nullable|string|in:very-low,low,normal,high',
-                'ttl' => 'nullable|integer|min:0',
-                'tag' => 'nullable|string|max:100',
-                'require_interaction' => 'nullable|boolean',
-                'silent' => 'nullable|boolean',
-                'vibrate' => 'nullable|array',
+            $validation = $this->validateParams($params, [
+                'user_id' => ['required' => true, 'type' => 'integer'],
+                'title' => ['required' => true, 'type' => 'string', 'max' => 255],
+                'body' => ['required' => true, 'type' => 'string', 'max' => 1000],
+                'icon' => ['type' => 'url'],
+                'badge' => ['type' => 'url'],
+                'image' => ['type' => 'url'],
+                'url' => ['type' => 'url'],
+                'data' => ['type' => 'array'],
+                'actions' => ['type' => 'array'],
+                'category' => ['type' => 'string'],
+                'urgency' => ['type' => 'string'],
+                'ttl' => ['type' => 'integer'],
+                'tag' => ['type' => 'string', 'max' => 100],
+                'require_interaction' => ['type' => 'boolean'],
+                'silent' => ['type' => 'boolean'],
+                'vibrate' => ['type' => 'array'],
             ]);
 
-            if ($validator->fails()) {
-                return [
-                    'success' => false,
-                    'error' => 'Validation failed',
-                    'errors' => $validator->errors()->toArray(),
-                ];
+            if (!$validation['success']) {
+                return $this->errorResponse('Validation failed', $validation['errors']);
             }
 
             $result = $this->webPushService->sendToUser(
@@ -74,22 +70,16 @@ class WebPushNotificationProcedure extends Procedure
                 $params
             );
 
-            return [
-                'success' => true,
-                'data' => $result,
-            ];
+            return $this->successResponse($result, 'Web push notification sent successfully');
 
-        } catch (\Exception $e) {
-            Log::error('WebPush sendToUser failed', [
+        } catch (Exception $e) {
+            $this->log('error', 'WebPush sendToUser failed', [
                 'params' => $params,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
+            return $this->errorResponse('Web push notification failed: ' . $e->getMessage());
         }
     }
 
@@ -102,57 +92,46 @@ class WebPushNotificationProcedure extends Procedure
     public function sendToUsers(array $params): array
     {
         try {
-            $validator = Validator::make($params, [
-                'user_ids' => 'required|array',
-                'user_ids.*' => 'integer',
-                'title' => 'required|string|max:255',
-                'body' => 'required|string|max:1000',
-                'icon' => 'nullable|string|url',
-                'badge' => 'nullable|string|url',
-                'image' => 'nullable|string|url',
-                'url' => 'nullable|string|url',
-                'data' => 'nullable|array',
-                'actions' => 'nullable|array',
-                'category' => 'nullable|string|in:order,bid,payment,auction,system',
-                'urgency' => 'nullable|string|in:very-low,low,normal,high',
-                'ttl' => 'nullable|integer|min:0',
-                'tag' => 'nullable|string|max:100',
-                'require_interaction' => 'nullable|boolean',
-                'silent' => 'nullable|boolean',
-                'vibrate' => 'nullable|array',
+            $validation = $this->validateParams($params, [
+                'user_ids' => ['required' => true, 'type' => 'array'],
+                'title' => ['required' => true, 'type' => 'string', 'max' => 255],
+                'body' => ['required' => true, 'type' => 'string', 'max' => 1000],
+                'icon' => ['type' => 'url'],
+                'badge' => ['type' => 'url'],
+                'image' => ['type' => 'url'],
+                'url' => ['type' => 'url'],
+                'data' => ['type' => 'array'],
+                'actions' => ['type' => 'array'],
+                'category' => ['type' => 'string'],
+                'urgency' => ['type' => 'string'],
+                'ttl' => ['type' => 'integer'],
+                'tag' => ['type' => 'string', 'max' => 100],
+                'require_interaction' => ['type' => 'boolean'],
+                'silent' => ['type' => 'boolean'],
+                'vibrate' => ['type' => 'array'],
             ]);
 
-            if ($validator->fails()) {
-                return [
-                    'success' => false,
-                    'error' => 'Validation failed',
-                    'errors' => $validator->errors()->toArray(),
-                ];
+            if (!$validation['success']) {
+                return $this->errorResponse('Validation failed', $validation['errors']);
             }
 
-            $results = $this->webPushService->sendToUsers(
+            $result = $this->webPushService->sendToUsers(
                 $params['user_ids'],
                 $params['title'],
                 $params['body'],
                 $params
             );
 
-            return [
-                'success' => true,
-                'data' => $results,
-            ];
+            return $this->successResponse($result, 'Web push notifications sent successfully');
 
-        } catch (\Exception $e) {
-            Log::error('WebPush sendToUsers failed', [
+        } catch (Exception $e) {
+            $this->log('error', 'WebPush sendToUsers failed', [
                 'params' => $params,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
+            return $this->errorResponse('Web push notifications failed: ' . $e->getMessage());
         }
     }
 
@@ -165,32 +144,27 @@ class WebPushNotificationProcedure extends Procedure
     public function sendToAll(array $params): array
     {
         try {
-            $validator = Validator::make($params, [
-                'title' => 'required|string|max:255',
-                'body' => 'required|string|max:1000',
-                'icon' => 'nullable|string|url',
-                'badge' => 'nullable|string|url',
-                'image' => 'nullable|string|url',
-                'url' => 'nullable|string|url',
-                'data' => 'nullable|array',
-                'actions' => 'nullable|array',
-                'category' => 'nullable|string|in:order,bid,payment,auction,system',
-                'urgency' => 'nullable|string|in:very-low,low,normal,high',
-                'ttl' => 'nullable|integer|min:0',
-                'tag' => 'nullable|string|max:100',
-                'require_interaction' => 'nullable|boolean',
-                'silent' => 'nullable|boolean',
-                'vibrate' => 'nullable|array',
-                'device_types' => 'nullable|array',
-                'device_types.*' => 'string|in:mobile,desktop,tablet',
+            $validation = $this->validateParams($params, [
+                'title' => ['required' => true, 'type' => 'string', 'max' => 255],
+                'body' => ['required' => true, 'type' => 'string', 'max' => 1000],
+                'icon' => ['type' => 'url'],
+                'badge' => ['type' => 'url'],
+                'image' => ['type' => 'url'],
+                'url' => ['type' => 'url'],
+                'data' => ['type' => 'array'],
+                'actions' => ['type' => 'array'],
+                'category' => ['type' => 'string'],
+                'urgency' => ['type' => 'string'],
+                'ttl' => ['type' => 'integer'],
+                'tag' => ['type' => 'string', 'max' => 100],
+                'require_interaction' => ['type' => 'boolean'],
+                'silent' => ['type' => 'boolean'],
+                'vibrate' => ['type' => 'array'],
+                'device_types' => ['type' => 'array'],
             ]);
 
-            if ($validator->fails()) {
-                return [
-                    'success' => false,
-                    'error' => 'Validation failed',
-                    'errors' => $validator->errors()->toArray(),
-                ];
+            if (!$validation['success']) {
+                return $this->errorResponse('Validation failed', $validation['errors']);
             }
 
             $result = $this->webPushService->sendToAll(
@@ -199,22 +173,16 @@ class WebPushNotificationProcedure extends Procedure
                 $params
             );
 
-            return [
-                'success' => true,
-                'data' => $result,
-            ];
+            return $this->successResponse($result, 'Web push broadcast sent successfully');
 
-        } catch (\Exception $e) {
-            Log::error('WebPush sendToAll failed', [
+        } catch (Exception $e) {
+            $this->log('error', 'WebPush sendToAll failed', [
                 'params' => $params,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
+            return $this->errorResponse('Web push broadcast failed: ' . $e->getMessage());
         }
     }
 
@@ -227,49 +195,41 @@ class WebPushNotificationProcedure extends Procedure
     public function subscribe(array $params): array
     {
         try {
-            $validator = Validator::make($params, [
-                'user_id' => 'required|integer',
-                'endpoint' => 'required|string|url',
-                'public_key' => 'required|string',
-                'auth_token' => 'required|string',
-                'content_encoding' => 'nullable|string',
-                'user_agent' => 'nullable|string',
-                'device_type' => 'nullable|string|in:mobile,desktop,tablet',
-                'browser' => 'nullable|string',
-                'platform' => 'nullable|string',
-                'notification_preferences' => 'nullable|array',
+            $validation = $this->validateParams($params, [
+                'user_id' => ['required' => true, 'type' => 'integer'],
+                'endpoint' => ['required' => true, 'type' => 'string'],
+                'public_key' => ['required' => true, 'type' => 'string'],
+                'auth_token' => ['required' => true, 'type' => 'string'],
+                'content_encoding' => ['type' => 'string'],
+                'user_agent' => ['type' => 'string'],
+                'device_type' => ['type' => 'string'],
+                'browser' => ['type' => 'string'],
+                'platform' => ['type' => 'string'],
+                'notification_preferences' => ['type' => 'array'],
             ]);
 
-            if ($validator->fails()) {
-                return [
-                    'success' => false,
-                    'error' => 'Validation failed',
-                    'errors' => $validator->errors()->toArray(),
-                ];
+            if (!$validation['success']) {
+                return $this->errorResponse('Validation failed', $validation['errors']);
             }
 
-            $subscription = $this->webPushService->subscribe($params);
+            $result = $this->webPushService->subscribe(
+                $params['user_id'],
+                $params['endpoint'],
+                $params['public_key'],
+                $params['auth_token'],
+                $params
+            );
 
-            return [
-                'success' => true,
-                'data' => [
-                    'subscription_id' => $subscription->id,
-                    'is_active' => $subscription->is_active,
-                    'created_at' => $subscription->created_at,
-                ],
-            ];
+            return $this->successResponse($result, 'Web push subscription created successfully');
 
-        } catch (\Exception $e) {
-            Log::error('WebPush subscribe failed', [
+        } catch (Exception $e) {
+            $this->log('error', 'WebPush subscribe failed', [
                 'params' => $params,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
+            return $this->errorResponse('Web push subscription failed: ' . $e->getMessage());
         }
     }
 
@@ -282,17 +242,13 @@ class WebPushNotificationProcedure extends Procedure
     public function unsubscribe(array $params): array
     {
         try {
-            $validator = Validator::make($params, [
-                'user_id' => 'required|integer',
-                'endpoint' => 'required|string|url',
+            $validation = $this->validateParams($params, [
+                'user_id' => ['required' => true, 'type' => 'integer'],
+                'endpoint' => ['required' => true, 'type' => 'string'],
             ]);
 
-            if ($validator->fails()) {
-                return [
-                    'success' => false,
-                    'error' => 'Validation failed',
-                    'errors' => $validator->errors()->toArray(),
-                ];
+            if (!$validation['success']) {
+                return $this->errorResponse('Validation failed', $validation['errors']);
             }
 
             $result = $this->webPushService->unsubscribe(
@@ -300,29 +256,21 @@ class WebPushNotificationProcedure extends Procedure
                 $params['endpoint']
             );
 
-            return [
-                'success' => true,
-                'data' => [
-                    'unsubscribed' => $result,
-                ],
-            ];
+            return $this->successResponse($result, 'Web push unsubscription successful');
 
-        } catch (\Exception $e) {
-            Log::error('WebPush unsubscribe failed', [
+        } catch (Exception $e) {
+            $this->log('error', 'WebPush unsubscribe failed', [
                 'params' => $params,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
+            return $this->errorResponse('Web push unsubscription failed: ' . $e->getMessage());
         }
     }
 
     /**
-     * Get user's push subscriptions.
+     * Get user's web push subscriptions.
      * 
      * @param array $params
      * @return array
@@ -330,49 +278,30 @@ class WebPushNotificationProcedure extends Procedure
     public function getUserSubscriptions(array $params): array
     {
         try {
-            $validator = Validator::make($params, [
-                'user_id' => 'required|integer',
-                'active_only' => 'nullable|boolean',
+            $validation = $this->validateParams($params, [
+                'user_id' => ['required' => true, 'type' => 'integer'],
+                'active_only' => ['type' => 'boolean'],
             ]);
 
-            if ($validator->fails()) {
-                return [
-                    'success' => false,
-                    'error' => 'Validation failed',
-                    'errors' => $validator->errors()->toArray(),
-                ];
+            if (!$validation['success']) {
+                return $this->errorResponse('Validation failed', $validation['errors']);
             }
 
-            $subscriptions = $this->webPushService->getUserSubscriptions(
+            $result = $this->webPushService->getUserSubscriptions(
                 $params['user_id'],
                 $params['active_only'] ?? true
             );
 
-            return [
-                'success' => true,
-                'data' => $subscriptions->map(function ($subscription) {
-                    return [
-                        'id' => $subscription->id,
-                        'endpoint' => $subscription->endpoint,
-                        'device_info' => $subscription->device_info,
-                        'is_active' => $subscription->is_active,
-                        'last_used_at' => $subscription->last_used_at,
-                        'created_at' => $subscription->created_at,
-                    ];
-                }),
-            ];
+            return $this->successResponse($result, 'User subscriptions retrieved successfully');
 
-        } catch (\Exception $e) {
-            Log::error('WebPush getUserSubscriptions failed', [
+        } catch (Exception $e) {
+            $this->log('error', 'WebPush getUserSubscriptions failed', [
                 'params' => $params,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
+            return $this->errorResponse('Failed to get user subscriptions: ' . $e->getMessage());
         }
     }
 
@@ -385,23 +314,17 @@ class WebPushNotificationProcedure extends Procedure
     public function getStatistics(array $params = []): array
     {
         try {
-            $stats = PushSubscription::getStatistics();
+            $result = PushSubscription::getStatistics();
 
-            return [
-                'success' => true,
-                'data' => $stats,
-            ];
+            return $this->successResponse($result, 'Web push statistics retrieved successfully');
 
-        } catch (\Exception $e) {
-            Log::error('WebPush getStatistics failed', [
+        } catch (Exception $e) {
+            $this->log('error', 'WebPush getStatistics failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
+            return $this->errorResponse('Failed to get statistics: ' . $e->getMessage());
         }
     }
 
@@ -414,25 +337,17 @@ class WebPushNotificationProcedure extends Procedure
     public function cleanupExpired(array $params = []): array
     {
         try {
-            $deletedCount = PushSubscription::cleanupExpired();
+            $result = PushSubscription::cleanupExpired();
 
-            return [
-                'success' => true,
-                'data' => [
-                    'deleted_count' => $deletedCount,
-                ],
-            ];
+            return $this->successResponse($result, 'Expired subscriptions cleaned up successfully');
 
-        } catch (\Exception $e) {
-            Log::error('WebPush cleanupExpired failed', [
+        } catch (Exception $e) {
+            $this->log('error', 'WebPush cleanupExpired failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
+            return $this->errorResponse('Failed to cleanup expired subscriptions: ' . $e->getMessage());
         }
     }
 }
