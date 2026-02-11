@@ -16,6 +16,7 @@
         "laravel/telescope": "^5.2",
         "spatie/laravel-medialibrary": "^11.9",
         "spatie/laravel-permission": "^6.9",
+        "spatie/laravel-activitylog": "^4.8",
         "intervention/image": "^3.8",
         "sajya/server": "^7.0",
         "sajya/client": "^1.4"

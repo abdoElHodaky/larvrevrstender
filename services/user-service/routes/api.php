@@ -61,6 +61,18 @@ Route::middleware('service.auth')->group(function () {
 
     // Bulk user operations
     Route::post('/users/search', [App\Http\Controllers\UserController::class, 'getUsersByCriteria']);
+
+    // Activity management routes
+    Route::prefix('activities')->group(function () {
+        Route::get('/', [App\Http\Controllers\ActivityController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\ActivityController::class, 'store']);
+        Route::post('/bulk', [App\Http\Controllers\ActivityController::class, 'bulkStore']);
+        Route::get('/{activityId}', [App\Http\Controllers\ActivityController::class, 'show']);
+        Route::delete('/{activityId}', [App\Http\Controllers\ActivityController::class, 'destroy']);
+        Route::get('/user/{userId}', [App\Http\Controllers\ActivityController::class, 'getUserActivities']);
+        Route::get('/user/{userId}/stats', [App\Http\Controllers\ActivityController::class, 'getUserActivityStats']);
+        Route::post('/subject', [App\Http\Controllers\ActivityController::class, 'getSubjectActivities']);
+    });
 });
 
 // External API Routes (Protected by Sanctum)

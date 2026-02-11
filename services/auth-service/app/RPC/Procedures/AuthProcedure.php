@@ -2,9 +2,9 @@
 
 namespace App\RPC\Procedures;
 
-use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\UserController;
+use App\Services\Shared\ActivityRpcService;
+use Illuminate\Support\Facades\Http;
 use App\RPC\BaseProcedure;
 use App\RPC\Procedures\Micro\SessionAnalyticsProcedure;
 use App\RPC\Procedures\Micro\SessionManagementProcedure;
@@ -16,6 +16,10 @@ use Illuminate\Support\Facades\Log;
 class AuthProcedure extends BaseProcedure
 {
     use SessionAnalyticsProcedure, SessionManagementProcedure, SessionSecurityProcedure, SessionValidationProcedure;
+
+    public function __construct(
+        private ActivityRpcService $activityRpcService
+    ) {}
 
     /**
      * Validate authentication token
@@ -249,12 +253,29 @@ class AuthProcedure extends BaseProcedure
                 'user_id' => 'required|integer',
             ]);
 
-            $controller = new UserController;
-            $result = $controller->show($params['user_id']);
+            // Call user-service RPC to get user information
+            $userServiceUrl = config('services.user_service.url', 'http://user-service:8000');
+            $response = Http::timeout(30)->post($userServiceUrl . '/rpc', [
+                'jsonrpc' => '2.0',
+                'method' => 'user.getUser',
+                'params' => ['user_id' => $params['user_id']],
+                'id' => uniqid()
+            ]);
+
+            if (!$response->successful()) {
+                throw new \Exception("Failed to get user from user-service: " . $response->status());
+            }
+
+            $data = $response->json();
+            if (isset($data['error'])) {
+                throw new \Exception("User service error: " . $data['error']['message']);
+            }
+
+            $result = $data['result'] ?? [];
 
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
 
-            return $result->getData(true);
+            return $result;
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
         }
@@ -326,12 +347,16 @@ class AuthProcedure extends BaseProcedure
                 'offset' => 'nullable|integer|min:0',
             ]);
 
-            $controller = new ActivityController;
-            $result = $controller->getUserActivities($params['user_id']);
+            $result = $this->activityRpcService->getUserActivities(
+                $params['user_id'],
+                [],
+                $params['limit'] ?? 15,
+                1
+            );
 
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
 
-            return $result->getData(true);
+            return $result;
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
         }
