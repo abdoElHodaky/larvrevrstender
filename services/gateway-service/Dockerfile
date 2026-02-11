@@ -1,7 +1,7 @@
 # Stage 1: Build Stage
 FROM serversideup/php:8.3-frankenphp AS builder
 
-ARG SERVICE_NAME=auction-service
+ARG SERVICE_NAME=gateway-service
 ENV SERVICE_NAME=${SERVICE_NAME}
 
 USER root
@@ -40,7 +40,7 @@ RUN if [ -f "composer.json" ]; then \
 # Stage 2: Production Runtime
 FROM serversideup/php:8.3-frankenphp AS runtime
 
-ARG SERVICE_NAME=auction-service
+ARG SERVICE_NAME=gateway-service
 ENV SERVICE_NAME=${SERVICE_NAME}
 ENV AUTORUN_ENABLED=true
 
@@ -88,7 +88,7 @@ USER www-data
 # Use the serversideup custom entrypoint scripts if needed, 
 # or use a simplified Octane command.
 # We override the CMD to launch Octane via FrankenPHP.
-CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8009"]
+CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000"]
 
-EXPOSE 8009
+EXPOSE 8000
 

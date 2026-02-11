@@ -66,7 +66,7 @@ services:
     image: reversetender/gateway-service:${APP_VERSION:-latest}
     container_name: rt_gateway_service
     ports:
-      - "${GATEWAY_SERVICE_PORT:-8100}:8000"
+      - "${GATEWAY_SERVICE_PORT:-8000}:8000"
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
@@ -97,12 +97,13 @@ services:
       - SERVICE_DISCOVERY_ENABLED=${SERVICE_DISCOVERY_ENABLED:-true}
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth-service:8001}
       - USER_SERVICE_URL=${USER_SERVICE_URL:-http://user-service:8002}
-      - BIDDING_SERVICE_URL=${BIDDING_SERVICE_URL:-http://bidding-service:8002}
-      - ORDER_SERVICE_URL=${ORDER_SERVICE_URL:-http://order-service:8003}
+      - ANALYTICS_SERVICE_URL=${ANALYTICS_SERVICE_URL:-http://analytics-service:8003}
       - PAYMENT_SERVICE_URL=${PAYMENT_SERVICE_URL:-http://payment-service:8004}
-      - ANALYTICS_SERVICE_URL=${ANALYTICS_SERVICE_URL:-http://analytics-service:8005}
-      - VIN_OCR_SERVICE_URL=${VIN_OCR_SERVICE_URL:-http://vin-ocr-service:8006}
-      - NOTIFICATION_SERVICE_URL=${NOTIFICATION_SERVICE_URL:-http://notification-service:8007}
+      - BIDDING_SERVICE_URL=${BIDDING_SERVICE_URL:-http://bidding-service:8005}
+      - NOTIFICATION_SERVICE_URL=${NOTIFICATION_SERVICE_URL:-http://notification-service:8006}
+      - ORDER_SERVICE_URL=${ORDER_SERVICE_URL:-http://order-service:8007}
+      - VIN_OCR_SERVICE_URL=${VIN_OCR_SERVICE_URL:-http://vin-ocr-service:8008}
+      - AUCTION_SERVICE_URL=${AUCTION_SERVICE_URL:-http://auction-service:8009}
       # Laravel Octane Configuration
       - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
       - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
@@ -218,7 +219,7 @@ services:
     image: reversetender/bidding-service:${APP_VERSION:-latest}
     container_name: rt_bidding_service
     ports:
-      - "${BIDDING_SERVICE_PORT:-8002}:8002"
+      - "${BIDDING_SERVICE_PORT:-8005}:8005"
       - "${REVERB_PORT:-8080}:8080"  # Laravel Reverb WebSocket port
     environment:
       - APP_ENV=${APP_ENV:-production}
@@ -272,7 +273,7 @@ services:
           memory: 768M
           cpus: '0.75'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/octane/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8005/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -283,7 +284,7 @@ services:
     image: reversetender/user-service:${APP_VERSION:-latest}
     container_name: rt_user_service
     ports:
-      - "${USER_SERVICE_PORT:-8003}:8003"
+      - "${USER_SERVICE_PORT:-8002}:8002"
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
@@ -334,7 +335,7 @@ services:
           memory: 512M
           cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8003/octane/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8002/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -345,7 +346,7 @@ services:
     image: reversetender/order-service:${APP_VERSION:-latest}
     container_name: rt_order_service
     ports:
-      - "${ORDER_SERVICE_PORT:-8004}:8004"
+      - "${ORDER_SERVICE_PORT:-8007}:8007"
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
@@ -395,7 +396,7 @@ services:
           memory: 512M
           cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8004/octane/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8007/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -406,7 +407,7 @@ services:
     image: reversetender/notification-service:${APP_VERSION:-latest}
     container_name: rt_notification_service
     ports:
-      - "${NOTIFICATION_SERVICE_PORT:-8005}:8005"
+      - "${NOTIFICATION_SERVICE_PORT:-8006}:8006"
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
@@ -458,7 +459,7 @@ services:
           memory: 512M
           cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8005/octane/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8006/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -609,7 +610,7 @@ services:
     image: reversetender/analytics-service:${APP_VERSION:-latest}
     container_name: rt_analytics_service
     ports:
-      - "${ANALYTICS_SERVICE_PORT:-8007}:8007"
+      - "${ANALYTICS_SERVICE_PORT:-8003}:8003"
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
@@ -655,7 +656,7 @@ services:
           memory: 512M
           cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8007/octane/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8003/octane/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -719,6 +720,194 @@ services:
           cpus: '0.75'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8008/octane/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Auction Service - Auction management
+  auction-service:
+    image: reversetender/auction-service:${APP_VERSION:-latest}
+    container_name: rt_auction_service
+    ports:
+      - "${AUCTION_SERVICE_PORT:-8009}:8009"
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      # Neon PostgreSQL Configuration
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - DB_HOST=${NEON_DB_HOST}
+      - DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender_auctions}
+      - DB_USERNAME=${NEON_DB_USERNAME}
+      - DB_PASSWORD=${NEON_DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - CACHE_DRIVER=redis
+      # RPC Configuration
+      - RPC_ENABLED=${RPC_ENABLED:-true}
+      - RPC_PORT=${AUCTION_SERVICE_PORT:-8009}
+      - GATEWAY_SERVICE_URL=${GATEWAY_SERVICE_URL:-http://gateway-service:8000}
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=${CIRCUIT_BREAKER_ENABLED:-true}
+      # Third-party Integration
+      - INTEGRATION_ENABLED=${INTEGRATION_ENABLED:-true}
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
+      - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
+      - OCTANE_WORKERS=${OCTANE_WORKERS:-4}
+      - OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS:-6}
+      - OCTANE_MAX_REQUESTS=${OCTANE_MAX_REQUESTS:-500}
+      - OCTANE_MEMORY_LIMIT=${OCTANE_MEMORY_LIMIT:-512M}
+      # FrankenPHP Configuration
+      - FRANKENPHP_WORKER_MODE=${FRANKENPHP_WORKER_MODE:-true}
+      - FRANKENPHP_NUM_THREADS=${FRANKENPHP_NUM_THREADS:-4}
+      # Performance Optimization
+      - PHP_OPCACHE_ENABLE=${PHP_OPCACHE_ENABLE:-1}
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=${PHP_OPCACHE_MEMORY_CONSUMPTION:-256}
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
+    volumes:
+      - ./logs/auction-service:/var/www/storage/logs
+      - ./config/frankenphp:/etc/frankenphp:ro
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - redis-primary
+      - gateway-service
+      # mysql-primary removed - using cloud-managed Neon PostgreSQL
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8009/octane/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Shared Service - Cross-Service Infrastructure
+  shared-service:
+    image: reversetender/shared-service:${APP_VERSION:-latest}
+    container_name: rt_shared_service
+    ports:
+      - "${SHARED_SERVICE_PORT:-8010}:8010"
+    environment:
+      # Neon PostgreSQL Cloud Database
+      - DATABASE_URL=${DATABASE_URL}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      # Upstash Redis Configuration
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # Shared Service Configuration
+      - SHARED_SERVICE_NAME=shared-service
+      - SHARED_SERVICE_PORT=8010
+      - SHARED_SERVICE_HOST=0.0.0.0
+      - SHARED_SERVICE_TIMEOUT=30
+      # Procedure Engine Configuration
+      - PROCEDURE_ENGINE_ENABLED=true
+      - PROCEDURE_MAX_EXECUTION_TIME=300
+      - PROCEDURE_MEMORY_LIMIT=512M
+      - PROCEDURE_LOGGING_ENABLED=true
+      - PROCEDURE_LOG_LEVEL=info
+      - PROCEDURE_LOG_CHANNEL=shared
+      # REST Handler Configuration
+      - REST_HANDLER_ENABLED=true
+      - CORS_ENABLED=true
+      - CORS_ALLOWED_ORIGINS=*
+      - CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
+      - CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-Requested-With
+      - RATE_LIMITING_ENABLED=true
+      - RATE_LIMIT_MAX_ATTEMPTS=60
+      - RATE_LIMIT_DECAY_MINUTES=1
+      # RPC Handler Configuration
+      - RPC_HANDLER_ENABLED=true
+      - SERVICE_DISCOVERY_ENABLED=true
+      - SERVICE_REGISTRY_URL=http://gateway-service:8000/registry
+      - HEALTH_CHECK_INTERVAL=30
+      - SERVICE_DISCOVERY_TIMEOUT=5
+      # Caching Configuration
+      - SHARED_CACHE_ENABLED=true
+      - SHARED_CACHE_DRIVER=redis
+      - SHARED_CACHE_PREFIX=shared:
+      - SHARED_CACHE_TTL=3600
+      - CACHE_COMPRESSION_ENABLED=true
+      - CACHE_COMPRESSION_ALGORITHM=gzip
+      # Event Publishing Configuration
+      - EVENT_PUBLISHING_ENABLED=true
+      - EVENT_DRIVER=redis
+      - EVENT_DEFAULT_CHANNEL=shared-events
+      - EVENT_AUDIT_CHANNEL=audit-events
+      - EVENT_METRICS_CHANNEL=metrics-events
+      - EVENT_RETRY_ENABLED=true
+      - EVENT_MAX_RETRY_ATTEMPTS=3
+      - EVENT_RETRY_DELAY=1000
+      # Security Configuration
+      - SHARED_ENCRYPTION_ENABLED=true
+      - SHARED_ENCRYPTION_ALGORITHM=AES-256-GCM
+      - SHARED_AUTH_ENABLED=true
+      - SHARED_AUTH_DRIVER=jwt
+      - SECURITY_RATE_LIMITING_ENABLED=true
+      - SECURITY_MAX_REQUESTS=1000
+      - SECURITY_WINDOW_MINUTES=60
+      # Monitoring Configuration
+      - METRICS_ENABLED=true
+      - METRICS_DRIVER=prometheus
+      - METRICS_ENDPOINT=/metrics
+      - TRACING_ENABLED=true
+      - TRACING_DRIVER=jaeger
+      - TRACING_SERVICE_NAME=shared-service
+      - HEALTH_CHECKS_ENABLED=true
+      - HEALTH_CHECK_ENDPOINT=/health
+      - HEALTH_CHECK_TIMEOUT=5
+      # Circuit Breaker Configuration
+      - CIRCUIT_BREAKER_ENABLED=true
+      - CIRCUIT_BREAKER_FAILURE_THRESHOLD=5
+      - CIRCUIT_BREAKER_RECOVERY_TIMEOUT=60
+      # Laravel Octane Configuration
+      - OCTANE_SERVER=frankenphp
+      - OCTANE_WORKERS=4
+      - OCTANE_TASK_WORKERS=6
+      - OCTANE_MAX_REQUESTS=500
+      - OCTANE_MEMORY_LIMIT=512M
+      # FrankenPHP Configuration
+      - FRANKENPHP_WORKER_MODE=true
+      - FRANKENPHP_NUM_THREADS=4
+      # PHP Opcache Configuration
+      - PHP_OPCACHE_ENABLE=1
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=256
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=20000
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
+    volumes:
+      - ./logs/shared-service:/var/www/storage/logs
+      - ./config/frankenphp:/etc/frankenphp:ro
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - redis-primary
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8010/health"]
       interval: 30s
       timeout: 10s
       retries: 3

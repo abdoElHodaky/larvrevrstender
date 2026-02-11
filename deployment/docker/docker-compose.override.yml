@@ -56,7 +56,7 @@ services:
       - ../../services/bidding-service:/var/www:cached
       - ./logs/bidding-service:/var/www/storage/logs
     ports:
-      - "8002:8002"
+      - "8005:8005"
       - "8080:8080"
 
   # User Service - Development configuration
@@ -70,7 +70,7 @@ services:
       - ../../services/user-service:/var/www:cached
       - ./logs/user-service:/var/www/storage/logs
     ports:
-      - "8003:8003"
+      - "8002:8002"
 
   # Order Service - Development configuration
   order-service:
@@ -83,7 +83,7 @@ services:
       - ../../services/order-service:/var/www:cached
       - ./logs/order-service:/var/www/storage/logs
     ports:
-      - "8004:8004"
+      - "8007:8007"
 
   # Notification Service - Development configuration
   notification-service:
@@ -96,7 +96,7 @@ services:
       - ../../services/notification-service:/var/www:cached
       - ./logs/notification-service:/var/www/storage/logs
     ports:
-      - "8005:8005"
+      - "8006:8006"
 
   # Payment Service - Development configuration
   payment-service:
@@ -143,7 +143,7 @@ services:
       - ../../services/analytics-service:/var/www:cached
       - ./logs/analytics-service:/var/www/storage/logs
     ports:
-      - "8007:8007"
+      - "8003:8003"
 
   # VIN OCR Service - Development configuration
   vin-ocr-service:
@@ -157,6 +157,32 @@ services:
       - ./logs/vin-ocr-service:/var/www/storage/logs
     ports:
       - "8008:8008"
+
+  # Auction Service - Development configuration
+  auction-service:
+    environment:
+      <<: *octane-dev-env
+      APP_ENV: local
+      APP_DEBUG: true
+      LOG_LEVEL: debug
+    volumes:
+      - ../../services/auction-service:/var/www:cached
+      - ./logs/auction-service:/var/www/storage/logs
+    ports:
+      - "8009:8009"
+
+  # Shared Service - Development configuration
+  shared-service:
+    environment:
+      <<: *octane-dev-env
+      APP_ENV: local
+      APP_DEBUG: true
+      LOG_LEVEL: debug
+    volumes:
+      - ../../services/shared:/var/www:cached
+      - ./logs/shared-service:/var/www/storage/logs
+    ports:
+      - "8010:8010"
 
   # Note: PostgreSQL and Redis are now external services
   # PostgreSQL: Use managed PostgreSQL instance
