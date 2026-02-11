@@ -1,97 +1,165 @@
-FROM dunglas/frankenphp:php8.3
+# Stage 1: Build Stage for Auth Service
+FROM serversideup/php:8.3-frankenphp AS builder
 
-# Set working directory
-WORKDIR /app
+ARG SERVICE_NAME=auth-service
+ENV SERVICE_NAME=${SERVICE_NAME}
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libzip-dev \
-    zip \
+USER root
+
+# Install build-only dependencies including auth-specific requirements
+RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
-    libfreetype6-dev \
-    libjpeg62-turbo-dev \
-    libmcrypt-dev \
-    libgd-dev \
-    jpegoptim optipng pngquant gifsicle \
+    libpng-dev \
+    libzip-dev \
     libpq-dev \
-    supervisor \
-    cron \
+    libicu-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libonig-dev \
+    libsodium-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install \
-        pdo_mysql \
-        pdo_pgsql \
-        mbstring \
-        exif \
-        pcntl \
-        bcmath \
-        gd \
-        zip \
-        intl \
-        opcache
+# Install PHP extensions needed for authentication processing
+RUN docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    pdo_pgsql \
+    pcntl \
+    bcmath \
+    gd \
+    zip \
+    intl \
+    exif \
+    xml \
+    curl \
+    mbstring \
+    sodium \
+    sockets
+
+# Install additional PHP extensions for auth security
+RUN pecl install \
+    redis \
+    && docker-php-ext-enable redis
+
+WORKDIR /var/www/html
+
+# Copy application and shared procedures
+COPY --chown=www-data:www-data . ./
+COPY --chown=www-data:www-data ../shared ./shared
+
+# Install Composer dependencies with auth-specific optimizations
+RUN if [ -f "composer.json" ]; then \
+        composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --classmap-authoritative; \
+    fi
+
+# Stage 2: Production Runtime for Auth Service
+FROM serversideup/php:8.3-frankenphp AS runtime
+
+ARG SERVICE_NAME=auth-service
+ENV SERVICE_NAME=${SERVICE_NAME}
+ENV AUTORUN_ENABLED=true
+
+# Auth Service Specific Environment Variables
+ENV PHP_OPCACHE_ENABLE=1
+ENV PHP_OPCACHE_MEMORY_CONSUMPTION=256
+ENV PHP_OPCACHE_MAX_ACCELERATED_FILES=20000
+ENV PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
+ENV PHP_OPCACHE_REVALIDATE_FREQ=0
+ENV PHP_OPCACHE_SAVE_COMMENTS=0
+ENV PHP_OPCACHE_ENABLE_FILE_OVERRIDE=1
+
+# FrankenPHP optimizations for auth processing
+ENV FRANKENPHP_WORKER_MODE=true
+ENV FRANKENPHP_NUM_THREADS=4
+ENV FRANKENPHP_MAX_REQUESTS=500
+
+# Laravel Octane optimizations for auth service
+ENV OCTANE_WORKERS=4
+ENV OCTANE_TASK_WORKERS=6
+ENV OCTANE_MAX_REQUESTS=500
+ENV OCTANE_MEMORY_LIMIT=512M
+
+USER root
+
+# Install runtime-only system dependencies for auth processing
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    libpq-dev \
+    libicu-dev \
+    libxml2 \
+    libcurl4 \
+    libssl3 \
+    libsodium23 \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* && apt-get clean
+
+# Re-install PHP extensions for auth processing
+RUN docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    pdo_pgsql \
+    pcntl \
+    bcmath \
+    intl \
+    exif \
+    xml \
+    curl \
+    mbstring \
+    sodium \
+    sockets \
+    && docker-php-ext-enable opcache
 
 # Install Redis extension
-RUN pecl install redis && docker-php-ext-enable redis
+RUN (pecl install redis || echo "Redis already installed") && docker-php-ext-enable redis
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+WORKDIR /var/www/html
 
-# Copy application files
-COPY . /app
+# Copy optimized application from builder
+COPY --from=builder --chown=www-data:www-data /var/www/html ./
 
-# Set permissions
-RUN chown -R www-data:www-data /app \
-    && chmod -R 755 /app \
-    && chmod -R 775 /app/storage \
-    && chmod -R 775 /app/bootstrap/cache
+# Create auth-specific directories and set permissions
+RUN mkdir -p \
+    storage/framework/{cache,sessions,views} \
+    storage/logs \
+    storage/app/{public,private,temp} \
+    storage/auth/{tokens,sessions,logs} \
+    bootstrap/cache \
+    config/auth \
+    && chown -R www-data:www-data storage bootstrap/cache config \
+    && chmod -R 775 storage bootstrap/cache \
+    && chmod -R 755 config
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Security hardening for auth service
+RUN echo "expose_php = Off" >> /usr/local/etc/php/conf.d/security.ini \
+    && echo "display_errors = Off" >> /usr/local/etc/php/conf.d/security.ini \
+    && echo "log_errors = On" >> /usr/local/etc/php/conf.d/security.ini \
+    && echo "error_log = /var/www/storage/logs/php_errors.log" >> /usr/local/etc/php/conf.d/security.ini
 
-# Configure PHP for production
-RUN echo "memory_limit=512M" > /usr/local/etc/php/conf.d/memory-limit.ini \
-    && echo "upload_max_filesize=100M" > /usr/local/etc/php/conf.d/upload.ini \
-    && echo "post_max_size=100M" >> /usr/local/etc/php/conf.d/upload.ini \
-    && echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/upload.ini \
-    && echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.max_accelerated_files=20000" >> /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini
+# Auth service specific PHP configuration
+RUN echo "memory_limit = 512M" >> /usr/local/etc/php/conf.d/auth.ini \
+    && echo "max_execution_time = 120" >> /usr/local/etc/php/conf.d/auth.ini \
+    && echo "max_input_time = 120" >> /usr/local/etc/php/conf.d/auth.ini \
+    && echo "post_max_size = 10M" >> /usr/local/etc/php/conf.d/auth.ini \
+    && echo "upload_max_filesize = 10M" >> /usr/local/etc/php/conf.d/auth.ini \
+    && echo "max_file_uploads = 10" >> /usr/local/etc/php/conf.d/auth.ini
 
-# Create startup script
-RUN echo '#!/bin/bash\n\
-# Ensure .env exists\n\
-if [ ! -f .env ]; then\n\
-    cp .env.example .env\n\
-    php artisan key:generate\n\
-fi\n\
-\n\
-# Cache configuration for better performance\n\
-php artisan config:cache\n\
-php artisan route:cache\n\
-php artisan view:cache\n\
-\n\
-# Run migrations\n\
-php artisan migrate --force\n\
-\n\
-# Start Octane with FrankenPHP\n\
-exec php artisan octane:frankenphp --host=0.0.0.0 --port=8000 --workers=${OCTANE_WORKERS:-4} --max-requests=${OCTANE_MAX_REQUESTS:-500}' > /usr/local/bin/start-octane.sh
+# Switch to non-root user for security
+USER www-data
 
-RUN chmod +x /usr/local/bin/start-octane.sh
+# Auth service startup command with Octane FrankenPHP
+CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8001", "--workers=4", "--task-workers=6", "--max-requests=500"]
 
-# Expose port
-EXPOSE 8000
+EXPOSE 8001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/up || exit 1
+# Health check for auth service
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+    CMD curl -f http://localhost:8001/octane/health || exit 1
 
-# Start the application with Octane
-CMD ["/usr/local/bin/start-octane.sh"]
+# Labels for auth service
+LABEL maintainer="Reverse Tender Platform <dev@reversetender.com>"
+LABEL service="auth-service"
+LABEL version="1.0.0"
+LABEL description="Authentication and Authorization Service with Enhanced Security"
+LABEL security.scan="enabled"
+LABEL compliance.required="true"
+
