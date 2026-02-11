@@ -77,11 +77,6 @@ trait QueueCircuitBreakerProcedure
                 if ($serviceName) {
                     $job->setServiceName($serviceName);
                 }
-                
-                $job->setContext(array_merge($context, [
-                    'dispatched_at' => now()->toISOString(),
-                    'trace_id' => $context['trace_id'] ?? null
-                ]));
 
                 // Set queue name
                 if ($queueName !== 'default') {
@@ -475,4 +470,3 @@ trait QueueCircuitBreakerProcedure
         return $states;
     }
 }
-
