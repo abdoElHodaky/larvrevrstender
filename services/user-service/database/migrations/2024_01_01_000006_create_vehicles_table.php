@@ -18,8 +18,8 @@ return new class extends Migration
             $table->unsignedBigInteger('model_id');
             $table->unsignedBigInteger('trim_id')->nullable();
             $table->integer('year');
-            $table->string('vin', 17)->unique()->nullable()->index();
-            $table->boolean('is_primary')->default(false)->index();
+            $table->string('vin', 17)->unique()->nullable();
+            $table->boolean('is_primary')->default(false);
             $table->string('custom_name')->nullable();
             $table->integer('mileage')->nullable();
             $table->string('engine_type', 100)->nullable();

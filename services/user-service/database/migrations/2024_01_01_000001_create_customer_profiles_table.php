@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('customer_profiles', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->unique();
-            $table->string('national_id', 20)->nullable()->index(); // Saudi National ID for ZATCA
+            $table->string('national_id', 20)->nullable(); // Saudi National ID for ZATCA
             $table->text('national_address')->nullable();
             $table->json('default_location')->nullable(); // GPS coordinates, address details
             $table->json('preferences')->nullable(); // Notification preferences, language, etc.

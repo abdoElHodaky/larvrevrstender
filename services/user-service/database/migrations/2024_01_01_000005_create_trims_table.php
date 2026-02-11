@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('trims', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('model_id');
-            $table->string('name')->index();
+            $table->string('name');
             $table->string('engine_type', 100)->nullable();
             $table->string('transmission_type', 100)->nullable();
             $table->string('fuel_type', 50)->nullable();
