@@ -4,6 +4,8 @@ namespace App\RPC\Procedures;
 
 use App\Http\Controllers\AuctionController;
 use App\Http\Controllers\BiddingController;
+use App\Http\Clients\AuthServiceClient;
+use App\Http\Clients\BiddingServiceClient;
 use App\RPC\BaseProcedure;
 use Illuminate\Http\Request;
 
@@ -25,7 +27,7 @@ class BiddingProcedure extends BaseProcedure
                 'notes' => 'nullable|string|max:1000',
             ]);
 
-            $controller = new BiddingController;
+            $controller = $this->createBiddingController();
             $request = new Request($params);
 
             $result = $controller->placeBid($request);
@@ -50,7 +52,7 @@ class BiddingProcedure extends BaseProcedure
                 'bid_id' => 'required|integer',
             ]);
 
-            $controller = new BiddingController;
+            $controller = $this->createBiddingController();
             $result = $controller->getBid($params['bid_id']);
 
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
@@ -76,7 +78,7 @@ class BiddingProcedure extends BaseProcedure
                 'offset' => 'nullable|integer|min:0',
             ]);
 
-            $controller = new BiddingController;
+            $controller = $this->createBiddingController();
             $result = $controller->getUserBids($params['user_id']);
 
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
@@ -102,7 +104,7 @@ class BiddingProcedure extends BaseProcedure
                 'offset' => 'nullable|integer|min:0',
             ]);
 
-            $controller = new BiddingController;
+            $controller = $this->createBiddingController();
             $result = $controller->getAuctionBids($params['auction_id']);
 
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
@@ -127,7 +129,7 @@ class BiddingProcedure extends BaseProcedure
                 'reason' => 'nullable|string|max:500',
             ]);
 
-            $controller = new BiddingController;
+            $controller = $this->createBiddingController();
             $request = new Request([
                 'status' => $params['status'],
                 'reason' => $params['reason'] ?? null,
@@ -163,7 +165,7 @@ class BiddingProcedure extends BaseProcedure
                 'user_id' => 'required|integer',
             ]);
 
-            $controller = new AuctionController;
+            $controller = $this->createAuctionController();
             $request = new Request($params);
 
             $result = $controller->store($request);
@@ -188,7 +190,7 @@ class BiddingProcedure extends BaseProcedure
                 'auction_id' => 'required|integer',
             ]);
 
-            $controller = new AuctionController;
+            $controller = $this->createAuctionController();
             $result = $controller->show($params['auction_id']);
 
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
@@ -216,7 +218,7 @@ class BiddingProcedure extends BaseProcedure
                 'end_time' => 'nullable|date',
             ]);
 
-            $controller = new AuctionController;
+            $controller = $this->createAuctionController();
             $request = new Request($params);
 
             $result = $controller->update($request, $params['auction_id']);
@@ -242,7 +244,7 @@ class BiddingProcedure extends BaseProcedure
                 'reason' => 'nullable|string|max:500',
             ]);
 
-            $controller = new AuctionController;
+            $controller = $this->createAuctionController();
             $request = new Request(['reason' => $params['reason'] ?? null]);
 
             $result = $controller->close($request, $params['auction_id']);
@@ -267,7 +269,7 @@ class BiddingProcedure extends BaseProcedure
                 'auction_id' => 'required|integer',
             ]);
 
-            $controller = new AuctionController;
+            $controller = $this->createAuctionController();
             $auction = $controller->show($params['auction_id']);
             $auctionData = $auction->getData(true);
 
@@ -300,7 +302,7 @@ class BiddingProcedure extends BaseProcedure
                 'offset' => 'nullable|integer|min:0',
             ]);
 
-            $controller = new AuctionController;
+            $controller = $this->createAuctionController();
             $result = $controller->getBids($params['auction_id']);
 
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
@@ -324,7 +326,7 @@ class BiddingProcedure extends BaseProcedure
                 'reason' => 'nullable|string|max:500',
             ]);
 
-            $controller = new BiddingController;
+            $controller = $this->createBiddingController();
             $request = new Request(['reason' => $params['reason'] ?? null]);
 
             $result = $controller->cancel($request, $params['bid_id']);
@@ -338,5 +340,26 @@ class BiddingProcedure extends BaseProcedure
         } catch (\Exception $e) {
             $this->handleError($e, __METHOD__, $params);
         }
+    }
+
+    /**
+     * Create BiddingController instance with proper dependency injection
+     */
+    private function createBiddingController(): BiddingController
+    {
+        $biddingServiceClient = app(BiddingServiceClient::class);
+        $authServiceClient = app(AuthServiceClient::class);
+        
+        return new BiddingController($biddingServiceClient, $authServiceClient);
+    }
+
+    /**
+     * Create AuctionController instance with proper dependency injection
+     */
+    private function createAuctionController(): AuctionController
+    {
+        $authServiceClient = app(AuthServiceClient::class);
+        
+        return new AuctionController($authServiceClient);
     }
 }
