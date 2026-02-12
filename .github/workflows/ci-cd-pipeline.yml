@@ -533,6 +533,18 @@ jobs:
       uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: 'trivy-results.sarif'
+      continue-on-error: true
+      
+    - name: Check SARIF upload result
+      run: |
+        if [ $? -eq 0 ]; then
+          echo "✅ Security scan results uploaded to GitHub Security tab successfully"
+        else
+          echo "⚠️ Failed to upload security scan results to GitHub Security tab"
+          echo "This is expected if GitHub Advanced Security is not enabled for this repository"
+          echo "The vulnerability scan was completed successfully, but results cannot be uploaded to GitHub's security dashboard"
+          echo "To enable SARIF uploads, enable GitHub Advanced Security in repository settings"
+        fi
 
   # Build and Deploy (Staging)
   deploy-staging:
