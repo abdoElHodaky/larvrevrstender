@@ -1,8 +1,21 @@
-# Terraform Modules for Reverse Tender Platform
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-This directory contains Terraform modules for deploying the Reverse Tender Platform across multiple cloud providers with Gateway API support.
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🏗️ Terraform Modules</span>
 
-## 📁 Module Structure
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Terraform modules for deploying the <strong>Reverse Tender Platform</strong> across multiple cloud providers with Gateway API support and infrastructure as code automation.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Infrastructure Strategy Overview</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
+
+- **🌐 Multi-Cloud Support**: DigitalOcean and Linode infrastructure with cloud-agnostic Gateway API
+- **🏗️ Modular Architecture**: Kubernetes applications, monitoring stack, and common resources modules
+- **🚪 Gateway API Integration**: Cloud-agnostic ingress solution with load balancers and VPC networking
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">🏗️ Complete Infrastructure Modules</summary>
+
+### Module Structure
 
 ```
 modules/
@@ -13,8 +26,6 @@ modules/
 ├── kubernetes/      # Kubernetes applications module
 └── monitoring/      # Monitoring stack module
 ```
-
-## 🌐 Multi-Cloud Support
 
 ### Supported Cloud Providers
 
@@ -35,7 +46,7 @@ cloud_provider = "digitalocean"
 cloud_provider = "linode"
 ```
 
-## 🚪 Gateway API Module
+### Gateway API Module
 
 The Gateway API module provides a cloud-agnostic ingress solution that works with both DigitalOcean and Linode.
 
