@@ -156,7 +156,7 @@ jobs:
       run: |
         if [ -f "composer.json" ]; then
           echo "📦 Installing Composer dependencies for ${{ matrix.service }}..."
-          composer install --prefer-dist --no-progress --no-suggest --optimize-autoloader
+          composer install --prefer-dist --no-progress --optimize-autoloader
           
           # Generate dependency report
           echo "📋 Generating dependency report..."
