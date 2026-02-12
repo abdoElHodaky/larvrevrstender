@@ -45,7 +45,7 @@ WORKDIR /var/www/html
 
 # Copy application and shared procedures
 COPY --chown=www-data:www-data . ./
-COPY --chown=www-data:www-data ../shared ./shared
+# Note: Shared procedures should be included via Composer or proper build context
 
 # Install Composer dependencies with auth-specific optimizations
 RUN if [ -f "composer.json" ]; then \
@@ -162,4 +162,3 @@ LABEL version="1.0.0"
 LABEL description="Authentication and Authorization Service with Enhanced Security"
 LABEL security.scan="enabled"
 LABEL compliance.required="true"
-

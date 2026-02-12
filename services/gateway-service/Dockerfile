@@ -28,9 +28,8 @@ RUN docker-php-ext-install -j$(nproc) \
 
 WORKDIR /var/www/html
 
-# Copy application and shared procedures
+# Copy application files
 COPY --chown=www-data:www-data . ./
-COPY --chown=www-data:www-data ../shared ./shared
 
 # Install Composer dependencies
 RUN if [ -f "composer.json" ]; then \
@@ -91,4 +90,3 @@ USER www-data
 CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000"]
 
 EXPOSE 8000
-

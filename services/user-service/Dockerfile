@@ -30,7 +30,7 @@ WORKDIR /var/www/html
 
 # Copy application and shared procedures
 COPY --chown=www-data:www-data . ./
-COPY --chown=www-data:www-data ../shared ./shared
+# Note: Shared procedures should be included via Composer or proper build context
 
 # Install Composer dependencies
 RUN if [ -f "composer.json" ]; then \
@@ -91,4 +91,3 @@ USER www-data
 CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8002"]
 
 EXPOSE 8002
-
