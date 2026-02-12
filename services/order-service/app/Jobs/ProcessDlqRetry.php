@@ -3,19 +3,17 @@
 namespace App\Jobs;
 
 use App\Services\WorkflowDeadLetterQueue;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
+use Shared\Jobs\BaseQueueJob;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Job for processing dead letter queue retries
+ * Dead Letter Queue Retry Job with Laravel Fuse Circuit Breaker Protection
+ * 
+ * Processes failed workflow activities with circuit breaker protection to prevent
+ * cascade failures and queue worker starvation during DLQ processing issues.
  */
-class ProcessDlqRetry implements ShouldQueue
+class ProcessDlqRetry extends BaseQueueJob
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public string $failureId;
     public array $retryData;
@@ -27,26 +25,45 @@ class ProcessDlqRetry implements ShouldQueue
      */
     public function __construct(string $failureId, array $retryData = [])
     {
+        // Initialize parent with circuit breaker configuration
+        parent::__construct();
+        
         $this->failureId = $failureId;
         $this->retryData = $retryData;
         
         // Set queue based on activity type priority
         $activityType = $retryData['activity_type'] ?? 'unknown';
         $this->onQueue($this->getQueueForActivityType($activityType));
+        
+        // Configure circuit breaker for DLQ retry processing
+        $this->configureCircuitBreaker([
+            'service_name' => 'dlq_retry',
+            'failure_threshold' => 50, // 50% failure rate triggers circuit breaker
+            'timeout' => 60, // 60 seconds timeout for DLQ retry operations
+            'recovery_timeout' => 180, // 3 minutes before attempting recovery
+            'tags' => [
+                'service' => 'order-service',
+                'job_type' => 'dlq_retry',
+                'activity_type' => $activityType,
+                'priority' => 'critical'
+            ]
+        ]);
     }
 
     /**
-     * Execute the job.
+     * Execute the job with circuit breaker protection.
      */
     public function handle(WorkflowDeadLetterQueue $dlqService): void
     {
-        Log::info('Processing DLQ retry', [
+        Log::info('Processing DLQ retry with circuit breaker protection', [
             'failure_id' => $this->failureId,
             'retry_data' => $this->retryData,
-            'job_id' => $this->job->getJobId(),
+            'job_id' => $this->job?->getJobId(),
+            'circuit_breaker_service' => 'dlq_retry'
         ]);
 
-        try {
+        // Execute with circuit breaker protection
+        $this->executeWithCircuitBreaker(function() use ($dlqService) {
             // Attempt to retry the failed activity
             $result = $dlqService->retryFailedActivity($this->failureId);
 
@@ -54,7 +71,7 @@ class ProcessDlqRetry implements ShouldQueue
                 Log::info('DLQ retry successful', [
                     'failure_id' => $this->failureId,
                     'result' => $result,
-                    'job_id' => $this->job->getJobId(),
+                    'job_id' => $this->job?->getJobId(),
                 ]);
 
                 // Broadcast success event for monitoring
@@ -69,19 +86,21 @@ class ProcessDlqRetry implements ShouldQueue
             } else {
                 Log::warning('DLQ retry returned false - activity may not be eligible', [
                     'failure_id' => $this->failureId,
-                    'job_id' => $this->job->getJobId(),
+                    'job_id' => $this->job?->getJobId(),
                 ]);
 
                 // Check if this needs manual intervention
                 $this->checkForManualIntervention($dlqService);
             }
 
-        } catch (\Exception $e) {
-            Log::error('DLQ retry failed', [
+            return $result;
+        }, function(\Exception $e) use ($dlqService) {
+            // Circuit breaker failure handler
+            Log::error('DLQ retry failed with circuit breaker protection', [
                 'failure_id' => $this->failureId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'job_id' => $this->job->getJobId(),
+                'job_id' => $this->job?->getJobId(),
             ]);
 
             // Update metrics
@@ -91,7 +110,7 @@ class ProcessDlqRetry implements ShouldQueue
             $this->handleRetryFailure($dlqService, $e);
 
             throw $e;
-        }
+        });
     }
 
     /**
