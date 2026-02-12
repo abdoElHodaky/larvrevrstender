@@ -1,10 +1,10 @@
-# 🔄 Workflow Orchestration Architecture
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 🎯 **Overview**
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🔄 Workflow Orchestration Architecture</span>
 
-The **Workflow Orchestration Framework** provides enterprise-grade capabilities for managing complex, multi-step business processes with state management, compensation mechanisms, and fault tolerance.
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">The <strong>Workflow Orchestration Framework</strong> provides enterprise-grade capabilities for managing complex, multi-step business processes with state management, compensation mechanisms, and fault tolerance.</p>
 
-## 🏗️ **Complete Workflow Architecture**
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🏗️ Complete Workflow Architecture</span>
 
 ```mermaid
 %%{init: {
@@ -29,14 +29,19 @@ The **Workflow Orchestration Framework** provides enterprise-grade capabilities 
     'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
     'fontSize': '14px',
     'fontWeight': 'bold'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
   }
 }}%%
 
 graph TB
     subgraph "🔄 WORKFLOW ORCHESTRATION LAYER"
-        WF_ENGINE[🎯 Workflow Orchestrator<br/>• Central coordination<br/>• State management<br/>• Step execution]
-        STATE_MGR[💾 State Manager<br/>• Workflow persistence<br/>• Progress tracking<br/>• Recovery handling]
-        COMP_ENGINE[🔄 Compensation Engine<br/>• Rollback logic<br/>• LIFO execution<br/>• Error recovery]
+        WF_ENGINE["🎯 Workflow Orchestrator<br/>• Central coordination<br/>• State management<br/>• Step execution<br/>323px"]
+        STATE_MGR["💾 State Manager<br/>• Workflow persistence<br/>• Progress tracking<br/>• Recovery handling<br/>323px"]
+        COMP_ENGINE["🔄 Compensation Engine<br/>• Rollback logic<br/>• LIFO execution<br/>• Error recovery<br/>323px"]
     end
 
     subgraph "⚡ EXECUTION PATTERNS"

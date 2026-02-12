@@ -1,10 +1,10 @@
-# 🛡️ Circuit Breaker Architecture
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 🎯 **Overview**
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🛡️ Circuit Breaker Architecture</span>
 
-The **Dual Circuit Breaker Architecture** provides comprehensive fault tolerance for both synchronous HTTP requests and asynchronous queue job processing, preventing cascade failures and ensuring system resilience.
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">The <strong>Dual Circuit Breaker Architecture</strong> provides comprehensive fault tolerance for both synchronous HTTP requests and asynchronous queue job processing, preventing cascade failures and ensuring system resilience.</p>
 
-## 🏗️ **Complete Circuit Breaker Architecture**
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🏗️ Complete Circuit Breaker Architecture</span>
 
 ```mermaid
 %%{init: {
@@ -29,12 +29,17 @@ The **Dual Circuit Breaker Architecture** provides comprehensive fault tolerance
     'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
     'fontSize': '14px',
     'fontWeight': 'bold'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
   }
 }}%%
 
 graph TB
     subgraph "🌐 APPLICATION LAYER"
-        APP_REQUEST[🌐 Application Request<br/>• HTTP API calls<br/>• Queue job dispatch<br/>• External service calls]
+        APP_REQUEST["🌐 Application Request<br/>• HTTP API calls<br/>• Queue job dispatch<br/>• External service calls<br/>323px"]
     end
 
     subgraph "🛡️ DUAL CIRCUIT BREAKER PROTECTION"
