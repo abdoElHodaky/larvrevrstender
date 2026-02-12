@@ -1,0 +1,2 @@
+# This directory is for Helm chart dependencies
+# Run `helm dependency build` to populate this directory with required dependencies

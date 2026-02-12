@@ -156,7 +156,7 @@ jobs:
       run: |
         if [ -f "composer.json" ]; then
           echo "📦 Installing Composer dependencies for ${{ matrix.service }}..."
-          composer install --prefer-dist --no-progress --no-suggest --optimize-autoloader
+          composer install --prefer-dist --no-progress --optimize-autoloader
           
           # Generate dependency report
           echo "📋 Generating dependency report..."
@@ -206,6 +206,8 @@ jobs:
     - name: Run PHPUnit tests
       if: steps.check.outputs.test == 'true'
       working-directory: services/${{ matrix.service }}
+      env:
+        XDEBUG_MODE: coverage
       run: |
         if [ -f "phpunit.xml" ] || [ -f "phpunit.xml.dist" ]; then
           echo "🧪 Running PHPUnit tests for ${{ matrix.service }}..."
@@ -500,7 +502,10 @@ jobs:
           authService:
             enabled: true
             replicas: 1
-            image: ${{ env.IMAGE_NAME }}/auth-service
+            image:
+              repository: ${{ env.IMAGE_NAME }}/auth-service
+              tag: latest
+              pullPolicy: IfNotPresent
             port: 8000
             resources:
               requests:
@@ -513,7 +518,10 @@ jobs:
           userService:
             enabled: true
             replicas: 1
-            image: ${{ env.IMAGE_NAME }}/user-service
+            image:
+              repository: ${{ env.IMAGE_NAME }}/user-service
+              tag: latest
+              pullPolicy: IfNotPresent
             port: 8001
             resources:
               requests:
@@ -601,6 +609,10 @@ jobs:
       run: |
         if [ -d "deployment/helm/rpc-services" ]; then
           echo "📦 Deploying RPC services using optimized Helm chart..."
+          echo "🔧 Building Helm chart dependencies..."
+          cd deployment/helm/rpc-services
+          helm dependency build
+          cd ../../../
           helm install rpc-services deployment/helm/rpc-services \
             --namespace rpc-services \
             --create-namespace \
