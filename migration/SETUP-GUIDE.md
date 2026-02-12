@@ -1,8 +1,19 @@
-# PostgreSQL Migration Framework - Setup Guide
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-This guide provides step-by-step instructions for setting up and configuring the PostgreSQL migration framework for production use.
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">⚙️ PostgreSQL Migration Setup Guide</span>
 
-## Prerequisites
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Step-by-step instructions for <strong>setting up and configuring</strong> the PostgreSQL migration framework for production use with comprehensive environment preparation and validation.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Setup Strategy</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
+
+- **🏗️ Environment Preparation**: PHP 7.4+, PostgreSQL 12+, Docker orchestration with required extensions
+- **🔧 Framework Installation**: Repository setup, dependency management, and configuration validation
+- **⚡ Production Readiness**: Database access requirements, network connectivity, and performance optimization
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">📋 Complete Setup Requirements</summary>
 
 ### System Requirements
 - **PHP 7.4+** with PDO extensions (MySQL and PostgreSQL)
@@ -26,8 +37,6 @@ php -m | grep -E "(pdo|mysql|pgsql|json)"
 - **MySQL**: Full read/write access to all service databases
 - **PostgreSQL**: Superuser access for database creation and extension installation
 - **Network connectivity** between migration environment and both databases
-
-## Installation Steps
 
 ### Step 1: Clone and Setup Repository
 
@@ -580,4 +589,3 @@ php migration/scripts/generate-baseline-report.php
 ---
 
 *This setup guide ensures a successful PostgreSQL migration framework deployment with enterprise-grade reliability and performance.*
-

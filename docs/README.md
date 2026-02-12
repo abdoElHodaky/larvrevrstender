@@ -1,8 +1,19 @@
-# Reverse Tender Platform - Cloud Storage Integration API Documentation
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-Welcome to the comprehensive API documentation for the Reverse Tender Platform's cloud storage integration. This documentation covers all file upload, management, and processing capabilities across our microservices architecture.
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">📚 Documentation Hub</span>
 
-## 🚀 Quick Start
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Comprehensive <strong>API documentation</strong> for the Reverse Tender Platform's cloud storage integration covering file upload, management, and processing capabilities across microservices architecture.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Documentation Overview</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
+
+- **🔐 JWT Authentication**: Secure API access with token-based authentication across all microservices
+- **🌐 Multi-Environment Support**: Production, staging, and development endpoints with API Gateway orchestration
+- **📋 Core Services Integration**: Profile management, file upload, and cloud storage with automatic optimization
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">🚀 Quick Start Guide</summary>
 
 ### Authentication
 All API endpoints require JWT authentication. Obtain a token from the auth-service:
@@ -23,8 +34,6 @@ curl -H "Authorization: Bearer <your-jwt-token>" \
 - **Production**: `https://api.reversetender.com`
 - **Staging**: `https://staging-api.reversetender.com`
 - **Development**: `http://localhost:8000` (API Gateway)
-
-## 📚 API Documentation
 
 ### Core Services
 
@@ -286,4 +295,3 @@ Monitor API status and uptime:
 ---
 
 *Last updated: February 5, 2026*
-
