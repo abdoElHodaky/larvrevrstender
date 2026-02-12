@@ -1,6 +1,10 @@
-# 🔄 System State Diagram - Order & Bidding Lifecycle
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 🌟 Distinguished State Management with Eye-Catching Styling
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🔄 System State Diagram</span>
+
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Distinguished <strong>State Management Architecture</strong> showcasing the complete Order & Bidding Lifecycle with comprehensive state transitions, business rules, and workflow orchestration.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🌟 Complete State Management Flow</span>
 
 ```mermaid
 %%{init: {
@@ -21,6 +25,10 @@
     'stateTextColor': '#FFFFFF',
     'transitionColor': '#4ECDC4',
     'transitionLabelColor': '#FFFFFF'
+  },
+  'state': {
+    'stateMargin': 81,
+    'statePadding': 50
   }
 }}%%
 
