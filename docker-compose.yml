@@ -82,8 +82,8 @@ services:
   # Gateway Service - RPC Gateway with Cross-Service Infrastructure
   gateway-service:
     build:
-      context: ./services/gateway-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/gateway-service/Dockerfile
     container_name: gateway_service
     restart: unless-stopped
     ports:
@@ -135,8 +135,8 @@ services:
   # Microservices
   auth-service:
     build:
-      context: ./services/auth-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/auth-service/Dockerfile
     container_name: auth_service
     restart: unless-stopped
     ports:
@@ -171,8 +171,8 @@ services:
 
   user-service:
     build:
-      context: ./services/user-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/user-service/Dockerfile
     container_name: user_service
     restart: unless-stopped
     ports:
@@ -209,8 +209,8 @@ services:
 
   bidding-service:
     build:
-      context: ./services/bidding-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/bidding-service/Dockerfile
     container_name: bidding_service
     restart: unless-stopped
     ports:
@@ -249,8 +249,8 @@ services:
 
   order-service:
     build:
-      context: ./services/order-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/order-service/Dockerfile
     container_name: order_service
     restart: unless-stopped
     ports:
@@ -287,8 +287,8 @@ services:
 
   payment-service:
     build:
-      context: ./services/payment-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/payment-service/Dockerfile
     container_name: payment_service
     restart: unless-stopped
     ports:
@@ -325,8 +325,8 @@ services:
 
   analytics-service:
     build:
-      context: ./services/analytics-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/analytics-service/Dockerfile
     container_name: analytics_service
     restart: unless-stopped
     ports:
@@ -363,8 +363,8 @@ services:
 
   vin-ocr-service:
     build:
-      context: ./services/vin-ocr-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/vin-ocr-service/Dockerfile
     container_name: vin_ocr_service
     restart: unless-stopped
     ports:
@@ -401,8 +401,8 @@ services:
 
   notification-service:
     build:
-      context: ./services/notification-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/notification-service/Dockerfile
     container_name: notification_service
     restart: unless-stopped
     ports:
@@ -465,8 +465,8 @@ services:
   # Queue Workers
   horizon:
     build:
-      context: ./services/auth-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/auth-service/Dockerfile
     container_name: reverse_tender_horizon
     restart: unless-stopped
     command: php artisan horizon

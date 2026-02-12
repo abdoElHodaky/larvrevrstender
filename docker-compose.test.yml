@@ -31,8 +31,8 @@ services:
   # Gateway Service for Testing
   gateway-service:
     build:
-      context: ./services/gateway-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/gateway-service/Dockerfile
     environment:
       - APP_ENV=testing
       - APP_DEBUG=true
