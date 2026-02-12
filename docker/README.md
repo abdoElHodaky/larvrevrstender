@@ -1,8 +1,21 @@
-# 🐳 Docker Configuration - Reverse Tender Platform
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-This directory contains Docker configurations for local development and testing of the Reverse Tender Platform microservices.
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🐳 Docker Configuration</span>
 
-## 📁 Directory Structure
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Docker configurations for <strong>local development and testing</strong> of the Reverse Tender Platform microservices with containerized infrastructure and service orchestration.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Container Strategy Overview</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
+
+- **🚀 Development Environment**: Complete microservices stack with Docker Compose orchestration
+- **🔧 Service Configuration**: Nginx reverse proxy, MySQL database, and SSL certificate management
+- **⚡ Quick Deployment**: One-command startup with automated service discovery and health checks
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">📋 Complete Docker Configuration</summary>
+
+### Directory Structure
 
 ```
 docker/
@@ -14,8 +27,6 @@ docker/
 │   └── init/                   # Database initialization scripts
 └── ssl/                        # SSL certificates for HTTPS
 ```
-
-## 🚀 Quick Start
 
 ### Development Environment
 
@@ -140,4 +151,3 @@ docker-compose -f docker-compose.yml up -d
 - **[Deployment Guide](../DEPLOYMENT_GUIDE.md)**: Production deployment instructions
 - **[Multi-Cloud Deployment](../MULTI_CLOUD_DEPLOYMENT.md)**: Kubernetes deployment
 - **[Development Guide](../docs/development.md)**: Development setup and guidelines
-
