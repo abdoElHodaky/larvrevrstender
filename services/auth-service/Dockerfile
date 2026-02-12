@@ -43,9 +43,8 @@ RUN pecl install \
 
 WORKDIR /var/www/html
 
-# Copy application and shared procedures
+# Copy application files
 COPY --chown=www-data:www-data . ./
-COPY --chown=www-data:www-data ../shared ./shared
 
 # Install Composer dependencies with auth-specific optimizations
 RUN if [ -f "composer.json" ]; then \

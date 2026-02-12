@@ -1,0 +1,86 @@
+version: '3.8'
+
+# Docker Compose file for building services with proper shared context
+# This builds from repository root to include both services and shared directories
+
+services:
+  gateway-service:
+    build:
+      context: .
+      dockerfile: services/gateway-service/Dockerfile
+      args:
+        SERVICE_NAME: gateway-service
+    image: larvrevrstender/gateway-service:latest
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: services/analytics-service/Dockerfile
+      args:
+        SERVICE_NAME: analytics-service
+    image: larvrevrstender/analytics-service:latest
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+      args:
+        SERVICE_NAME: auth-service
+    image: larvrevrstender/auth-service:latest
+
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
+      args:
+        SERVICE_NAME: user-service
+    image: larvrevrstender/user-service:latest
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
+      args:
+        SERVICE_NAME: payment-service
+    image: larvrevrstender/payment-service:latest
+
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
+      args:
+        SERVICE_NAME: order-service
+    image: larvrevrstender/order-service:latest
+
+  bidding-service:
+    build:
+      context: .
+      dockerfile: services/bidding-service/Dockerfile
+      args:
+        SERVICE_NAME: bidding-service
+    image: larvrevrstender/bidding-service:latest
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+      args:
+        SERVICE_NAME: notification-service
+    image: larvrevrstender/notification-service:latest
+
+  auction-service:
+    build:
+      context: .
+      dockerfile: services/auction-service/Dockerfile
+      args:
+        SERVICE_NAME: auction-service
+    image: larvrevrstender/auction-service:latest
+
+  vin-ocr-service:
+    build:
+      context: .
+      dockerfile: services/vin-ocr-service/Dockerfile
+      args:
+        SERVICE_NAME: vin-ocr-service
+    image: larvrevrstender/vin-ocr-service:latest
+
