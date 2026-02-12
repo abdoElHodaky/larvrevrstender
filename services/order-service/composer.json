@@ -16,6 +16,7 @@
         "laravel/tinker": "^2.10.1",
         "predis/predis": "^2.2",
         "sajya/client": "^1.4",
+        "larvrevrstender/shared": "@dev"
         "sajya/server": "^7.0",
         "spatie/laravel-medialibrary": "^11.9",
         "spatie/laravel-model-states": "^2.7"
@@ -76,6 +77,12 @@
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
         ]
     },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../shared"
+        }
+    ],
     "extra": {
         "laravel": {
             "dont-discover": []

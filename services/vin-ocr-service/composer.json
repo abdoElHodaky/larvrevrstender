@@ -17,7 +17,8 @@
         "intervention/image": "^3.8",
         "thiagoalessio/tesseract_ocr": "^2.13",
         "sajya/server": "^7.0",
-        "sajya/client": "^1.4"
+        "sajya/client": "^1.4",
+        "larvrevrstender/shared": "@dev"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -75,6 +76,12 @@
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
         ]
     },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../shared"
+        }
+    ],
     "extra": {
         "laravel": {
             "dont-discover": []

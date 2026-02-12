@@ -18,7 +18,8 @@
         "paypal/paypal-checkout-sdk": "^1.0",
         "endroid/qr-code": "^5.0",
         "sajya/server": "^7.0",
-        "sajya/client": "^1.4"
+        "sajya/client": "^1.4",
+        "larvrevrstender/shared": "@dev"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -76,6 +77,12 @@
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
         ]
     },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../shared"
+        }
+    ],
     "extra": {
         "laravel": {
             "dont-discover": []

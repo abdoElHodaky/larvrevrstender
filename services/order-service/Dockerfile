@@ -28,9 +28,8 @@ RUN docker-php-ext-install -j$(nproc) \
 
 WORKDIR /var/www/html
 
-# Copy application and shared procedures
+# Copy application files
 COPY --chown=www-data:www-data . ./
-# Note: Shared procedures should be included via Composer or proper build context
 
 # Install Composer dependencies
 RUN if [ -f "composer.json" ]; then \

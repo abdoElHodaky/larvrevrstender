@@ -19,7 +19,8 @@
         "spatie/laravel-activitylog": "^4.8",
         "intervention/image": "^3.8",
         "sajya/server": "^7.0",
-        "sajya/client": "^1.4"
+        "sajya/client": "^1.4",
+        "larvrevrstender/shared": "@dev"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -77,6 +78,12 @@
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
         ]
     },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../shared"
+        }
+    ],
     "extra": {
         "laravel": {
             "dont-discover": []
