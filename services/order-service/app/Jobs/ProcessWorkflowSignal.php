@@ -3,19 +3,17 @@
 namespace App\Jobs;
 
 use App\Services\WorkflowSignalHandler;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
+use Shared\Jobs\BaseQueueJob;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Job for processing workflow signals asynchronously
+ * Workflow Signal Processing Job with Laravel Fuse Circuit Breaker Protection
+ * 
+ * Processes workflow signals asynchronously with circuit breaker protection to prevent
+ * cascade failures and ensure reliable workflow orchestration during service outages.
  */
-class ProcessWorkflowSignal implements ShouldQueue
+class ProcessWorkflowSignal extends BaseQueueJob
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public string $workflowId;
     public string $signalType;
@@ -28,6 +26,9 @@ class ProcessWorkflowSignal implements ShouldQueue
      */
     public function __construct(string $workflowId, string $signalType, array $signalData)
     {
+        // Initialize parent with circuit breaker configuration
+        parent::__construct();
+        
         $this->workflowId = $workflowId;
         $this->signalType = $signalType;
         $this->signalData = $signalData;
@@ -35,21 +36,37 @@ class ProcessWorkflowSignal implements ShouldQueue
         // Set queue based on signal priority
         $priority = $signalData['priority'] ?? 'normal';
         $this->onQueue($this->getQueueForPriority($priority));
+        
+        // Configure circuit breaker for workflow signal processing
+        $this->configureCircuitBreaker([
+            'service_name' => 'workflow_signal',
+            'failure_threshold' => 35, // 35% failure rate triggers circuit breaker
+            'timeout' => 50, // 50 seconds timeout for signal processing
+            'recovery_timeout' => 150, // 2.5 minutes before attempting recovery
+            'tags' => [
+                'service' => 'order-service',
+                'job_type' => 'workflow_signal',
+                'signal_type' => $signalType,
+                'priority' => $priority
+            ]
+        ]);
     }
 
     /**
-     * Execute the job.
+     * Execute the job with circuit breaker protection.
      */
     public function handle(WorkflowSignalHandler $signalHandler): void
     {
-        Log::info('Processing workflow signal', [
+        Log::info('Processing workflow signal with circuit breaker protection', [
             'workflow_id' => $this->workflowId,
             'signal_type' => $this->signalType,
             'signal_data' => $this->signalData,
-            'job_id' => $this->job->getJobId(),
+            'job_id' => $this->job?->getJobId(),
+            'circuit_breaker_service' => 'workflow_signal'
         ]);
 
-        try {
+        // Execute with circuit breaker protection
+        $this->executeWithCircuitBreaker(function() use ($signalHandler) {
             switch ($this->signalType) {
                 case 'pause':
                     $this->handlePauseSignal($signalHandler);
@@ -74,20 +91,22 @@ class ProcessWorkflowSignal implements ShouldQueue
             Log::info('Workflow signal processed successfully', [
                 'workflow_id' => $this->workflowId,
                 'signal_type' => $this->signalType,
-                'job_id' => $this->job->getJobId(),
+                'job_id' => $this->job?->getJobId(),
             ]);
 
-        } catch (\Exception $e) {
-            Log::error('Failed to process workflow signal', [
+            return true;
+        }, function(\Exception $e) {
+            // Circuit breaker failure handler
+            Log::error('Failed to process workflow signal with circuit breaker protection', [
                 'workflow_id' => $this->workflowId,
                 'signal_type' => $this->signalType,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'job_id' => $this->job->getJobId(),
+                'job_id' => $this->job?->getJobId(),
             ]);
 
             throw $e;
-        }
+        });
     }
 
     /**

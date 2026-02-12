@@ -3,22 +3,18 @@
 namespace App\Jobs;
 
 use App\Services\AuctionCompletionService;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
+use Shared\Jobs\BaseQueueJob;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Complete Expired Auctions Job
+ * Complete Expired Auctions Job with Laravel Fuse Circuit Breaker Protection
  *
  * Scheduled job that runs periodically to complete expired auctions
- * and trigger the order creation workflow.
+ * and trigger the order creation workflow. Protected against auction service
+ * outages and prevents queue worker starvation during high-load periods.
  */
-class CompleteExpiredAuctionsJob implements ShouldQueue
+class CompleteExpiredAuctionsJob extends BaseQueueJob
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
      * The number of times the job may be attempted.
@@ -35,43 +31,56 @@ class CompleteExpiredAuctionsJob implements ShouldQueue
      */
     public function __construct()
     {
-        // Job can be created without parameters
+        // Initialize parent with circuit breaker configuration
+        parent::__construct();
+        
+        // Configure circuit breaker for auction completion service
+        $this->configureCircuitBreaker([
+            'service_name' => 'auction_completion',
+            'failure_threshold' => 40, // 40% failure rate triggers circuit breaker
+            'timeout' => 45, // 45 seconds timeout for auction processing
+            'recovery_timeout' => 120, // 2 minutes before attempting recovery
+            'tags' => [
+                'service' => 'auction-service',
+                'job_type' => 'scheduled_completion',
+                'priority' => 'high'
+            ]
+        ]);
     }
 
     /**
-     * Execute the job.
+     * Execute the job with circuit breaker protection.
      */
     public function handle(AuctionCompletionService $completionService): void
     {
-        Log::info('Starting expired auctions completion job');
+        Log::info('Starting expired auctions completion job with circuit breaker protection', [
+            'job_id' => $this->job?->getJobId(),
+            'circuit_breaker_service' => 'auction_completion'
+        ]);
 
-        try {
+        // Execute with circuit breaker protection
+        $this->executeWithCircuitBreaker(function() use ($completionService) {
             $results = $completionService->processExpiredAuctions();
 
-            Log::info('Expired auctions completion job completed', [
+            Log::info('Expired auctions completion job completed successfully', [
                 'processed' => $results['processed'],
                 'completed' => $results['completed'],
                 'failed' => $results['failed'],
-                'errors' => $results['errors']
+                'errors' => $results['errors'],
+                'job_id' => $this->job?->getJobId()
             ]);
 
             // If there were failures, log them but don't fail the job
             if ($results['failed'] > 0) {
                 Log::warning("Some auctions failed to complete", [
                     'failed_count' => $results['failed'],
-                    'errors' => $results['errors']
+                    'errors' => $results['errors'],
+                    'job_id' => $this->job?->getJobId()
                 ]);
             }
 
-        } catch (\Exception $e) {
-            Log::error('Expired auctions completion job failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            // Re-throw to mark job as failed
-            throw $e;
-        }
+            return $results;
+        });
     }
 
     /**
