@@ -1,6 +1,21 @@
-# Configuration Guide - Laravel WorkflowCore Enterprise
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 📋 Table of Contents
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">⚙️ Order Service Configuration Guide</span>
+
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Comprehensive configuration guide for <strong>Laravel WorkflowCore Enterprise</strong> with environment setup, service configuration, and production deployment optimization.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Configuration Strategy Overview</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
+
+- **🔧 Environment Setup**: Comprehensive .env configuration with workflow-specific variables and security settings
+- **📊 Service Configuration**: Queue, cache, broadcasting, and database configuration for enterprise deployment
+- **🚀 Production Optimization**: Performance tuning, security configuration, and Telescope monitoring setup
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">⚙️ Complete Configuration Guide</summary>
+
+### Table of Contents
 
 1. [Environment Setup](#environment-setup)
 2. [Service Configuration](#service-configuration)
@@ -13,11 +28,9 @@
 9. [Security Configuration](#security-configuration)
 10. [Performance Tuning](#performance-tuning)
 
----
+### Environment Setup
 
-## 🔧 Environment Setup
-
-### **Environment Variables**
+#### Environment Variables
 
 Create a comprehensive `.env` file with the following workflow-specific configurations:
 

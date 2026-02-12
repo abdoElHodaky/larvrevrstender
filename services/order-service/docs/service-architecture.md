@@ -1,14 +1,21 @@
-# Service Architecture - Laravel WorkflowCore Enterprise
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 📋 Overview
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🏗️ Order Service Architecture</span>
 
-This document provides detailed documentation of the service architecture for the Laravel WorkflowCore Enterprise implementation. It covers service layer design, component interactions, dependency management, and integration patterns.
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Detailed documentation of the <strong>service architecture</strong> for Laravel WorkflowCore Enterprise implementation covering service layer design, component interactions, and integration patterns.</p>
 
----
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Architecture Strategy Overview</span>
 
-## 🏗️ Service Layer Architecture
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
 
-### **Service Hierarchy**
+- **🏗️ Service Layer Architecture**: Three-tier architecture with application, service, and infrastructure layers
+- **🔧 Core Services**: Event publisher, signal handler, alerting service, and DLQ management with correlation tracking
+- **📊 Component Interactions**: Dependency management, integration patterns, and queue system with broadcasting layer
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">🏗️ Complete Service Architecture</summary>
+
+### Service Hierarchy
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -34,9 +41,7 @@ This document provides detailed documentation of the service architecture for th
 └─────────────────────────────────────────────────────────────────┘
 ```
 
----
-
-## 🔧 Core Services
+### Core Services
 
 ### 1. WorkflowEventPublisher
 
