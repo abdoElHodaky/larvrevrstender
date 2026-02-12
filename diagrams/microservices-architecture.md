@@ -1,8 +1,10 @@
-# 🏗️ Enhanced Microservices Architecture
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 🎯 **Enterprise Architecture Overview**
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🏗️ Enhanced Microservices Architecture</span>
 
-The Laravel Reverse Tender Platform features an **enterprise-grade microservices architecture** with advanced **workflow orchestration**, **dual circuit breaker patterns**, and **third-party integration capabilities**.
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Enterprise Architecture Overview</span>
+
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">The Laravel Reverse Tender Platform features an <strong>enterprise-grade microservices architecture</strong> with advanced workflow orchestration, dual circuit breaker patterns, and third-party integration capabilities.</p>
 
 ## 📊 **Complete System Architecture**
 
@@ -29,48 +31,53 @@ The Laravel Reverse Tender Platform features an **enterprise-grade microservices
     'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
     'fontSize': '14px',
     'fontWeight': 'bold'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
   }
 }}%%
 
 graph TB
     subgraph "🌐 CLIENT LAYER"
-        WEB[🌐 Web Application<br/>React/Vue Frontend]
-        MOBILE[📱 Mobile App<br/>React Native/Flutter]
-        API_CLIENT[🔌 API Clients<br/>Third-party Integrations]
+        WEB["🌐 Web Application<br/>React/Vue Frontend<br/>323px"]
+        MOBILE["📱 Mobile App<br/>React Native/Flutter<br/>323px"]
+        API_CLIENT["🔌 API Clients<br/>Third-party Integrations<br/>200px"]
     end
 
     subgraph "🚪 GATEWAY LAYER"
-        GATEWAY[🚪 Gateway Service<br/>Port: 8000<br/>Routing & Load Balancing]
+        GATEWAY["🚪 Gateway Service<br/>Port: 8000<br/>Routing & Load Balancing<br/>323px"]
     end
 
     subgraph "🎯 CROSS-SERVICE INFRASTRUCTURE HUB"
-        SHARED[🎯 Shared Service<br/>Port: 8001<br/>Orchestration Hub]
+        SHARED["🎯 Shared Service<br/>Port: 8001<br/>Orchestration Hub<br/>323px"]
         
         subgraph "⚡ Micro Procedures (8 Total)"
-            EVENT[📡 Event Publishing<br/>Async Messaging]
-            CACHE[💾 Cache Management<br/>Redis Operations]
-            NOTIFY[📢 Notification<br/>Multi-channel]
-            VALID[✅ Validation<br/>Data Validation]
-            SEC[🔐 Security<br/>Auth & Encryption]
-            CB[🛡️ Circuit Breaker<br/>Sync Protection]
-            QCB[⚡ Queue Circuit Breaker<br/>Async Protection]
-            TPI[🔌 Third-Party Integration<br/>External Services]
+            EVENT["📡 Event Publishing<br/>Async Messaging<br/>200px"]
+            CACHE["💾 Cache Management<br/>Redis Operations<br/>200px"]
+            NOTIFY["📢 Notification<br/>Multi-channel<br/>200px"]
+            VALID["✅ Validation<br/>Data Validation<br/>200px"]
+            SEC["🔐 Security<br/>Auth & Encryption<br/>323px"]
+            CB["🛡️ Circuit Breaker<br/>Sync Protection<br/>323px"]
+            QCB["⚡ Queue Circuit Breaker<br/>Async Protection<br/>323px"]
+            TPI["🔌 Third-Party Integration<br/>External Services<br/>200px"]
         end
         
         subgraph "🔄 Macro Procedures (2 Types)"
-            WF[🔄 Workflow Orchestration<br/>Complex Processes]
-            BL[🎯 Business Logic<br/>Domain Workflows]
+            WF["🔄 Workflow Orchestration<br/>Complex Processes<br/>323px"]
+            BL["🎯 Business Logic<br/>Domain Workflows<br/>323px"]
         end
     end
 
     subgraph "⚡ CORE MICROSERVICES (8 Total)"
-        AUTH[🔑 Auth Service<br/>Port: 8002<br/>Authentication]
-        TENDER[📋 Tender Service<br/>Port: 8003<br/>Tender Management]
-        BID[💰 Bidding Service<br/>Port: 8004<br/>Bid Processing]
-        PAY[💳 Payment Service<br/>Port: 8005<br/>Payment Processing]
-        NOTIF_SVC[📨 Notification Service<br/>Port: 8006<br/>Message Delivery]
-        ANALYTICS[📊 Analytics Service<br/>Port: 8007<br/>Data Analytics]
-        USER[👤 User Service<br/>Port: 8008<br/>User Management]
+        AUTH["🔑 Auth Service<br/>Port: 8002<br/>Authentication<br/>323px"]
+        TENDER["📋 Tender Service<br/>Port: 8003<br/>Tender Management<br/>323px"]
+        BID["💰 Bidding Service<br/>Port: 8004<br/>Bid Processing<br/>323px"]
+        PAY["💳 Payment Service<br/>Port: 8005<br/>Payment Processing<br/>323px"]
+        NOTIF_SVC["📨 Notification Service<br/>Port: 8006<br/>Message Delivery<br/>200px"]
+        ANALYTICS["📊 Analytics Service<br/>Port: 8007<br/>Data Analytics<br/>200px"]
+        USER["👤 User Service<br/>Port: 8008<br/>User Management<br/>200px"]
         ADMIN[⚙️ Admin Service<br/>Port: 8009<br/>Administration]
     end
 
