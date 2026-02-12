@@ -1,6 +1,10 @@
-# 🎨 Enhanced Database Schema - Reverse Tender Platform
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 🌟 Distinguished ERD with Eye-Catching Dark Theme Styling
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🎨 Database Schema</span>
+
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Enhanced <strong>Entity Relationship Diagram</strong> for the Reverse Tender Platform with comprehensive domain modeling, authentication management, and business logic relationships.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🌟 Complete ERD Architecture</span>
 
 ```mermaid
 %%{init: {
@@ -20,6 +24,10 @@
     'entityTextColor': '#FFFFFF',
     'relationLabelColor': '#FFFFFF',
     'relationLabelBackground': '#334155'
+  },
+  'er': {
+    'entityPadding': 81,
+    'relationshipLabelMargin': 50
   }
 }}%%
 

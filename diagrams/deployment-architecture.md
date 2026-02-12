@@ -1,6 +1,10 @@
-# 🚀 Deployment Architecture Diagram
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 🌟 Distinguished Multi-Cloud Infrastructure with Eye-Catching Styling
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🚀 Deployment Architecture</span>
+
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Distinguished <strong>Multi-Cloud Infrastructure</strong> with comprehensive deployment strategy across DigitalOcean and Linode platforms, featuring load balancing, database replication, and CDN integration.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🌟 Multi-Cloud Infrastructure Overview</span>
 
 ```mermaid
 %%{init: {
@@ -16,28 +20,33 @@
     'mainBkg': '#1E293B',
     'secondBkg': '#334155',
     'tertiaryBkg': '#475569'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
   }
 }}%%
 
 graph TB
     %% Internet and CDN
-    INTERNET[🌐 Internet]
-    CDN[🚀 CloudFlare CDN<br/>Static Assets + DDoS Protection]
+    INTERNET["🌐 Internet<br/>323px"]
+    CDN["🚀 CloudFlare CDN<br/>Static Assets + DDoS Protection<br/>323px"]
     
     %% Load Balancers
-    LB_DO[⚖️ DigitalOcean Load Balancer<br/>HAProxy + SSL Termination]
-    LB_LINODE[⚖️ Linode NodeBalancer<br/>HAProxy + SSL Termination]
+    LB_DO["⚖️ DigitalOcean Load Balancer<br/>HAProxy + SSL Termination<br/>200px"]
+    LB_LINODE["⚖️ Linode NodeBalancer<br/>HAProxy + SSL Termination<br/>200px"]
     
     %% DigitalOcean Infrastructure
     subgraph DO_CLUSTER["🌊 DigitalOcean Cluster"]
-        DO_APP1[🖥️ App Server 1<br/>4 vCPU, 8GB RAM<br/>Docker + Services]
-        DO_APP2[🖥️ App Server 2<br/>4 vCPU, 8GB RAM<br/>Docker + Services]
-        DO_APP3[🖥️ App Server 3<br/>4 vCPU, 8GB RAM<br/>Docker + Services]
+        DO_APP1["🖥️ App Server 1<br/>4 vCPU, 8GB RAM<br/>Docker + Services<br/>200px"]
+        DO_APP2["🖥️ App Server 2<br/>4 vCPU, 8GB RAM<br/>Docker + Services<br/>200px"]
+        DO_APP3["🖥️ App Server 3<br/>4 vCPU, 8GB RAM<br/>Docker + Services<br/>200px"]
         
-        DO_DB1[🗃️ Database Primary<br/>8 vCPU, 16GB RAM<br/>MySQL 8.0 Master]
-        DO_DB2[🗃️ Database Replica<br/>4 vCPU, 8GB RAM<br/>MySQL 8.0 Slave]
+        DO_DB1["🗃️ Database Primary<br/>8 vCPU, 16GB RAM<br/>MySQL 8.0 Master<br/>323px"]
+        DO_DB2["🗃️ Database Replica<br/>4 vCPU, 8GB RAM<br/>MySQL 8.0 Slave<br/>200px"]
         
-        DO_CACHE1[⚡ Redis Primary<br/>2 vCPU, 4GB RAM<br/>Redis 7.0 Master]
+        DO_CACHE1["⚡ Redis Primary<br/>2 vCPU, 4GB RAM<br/>Redis 7.0 Master<br/>200px"]
         DO_CACHE2[⚡ Redis Replica<br/>2 vCPU, 4GB RAM<br/>Redis 7.0 Slave]
         
         DO_MONITOR[📊 Monitoring Server<br/>4 vCPU, 8GB RAM<br/>Prometheus + Grafana]
