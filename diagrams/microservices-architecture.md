@@ -412,55 +412,72 @@ graph TB
 
 ```mermaid
 %%{init: {
-  'theme': 'dark',
+  'theme': 'base',
   'themeVariables': {
-    'actorBkg': '#FF6B6B',
-    'actorBorder': '#FF8E8E',
-    'actorTextColor': '#FFFFFF',
-    'activationBkgColor': '#4ECDC4',
-    'activationBorderColor': '#7ED6D1',
-    'noteBkgColor': '#FECA57',
-    'noteTextColor': '#000000',
-    'noteBorderColor': '#FED876',
-    'background': '#0F172A',
-    'mainBkg': '#1E293B',
-    'primaryTextColor': '#FFFFFF'
+    'background': '#000000',
+    'mainBkg': '#000000',
+    'primaryColor': '#000000',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FFFFFF',
+    'lineColor': '#FFFFFF',
+    'actorBkg': '#000000',
+    'actorBorder': '#00FFFF',
+    'actorTextColor': '#00FFFF',
+    'noteBkgColor': '#000000',
+    'noteTextColor': '#FFFF00',
+    'noteBorderColor': '#FFFF00',
+    'activationBkgColor': '#222222',
+    'activationBorderColor': '#00FFFF',
+    'sequenceNumberColor': '#FFFFFF',
+    'labelTextColor': '#FFFFFF',
+    'loopTextColor': '#FFFFFF',
+    'fontSize': '16px',
+    'fontWeight': '900'
   }
 }}%%
 
 sequenceDiagram
-    participant Client as 🌐 Client
-    participant Gateway as 🚪 Gateway
-    participant Shared as 🎯 Shared
-    participant CircuitBreaker as 🛡️ Circuit Breaker
-    participant Service as ⚡ Service
-    participant External as 🌐 External
-
-    Client->>Gateway: HTTP Request
-    Gateway->>Shared: Route to Procedure
-    Shared->>CircuitBreaker: Check Circuit State
+    autonumber
     
-    alt Circuit CLOSED
-        CircuitBreaker->>Service: Execute Request
-        Service->>External: External API Call
-        External-->>Service: Response
-        Service-->>CircuitBreaker: Success
-        CircuitBreaker-->>Shared: Success Response
-    else Circuit OPEN
-        CircuitBreaker-->>Shared: Fail Fast
-    else Circuit HALF_OPEN
-        CircuitBreaker->>Service: Test Request
-        alt Success
-            Service-->>CircuitBreaker: Success
-            Note over CircuitBreaker: Close Circuit
-        else Failure
-            Service-->>CircuitBreaker: Failure
-            Note over CircuitBreaker: Open Circuit
+    participant Client as 🌐 CLIENT
+    participant Gateway as 🚪 GATEWAY
+    participant Shared as 🎯 SHARED
+    participant CB as 🛡️ CIRCUIT BREAKER
+    participant Service as ⚡ SERVICE
+    participant Ext as 🌐 EXTERNAL
+
+    Client->>Gateway: HTTP REQUEST
+    Gateway->>Shared: ROUTE TO PROCEDURE
+    Shared->>CB: CHECK CIRCUIT STATE
+    
+    alt 🟢 CIRCUIT CLOSED
+        rect rgb(0, 40, 20)
+            CB->>Service: EXECUTE REQUEST
+            Service->>Ext: EXTERNAL API CALL
+            Ext-->>Service: RESPONSE
+            Service-->>CB: SUCCESS
+            CB-->>Shared: SUCCESS RESPONSE
+        end
+    else 🔴 CIRCUIT OPEN
+        rect rgb(60, 0, 0)
+            Note right of CB: 🚨 FAIL FAST ACTIVATED
+            CB-->>Shared: ERROR: CIRCUIT OPEN
+        end
+    else 🟡 CIRCUIT HALF_OPEN
+        CB->>Service: TEST REQUEST
+        alt SUCCESS
+            Service-->>CB: SUCCESS
+            Note over CB: 🟢 CLOSE CIRCUIT
+        else FAILURE
+            rect rgb(60, 0, 0)
+                Service-->>CB: FAILURE
+                Note over CB: 🔴 OPEN CIRCUIT
+            end
         end
     end
     
-    Shared-->>Gateway: Response
-    Gateway-->>Client: HTTP Response
+    Shared-->>Gateway: FINAL RESPONSE
+    Gateway-->>Client: HTTP RESPONSE
 ```
 
 ### **Workflow Execution Flow**
