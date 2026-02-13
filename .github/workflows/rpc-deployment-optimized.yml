@@ -530,6 +530,38 @@ jobs:
               limits:
                 memory: "256Mi"
                 cpu: "200m"
+                
+          analyticsService:
+            enabled: true
+            replicas: 1
+            image:
+              repository: ${{ env.IMAGE_NAME }}/analytics-service
+              tag: latest
+              pullPolicy: IfNotPresent
+            port: 8002
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+                
+          notificationService:
+            enabled: true
+            replicas: 1
+            image:
+              repository: ${{ env.IMAGE_NAME }}/notification-service
+              tag: latest
+              pullPolicy: IfNotPresent
+            port: 8003
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
             
         ingress:
           enabled: true
@@ -537,8 +569,18 @@ jobs:
           hosts:
             - host: rpc.local
               paths:
-                - path: /
+                - path: /auth
                   pathType: Prefix
+                  service: auth-service
+                - path: /users
+                  pathType: Prefix
+                  service: user-service
+                - path: /analytics
+                  pathType: Prefix
+                  service: analytics-service
+                - path: /notifications
+                  pathType: Prefix
+                  service: notification-service
                   
         # Optimization: Minimal resource allocation for testing
         redis:
