@@ -169,7 +169,33 @@
   }
 }}%%
 ```
-
+### ** Fancy Styling ** ###
+```javaScript
+    %%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'background': '#000000',
+    'mainBkg': '#000000',
+    'primaryColor': '#000000',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#FFFFFF',
+    'lineColor': '#FFFFFF',
+    'actorBkg': '#000000',
+    'actorBorder': '#00FFFF',
+    'actorTextColor': '#00FFFF',
+    'noteBkgColor': '#000000',
+    'noteTextColor': '#FFFF00',
+    'noteBorderColor': '#FFFF00',
+    'activationBkgColor': '#222222',
+    'activationBorderColor': '#00FFFF',
+    'sequenceNumberColor': '#FFFFFF',
+    'labelTextColor': '#FFFFFF',
+    'loopTextColor': '#FFFFFF',
+    'fontSize': '16px',
+    'fontWeight': '900'
+  }
+}}%%
+```
 ---
 
 ## 🏗️ Component Categorization
