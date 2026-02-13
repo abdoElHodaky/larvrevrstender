@@ -1,36 +1,41 @@
-# 🔐 Authentication & Authorization Guide
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-Complete guide for Laravel Sanctum authentication with policies and gates implementation.
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🔐 Authentication & Authorization Guide</span>
 
-## 🎯 Overview
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Complete guide for <strong>Laravel Sanctum authentication</strong> with policies and gates implementation, providing enterprise-grade security for the Reverse Tender Platform.</p>
 
-The Reverse Tender Platform uses **Laravel Sanctum** for API authentication combined with **Laravel Policies** and **Gates** for authorization. This approach provides:
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Security Architecture Overview</span>
 
-- **Stateless API authentication** with personal access tokens
-- **Role-based access control** using gates
-- **Resource-based authorization** using policies
-- **Built-in Laravel middleware** for security
-- **Scalable permission system** for microservices
+<!-- 62% MAJOR CONCEPTS: Core Security Features -->
+<div style="margin-bottom: 3rem;">
 
-## 🔑 Laravel Sanctum Authentication
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🛡️ Laravel Sanctum Integration</span>
+<p style="font-size: 16px; line-height: 1.618;"><strong>Stateless API Authentication:</strong> Personal access tokens with built-in Laravel middleware, providing secure authentication for SPAs and mobile applications.</p>
 
-### Token-Based Authentication
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🎭 Role-Based Access Control</span>
+<p style="font-size: 16px; line-height: 1.618;"><strong>Gates & Policies:</strong> Comprehensive authorization system with role-based gates and resource-based policies for granular permission control.</p>
 
-Laravel Sanctum provides a simple way to authenticate SPAs and mobile applications using API tokens.
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">⚡ Microservices Security</span>
+<p style="font-size: 16px; line-height: 1.618;"><strong>Scalable Permissions:</strong> Distributed authorization across 8 microservices with centralized token validation and policy enforcement.</p>
 
-#### Configuration
+</div>
 
+<!-- 38% MINOR DETAILS: Configuration Details -->
+<details style="margin-bottom: 2rem;">
+<summary style="font-size: 16px; font-weight: 500; cursor: pointer;">🔧 Configuration & Implementation</summary>
+<div style="margin-top: 1rem; padding-left: 1rem; border-left: 3px solid #4ECDC4;">
+
+**Sanctum Configuration:**
 ```env
-# Laravel Sanctum Configuration
-SANCTUM_STATEFUL_DOMAINS=localhost,localhost:3000,127.0.0.1,127.0.0.1:8000
+# Laravel Sanctum Settings
+SANCTUM_STATEFUL_DOMAINS=localhost,localhost:3000,127.0.0.1
 SANCTUM_TOKEN_EXPIRATION=60
 SANCTUM_TOKEN_PREFIX=
 ```
 
-#### User Registration & Login
-
+**User Registration Example:**
 ```php
-// Register new user
+// Create authenticated user
 $user = User::create([
     'name' => $request->name,
     'email' => $request->email,
@@ -553,4 +558,3 @@ Schema::table('users', function (Blueprint $table) {
 ---
 
 This authentication and authorization system provides a robust, scalable foundation for the Reverse Tender Platform using Laravel's built-in security features.
-

@@ -1,10 +1,21 @@
-# Operations Guide - Reverse Tender Platform
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## Overview
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">⚙️ Operations Guide</span>
 
-This document provides comprehensive operational procedures for the Reverse Tender Platform running on Laravel 12 + Octane with FrankenPHP. The platform is deployed using a microservices architecture with Kubernetes orchestration and comprehensive monitoring.
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Comprehensive operational procedures for the <strong>Reverse Tender Platform</strong> running on Laravel 12 + Octane with FrankenPHP, deployed using microservices architecture with Kubernetes orchestration.</p>
 
-## Table of Contents
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Operations Strategy Overview</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
+
+- **🏗️ Microservices Architecture**: 9 services with Laravel 12 + Octane and FrankenPHP optimization
+- **📊 Comprehensive Monitoring**: Kubernetes orchestration with health endpoints and alerting systems
+- **🔄 Operational Excellence**: Deployment procedures, scaling operations, and emergency response protocols
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">⚙️ Complete Operations Manual</summary>
+
+### Table of Contents
 
 1. [Platform Architecture](#platform-architecture)
 2. [Environment Management](#environment-management)
@@ -17,9 +28,9 @@ This document provides comprehensive operational procedures for the Reverse Tend
 9. [Performance Optimization](#performance-optimization)
 10. [Emergency Procedures](#emergency-procedures)
 
-## Platform Architecture
+### Platform Architecture
 
-### Services Overview
+#### Services Overview
 
 The platform consists of 9 microservices:
 
@@ -35,7 +46,7 @@ The platform consists of 9 microservices:
 | analytics-service | Analytics and reporting | 80 | `/octane/health` |
 | vin-ocr-service | VIN OCR processing | 80 | `/octane/health` |
 
-### Infrastructure Components
+#### Infrastructure Components
 
 - **Database**: MySQL 8.0 with master-slave replication
 - **Cache**: Redis 7.0 with clustering
@@ -644,4 +655,3 @@ kubectl patch configmap app-config -n reverse-tender -p '{"data":{"MAINTENANCE_M
 ---
 
 *This document should be reviewed and updated quarterly or after any major infrastructure changes.*
-

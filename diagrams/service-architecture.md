@@ -1,8 +1,10 @@
-# 🏗️ Service Architecture Diagrams
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 🔄 Service Dependency Architecture
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🏗️ Service Architecture</span>
 
-## 🌟 Distinguished Service Dependencies with Eye-Catching Styling
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Distinguished <strong>Service Dependency Architecture</strong> showcasing comprehensive microservices ecosystem with 8 core services, API gateway orchestration, and integrated data layer management.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🌟 Complete Service Dependencies</span>
 
 ```mermaid
 %%{init: {
@@ -18,26 +20,31 @@
     'mainBkg': '#1E293B',
     'secondBkg': '#334155',
     'tertiaryBkg': '#475569'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
   }
 }}%%
 
 graph TB
     %% External Systems
-    Client[🌐 Client Applications<br/>Web/Mobile/API]
-    Gateway[🚪 API Gateway<br/>:8000<br/>Rate Limiting & Auth]
+    Client["🌐 Client Applications<br/>Web/Mobile/API<br/>323px"]
+    Gateway["🚪 API Gateway<br/>:8000<br/>Rate Limiting & Auth<br/>323px"]
     
     %% Core Services
-    AuthSvc[🔐 Auth Service<br/>:8001<br/>JWT + OAuth + OTP]
-    UserSvc[👥 User Service<br/>:8003<br/>Profiles + KYC]
-    OrderSvc[📋 Order Service<br/>:8002<br/>Part Requests]
-    BiddingSvc[🎯 Bidding Service<br/>:8004<br/>Real-time + Auto]
-    NotificationSvc[📢 Notification Service<br/>:8005<br/>Multi-channel]
-    PaymentSvc[💳 Payment Service<br/>:8007<br/>ZATCA + Payments]
-    VinOcrSvc[🔍 VIN OCR Service<br/>:8006<br/>AI + ML Models]
-    AnalyticsSvc[📊 Analytics Service<br/>:8008<br/>BI + Reporting]
+    AuthSvc["🔐 Auth Service<br/>:8001<br/>JWT + OAuth + OTP<br/>323px"]
+    UserSvc["👥 User Service<br/>:8003<br/>Profiles + KYC<br/>200px"]
+    OrderSvc["📋 Order Service<br/>:8002<br/>Part Requests<br/>323px"]
+    BiddingSvc["🎯 Bidding Service<br/>:8004<br/>Real-time + Auto<br/>323px"]
+    NotificationSvc["📢 Notification Service<br/>:8005<br/>Multi-channel<br/>200px"]
+    PaymentSvc["💳 Payment Service<br/>:8007<br/>ZATCA + Payments<br/>323px"]
+    VinOcrSvc["🔍 VIN OCR Service<br/>:8006<br/>AI + ML Models<br/>200px"]
+    AnalyticsSvc["📊 Analytics Service<br/>:8008<br/>BI + Reporting<br/>200px"]
     
     %% Data Layer
-    MainDB[(🗄️ Main Database<br/>MySQL 8.0<br/>13 Business Domains)]
+    MainDB[("🗄️ Main Database<br/>MySQL 8.0<br/>13 Business Domains<br/>323px")]
     Redis[(🔴 Redis<br/>Cache + Sessions<br/>+ Queues)]
     S3[(☁️ S3 Storage<br/>Images + Documents<br/>+ Backups)]
     

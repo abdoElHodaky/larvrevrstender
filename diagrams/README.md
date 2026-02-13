@@ -1,12 +1,23 @@
-# 📊 System Diagrams - Enterprise Reverse Tender Platform
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-This directory contains comprehensive architectural diagrams for the **Enterprise Reverse Tender Platform**, providing visual documentation of all system components, workflow orchestration, circuit breaker patterns, third-party integrations, and deployment strategies.
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">📊 System Diagrams</span>
 
-## 📋 Available Diagrams
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Comprehensive architectural diagrams for the <strong>Enterprise Reverse Tender Platform</strong>, providing visual documentation of all system components, workflow orchestration, circuit breaker patterns, and deployment strategies.</p>
 
-### **🚀 Phase 2 Enhanced Architecture**
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Architecture Documentation Overview</span>
 
-### **1. 🏗️ [Microservices Architecture](./microservices-architecture.md)**
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
+
+- **🏗️ Enhanced Microservices Architecture**: 8 microservices with workflow orchestration and cross-service infrastructure
+- **🛡️ Dual Circuit Breaker Patterns**: Synchronous and asynchronous protection with Laravel Fuse integration
+- **🔌 Third-Party Integration Framework**: Standardized patterns with authentication strategies and fault tolerance
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">📋 Complete Diagram Collection</summary>
+
+### Phase 2 Enhanced Architecture
+
+### 1. 🏗️ [Microservices Architecture](./microservices-architecture.md)
 - **Enhanced system architecture** with workflow orchestration
 - **Cross-service infrastructure** with micro and macro procedures
 - **Dual circuit breaker patterns** (sync + async)
@@ -14,7 +25,7 @@ This directory contains comprehensive architectural diagrams for the **Enterpris
 - **Service interconnections** and fault tolerance
 - **Key Components**: 8 microservices, 8 micro procedures, 2 macro procedure types, 80+ API endpoints
 
-### **2. 🔄 [Workflow Orchestration Architecture](./workflow-orchestration.md)**
+### 2. 🔄 [Workflow Orchestration Architecture](./workflow-orchestration.md)
 - **Macro procedures framework** for complex business processes
 - **State management** and compensation mechanisms
 - **Parallel and sequential execution** patterns
@@ -22,7 +33,7 @@ This directory contains comprehensive architectural diagrams for the **Enterpris
 - **Workflow state persistence** and recovery
 - **Key Features**: State-managed workflows, compensation logic, conditional branching
 
-### **3. 🛡️ [Circuit Breaker Architecture](./circuit-breaker-architecture.md)**
+### 3. 🛡️ [Circuit Breaker Architecture](./circuit-breaker-architecture.md)
 - **Dual circuit breaker patterns** (synchronous + asynchronous)
 - **Laravel Fuse integration** for queue job protection
 - **Intelligent failure classification** and recovery
@@ -30,7 +41,7 @@ This directory contains comprehensive architectural diagrams for the **Enterpris
 - **Exponential backoff** and retry mechanisms
 - **Key Features**: Auto recovery, failure classification, queue protection
 
-### **4. 🔌 [Third-Party Integration Framework](./third-party-integration.md)**
+### 4. 🔌 [Third-Party Integration Framework](./third-party-integration.md)
 - **Standardized integration patterns** for external services
 - **Authentication strategies** (Bearer, API Key, OAuth2)
 - **Rate limiting and retry mechanisms**
@@ -198,4 +209,3 @@ This directory contains comprehensive architectural diagrams for the **Enterpris
 - **Enterprise security** and authentication
 
 This comprehensive diagram collection provides complete visual documentation for the enterprise-grade reverse tender platform with advanced workflow orchestration, circuit breaker patterns, and third-party integration capabilities.
-

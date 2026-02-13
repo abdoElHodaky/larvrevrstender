@@ -1,37 +1,70 @@
-# 📚 API Documentation
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-Complete API documentation for the Reverse Tender Platform microservices.
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">📚 API Documentation</span>
 
-## 🔗 Base URLs
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Complete API documentation for the <strong>Reverse Tender Platform microservices</strong> with comprehensive endpoint references, authentication methods, and integration examples.</p>
 
-| Service | Development | Production |
-|---------|-------------|------------|
-| API Gateway | `http://localhost:8000` | `https://api.reversetender.com` |
-| Auth Service | `http://localhost:8001` | `https://auth.reversetender.com` |
-| Bidding Service | `http://localhost:8002` | `https://bidding.reversetender.com` |
-| User Service | `http://localhost:8003` | `https://users.reversetender.com` |
-| Order Service | `http://localhost:8004` | `https://orders.reversetender.com` |
-| Notification Service | `http://localhost:8005` | `https://notifications.reversetender.com` |
-| Payment Service | `http://localhost:8006` | `https://payments.reversetender.com` |
-| Analytics Service | `http://localhost:8007` | `https://analytics.reversetender.com` |
-| VIN OCR Service | `http://localhost:8008` | `https://vin.reversetender.com` |
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🚀 API Gateway & Services</span>
 
-## 🔐 Authentication
+<!-- 62% MAJOR CONCEPTS: Core API Services -->
+<div style="margin-bottom: 3rem;">
 
-The platform uses multiple authentication methods:
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🌐 Primary API Gateway</span>
+<p style="font-size: 16px; line-height: 1.618;"><strong>Central Entry Point:</strong> <code>https://api.reversetender.com</code> - All client requests route through the unified gateway with load balancing and authentication.</p>
 
-### JWT Token Authentication
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🔐 Authentication Service</span>
+<p style="font-size: 16px; line-height: 1.618;"><strong>JWT Token Management:</strong> <code>https://auth.reversetender.com</code> - Secure authentication with bearer tokens, refresh mechanisms, and role-based access control.</p>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">💰 Core Business Services</span>
+<p style="font-size: 16px; line-height: 1.618;"><strong>Bidding & Payments:</strong> <code>https://bidding.reversetender.com</code> and <code>https://payments.reversetender.com</code> - Real-time auction processing with secure payment integration.</p>
+
+</div>
+
+<!-- 38% MINOR DETAILS: Service Endpoints -->
+<details style="margin-bottom: 2rem;">
+<summary style="font-size: 16px; font-weight: 500; cursor: pointer;">🔗 Complete Service Directory</summary>
+<div style="margin-top: 1rem; padding-left: 1rem; border-left: 3px solid #4ECDC4;">
+
+**Development Environment:**
+- API Gateway: `http://localhost:8000`
+- Auth Service: `http://localhost:8001`
+- Bidding Service: `http://localhost:8002`
+- User Service: `http://localhost:8003`
+
+**Production Services:**
+- Users: `https://users.reversetender.com`
+- Orders: `https://orders.reversetender.com`
+- Notifications: `https://notifications.reversetender.com`
+- Analytics: `https://analytics.reversetender.com`
+- VIN OCR: `https://vin.reversetender.com`
+
+</div>
+</details>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🔐 Authentication Methods</span>
+
+<!-- 62% MAJOR CONCEPTS: Primary Authentication -->
+<div style="margin-bottom: 3rem;">
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🎯 JWT Token Authentication</span>
+<p style="font-size: 16px; line-height: 1.618;"><strong>Primary Method:</strong> Bearer token authentication with 3600-second expiration and automatic refresh capabilities.</p>
 
 ```bash
-# Login to get JWT token
-curl -X POST http://localhost:8001/api/v1/auth/login \
+# Quick Login Example
+curl -X POST https://auth.reversetender.com/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "password"
-  }'
+  -d '{"email": "user@example.com", "password": "password"}'
+```
 
-# Response
+</div>
+
+<!-- 38% MINOR DETAILS: Authentication Details -->
+<details style="margin-bottom: 2rem;">
+<summary style="font-size: 16px; font-weight: 500; cursor: pointer;">🔧 Detailed Authentication Flow</summary>
+<div style="margin-top: 1rem; padding-left: 1rem; border-left: 3px solid #4ECDC4;">
+
+**Response Format:**
+```json
 {
   "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
   "token_type": "bearer",
@@ -890,4 +923,3 @@ Import the Postman collection:
 ---
 
 **Need help?** Check our [Installation Guide](INSTALLATION.md) or open an issue on [GitHub](https://github.com/abdoElHodaky/larvrevrstender/issues).
-

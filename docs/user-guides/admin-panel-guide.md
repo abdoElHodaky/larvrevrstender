@@ -1,10 +1,21 @@
-# Admin Panel User Guide
-## Reverse Tender Platform - Saudi Arabia
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-### Overview
-This comprehensive guide provides administrators with detailed instructions for managing the Reverse Tender Platform, including user management, system monitoring, and compliance oversight.
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">👨‍💼 Admin Panel User Guide</span>
 
-## Table of Contents
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Comprehensive guide for administrators managing the <strong>Reverse Tender Platform</strong>, including user management, system monitoring, and ZATCA compliance oversight for Saudi Arabia operations.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Administration Strategy Overview</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
+
+- **🏗️ Platform Management**: User management, transaction monitoring, and system health oversight
+- **🇸🇦 ZATCA Compliance**: Saudi Arabia regulatory compliance monitoring and reporting
+- **📊 Analytics & Security**: Reports, analytics, and comprehensive security management
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">📋 Complete Administration Guide</summary>
+
+### Table of Contents
 1. [Getting Started](#getting-started)
 2. [Dashboard Overview](#dashboard-overview)
 3. [User Management](#user-management)
@@ -15,26 +26,26 @@ This comprehensive guide provides administrators with detailed instructions for 
 8. [Security Management](#security-management)
 9. [Troubleshooting](#troubleshooting)
 
-## Getting Started
+### Getting Started
 
-### Accessing the Admin Panel
+#### Accessing the Admin Panel
 1. Navigate to `https://admin.reversetender.sa`
 2. Enter your administrator credentials
 3. Complete two-factor authentication if enabled
 4. You'll be redirected to the main dashboard
 
-### Initial Setup Checklist
+#### Initial Setup Checklist
 - [ ] Verify system status indicators
 - [ ] Check pending user verifications
 - [ ] Review recent transactions
 - [ ] Confirm ZATCA compliance status
 - [ ] Check system alerts and notifications
 
-## Dashboard Overview
+### Dashboard Overview
 
-### Main Dashboard Components
+#### Main Dashboard Components
 
-#### System Health Indicators
+##### System Health Indicators
 ```
 🟢 All Services Operational
 🟡 Minor Issues Detected
@@ -568,4 +579,3 @@ Admin Role Hierarchy:
 **Document Version**: 1.0  
 **Last Updated**: January 30, 2026  
 **Next Review**: April 30, 2026
-

@@ -1,6 +1,10 @@
-# 📢 Real-time Notification Architecture Diagram
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 🌟 Distinguished Multi-Channel Notification System with Eye-Catching Styling
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">📢 Notification Architecture</span>
+
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Distinguished <strong>Multi-Channel Notification System</strong> with real-time event processing, queue-based workers, and comprehensive delivery channels including push notifications, SMS, email, and in-app messaging.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🌟 Real-Time Notification System</span>
 
 ```mermaid
 %%{init: {
@@ -16,28 +20,33 @@
     'mainBkg': '#1E293B',
     'secondBkg': '#334155',
     'tertiaryBkg': '#475569'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
   }
 }}%%
 
 graph TB
     %% Event Sources
-    AUTH[🔐 Auth Service<br/>Login/Register Events]
-    ORDER[📋 Order Service<br/>Order Status Changes]
-    BIDDING[🎯 Bidding Service<br/>Bid Events]
-    PAYMENT[💳 Payment Service<br/>Payment Events]
-    USER[👥 User Service<br/>Profile Updates]
+    AUTH["🔐 Auth Service<br/>Login/Register Events<br/>200px"]
+    ORDER["📋 Order Service<br/>Order Status Changes<br/>323px"]
+    BIDDING["🎯 Bidding Service<br/>Bid Events<br/>323px"]
+    PAYMENT["💳 Payment Service<br/>Payment Events<br/>200px"]
+    USER["👥 User Service<br/>Profile Updates<br/>200px"]
     
     %% Message Queue System
-    REDIS_QUEUE[📨 Redis Pub/Sub<br/>Message Queue]
+    REDIS_QUEUE["📨 Redis Pub/Sub<br/>Message Queue<br/>323px"]
     
     %% Notification Service Core
-    NOTIFICATION[📢 Notification Service<br/>Laravel + Queue Workers]
+    NOTIFICATION["📢 Notification Service<br/>Laravel + Queue Workers<br/>323px"]
     
     %% Notification Channels
-    PUSH_WORKER[🔔 Push Notification Worker<br/>FCM/APNS Handler]
-    SMS_WORKER[📱 SMS Worker<br/>Twilio/AWS SNS]
-    EMAIL_WORKER[📧 Email Worker<br/>SendGrid/SES]
-    INAPP_WORKER[📱 In-App Worker<br/>WebSocket/Database]
+    PUSH_WORKER["🔔 Push Notification Worker<br/>FCM/APNS Handler<br/>200px"]
+    SMS_WORKER["📱 SMS Worker<br/>Twilio/AWS SNS<br/>200px"]
+    EMAIL_WORKER["📧 Email Worker<br/>SendGrid/SES<br/>200px"]
+    INAPP_WORKER["📱 In-App Worker<br/>WebSocket/Database<br/>200px"]
     
     %% External Providers
     FCM[🔥 Firebase Cloud Messaging<br/>Android Push]

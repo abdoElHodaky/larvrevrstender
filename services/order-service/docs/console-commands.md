@@ -1,26 +1,33 @@
-# Console Commands - Laravel WorkflowCore Enterprise
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 📋 Overview
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🖥️ Order Service Console Commands</span>
 
-This document provides comprehensive documentation for all console commands implemented in the Laravel WorkflowCore Enterprise. These commands enable operational management, monitoring, and maintenance of the workflow system.
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Comprehensive documentation for all <strong>console commands</strong> implemented in Laravel WorkflowCore Enterprise enabling operational management, monitoring, and maintenance of the workflow system.</p>
 
----
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Console Commands Strategy Overview</span>
 
-## 🖥️ Available Commands
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
 
-### 1. [ProcessDlqRetryQueue](#1-processdlqretryqueue) - DLQ batch processing
-### 2. [MonitorWorkflowAlerts](#2-monitorworkflowalerts) - Alert monitoring
-### 3. [WorkflowMetrics](#3-workflowmetrics) - Metrics management
+- **🔄 DLQ Batch Processing**: Dead letter queue retry processing with comprehensive statistics and progress tracking
+- **📊 Alert Monitoring**: Workflow alert monitoring with real-time status updates and notification management
+- **📈 Metrics Management**: Workflow metrics collection, analysis, and operational maintenance commands
 
----
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">🖥️ Complete Console Commands Reference</summary>
 
-## 1. ProcessDlqRetryQueue
+### Available Commands
 
-### **Command:** `workflow:process-dlq-retry-queue`
+1. **ProcessDlqRetryQueue** - DLQ batch processing
+2. **MonitorWorkflowAlerts** - Alert monitoring
+3. **WorkflowMetrics** - Metrics management
+
+### ProcessDlqRetryQueue
+
+#### Command: `workflow:process-dlq-retry-queue`
 
 **Purpose:** Process the dead letter queue retry queue in batches with comprehensive statistics and progress tracking.
 
-### **Signature:**
+#### Signature:
 ```bash
 php artisan workflow:process-dlq-retry-queue 
     [--batch-size=10] 
@@ -28,7 +35,7 @@ php artisan workflow:process-dlq-retry-queue
     [--delay=30]
 ```
 
-### **Options:**
+#### Options:
 
 | Option | Default | Description |
 |--------|---------|-------------|
@@ -36,7 +43,7 @@ php artisan workflow:process-dlq-retry-queue
 | `--max-retries` | 5 | Maximum number of retry attempts per item |
 | `--delay` | 30 | Delay in seconds between batches |
 
-### **Usage Examples:**
+#### Usage Examples:
 
 #### Basic Usage
 ```bash

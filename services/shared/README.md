@@ -1,22 +1,37 @@
-# Cross-Service Infrastructure
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
+
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🔧 Shared Services Infrastructure</span>
+
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Comprehensive <strong>cross-service infrastructure</strong> for Laravel microservices with micro procedures, macro procedures, and unified communication patterns supporting REST and RPC architectures.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Infrastructure Strategy Overview</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
+
+- **🏗️ Core Architecture**: Unified procedure engine with REST/RPC handlers, configuration management, and base procedure functionality
+- **🔄 Micro Procedures**: Event publishing, cache management, validation, security, monitoring, and comprehensive testing procedures
+- **📊 Infrastructure Components**: Event-driven architecture, distributed caching, service discovery, and comprehensive error handling
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">🔧 Complete Shared Services Documentation</summary>
 
 A comprehensive cross-service infrastructure for Laravel microservices with both micro procedures (single-responsibility) and macro procedures (complex workflows) supporting REST and RPC communication patterns.
 
-## 🚀 Features
+### Features
 
-### Core Architecture
+#### Core Architecture
 - **Procedure Engine**: Unified execution engine for micro and macro procedures
 - **REST Handler**: RESTful API with CORS, rate limiting, and standardized responses
 - **RPC Handler**: High-performance JSON-RPC 2.0 with service discovery
 - **Configuration Management**: Centralized configuration with environment overrides
 - **Base Procedure**: Common functionality for logging, caching, validation, and metrics
 
-### Micro Procedures (Implemented)
+#### Micro Procedures (Implemented)
 - **Event Publishing**: Reliable event emission with retry logic and audit trails
 - **Cache Management**: Distributed caching with compression, tagging, and analytics
 - **More procedures**: Validation, Security, Monitoring, Database, Communication, Testing
 
-### Infrastructure Components
+#### Infrastructure Components
 - **Event-Driven Architecture**: Redis/RabbitMQ/Kafka support with dead letter queues
 - **Distributed Caching**: Redis/Memcached/File with automatic compression
 - **Service Discovery**: Dynamic service registration with health checks
@@ -24,7 +39,7 @@ A comprehensive cross-service infrastructure for Laravel microservices with both
 - **Metrics Collection**: Performance and business metrics tracking
 - **Error Handling**: Circuit breakers, retry logic, and comprehensive error tracking
 
-## 📁 Project Structure
+### Project Structure
 
 ```
 services/shared/

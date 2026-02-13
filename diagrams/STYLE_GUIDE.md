@@ -1,38 +1,45 @@
-# 🎨 Diagram Style Guide - Reverse Tender Platform
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 🌟 Visual Identity & Design System
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🎨 Diagram Style Guide</span>
 
-This style guide establishes the unified visual identity for all architectural diagrams in the Reverse Tender Platform. It ensures consistency, accessibility, and eye-catching appeal across all documentation.
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Unified visual identity for all <strong>architectural diagrams</strong> in the Reverse Tender Platform, ensuring consistency, accessibility, and eye-catching appeal across all documentation.</p>
 
----
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Design System Overview</span>
 
-## 🎯 Design Principles
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
 
-### **1. 🌙 Dark Theme First**
+- **🌙 Dark Theme First**: Modern dark backgrounds with high contrast elements for professional appearance
+- **🌈 Vibrant Color Palette**: Bright, saturated colors with accessibility-compliant contrast ratios (WCAG AA)
+- **📊 Clear Visual Hierarchy**: Component categorization through consistent color coding and size variations
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">🎨 Complete Style System</summary>
+
+### Design Principles
+
+#### 1. 🌙 Dark Theme First
 - All diagrams use dark backgrounds for modern, professional appearance
 - High contrast text and elements for excellent readability
 - Reduced eye strain for developers working in dark environments
 
-### **2. 🌈 Vibrant Color Palette**
+#### 2. 🌈 Vibrant Color Palette
 - Bright, saturated colors that pop against dark backgrounds
 - Distinct colors for different component types
 - Accessibility-compliant contrast ratios (WCAG AA)
 
-### **3. 📊 Clear Visual Hierarchy**
+#### 3. 📊 Clear Visual Hierarchy
 - Component categorization through consistent color coding
 - Size and styling variations to indicate importance
 - Logical grouping with subgraphs and containers
 
-### **4. ⚡ Modern Aesthetics**
+#### 4. ⚡ Modern Aesthetics
 - Rounded corners and smooth edges
 - Gradient effects and modern styling
 - Clean typography and spacing
 
----
+### Master Color Palette
 
-## 🎨 Master Color Palette
-
-### **🔥 Primary Component Colors**
+#### 🔥 Primary Component Colors
 
 ```css
 /* 🚪 API Gateway & Infrastructure */

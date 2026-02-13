@@ -1,26 +1,33 @@
-# API Documentation - Laravel Workflow Saga Pattern
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 📋 Overview
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">📡 Order Service API Documentation</span>
 
-This document provides comprehensive API documentation for all 33 endpoints implemented in the Laravel Workflow Saga Pattern. The APIs are organized into logical groups for easy navigation and integration.
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Comprehensive API documentation for <strong>33 endpoints</strong> implemented in the Laravel Workflow Saga Pattern, organized into logical groups for easy navigation and integration.</p>
 
----
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 API Strategy Overview</span>
 
-## 🛣️ API Endpoint Groups
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
 
-### 1. Order Workflow Management (8 endpoints)
-### 2. Dead Letter Queue Management (5 endpoints)  
-### 3. Workflow Metrics & Analytics (4 endpoints)
-### 4. Workflow Dashboards (3 endpoints)
-### 5. Workflow Signals (7 endpoints)
-### 6. Correlation & Tracing (4 endpoints)
-### 7. Workflow Alerts (2 endpoints)
+- **🔄 Order Workflow Management**: 8 endpoints for workflow initiation, execution, and lifecycle management
+- **📊 Comprehensive Analytics**: Dead letter queue management, metrics, dashboards, and correlation tracking (18 endpoints)
+- **🔔 Signal & Alert Systems**: Workflow signals and intelligent alerting with real-time notifications (9 endpoints)
 
----
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">📡 Complete API Documentation</summary>
 
-## 🔄 1. Order Workflow Management
+### API Endpoint Groups
 
-### **POST** `/orders/{id}/workflow/initiate`
+1. **Order Workflow Management** (8 endpoints)
+2. **Dead Letter Queue Management** (5 endpoints)  
+3. **Workflow Metrics & Analytics** (4 endpoints)
+4. **Workflow Dashboards** (3 endpoints)
+5. **Workflow Signals** (7 endpoints)
+6. **Correlation & Tracing** (4 endpoints)
+7. **Workflow Alerts** (2 endpoints)
+
+### Order Workflow Management
+
+#### **POST** `/orders/{id}/workflow/initiate`
 Initiate a new workflow for an order.
 
 **Parameters:**

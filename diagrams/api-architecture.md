@@ -1,10 +1,10 @@
-# 📡 Complete API Architecture
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 🎯 **Overview**
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">📡 Complete API Architecture</span>
 
-The **Complete API Architecture** provides **80+ endpoints** across multiple service categories, supporting both REST and RPC protocols with comprehensive functionality for workflow orchestration, circuit breaker management, and third-party integrations.
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">The <strong>Complete API Architecture</strong> provides <strong>80+ endpoints</strong> across multiple service categories, supporting both REST and RPC protocols with comprehensive functionality for workflow orchestration, circuit breaker management, and third-party integrations.</p>
 
-## 🏗️ **Complete API Architecture Overview**
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🏗️ Complete API Architecture Overview</span>
 
 ```mermaid
 %%{init: {
@@ -29,13 +29,18 @@ The **Complete API Architecture** provides **80+ endpoints** across multiple ser
     'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
     'fontSize': '14px',
     'fontWeight': 'bold'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
   }
 }}%%
 
 graph TB
     subgraph "🌐 CLIENT LAYER"
-        WEB_CLIENT[🌐 Web Clients<br/>• React/Vue apps<br/>• Mobile apps<br/>• Third-party integrations]
-        API_CLIENT[🔌 API Clients<br/>• SDKs<br/>• CLI tools<br/>• Automation scripts]
+        WEB_CLIENT["🌐 Web Clients<br/>• React/Vue apps<br/>• Mobile apps<br/>• Third-party integrations<br/>323px"]
+        API_CLIENT["🔌 API Clients<br/>• SDKs<br/>• CLI tools<br/>• Automation scripts<br/>200px"]
     end
 
     subgraph "🚪 API GATEWAY LAYER"

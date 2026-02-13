@@ -1,12 +1,10 @@
-# 🔐 Modern Authentication & Authorization Flow
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-> **🚀 Laravel 12+ DDD Architecture** | **🛡️ Zero Trust Security** | **⚡ Multi-Factor Authentication**
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🔐 Authentication & Authorization Flow</span>
 
-## 🎯 Authentication Overview
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Modern authentication system implementing <strong>Domain-Driven Design</strong>, <strong>JWT with RS256</strong>, <strong>Multi-Factor Authentication</strong>, and <strong>Zero Trust Security</strong> principles across the Laravel microservices architecture.</p>
 
-This diagram showcases our **modern authentication system** implementing **Domain-Driven Design**, **JWT with RS256**, **Multi-Factor Authentication**, and **Zero Trust Security** principles.
-
-## 🔐 Complete Authentication Flow
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🔐 Complete Authentication Flow</span>
 
 ```mermaid
 %%{init: {
@@ -30,6 +28,11 @@ This diagram showcases our **modern authentication system** implementing **Domai
     'noteBkgColor': '#FECA57',
     'noteTextColor': '#000000',
     'noteBorderColor': '#FED876'
+  },
+  'sequence': {
+    'actorMargin': 81,
+    'boxMargin': 50,
+    'messageMargin': 50
   }
 }}%%
 

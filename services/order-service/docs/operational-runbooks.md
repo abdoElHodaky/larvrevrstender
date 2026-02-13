@@ -1,6 +1,21 @@
-# Operational Runbooks - Laravel WorkflowCore Enterprise
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 📋 Table of Contents
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">📖 Order Service Operational Runbooks</span>
+
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Comprehensive operational runbooks for <strong>Laravel WorkflowCore Enterprise</strong> with system health monitoring, troubleshooting procedures, and disaster recovery protocols.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Operations Strategy Overview</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
+
+- **🏥 System Health Monitoring**: Daily health checks, queue worker monitoring, and database connectivity verification
+- **🔧 Troubleshooting Procedures**: Performance issues, dead letter queue management, and alert response protocols
+- **🚨 Incident Response**: Disaster recovery, scaling procedures, and security incident response with common solutions
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">📖 Complete Operational Runbooks</summary>
+
+### Table of Contents
 
 1. [System Health Monitoring](#system-health-monitoring)
 2. [Troubleshooting Procedures](#troubleshooting-procedures)
@@ -13,11 +28,9 @@
 9. [Security Incident Response](#security-incident-response)
 10. [Common Issues & Solutions](#common-issues--solutions)
 
----
+### System Health Monitoring
 
-## 🏥 System Health Monitoring
-
-### **Daily Health Checks**
+#### Daily Health Checks
 
 Perform these checks every morning:
 

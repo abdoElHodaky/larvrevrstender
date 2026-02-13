@@ -1,6 +1,10 @@
-# 🔄 Data Flow Diagram (DFD) - Reverse Tender Platform
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 🌟 Distinguished Data Flow with Eye-Catching Styling
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🔄 Data Flow Diagram</span>
+
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Distinguished <strong>Data Flow Architecture</strong> for the Reverse Tender Platform showcasing comprehensive process flows, external entity interactions, and multi-level system decomposition.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🌟 Complete Data Flow Architecture</span>
 
 ```mermaid
 %%{init: {
@@ -16,28 +20,33 @@
     'mainBkg': '#1E293B',
     'secondBkg': '#334155',
     'tertiaryBkg': '#475569'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
   }
 }}%%
 
 graph TD
     %% External Entities
-    CUSTOMER[👤 Customer]
-    MERCHANT[🏪 Merchant]
-    ADMIN[👨‍💼 Admin]
-    ZATCA[🏛️ ZATCA System]
-    SMS_PROVIDER[📱 SMS Provider]
-    EMAIL_PROVIDER[📧 Email Provider]
+    CUSTOMER["👤 Customer<br/>200px"]
+    MERCHANT["🏪 Merchant<br/>200px"]
+    ADMIN["👨‍💼 Admin<br/>200px"]
+    ZATCA["🏛️ ZATCA System<br/>323px"]
+    SMS_PROVIDER["📱 SMS Provider<br/>200px"]
+    EMAIL_PROVIDER["📧 Email Provider<br/>200px"]
     
     %% Level 0 - Context Diagram
-    SYSTEM[🎯 Reverse Tender Platform<br/>Complete System]
+    SYSTEM["🎯 Reverse Tender Platform<br/>Complete System<br/>323px"]
     
     %% Level 1 - Major Processes
-    P1[1.0<br/>🔐 User Management<br/>Registration, Login, Profiles]
-    P2[2.0<br/>📋 Order Management<br/>Create, Publish, Track Orders]
-    P3[3.0<br/>🎯 Bidding System<br/>Submit, Manage, Award Bids]
-    P4[4.0<br/>💳 Payment Processing<br/>Payments, Invoicing, ZATCA]
-    P5[5.0<br/>📢 Notification System<br/>Multi-channel Notifications]
-    P6[6.0<br/>📊 Analytics & Reporting<br/>Business Intelligence]
+    P1["1.0<br/>🔐 User Management<br/>Registration, Login, Profiles<br/>323px"]
+    P2["2.0<br/>📋 Order Management<br/>Create, Publish, Track Orders<br/>323px"]
+    P3["3.0<br/>🎯 Bidding System<br/>Submit, Manage, Award Bids<br/>323px"]
+    P4["4.0<br/>💳 Payment Processing<br/>Payments, Invoicing, ZATCA<br/>323px"]
+    P5["5.0<br/>📢 Notification System<br/>Multi-channel Notifications<br/>200px"]
+    P6["6.0<br/>📊 Analytics & Reporting<br/>Business Intelligence<br/>200px"]
     P7[7.0<br/>🔍 VIN OCR Processing<br/>Vehicle Recognition]
     
     %% Data Stores

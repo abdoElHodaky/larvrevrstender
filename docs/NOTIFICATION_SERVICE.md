@@ -1,10 +1,19 @@
-# 📱 Notification Service Documentation
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## Overview
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">📱 Notification Service Documentation</span>
 
-The Notification Service provides **multi-channel messaging capabilities** optimized for the MENA region, offering alternatives to Twilio with local and regional providers for better delivery rates, compliance, and cost-effectiveness.
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Multi-channel messaging capabilities <strong>optimized for the MENA region</strong>, offering alternatives to Twilio with local and regional providers for better delivery rates, compliance, and cost-effectiveness.</p>
 
-## 🌍 **MENA-Optimized Architecture**
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Service Architecture Overview</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
+
+- **🌍 MENA-Optimized Architecture**: 7 communication channels with regional provider integration for optimal delivery rates
+- **📱 Multi-Channel Messaging**: WhatsApp, SMS, Telegram, Signal, Email, Web Push, and In-App notifications
+- **⚡ Enterprise Integration**: Laravel-based service with WebSocket real-time capabilities and database persistence
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">📋 Complete Channel Configuration</summary>
 
 ### Supported Channels
 
@@ -18,10 +27,10 @@ The Notification Service provides **multi-channel messaging capabilities** optim
 | **Web Push** | Browser API | Global | Real-time web notifications |
 | **In-App** | Database + WebSocket | Platform-specific | User dashboard alerts |
 
-## 🏗️ **Service Architecture**
+### Service Architecture
 
 ```mermaid
-graph TB
+flowchart TB
     subgraph "Notification Service"
         MCS[MultiChannelService]
         WA[WhatsAppService]

@@ -1,21 +1,32 @@
-# Complete API Reference
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 📡 **API Overview**
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">📡 Complete API Reference</span>
 
-The Laravel Reverse Tender Platform provides a comprehensive REST API with **80+ endpoints** across multiple service categories. All APIs support both REST and RPC protocols with consistent response formats.
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Comprehensive REST API documentation for the <strong>Laravel Reverse Tender Platform</strong> with 80+ endpoints across multiple service categories supporting both REST and RPC protocols.</p>
 
-### **Base URLs**
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 API Architecture Overview</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">62% Major Concepts</span>
+
+- **📡 Comprehensive REST API**: 80+ endpoints across multiple service categories with consistent response formats
+- **🔐 Unified Authentication**: Bearer token and API key authentication with trace ID support
+- **🔄 Consistent Response Format**: Standardized JSON responses with metadata and error handling
+
+<details style="border-left: 3px solid #4ECDC4; padding-left: 1rem; margin: 1rem 0;">
+<summary style="font-weight: 600; cursor: pointer;">📋 Complete API Configuration</summary>
+
+### Base URLs
 - **Development**: `http://localhost:8001/api`
 - **Production**: `https://your-domain.com/api`
 
-### **Authentication**
+### Authentication
 ```bash
 # Include authentication headers
 Authorization: Bearer {your-token}
 X-API-Key: {your-api-key}
 ```
 
-### **Common Headers**
+### Common Headers
 ```bash
 Content-Type: application/json
 Accept: application/json
@@ -23,7 +34,7 @@ X-Trace-ID: {unique-request-id}
 X-Source-Service: {calling-service-name}
 ```
 
-## 🔄 **Response Format**
+### Response Format
 
 All API endpoints return a consistent response format:
 
@@ -789,4 +800,3 @@ curl -X POST http://localhost:8001/api/queue-circuit-breaker/dispatch \
 ```
 
 This comprehensive API reference covers all available endpoints with detailed request/response examples, error handling, and testing guidance.
-

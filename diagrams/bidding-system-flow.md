@@ -1,6 +1,10 @@
-# 🎯 Bidding System Flow Diagram
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## 🌟 Distinguished System Architecture Overview
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🎯 Bidding System Flow</span>
+
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Distinguished <strong>System Architecture Overview</strong> showcasing real-time bidding capabilities with Laravel DDD architecture, WebSocket communication, and comprehensive event-driven processing.</p>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🌟 Real-Time Bidding Architecture</span>
 
 ```mermaid
 %%{init: {
@@ -16,28 +20,33 @@
     'mainBkg': '#1E293B',
     'secondBkg': '#334155',
     'tertiaryBkg': '#475569'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
   }
 }}%%
 
 graph TB
     subgraph "🌐 CLIENT APPLICATIONS"
-        PWA["📱 PWA / Mobile App<br/>🚀 Vue.js 3 + TypeScript<br/>⚡ Real-time Updates"]
+        PWA["📱 PWA / Mobile App<br/>🚀 Vue.js 3 + TypeScript<br/>⚡ Real-time Updates<br/>323px"]
     end
 
     subgraph "🔀 INFRASTRUCTURE GATEWAY"
-        GW["🚪 API Gateway<br/>🛡️ Rate Limiting + Auth<br/>📊 Request Analytics"]
+        GW["🚪 API Gateway<br/>🛡️ Rate Limiting + Auth<br/>📊 Request Analytics<br/>323px"]
     end
 
     subgraph "🎯 CORE BUSINESS SERVICES"
-        Order["📋 Order Service<br/>🔥 Laravel 12+ DDD + Octane<br/>📝 Request Management"]
-        Bidding["🎯 Bidding Service<br/>🔥 Laravel 12+ DDD + Octane<br/>⚡ Real-time Auctions"]
-        Notif["📢 Notification Service<br/>🔥 Laravel 12+ DDD + Octane<br/>📱 Multi-Channel Delivery"]
+        Order["📋 Order Service<br/>🔥 Laravel 12+ DDD + Octane<br/>📝 Request Management<br/>323px"]
+        Bidding["🎯 Bidding Service<br/>🔥 Laravel 12+ DDD + Octane<br/>⚡ Real-time Auctions<br/>323px"]
+        Notif["📢 Notification Service<br/>🔥 Laravel 12+ DDD + Octane<br/>📱 Multi-Channel Delivery<br/>200px"]
     end
 
     subgraph "💾 DATA & MESSAGING FOUNDATION"
-        Redis["⚡ Redis Event Bus<br/>🚀 Pub/Sub + Queue<br/>📊 Real-time Events"]
-        WS["🔄 WebSocket Server<br/>⚡ Live Communication<br/>🎯 Bidding Updates"]
-        DB[("🗃️ MySQL 8.0 Cluster<br/>📊 Primary + Replicas<br/>🔒 ACID Compliance")]
+        Redis["⚡ Redis Event Bus<br/>🚀 Pub/Sub + Queue<br/>📊 Real-time Events<br/>323px"]
+        WS["🔄 WebSocket Server<br/>⚡ Live Communication<br/>🎯 Bidding Updates<br/>200px"]
+        DB[("🗃️ MySQL 8.0 Cluster<br/>📊 Primary + Replicas<br/>🔒 ACID Compliance<br/>323px")]
     end
 
     subgraph "🌐 EXTERNAL INTEGRATIONS"
