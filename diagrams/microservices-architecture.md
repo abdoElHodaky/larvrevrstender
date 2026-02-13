@@ -466,34 +466,63 @@ sequenceDiagram
 ### **Workflow Execution Flow**
 
 ```mermaid
+%%{init: { 'theme': 'base', 'themeVariables': {
+    'primaryColor': '#1a1a1a',
+    'primaryTextColor': '#00ffff',
+    'primaryBorderColor': '#00ffff',
+    'lineColor': '#ffffff',
+    'secondaryColor': '#000000',
+    'tertiaryColor': '#333333',
+    'noteBkgColor': '#000000',
+    'noteTextColor': '#ccff00',
+    'noteBorderColor': '#ccff00',
+    'actorBkg': '#000000',
+    'actorTextColor': '#00ffff',
+    'actorBorder': '#00ffff',
+    'labelTextColor': '#ffffff',
+    'sequenceNumberColor': '#ffffff',
+    'loopTextColor': '#00ffff',
+    'activationBkgColor': '#333333',
+    'fontSize': '16px'
+}}}%%
 sequenceDiagram
-    participant Client
-    participant Workflow
-    participant Step1
-    participant Step2
-    participant Step3
-    participant Compensation
+    autonumber
+    
+    participant C as 👤 CLIENT
+    participant W as ⚙️ WORKFLOW
+    participant S1 as STEP 1
+    participant S2 as STEP 2
+    participant S3 as STEP 3
+    participant Comp as 🛠️ COMPENSATION
 
-    Client->>Workflow: Start Workflow
-    Workflow->>Step1: Execute Step 1
-    Step1-->>Workflow: Success
-    Note over Workflow: Add Compensation for Step 1
+    C->>W: START WORKFLOW
     
-    Workflow->>Step2: Execute Step 2
-    Step2-->>Workflow: Success
-    Note over Workflow: Add Compensation for Step 2
+    W->>S1: EXECUTE STEP 1
+    S1-->>W: SUCCESS
+    Note over W: + COMP 1 ADDED
     
-    Workflow->>Step3: Execute Step 3
-    alt Step 3 Success
-        Step3-->>Workflow: Success
-        Workflow-->>Client: Workflow Completed
-    else Step 3 Failure
-        Step3-->>Workflow: Failure
-        Workflow->>Compensation: Execute Compensation Stack
-        Compensation->>Step2: Compensate Step 2
-        Compensation->>Step1: Compensate Step 1
-        Compensation-->>Workflow: Compensation Complete
-        Workflow-->>Client: Workflow Failed (Compensated)
+    W->>S2: EXECUTE STEP 2
+    S2-->>W: SUCCESS
+    Note over W: + COMP 2 ADDED
+    
+    W->>S3: EXECUTE STEP 3
+    
+    alt STEP 3 SUCCESS
+        S3-->>W: SUCCESS
+        W-->>C: ✅ COMPLETED
+    else STEP 3 FAILURE
+        S3-->>W: ❌ FAILURE
+        
+        rect rgb(40, 0, 0)
+            W->>Comp: EXECUTE STACK
+            Comp->>S2: COMPENSATE 2
+            S2-->>Comp: DONE
+            Comp->>S1: COMPENSATE 1
+            S1-->>Comp: DONE
+            Comp-->>W: COMPLETE
+        end
+        
+        W-->>C: ⚠️ FAILED (ROLLBACK)
     end
 ```
 
