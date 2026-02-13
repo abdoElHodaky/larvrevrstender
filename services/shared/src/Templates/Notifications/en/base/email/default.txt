@@ -1,0 +1,14 @@
+Hello {{name|Customer}},
+
+You have received a new notification.
+
+{{#if message}}
+{{message}}
+{{/if}}
+
+{{#if action_url}}
+Click here to take action: {{action_url}}
+{{/if}}
+
+Best regards,
+The Team

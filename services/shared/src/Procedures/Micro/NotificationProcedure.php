@@ -3,6 +3,7 @@
 namespace Shared\Procedures\Micro;
 
 use Shared\Core\BaseProcedure;
+use Shared\Services\TemplateManager;
 use Exception;
 
 /**
@@ -13,6 +14,24 @@ use Exception;
  */
 trait NotificationProcedure
 {
+    /**
+     * Template manager instance
+     */
+    private ?TemplateManager $templateManager = null;
+    
+    /**
+     * Get template manager instance
+     *
+     * @return TemplateManager
+     */
+    private function getTemplateManager(): TemplateManager
+    {
+        if ($this->templateManager === null) {
+            $this->templateManager = new TemplateManager();
+        }
+        
+        return $this->templateManager;
+    }
     /**
      * Send email notification
      *
@@ -1183,16 +1202,43 @@ trait NotificationProcedure
     /**
      * Process notification template
      *
-     * @param string $template
-     * @param array $data
-     * @param string $type
-     * @return string
+     * @param string $template Template name
+     * @param array $data Template data
+     * @param string $channel Channel type (email, sms, whatsapp, telegram, push)
+     * @param string $language Language code (en, ar, fr)
+     * @param string|null $service Service name for service-specific templates
+     * @return string Processed template content
      */
-    private function processTemplate(string $template, array $data, string $type): string
+    private function processTemplate(string $template, array $data, string $channel, string $language = 'en', ?string $service = null): string
     {
-        // This would load and process templates from storage
-        // For now, return a simple template processing
-        
+        try {
+            // Use the new TemplateManager for processing
+            return $this->getTemplateManager()->processTemplate($template, $channel, $data, $language, $service);
+            
+        } catch (Exception $e) {
+            $this->log('warning', 'Template processing failed, using fallback', [
+                'template' => $template,
+                'channel' => $channel,
+                'language' => $language,
+                'service' => $service,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Fallback to legacy template processing for backward compatibility
+            return $this->processLegacyTemplate($template, $data, $channel);
+        }
+    }
+    
+    /**
+     * Legacy template processing for backward compatibility
+     *
+     * @param string $template Template name
+     * @param array $data Template data
+     * @param string $channel Channel type
+     * @return string Processed template content
+     */
+    private function processLegacyTemplate(string $template, array $data, string $channel): string
+    {
         $templates = [
             'email' => [
                 'welcome' => 'Welcome {{name}}! Thank you for joining us.',
@@ -1230,11 +1276,11 @@ trait NotificationProcedure
             ]
         ];
         
-        $templateContent = $templates[$type][$template] ?? $template;
+        $templateContent = $templates[$channel][$template] ?? $template;
         
         // Simple template variable replacement
         foreach ($data as $key => $value) {
-            $templateContent = str_replace('{{' . $key . '}}', $value, $templateContent);
+            $templateContent = str_replace('{{' . $key . '}}', (string) $value, $templateContent);
         }
         
         return $templateContent;

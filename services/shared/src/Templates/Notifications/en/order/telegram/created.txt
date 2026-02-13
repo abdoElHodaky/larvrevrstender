@@ -1,0 +1,20 @@
+<b>🛍️ Order Confirmed!</b>
+
+Hi <i>{{customer_name|Customer}}</i>!
+
+Your order <code>#{{order_number}}</code> has been created successfully!
+
+<b>📦 Order Details:</b>
+• <b>Total:</b> {{total_amount}}
+• <b>Status:</b> {{status|Created}}
+{{#if estimated_delivery}}
+• <b>Estimated Delivery:</b> {{estimated_delivery}}
+{{/if}}
+
+{{#if order_url}}
+📱 <a href="{{order_url}}">Track your order</a>
+{{/if}}
+
+<i>We'll keep you updated on your order progress.</i>
+
+Thank you for choosing us! 🙏

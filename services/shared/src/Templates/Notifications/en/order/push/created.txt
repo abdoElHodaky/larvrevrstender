@@ -1,0 +1,1 @@
+Order Confirmed: Your order #{{order_number}} has been created successfully! Total: {{total_amount}}
