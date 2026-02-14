@@ -17,8 +17,8 @@ services:
       repository: abdoElHodaky/larvrevrstender/auth-service
       tag: latest
       pullPolicy: IfNotPresent
-    port: 8000
-    targetPort: 8000
+    port: 8001
+    targetPort: 8001
     resources:
       requests:
         memory: "128Mi"
@@ -36,8 +36,8 @@ services:
       repository: abdoElHodaky/larvrevrstender/user-service
       tag: latest
       pullPolicy: IfNotPresent
-    port: 8001
-    targetPort: 8001
+    port: 8002
+    targetPort: 8002
     resources:
       requests:
         memory: "128Mi"
@@ -55,8 +55,8 @@ services:
       repository: abdoElHodaky/larvrevrstender/analytics-service
       tag: latest
       pullPolicy: IfNotPresent
-    port: 8002
-    targetPort: 8002
+    port: 8003
+    targetPort: 8003
     resources:
       requests:
         memory: "128Mi"
@@ -74,8 +74,8 @@ services:
       repository: abdoElHodaky/larvrevrstender/notification-service
       tag: latest
       pullPolicy: IfNotPresent
-    port: 8003
-    targetPort: 8003
+    port: 8006
+    targetPort: 8006
     resources:
       requests:
         memory: "128Mi"
