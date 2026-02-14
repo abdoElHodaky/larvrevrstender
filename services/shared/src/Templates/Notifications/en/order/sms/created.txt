@@ -1,0 +1,1 @@
+Order #{{order_number}} created successfully! Total: {{total_amount}}. Track at: {{order_url|our website}}

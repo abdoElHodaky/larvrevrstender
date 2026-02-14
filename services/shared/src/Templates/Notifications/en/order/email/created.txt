@@ -1,0 +1,33 @@
+Dear {{customer_name|Customer}},
+
+Thank you for your order! We're excited to confirm that your order #{{order_number}} has been successfully created.
+
+Order Details:
+- Order Number: {{order_number}}
+- Total Amount: {{total_amount}}
+- Status: {{status|Created}}
+{{#if order_date}}
+- Order Date: {{order_date}}
+{{/if}}
+
+{{#if items}}
+Items Ordered:
+{{#each items}}
+- {{name}} (Quantity: {{quantity}}) - {{price}}
+{{/each}}
+{{/if}}
+
+{{#if order_url}}
+You can track your order status at: {{order_url}}
+{{/if}}
+
+{{#if estimated_delivery}}
+Estimated Delivery: {{estimated_delivery}}
+{{/if}}
+
+We'll keep you updated on your order progress via email and SMS.
+
+Thank you for choosing us!
+
+Best regards,
+The Sales Team

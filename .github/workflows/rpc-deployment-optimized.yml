@@ -441,7 +441,7 @@ jobs:
       (needs.changes.outputs.services == 'true' || needs.changes.outputs.deployment == 'true') &&
       needs.build-and-push-optimized.result == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 25  # Optimization: Reduced timeout
+    timeout-minutes: 35  # Increased timeout to accommodate Helm deployment
 
     steps:
     - name: Checkout code
@@ -530,6 +530,38 @@ jobs:
               limits:
                 memory: "256Mi"
                 cpu: "200m"
+                
+          analyticsService:
+            enabled: true
+            replicas: 1
+            image:
+              repository: ${{ env.IMAGE_NAME }}/analytics-service
+              tag: latest
+              pullPolicy: IfNotPresent
+            port: 8002
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+                
+          notificationService:
+            enabled: true
+            replicas: 1
+            image:
+              repository: ${{ env.IMAGE_NAME }}/notification-service
+              tag: latest
+              pullPolicy: IfNotPresent
+            port: 8003
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
             
         ingress:
           enabled: true
@@ -537,8 +569,18 @@ jobs:
           hosts:
             - host: rpc.local
               paths:
-                - path: /
+                - path: /auth
                   pathType: Prefix
+                  service: auth-service
+                - path: /users
+                  pathType: Prefix
+                  service: user-service
+                - path: /analytics
+                  pathType: Prefix
+                  service: analytics-service
+                - path: /notifications
+                  pathType: Prefix
+                  service: notification-service
                   
         # Optimization: Minimal resource allocation for testing
         redis:
@@ -564,10 +606,10 @@ jobs:
           # Connection details managed via environment variables
         EOF
 
-    # Optimization: Parallel infrastructure deployment
+    # Optimization: Deploy only NGINX Ingress Controller (Redis will be installed via Helm chart)
     - name: Deploy infrastructure components
       run: |
-        echo "🚀 Deploying infrastructure components in parallel..."
+        echo "🚀 Deploying infrastructure components..."
         
         # Install NGINX Ingress Controller
         helm install ingress-nginx ingress-nginx/ingress-nginx \
@@ -579,24 +621,10 @@ jobs:
           --set controller.resources.requests.cpu=100m \
           --set controller.resources.limits.memory=256Mi \
           --set controller.resources.limits.cpu=200m \
-          --wait --timeout=5m &
+          --wait --timeout=8m
         
-        # Install Redis with minimal resources
-        helm install redis bitnami/redis \
-          --namespace rpc-services \
-          --create-namespace \
-          --set auth.enabled=false \
-          --set replica.replicaCount=0 \
-          --set master.persistence.enabled=false \
-          --set master.resources.requests.memory=64Mi \
-          --set master.resources.requests.cpu=50m \
-          --set master.resources.limits.memory=128Mi \
-          --set master.resources.limits.cpu=100m \
-          --wait --timeout=5m &
-        
-        # Wait for parallel installations
-        wait
         echo "✅ Infrastructure components deployed successfully"
+        echo "📝 Note: Redis will be deployed as part of the RPC services Helm chart"
 
     # MySQL removed - using cloud-managed Neon PostgreSQL instead
     - name: Skip MySQL deployment (using Neon PostgreSQL)
@@ -604,20 +632,34 @@ jobs:
         echo "✅ Skipping MySQL installation - using cloud-managed Neon PostgreSQL"
         echo "🌐 Database services now managed by Neon PostgreSQL cloud service"
 
-    # Optimization: Conditional service deployment
+    # Optimization: Conditional service deployment with increased timeout
     - name: Deploy RPC services (if Helm chart exists)
       run: |
         if [ -d "deployment/helm/rpc-services" ]; then
           echo "📦 Deploying RPC services using optimized Helm chart..."
+          
+          # Check for existing Redis installations to avoid conflicts
+          echo "🔍 Checking for existing Redis installations..."
+          if helm list -n rpc-services | grep -q redis; then
+            echo "⚠️ Found existing Redis installation, uninstalling to avoid conflicts..."
+            helm uninstall redis -n rpc-services || true
+            kubectl delete pvc --all -n rpc-services || true
+          fi
+          
           echo "🔧 Building Helm chart dependencies..."
           cd deployment/helm/rpc-services
           helm dependency build
           cd ../../../
+          
+          echo "🚀 Installing RPC services with Redis dependency..."
           helm install rpc-services deployment/helm/rpc-services \
             --namespace rpc-services \
             --create-namespace \
             --values helm-values-optimized.yml \
-            --wait --timeout=8m
+            --wait --timeout=15m \
+            --debug
+            
+          echo "✅ RPC services deployment completed successfully"
         else
           echo "⚠️ Helm chart not found, skipping service deployment..."
         fi

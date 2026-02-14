@@ -1,0 +1,23 @@
+🏷️ *New Bid Alert!*
+
+Hi {{seller_name|there}}! 👋
+
+Great news! Someone just placed a bid on your auction:
+
+📦 *"{{auction_title}}"*
+
+💰 *New Bid:* {{bid_amount}}
+👤 *Bidder:* {{bidder_name|Anonymous}}
+⏰ *Time Left:* {{time_remaining}}
+
+{{#if current_bid}}
+💵 *Current Highest Bid:* {{current_bid}}
+{{/if}}
+
+{{#if auction_url}}
+📱 View auction: {{auction_url}}
+{{/if}}
+
+The excitement is building! 🚀
+
+_We'll keep you updated on all bidding activity._
