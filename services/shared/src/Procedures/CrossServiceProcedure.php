@@ -76,8 +76,20 @@ class CrossServiceProcedure extends BaseProcedure
         ]);
 
         $this->engine->registerProcedure('notification', static::class, 'micro', [
-            'description' => 'Notification delivery and subscription management',
-            'methods' => ['sendEmail', 'sendSms', 'sendPushNotification', 'getNotificationStatus', 'manageSubscriptions']
+            'description' => 'Comprehensive notification delivery and subscription management',
+            'methods' => [
+                'sendEmail', 
+                'sendSms', 
+                'sendPushNotification', 
+                'sendWhatsApp',
+                'sendTelegram',
+                'sendMultiChannel',
+                'sendBulkNotification',
+                'scheduleNotification',
+                'cancelNotification',
+                'getNotificationStatus', 
+                'manageSubscriptions'
+            ]
         ]);
 
         $this->engine->registerProcedure('validation', static::class, 'micro', [

@@ -1,0 +1,39 @@
+Dear {{seller_name|Seller}},
+
+Great news! Your auction "{{auction_title}}" has been successfully created and is now live on our platform.
+
+Auction Details:
+- Title: {{auction_title}}
+- Starting Price: {{starting_price}}
+- Current Bid: {{current_bid|No bids yet}}
+{{#if auction_start_time}}
+- Start Time: {{auction_start_time}}
+{{/if}}
+{{#if auction_end_time}}
+- End Time: {{auction_end_time}}
+{{/if}}
+{{#if reserve_price}}
+- Reserve Price: {{reserve_price}}
+{{/if}}
+
+{{#if auction_url}}
+View your auction: {{auction_url}}
+{{/if}}
+
+{{#if description}}
+Description: {{description}}
+{{/if}}
+
+We'll notify you whenever someone places a bid on your item. You can monitor the auction progress and communicate with bidders through your seller dashboard.
+
+{{#if tips}}
+Tips for a successful auction:
+{{#each tips}}
+- {{this}}
+{{/each}}
+{{/if}}
+
+Good luck with your auction!
+
+Best regards,
+The Auction Team
