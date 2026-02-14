@@ -1,157 +1,350 @@
-# Multi-Service Deployment Architecture
+<div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-## Overview
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🏗️ Multi-Service Deployment Architecture</span>
 
-This document defines the deployment architecture for the notification system microservices, designed to be compatible with Laravel Cloud, Forge, and Vapor platforms. The architecture prioritizes flexibility, maintainability, and platform portability while ensuring optimal performance and cost efficiency.
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Platform-agnostic deployment architecture for notification system microservices, designed for <strong>Laravel Cloud, Forge, and Vapor</strong> compatibility with optimal performance and cost efficiency.</p>
 
-## Architecture Principles
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Architecture Principles</span>
 
-### Core Design Principles
+<!-- 62% MAJOR CONCEPTS: Core Principles -->
+<div style="margin-bottom: 3rem;">
 
-1. **Platform Agnostic**: Architecture works across Cloud, Forge, and Vapor
-2. **Service Independence**: Services can be deployed and scaled independently
-3. **Communication Flexibility**: Support for HTTP, message queues, and direct database access
-4. **Environment Parity**: Consistent behavior across development, staging, and production
-5. **Operational Simplicity**: Minimize operational complexity while maintaining flexibility
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🚀 Core Design Principles</span>
 
-### Service Boundaries
+<div style="margin-top: 1rem; padding: 1rem; background: #F0FDF4; border-left: 4px solid #10B981; border-radius: 4px;">
+<p style="font-size: 16px; line-height: 1.618; margin: 0;"><strong>🎯 Foundation Principles:</strong></p>
+<ul style="font-size: 16px; line-height: 1.618; margin: 0.5rem 0;">
+<li><strong>Platform Agnostic:</strong> Architecture works across Cloud, Forge, and Vapor</li>
+<li><strong>Service Independence:</strong> Services can be deployed and scaled independently</li>
+<li><strong>Communication Flexibility:</strong> Support for HTTP, message queues, and direct database access</li>
+<li><strong>Environment Parity:</strong> Consistent behavior across development, staging, and production</li>
+<li><strong>Operational Simplicity:</strong> Minimize complexity while maintaining flexibility</li>
+</ul>
+</div>
 
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🏛️ Service Boundaries</span>
+
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#4ECDC4',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#45B7D1',
+    'lineColor': '#4ECDC4',
+    'secondaryColor': '#45B7D1',
+    'tertiaryColor': '#96CEB4',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#4ECDC4',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
+  }
+}}%%
+
+graph TB
+    subgraph "🏛️ SHARED SERVICE"
+        SHARED["🔗 API Gateway<br/>Request Routing<br/>Authentication<br/>323px"]
+        
+        subgraph "🎯 CORE RESPONSIBILITIES"
+            API["📡 API Endpoints<br/>Request Validation<br/>200px"]
+            AUTH["🔐 Authentication<br/>Authorization<br/>200px"]
+            ROUTE["🔄 Request Routing<br/>Load Balancing<br/>200px"]
+        end
+    end
+    
+    subgraph "🔧 NOTIFICATION SERVICE"
+        NOTIFICATION["⚡ Business Logic<br/>Notification Processing<br/>Template Management<br/>323px"]
+        
+        subgraph "⚡ CORE COMPONENTS"
+            BUILDERS["🏗️ Builders<br/>Notification Construction<br/>200px"]
+            FACTORY["🏭 Factory<br/>Object Creation<br/>200px"]
+            TEMPLATES["📋 Templates<br/>Content Management<br/>200px"]
+            CHANNELS["📡 Channels<br/>Delivery Processing<br/>200px"]
+        end
+    end
+    
+    SHARED ==> API
+    SHARED ==> AUTH
+    SHARED ==> ROUTE
+    
+    NOTIFICATION ==> BUILDERS
+    NOTIFICATION ==> FACTORY
+    NOTIFICATION ==> TEMPLATES
+    NOTIFICATION ==> CHANNELS
+    
+    SHARED -.-> NOTIFICATION
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           Application Layer                                 │
-├─────────────────────────────────────┬───────────────────────────────────────┤
-│            Shared Service           │         Notification Service          │
-│                                     │                                       │
-│  ┌─────────────────────────────┐    │  ┌─────────────────────────────────┐  │
-│  │     Communication Layer     │    │  │        Business Logic          │  │
-│  │                             │    │  │                                 │  │
-│  │  • NotificationProcedure    │◄───┼──┤  • NotificationFactory          │  │
-│  │  • RPC Client               │    │  │  • Builders (Email, SMS, etc.) │  │
-│  │  • Error Handling           │    │  │  • Templates                    │  │
-│  │  • Correlation Tracking     │    │  │  • Channel Implementations     │  │
-│  └─────────────────────────────┘    │  └─────────────────────────────────┘  │
-└─────────────────────────────────────┴───────────────────────────────────────┘
+
+</div>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🔄 Communication Patterns</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">📡 HTTP-Based RPC Communication</span>
+
+<p style="font-size: 16px; line-height: 1.618;"><strong>Primary Pattern:</strong> Direct HTTP calls between services with comprehensive error handling and retry logic.</p>
+
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#3B82F6',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#2563EB',
+    'lineColor': '#3B82F6',
+    'secondaryColor': '#10B981',
+    'tertiaryColor': '#F59E0B',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#3B82F6',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
+  }
+}}%%
+
+sequenceDiagram
+    participant Client
+    participant SharedService as 🏛️ Shared Service
+    participant NotificationService as 🔧 Notification Service
+    participant Database as 💾 Database
+    
+    Client->>SharedService: POST /api/notifications/send
+    SharedService->>SharedService: 🔐 Authenticate & Validate
+    SharedService->>NotificationService: HTTP POST /internal/send
+    NotificationService->>Database: 💾 Store Notification
+    NotificationService->>NotificationService: ⚡ Process & Send
+    NotificationService-->>SharedService: ✅ Success Response
+    SharedService-->>Client: ✅ API Response
 ```
 
-## Service Communication Architecture
+<!-- 38% MINOR DETAILS: Implementation Details -->
+<details style="margin-bottom: 2rem;">
+<summary style="font-size: 16px; font-weight: 500; cursor: pointer;">🔧 HTTP RPC Implementation</summary>
+<div style="margin-top: 1rem; padding-left: 1rem; border-left: 3px solid #4ECDC4;">
 
-### Communication Patterns
-
-The architecture supports multiple communication patterns based on deployment platform and requirements:
-
-#### 1. HTTP/HTTPS Communication (Primary)
-
-**Use Case**: All platforms, synchronous operations  
-**Implementation**: RESTful API between services  
-
+**Service Discovery:**
 ```php
-// Shared Service -> Notification Service
-POST https://notification-service.internal/api/notifications/email
-Content-Type: application/json
-Authorization: Bearer {service_token}
-X-Correlation-ID: {trace_id}
-
+// Environment-based service discovery
+class ServiceDiscovery
 {
-    "to": "user@example.com",
-    "template": "welcome_email",
-    "data": {"name": "John Doe"},
-    "context": {
-        "trace_id": "trace_123",
-        "user_id": "user_456"
+    public function getNotificationServiceUrl(): string
+    {
+        return match(config('app.platform')) {
+            'cloud' => 'https://notification-service.internal.cloud.laravel.com',
+            'forge' => 'http://notification-service.local:8001',
+            'vapor' => 'https://notification-api.vapor-app.com',
+            default => config('services.notification.url')
+        };
     }
 }
 ```
 
-**Platform-Specific URLs**:
-- **Laravel Cloud**: `https://notification-service.internal.cloud.laravel.com`
-- **Laravel Forge**: `https://notification.yourdomain.com` or `http://10.0.0.2:8080`
-- **Laravel Vapor**: `https://api-gateway-url.amazonaws.com/notification`
-
-#### 2. Message Queue Communication (Asynchronous)
-
-**Use Case**: High-volume operations, decoupled processing  
-**Implementation**: Redis/SQS queues for async communication  
-
+**HTTP Client with Retry Logic:**
 ```php
-// Queue-based communication
-Queue::push('ProcessNotificationJob', [
-    'method' => 'sendEmail',
-    'params' => [...],
-    'context' => [...]
-]);
+class NotificationRpcClient
+{
+    public function sendNotification(array $params): array
+    {
+        return Http::retry(3, 1000)
+            ->timeout(30)
+            ->withHeaders(['Authorization' => 'Bearer ' . $this->getApiKey()])
+            ->post($this->getServiceUrl() . '/internal/send', $params)
+            ->throw()
+            ->json();
+    }
+}
 ```
 
-#### 3. Database-Level Communication (Fallback)
+**Error Handling:**
+- Circuit breaker pattern for service failures
+- Exponential backoff for retries
+- Fallback mechanisms for critical operations
+- Comprehensive logging and monitoring
 
-**Use Case**: Platform limitations, high-performance requirements  
-**Implementation**: Shared database with service-specific schemas  
+</div>
+</details>
 
-### Service Discovery Strategy
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">📬 Queue-Based Async Communication</span>
 
-#### Environment-Based Discovery
+<p style="font-size: 16px; line-height: 1.618;"><strong>Async Pattern:</strong> Message queue communication for non-blocking operations with response caching.</p>
 
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#10B981',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#059669',
+    'lineColor': '#10B981',
+    'secondaryColor': '#3B82F6',
+    'tertiaryColor': '#F59E0B',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#10B981',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
+  }
+}}%%
+
+graph LR
+    subgraph "📬 QUEUE COMMUNICATION"
+        SHARED_Q["🏛️ Shared Service<br/>Queue Publisher<br/>323px"]
+        QUEUE["📬 Message Queue<br/>Redis/SQS<br/>200px"]
+        NOTIFICATION_Q["🔧 Notification Service<br/>Queue Consumer<br/>323px"]
+        CACHE["💾 Response Cache<br/>Results Storage<br/>200px"]
+    end
+    
+    SHARED_Q ==> QUEUE
+    QUEUE ==> NOTIFICATION_Q
+    NOTIFICATION_Q ==> CACHE
+    CACHE -.-> SHARED_Q
+```
+
+<!-- 38% MINOR DETAILS: Queue Implementation -->
+<details style="margin-bottom: 2rem;">
+<summary style="font-size: 16px; font-weight: 500; cursor: pointer;">🔧 Queue Implementation Details</summary>
+<div style="margin-top: 1rem; padding-left: 1rem; border-left: 3px solid #4ECDC4;">
+
+**Queue Job Structure:**
 ```php
-// config/services.php
-return [
-    'notification_service' => [
-        'url' => env('NOTIFICATION_SERVICE_URL', 'http://localhost:8080'),
-        'timeout' => env('NOTIFICATION_SERVICE_TIMEOUT', 30),
-        'retry_attempts' => env('NOTIFICATION_SERVICE_RETRIES', 3),
-        'api_key' => env('NOTIFICATION_SERVICE_API_KEY'),
-    ],
-];
+class NotificationJob implements ShouldQueue
+{
+    public function __construct(
+        private string $jobId,
+        private string $method,
+        private array $params
+    ) {}
+    
+    public function handle(): void
+    {
+        $result = $this->notificationService->{$this->method}($this->params);
+        
+        // Cache result for retrieval
+        Cache::put("job_result:{$this->jobId}", $result, 3600);
+    }
+}
 ```
 
-#### Platform-Specific Configuration
-
-**Laravel Cloud**:
-```env
-NOTIFICATION_SERVICE_URL=https://notification-service.internal.cloud.laravel.com
-NOTIFICATION_SERVICE_API_KEY=cloud_internal_key
+**Response Retrieval:**
+```php
+public function getJobResult(string $jobId): ?array
+{
+    return Cache::get("job_result:{$jobId}");
+}
 ```
 
-**Laravel Forge**:
-```env
-NOTIFICATION_SERVICE_URL=https://notification.yourdomain.com
-# OR for internal communication
-NOTIFICATION_SERVICE_URL=http://10.0.0.2:8080
-NOTIFICATION_SERVICE_API_KEY=forge_api_key_123
+**Platform-Specific Queue Configuration:**
+- **Laravel Cloud**: Built-in Redis queues
+- **Laravel Forge**: Redis or database queues
+- **Laravel Vapor**: SQS queues with Lambda triggers
+
+</div>
+</details>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">💾 Database Strategies</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🎯 Strategy Comparison</span>
+
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#8B5CF6',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#7C3AED',
+    'lineColor': '#8B5CF6',
+    'secondaryColor': '#10B981',
+    'tertiaryColor': '#F59E0B',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#8B5CF6',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
+  }
+}}%%
+
+graph TB
+    subgraph "💾 DATABASE STRATEGIES"
+        SHARED_DB["🔗 Shared Database<br/>Single Source of Truth<br/>Simplest Setup<br/>323px"]
+        SEPARATE_DB["🔄 Separate Databases<br/>Service Independence<br/>Complex Sync<br/>323px"]
+        HYBRID_DB["⚡ Hybrid Approach<br/>Shared Core + Service Data<br/>Balanced Complexity<br/>323px"]
+    end
+    
+    subgraph "📊 EVALUATION CRITERIA"
+        COMPLEXITY["🔧 Complexity<br/>Setup & Management<br/>200px"]
+        PERFORMANCE["⚡ Performance<br/>Query Efficiency<br/>200px"]
+        SCALABILITY["📈 Scalability<br/>Independent Scaling<br/>200px"]
+        CONSISTENCY["🎯 Data Consistency<br/>ACID Compliance<br/>200px"]
+    end
+    
+    SHARED_DB --> COMPLEXITY
+    SEPARATE_DB --> COMPLEXITY
+    HYBRID_DB --> COMPLEXITY
+    
+    SHARED_DB --> PERFORMANCE
+    SEPARATE_DB --> PERFORMANCE
+    HYBRID_DB --> PERFORMANCE
 ```
 
-**Laravel Vapor**:
-```env
-NOTIFICATION_SERVICE_URL=https://xyz123.execute-api.us-east-1.amazonaws.com/production
-NOTIFICATION_SERVICE_API_KEY=vapor_lambda_key
-```
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🔗 Strategy 1: Shared Database (Recommended)</span>
 
-## Database Architecture
+<div style="margin-top: 1rem; padding: 1rem; background: #F0FDF4; border-left: 4px solid #10B981; border-radius: 4px;">
+<p style="font-size: 16px; line-height: 1.618; margin: 0;"><strong>✅ Best for Most Cases:</strong></p>
+<ul style="font-size: 16px; line-height: 1.618; margin: 0.5rem 0;">
+<li><strong>Simplicity:</strong> Single database to manage and maintain</li>
+<li><strong>Consistency:</strong> ACID transactions across all data</li>
+<li><strong>Performance:</strong> No cross-service data synchronization</li>
+<li><strong>Cost:</strong> Lower infrastructure costs</li>
+</ul>
+</div>
 
-### Database Strategy Options
+<!-- 38% MINOR DETAILS: Database Implementation -->
+<details style="margin-bottom: 2rem;">
+<summary style="font-size: 16px; font-weight: 500; cursor: pointer;">🔧 Shared Database Implementation</summary>
+<div style="margin-top: 1rem; padding-left: 1rem; border-left: 3px solid #4ECDC4;">
 
-The architecture supports multiple database strategies based on platform capabilities and requirements:
-
-#### Option 1: Shared Database with Service Schemas
-
-**Best For**: Laravel Cloud, Laravel Forge  
-**Complexity**: Low  
-**Performance**: High  
-
+**Database Schema Design:**
 ```sql
--- Database: notification_system
-
--- Shared tables
+-- Core tables accessible by both services
 CREATE TABLE users (
     id BIGINT PRIMARY KEY,
-    email VARCHAR(255),
+    email VARCHAR(255) UNIQUE,
     created_at TIMESTAMP
 );
 
--- Notification service schema
 CREATE TABLE notification_templates (
     id BIGINT PRIMARY KEY,
     name VARCHAR(255),
-    channel VARCHAR(50),
-    content TEXT,
+    channel ENUM('email', 'sms', 'push'),
+    template TEXT,
     created_at TIMESTAMP
 );
 
@@ -160,745 +353,296 @@ CREATE TABLE notification_logs (
     user_id BIGINT,
     template_id BIGINT,
     channel VARCHAR(50),
-    status VARCHAR(50),
+    status ENUM('pending', 'sent', 'failed'),
     sent_at TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
-
--- Shared service schema (minimal)
-CREATE TABLE api_logs (
-    id BIGINT PRIMARY KEY,
-    service VARCHAR(50),
-    method VARCHAR(100),
-    trace_id VARCHAR(255),
-    created_at TIMESTAMP
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (template_id) REFERENCES notification_templates(id)
 );
 ```
 
-#### Option 2: Separate Databases per Service
-
-**Best For**: High isolation requirements, different scaling needs  
-**Complexity**: Medium  
-**Performance**: Medium  
-
-```
-┌─────────────────┐    ┌─────────────────┐
-│ Shared Service  │    │ Notification    │
-│ Database        │    │ Service         │
-│                 │    │ Database        │
-│ • api_logs      │    │ • templates     │
-│ • user_cache    │    │ • logs          │
-│ • sessions      │    │ • subscriptions │
-└─────────────────┘    └─────────────────┘
-```
-
-#### Option 3: Hybrid Approach
-
-**Best For**: Complex requirements, gradual migration  
-**Complexity**: High  
-**Performance**: Variable  
-
-```
-┌─────────────────────────────────────┐
-│         Shared Database             │
-│ • users                             │
-│ • shared_configurations             │
-└─────────────────────────────────────┘
-                  │
-    ┌─────────────┴─────────────┐
-    │                           │
-┌───▼─────────────┐    ┌────────▼──────────┐
-│ Shared Service  │    │ Notification      │
-│ Database        │    │ Service Database  │
-│ • api_logs      │    │ • templates       │
-│ • cache         │    │ • delivery_logs   │
-└─────────────────┘    └───────────────────┘
-```
-
-### Database Connection Management
-
-#### Connection Configuration
-
+**Connection Configuration:**
 ```php
-// config/database.php
-'connections' => [
-    'shared' => [
-        'driver' => 'mysql',
-        'host' => env('SHARED_DB_HOST', '127.0.0.1'),
-        'database' => env('SHARED_DB_DATABASE', 'shared_service'),
-        'username' => env('SHARED_DB_USERNAME', 'forge'),
-        'password' => env('SHARED_DB_PASSWORD', ''),
-    ],
+// Both services use same database connection
+'mysql' => [
+    'driver' => 'mysql',
+    'host' => env('DB_HOST', '127.0.0.1'),
+    'database' => env('DB_DATABASE', 'notifications'),
+    'username' => env('DB_USERNAME', 'forge'),
+    'password' => env('DB_PASSWORD', ''),
+]
+```
+
+**Migration Strategy:**
+- Single migration repository
+- Both services run same migrations
+- Database versioning for compatibility
+
+</div>
+</details>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🔄 Strategy 2: Separate Databases</span>
+
+<div style="margin-top: 1rem; padding: 1rem; background: #FFF7ED; border-left: 4px solid #F59E0B; border-radius: 4px;">
+<p style="font-size: 16px; line-height: 1.618; margin: 0;"><strong>⚠️ For Advanced Use Cases:</strong></p>
+<ul style="font-size: 16px; line-height: 1.618; margin: 0.5rem 0;">
+<li><strong>Independence:</strong> Services can scale databases independently</li>
+<li><strong>Isolation:</strong> Database failures don't affect other services</li>
+<li><strong>Complexity:</strong> Requires data synchronization mechanisms</li>
+<li><strong>Cost:</strong> Higher infrastructure and operational costs</li>
+</ul>
+</div>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">⚡ Strategy 3: Hybrid Approach</span>
+
+<div style="margin-top: 1rem; padding: 1rem; background: #F3E8FF; border-left: 4px solid #8B5CF6; border-radius: 4px;">
+<p style="font-size: 16px; line-height: 1.618; margin: 0;"><strong>🎯 Balanced Solution:</strong></p>
+<ul style="font-size: 16px; line-height: 1.618; margin: 0.5rem 0;">
+<li><strong>Core Data:</strong> Shared database for common entities (users, templates)</li>
+<li><strong>Service Data:</strong> Separate databases for service-specific data</li>
+<li><strong>Complexity:</strong> Moderate - requires careful data modeling</li>
+<li><strong>Flexibility:</strong> Best of both approaches</li>
+</ul>
+</div>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🔍 Service Discovery</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🎯 Platform-Specific Discovery</span>
+
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#F59E0B',
+    'primaryTextColor': '#FFFFFF',
+    'primaryBorderColor': '#D97706',
+    'lineColor': '#F59E0B',
+    'secondaryColor': '#10B981',
+    'tertiaryColor': '#3B82F6',
+    'background': '#0F172A',
+    'mainBkg': '#1E293B',
+    'secondBkg': '#334155',
+    'clusterBkg': '#1E293B',
+    'clusterBorder': '#F59E0B',
+    'fontFamily': 'Inter, Segoe UI, Roboto, sans-serif',
+    'fontSize': '14px'
+  },
+  'flowchart': {
+    'rankSpacing': 81,
+    'nodeSpacing': 50,
+    'curve': 'basis'
+  }
+}}%%
+
+graph TB
+    subgraph "☁️ LARAVEL CLOUD"
+        CLOUD_DISCOVERY["🔍 Internal DNS<br/>service.internal.cloud<br/>Automatic Discovery<br/>323px"]
+    end
     
-    'notification' => [
-        'driver' => 'mysql',
-        'host' => env('NOTIFICATION_DB_HOST', '127.0.0.1'),
-        'database' => env('NOTIFICATION_DB_DATABASE', 'notification_service'),
-        'username' => env('NOTIFICATION_DB_USERNAME', 'forge'),
-        'password' => env('NOTIFICATION_DB_PASSWORD', ''),
-    ],
-],
+    subgraph "🔨 LARAVEL FORGE"
+        FORGE_DISCOVERY["🔍 Environment Config<br/>Manual Configuration<br/>Load Balancer Routing<br/>323px"]
+    end
+    
+    subgraph "⚡ LARAVEL VAPOR"
+        VAPOR_DISCOVERY["🔍 API Gateway<br/>Lambda Function URLs<br/>AWS Service Discovery<br/>323px"]
+    end
+    
+    subgraph "🎯 DISCOVERY METHODS"
+        ENV["🔧 Environment Variables<br/>Static Configuration<br/>200px"]
+        DNS["🌐 DNS Resolution<br/>Dynamic Discovery<br/>200px"]
+        REGISTRY["📋 Service Registry<br/>Centralized Discovery<br/>200px"]
+    end
+    
+    CLOUD_DISCOVERY --> DNS
+    FORGE_DISCOVERY --> ENV
+    VAPOR_DISCOVERY --> REGISTRY
 ```
 
-#### Platform-Specific Database Setup
+<!-- 38% MINOR DETAILS: Service Discovery Implementation -->
+<details style="margin-bottom: 2rem;">
+<summary style="font-size: 16px; font-weight: 500; cursor: pointer;">🔧 Service Discovery Implementation</summary>
+<div style="margin-top: 1rem; padding-left: 1rem; border-left: 3px solid #4ECDC4;">
 
-**Laravel Cloud**:
-```env
-# Managed database with automatic scaling
-SHARED_DB_HOST=shared-db.cloud.laravel.com
-NOTIFICATION_DB_HOST=notification-db.cloud.laravel.com
-```
-
-**Laravel Forge**:
-```env
-# Self-managed or RDS
-SHARED_DB_HOST=10.0.0.3
-NOTIFICATION_DB_HOST=10.0.0.3  # Same server, different databases
-# OR
-NOTIFICATION_DB_HOST=10.0.0.4  # Separate database server
-```
-
-**Laravel Vapor**:
-```env
-# RDS/Aurora with Lambda integration
-SHARED_DB_HOST=shared-cluster.cluster-xyz.us-east-1.rds.amazonaws.com
-NOTIFICATION_DB_HOST=notification-cluster.cluster-abc.us-east-1.rds.amazonaws.com
-```
-
-## RPC Client Implementation
-
-### HTTP-Based RPC Client
-
+**Universal Service Discovery Class:**
 ```php
-<?php
-
-namespace Shared\Core;
-
-use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-
-class NotificationRpcClient
+class ServiceDiscovery
 {
-    private string $baseUrl;
-    private string $apiKey;
-    private int $timeout;
-    private int $retryAttempts;
-
-    public function __construct()
+    public function getServiceUrl(string $service): string
     {
-        $this->baseUrl = config('services.notification_service.url');
-        $this->apiKey = config('services.notification_service.api_key');
-        $this->timeout = config('services.notification_service.timeout', 30);
-        $this->retryAttempts = config('services.notification_service.retry_attempts', 3);
+        return match([config('app.platform'), $service]) {
+            ['cloud', 'notification'] => 'https://notification-service.internal.cloud.laravel.com',
+            ['forge', 'notification'] => $this->getForgeServiceUrl('notification'),
+            ['vapor', 'notification'] => config('services.notification.vapor_url'),
+            default => throw new ServiceNotFoundException($service)
+        };
     }
-
-    public function call(string $method, array $params, array $context = []): array
+    
+    private function getForgeServiceUrl(string $service): string
     {
-        $endpoint = $this->buildEndpoint($method);
-        $payload = $this->buildPayload($method, $params, $context);
-        
-        try {
-            $response = $this->makeRequest($endpoint, $payload);
-            return $this->handleResponse($response, $method, $context);
-        } catch (\Exception $e) {
-            return $this->handleError($e, $method, $context);
-        }
-    }
-
-    private function buildEndpoint(string $method): string
-    {
-        $endpoints = [
-            'sendEmail' => '/api/notifications/email',
-            'sendSms' => '/api/notifications/sms',
-            'sendPushNotification' => '/api/notifications/push',
-            'getNotificationStatus' => '/api/notifications/status',
-            'manageSubscriptions' => '/api/subscriptions',
-            'sendWhatsApp' => '/api/notifications/whatsapp',
-            'sendTelegram' => '/api/notifications/telegram',
-            'sendMultiChannel' => '/api/notifications/multi-channel',
-            'sendBulkNotification' => '/api/notifications/bulk',
-            'scheduleNotification' => '/api/notifications/schedule',
-            'cancelNotification' => '/api/notifications/cancel',
-        ];
-
-        return $this->baseUrl . ($endpoints[$method] ?? '/api/notifications/generic');
-    }
-
-    private function buildPayload(string $method, array $params, array $context): array
-    {
-        return [
-            'method' => $method,
-            'params' => $params,
-            'context' => array_merge($context, [
-                'timestamp' => now()->toISOString(),
-                'source_service' => 'shared-service',
-                'trace_id' => $context['trace_id'] ?? $this->generateTraceId(),
-            ]),
-        ];
-    }
-
-    private function makeRequest(string $endpoint, array $payload): Response
-    {
-        return Http::timeout($this->timeout)
-            ->retry($this->retryAttempts, 1000)
-            ->withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'Content-Type' => 'application/json',
-                'X-Correlation-ID' => $payload['context']['trace_id'],
-                'X-Source-Service' => 'shared-service',
-            ])
-            ->post($endpoint, $payload);
-    }
-
-    private function handleResponse(Response $response, string $method, array $context): array
-    {
-        if ($response->successful()) {
-            $data = $response->json();
-            
-            // Log successful request for monitoring
-            Log::info('Notification RPC call successful', [
-                'method' => $method,
-                'trace_id' => $context['trace_id'] ?? null,
-                'response_time' => $response->handlerStats()['total_time'] ?? null,
-            ]);
-            
-            return $data;
-        }
-
-        // Handle HTTP errors
-        throw new \Exception(
-            "HTTP {$response->status()}: " . $response->body(),
-            $response->status()
-        );
-    }
-
-    private function handleError(\Exception $e, string $method, array $context): array
-    {
-        Log::error('Notification RPC call failed', [
-            'method' => $method,
-            'error' => $e->getMessage(),
-            'trace_id' => $context['trace_id'] ?? null,
-            'code' => $e->getCode(),
-        ]);
-
-        return [
-            'success' => false,
-            'message' => 'Notification service communication failed',
-            'details' => [
-                'method' => $method,
-                'error' => $e->getMessage(),
-                'code' => $e->getCode(),
-            ],
-            'timestamp' => now()->toISOString(),
-            'trace_id' => $context['trace_id'] ?? null,
-        ];
-    }
-
-    private function generateTraceId(): string
-    {
-        return sprintf(
-            '%08x-%04x-%04x-%04x-%012x',
-            mt_rand(0, 0xffffffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffffffffffff)
-        );
+        $host = config("services.{$service}.host", 'localhost');
+        $port = config("services.{$service}.port", 8000);
+        return "http://{$host}:{$port}";
     }
 }
 ```
 
-### Queue-Based RPC Client (Alternative)
-
+**Health Check Integration:**
 ```php
-<?php
-
-namespace Shared\Core;
-
-use Illuminate\Support\Facades\Queue;
-use Illuminate\Support\Facades\Cache;
-
-class NotificationQueueClient
+class HealthCheckService
 {
-    public function call(string $method, array $params, array $context = []): array
+    public function checkServiceHealth(string $service): bool
     {
-        $jobId = $this->generateJobId();
-        $cacheKey = "rpc_response_{$jobId}";
+        $url = $this->serviceDiscovery->getServiceUrl($service);
         
-        // Dispatch job to notification service queue
-        Queue::push('ProcessNotificationRpcJob', [
-            'job_id' => $jobId,
-            'method' => $method,
-            'params' => $params,
-            'context' => $context,
-        ]);
-        
-        // Wait for response (with timeout)
-        $timeout = 30; // seconds
-        $startTime = time();
-        
-        while (time() - $startTime < $timeout) {
-            $response = Cache::get($cacheKey);
-            if ($response !== null) {
-                Cache::forget($cacheKey);
-                return $response;
-            }
-            usleep(100000); // 100ms
+        try {
+            $response = Http::timeout(5)->get("{$url}/health");
+            return $response->successful();
+        } catch (Exception $e) {
+            Log::warning("Health check failed for {$service}: " . $e->getMessage());
+            return false;
         }
+    }
+}
+```
+
+**Circuit Breaker Pattern:**
+```php
+class CircuitBreaker
+{
+    public function call(string $service, callable $callback)
+    {
+        if ($this->isCircuitOpen($service)) {
+            throw new ServiceUnavailableException($service);
+        }
+        
+        try {
+            $result = $callback();
+            $this->recordSuccess($service);
+            return $result;
+        } catch (Exception $e) {
+            $this->recordFailure($service);
+            throw $e;
+        }
+    }
+}
+```
+
+</div>
+</details>
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">📊 Monitoring and Observability</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🎯 Comprehensive Monitoring Strategy</span>
+
+<p style="font-size: 16px; line-height: 1.618;"><strong>Multi-Layer Monitoring:</strong> Application metrics, infrastructure monitoring, and distributed tracing across all services.</p>
+
+**Key Monitoring Areas:**
+- 📈 **Application Metrics**: Request rates, response times, error rates
+- 🏗️ **Infrastructure Metrics**: CPU, memory, disk usage, network I/O
+- 🔍 **Distributed Tracing**: Request flow across service boundaries
+- 📋 **Business Metrics**: Notification delivery rates, channel performance
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🚨 Alerting and Incident Response</span>
+
+<p style="font-size: 16px; line-height: 1.618;"><strong>Proactive Alerting:</strong> Early warning systems for service degradation and failures.</p>
+
+**Alert Categories:**
+- 🔴 **Critical**: Service down, high error rates (>5%)
+- 🟡 **Warning**: High response times (>2s), resource usage (>80%)
+- 🔵 **Info**: Deployment notifications, scaling events
+
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🔒 Security Considerations</span>
+
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🛡️ Inter-Service Security</span>
+
+<p style="font-size: 16px; line-height: 1.618;"><strong>Zero Trust Architecture:</strong> All inter-service communication is authenticated and encrypted.</p>
+
+**Security Layers:**
+- 🔐 **API Authentication**: Bearer tokens for service-to-service calls
+- 🔒 **TLS Encryption**: All HTTP communication encrypted in transit
+- 🛡️ **Network Isolation**: Services isolated at network level where possible
+- 📋 **Audit Logging**: Comprehensive logging of all inter-service requests
+
+<!-- 38% MINOR DETAILS: Security Implementation -->
+<details style="margin-bottom: 2rem;">
+<summary style="font-size: 16px; font-weight: 500; cursor: pointer;">🔧 Security Implementation Details</summary>
+<div style="margin-top: 1rem; padding-left: 1rem; border-left: 3px solid #4ECDC4;">
+
+**API Key Management:**
+```php
+class ServiceAuthenticator
+{
+    public function authenticate(Request $request): bool
+    {
+        $apiKey = $request->bearerToken();
+        $expectedKey = config('services.api_keys.notification_service');
+        
+        return hash_equals($expectedKey, $apiKey ?? '');
+    }
+}
+```
+
+**Request Signing:**
+```php
+class RequestSigner
+{
+    public function signRequest(array $payload): array
+    {
+        $timestamp = time();
+        $signature = hash_hmac('sha256', 
+            json_encode($payload) . $timestamp, 
+            config('services.signing_key')
+        );
         
         return [
-            'success' => false,
-            'message' => 'RPC call timeout',
-            'details' => ['job_id' => $jobId, 'method' => $method],
+            'payload' => $payload,
+            'timestamp' => $timestamp,
+            'signature' => $signature
         ];
     }
-    
-    private function generateJobId(): string
-    {
-        return 'rpc_' . uniqid() . '_' . time();
-    }
 }
 ```
 
-## Environment Configuration Management
-
-### Configuration Strategy
-
-#### Centralized Configuration
-
+**Rate Limiting:**
 ```php
-// config/microservices.php
-return [
-    'services' => [
-        'notification' => [
-            'url' => env('NOTIFICATION_SERVICE_URL'),
-            'api_key' => env('NOTIFICATION_SERVICE_API_KEY'),
-            'timeout' => env('NOTIFICATION_SERVICE_TIMEOUT', 30),
-            'retry_attempts' => env('NOTIFICATION_SERVICE_RETRIES', 3),
-            'health_check_url' => env('NOTIFICATION_SERVICE_HEALTH_URL'),
-        ],
-    ],
-    
-    'communication' => [
-        'default_method' => env('SERVICE_COMMUNICATION_METHOD', 'http'),
-        'fallback_method' => env('SERVICE_COMMUNICATION_FALLBACK', 'queue'),
-        'circuit_breaker' => [
-            'failure_threshold' => env('CIRCUIT_BREAKER_THRESHOLD', 5),
-            'timeout' => env('CIRCUIT_BREAKER_TIMEOUT', 60),
-        ],
-    ],
-    
-    'monitoring' => [
-        'trace_requests' => env('TRACE_SERVICE_REQUESTS', true),
-        'log_level' => env('SERVICE_LOG_LEVEL', 'info'),
-        'metrics_enabled' => env('SERVICE_METRICS_ENABLED', true),
-    ],
-];
+// Apply rate limiting to inter-service calls
+Route::middleware(['throttle:service:100,1'])->group(function () {
+    Route::post('/internal/send', [NotificationController::class, 'send']);
+});
 ```
 
-#### Platform-Specific Environment Files
+</div>
+</details>
 
-**Laravel Cloud (.env.cloud)**:
-```env
-# Service URLs
-NOTIFICATION_SERVICE_URL=https://notification-service.internal.cloud.laravel.com
-NOTIFICATION_SERVICE_API_KEY=${CLOUD_INTERNAL_API_KEY}
+## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🚀 Performance Optimization</span>
 
-# Database
-DB_CONNECTION=mysql
-DB_HOST=${CLOUD_DB_HOST}
-DB_DATABASE=${CLOUD_DB_NAME}
-DB_USERNAME=${CLOUD_DB_USER}
-DB_PASSWORD=${CLOUD_DB_PASSWORD}
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">⚡ Connection Pooling</span>
 
-# Cache
-REDIS_HOST=${CLOUD_REDIS_HOST}
-REDIS_PASSWORD=${CLOUD_REDIS_PASSWORD}
+<p style="font-size: 16px; line-height: 1.618;"><strong>Efficient Resource Usage:</strong> Connection pooling for database and HTTP connections to minimize overhead.</p>
 
-# Communication
-SERVICE_COMMUNICATION_METHOD=http
-CIRCUIT_BREAKER_THRESHOLD=10
-```
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">💾 Caching Strategy</span>
 
-**Laravel Forge (.env.forge)**:
-```env
-# Service URLs
-NOTIFICATION_SERVICE_URL=https://notification.yourdomain.com
-NOTIFICATION_SERVICE_API_KEY=forge_secure_api_key_123
+<p style="font-size: 16px; line-height: 1.618;"><strong>Multi-Level Caching:</strong> Application-level, database query, and HTTP response caching.</p>
 
-# Database
-DB_CONNECTION=mysql
-DB_HOST=10.0.0.3
-DB_DATABASE=notification_system
-DB_USERNAME=forge
-DB_PASSWORD=secure_password
+**Caching Layers:**
+- 🔄 **Application Cache**: Frequently accessed data (templates, configurations)
+- 📊 **Query Cache**: Database query results
+- 🌐 **HTTP Cache**: API response caching with appropriate TTL
+- 📋 **Template Cache**: Rendered notification templates
 
-# Cache
-REDIS_HOST=10.0.0.3
-REDIS_PASSWORD=redis_password
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">📈 Auto-Scaling Configuration</span>
 
-# Communication
-SERVICE_COMMUNICATION_METHOD=http
-CIRCUIT_BREAKER_THRESHOLD=5
-```
+<p style="font-size: 16px; line-height: 1.618;"><strong>Platform-Specific Scaling:</strong> Optimized auto-scaling rules for each deployment platform.</p>
 
-**Laravel Vapor (.env.vapor)**:
-```env
-# Service URLs
-NOTIFICATION_SERVICE_URL=https://xyz123.execute-api.us-east-1.amazonaws.com/production
-NOTIFICATION_SERVICE_API_KEY=${VAPOR_API_GATEWAY_KEY}
-
-# Database
-DB_CONNECTION=mysql
-DB_HOST=${VAPOR_DB_HOST}
-DB_DATABASE=${VAPOR_DB_NAME}
-DB_USERNAME=${VAPOR_DB_USER}
-DB_PASSWORD=${VAPOR_DB_PASSWORD}
-
-# Cache
-REDIS_HOST=${VAPOR_REDIS_HOST}
-
-# Communication
-SERVICE_COMMUNICATION_METHOD=http
-CIRCUIT_BREAKER_THRESHOLD=15
-NOTIFICATION_SERVICE_TIMEOUT=45
-```
-
-## Monitoring and Observability
-
-### Distributed Tracing
-
-```php
-<?php
-
-namespace Shared\Core;
-
-class DistributedTracing
-{
-    public static function startTrace(string $operation, array $context = []): string
-    {
-        $traceId = $context['trace_id'] ?? self::generateTraceId();
-        
-        Log::info('Trace started', [
-            'trace_id' => $traceId,
-            'operation' => $operation,
-            'service' => 'shared-service',
-            'timestamp' => now()->toISOString(),
-            'context' => $context,
-        ]);
-        
-        return $traceId;
-    }
-    
-    public static function logSpan(string $traceId, string $span, array $data = []): void
-    {
-        Log::info('Trace span', [
-            'trace_id' => $traceId,
-            'span' => $span,
-            'service' => 'shared-service',
-            'timestamp' => now()->toISOString(),
-            'data' => $data,
-        ]);
-    }
-    
-    public static function endTrace(string $traceId, bool $success = true, array $result = []): void
-    {
-        Log::info('Trace completed', [
-            'trace_id' => $traceId,
-            'success' => $success,
-            'service' => 'shared-service',
-            'timestamp' => now()->toISOString(),
-            'result' => $result,
-        ]);
-    }
-    
-    private static function generateTraceId(): string
-    {
-        return sprintf(
-            '%08x-%04x-%04x-%04x-%012x',
-            mt_rand(0, 0xffffffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffffffffffff)
-        );
-    }
-}
-```
-
-### Health Check Implementation
-
-```php
-<?php
-
-namespace Shared\Http\Controllers;
-
-use Illuminate\Http\JsonResponse;
-use Shared\Core\NotificationRpcClient;
-
-class HealthController extends Controller
-{
-    public function check(): JsonResponse
-    {
-        $checks = [
-            'database' => $this->checkDatabase(),
-            'cache' => $this->checkCache(),
-            'notification_service' => $this->checkNotificationService(),
-        ];
-        
-        $healthy = collect($checks)->every(fn($check) => $check['status'] === 'ok');
-        
-        return response()->json([
-            'status' => $healthy ? 'healthy' : 'unhealthy',
-            'service' => 'shared-service',
-            'timestamp' => now()->toISOString(),
-            'checks' => $checks,
-        ], $healthy ? 200 : 503);
-    }
-    
-    private function checkDatabase(): array
-    {
-        try {
-            DB::connection()->getPdo();
-            return ['status' => 'ok', 'message' => 'Database connection successful'];
-        } catch (\Exception $e) {
-            return ['status' => 'error', 'message' => $e->getMessage()];
-        }
-    }
-    
-    private function checkCache(): array
-    {
-        try {
-            Cache::put('health_check', 'ok', 10);
-            $value = Cache::get('health_check');
-            return ['status' => $value === 'ok' ? 'ok' : 'error'];
-        } catch (\Exception $e) {
-            return ['status' => 'error', 'message' => $e->getMessage()];
-        }
-    }
-    
-    private function checkNotificationService(): array
-    {
-        try {
-            $client = new NotificationRpcClient();
-            $response = Http::timeout(5)->get(
-                config('services.notification_service.health_check_url', 
-                       config('services.notification_service.url') . '/health')
-            );
-            
-            return [
-                'status' => $response->successful() ? 'ok' : 'error',
-                'response_time' => $response->handlerStats()['total_time'] ?? null,
-            ];
-        } catch (\Exception $e) {
-            return ['status' => 'error', 'message' => $e->getMessage()];
-        }
-    }
-}
-```
-
-## Deployment Strategies
-
-### Platform-Specific Deployment Approaches
-
-#### Laravel Cloud Deployment
-
-```yaml
-# cloud.yml (hypothetical configuration)
-name: notification-system
-services:
-  shared-service:
-    type: web
-    php: 8.3
-    build:
-      - composer install --optimize-autoloader --no-dev
-      - php artisan config:cache
-      - php artisan route:cache
-      - php artisan view:cache
-    environment:
-      - NOTIFICATION_SERVICE_URL=https://notification-service.internal.cloud.laravel.com
-    
-  notification-service:
-    type: web
-    php: 8.3
-    build:
-      - composer install --optimize-autoloader --no-dev
-      - php artisan config:cache
-      - php artisan route:cache
-      - php artisan view:cache
-    environment:
-      - APP_ENV=production
-
-databases:
-  - name: notification-system
-    engine: mysql
-    version: 8.0
-```
-
-#### Laravel Forge Deployment
-
-```bash
-#!/bin/bash
-# Forge deployment script for shared service
-
-cd /home/forge/shared-service
-
-# Pull latest code
-git pull origin main
-
-# Install dependencies
-composer install --no-dev --optimize-autoloader
-
-# Run migrations
-php artisan migrate --force
-
-# Clear and cache configurations
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-
-# Restart queue workers
-php artisan queue:restart
-
-# Restart PHP-FPM
-sudo service php8.3-fpm reload
-
-# Health check
-curl -f http://localhost/health || exit 1
-
-echo "Shared service deployment completed successfully"
-```
-
-#### Laravel Vapor Deployment
-
-```yaml
-# vapor.yml for shared service
-id: 12345
-name: shared-service
-environments:
-  production:
-    memory: 1024
-    timeout: 30
-    runtime: php-8.3
-    variables:
-      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL}
-      NOTIFICATION_SERVICE_API_KEY: ${NOTIFICATION_SERVICE_API_KEY}
-    build:
-      - 'composer install --no-dev --optimize-autoloader'
-      - 'php artisan config:cache'
-      - 'php artisan route:cache'
-      - 'php artisan view:cache'
-```
-
-## Security Considerations
-
-### Service-to-Service Authentication
-
-```php
-<?php
-
-namespace Shared\Http\Middleware;
-
-use Closure;
-use Illuminate\Http\Request;
-
-class ServiceAuthentication
-{
-    public function handle(Request $request, Closure $next)
-    {
-        $apiKey = $request->header('Authorization');
-        $expectedKey = 'Bearer ' . config('services.api_keys.notification_service');
-        
-        if ($apiKey !== $expectedKey) {
-            return response()->json([
-                'error' => 'Unauthorized service access',
-                'timestamp' => now()->toISOString(),
-            ], 401);
-        }
-        
-        // Add service context to request
-        $request->attributes->set('service_name', 'notification-service');
-        $request->attributes->set('authenticated_service', true);
-        
-        return $next($request);
-    }
-}
-```
-
-### Network Security
-
-**Laravel Cloud**: Automatic internal network isolation  
-**Laravel Forge**: VPC configuration with security groups  
-**Laravel Vapor**: Lambda security groups and VPC configuration  
-
-## Performance Optimization
-
-### Connection Pooling
-
-```php
-<?php
-
-namespace Shared\Core;
-
-class ConnectionPool
-{
-    private static array $connections = [];
-    
-    public static function getHttpClient(string $service): \Illuminate\Http\Client\PendingRequest
-    {
-        if (!isset(self::$connections[$service])) {
-            self::$connections[$service] = Http::withOptions([
-                'pool' => true,
-                'max_connections' => 10,
-                'max_idle_connections' => 5,
-            ]);
-        }
-        
-        return self::$connections[$service];
-    }
-}
-```
-
-### Caching Strategy
-
-```php
-<?php
-
-namespace Shared\Core;
-
-class ServiceCache
-{
-    public static function remember(string $key, int $ttl, callable $callback)
-    {
-        return Cache::remember("service_cache:{$key}", $ttl, $callback);
-    }
-    
-    public static function invalidateService(string $service): void
-    {
-        $pattern = "service_cache:{$service}:*";
-        // Implementation depends on cache driver
-        Cache::flush(); // Simplified for example
-    }
-}
-```
-
-## Conclusion
-
-This multi-service deployment architecture provides:
-
-1. **Platform Flexibility**: Works across Cloud, Forge, and Vapor
-2. **Communication Options**: HTTP, queue-based, and database fallbacks
-3. **Monitoring Integration**: Distributed tracing and health checks
-4. **Security**: Service authentication and network isolation
-5. **Performance**: Connection pooling and caching strategies
-6. **Operational Simplicity**: Clear deployment and configuration patterns
-
-The architecture prioritizes Laravel Forge for initial implementation due to its maturity and flexibility, while maintaining compatibility with Cloud and Vapor for future migration or hybrid deployments.
+**Scaling Triggers:**
+- 📊 **CPU Usage**: Scale up when CPU > 70% for 5 minutes
+- 💾 **Memory Usage**: Scale up when memory > 80% for 5 minutes
+- 📈 **Request Rate**: Scale up when requests > 1000/minute
+- ⏱️ **Response Time**: Scale up when avg response time > 2 seconds
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: February 14, 2026  
-**Authors**: Codegen AI, AbdElrhman ElHodaky  
-**Status**: Complete - Ready for Phase 2 implementation
+<p style="text-align: center; font-size: 16px; line-height: 1.618; margin-top: 2rem;"><strong>Multi-Service Architecture Complete</strong> - Platform-agnostic, scalable, and production-ready 🏗️</p>
+
+</div>
+<!-- End Golden Ratio Container -->
+
