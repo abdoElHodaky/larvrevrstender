@@ -1,15 +1,15 @@
 <?php
 
-namespace Shared\Services;
+namespace NotificationService\Factories;
 
-use Shared\Services\Builders\EmailNotificationBuilder;
-use Shared\Services\Builders\SmsNotificationBuilder;
-use Shared\Services\Builders\WhatsAppNotificationBuilder;
-use Shared\Services\Builders\TelegramNotificationBuilder;
-use Shared\Services\Builders\PushNotificationBuilder;
-use Shared\Services\Builders\MultiChannelNotificationBuilder;
-use Shared\Services\Builders\BulkNotificationBuilder;
-use Shared\Services\Builders\ScheduledNotificationBuilder;
+use NotificationService\Builders\EmailNotificationBuilder;
+use NotificationService\Builders\SmsNotificationBuilder;
+use NotificationService\Builders\WhatsAppNotificationBuilder;
+use NotificationService\Builders\TelegramNotificationBuilder;
+use NotificationService\Builders\PushNotificationBuilder;
+use NotificationService\Builders\MultiChannelNotificationBuilder;
+use NotificationService\Builders\BulkNotificationBuilder;
+use NotificationService\Builders\ScheduledNotificationBuilder;
 use Exception;
 
 /**
