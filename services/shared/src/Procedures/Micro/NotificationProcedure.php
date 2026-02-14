@@ -164,7 +164,7 @@ trait NotificationProcedure
             $rpcContext = array_merge($context, [
                 'service' => 'notification-service',
                 'method' => $method,
-                'timestamp' => now()->toISOString(),
+                'timestamp' => date('c'),
                 'source_service' => 'shared-service',
                 'trace_id' => $context['trace_id'] ?? $this->generateTraceId(),
             ]);
@@ -192,12 +192,7 @@ trait NotificationProcedure
 
         } catch (Exception $e) {
             // Log the error for debugging
-            \Log::error("Notification service RPC call failed", [
-                'method' => $method,
-                'params' => $params,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+            error_log("Notification service RPC call failed: {$method} - " . $e->getMessage());
 
             return $this->errorResponse('Notification service communication failed', [
                 'method' => $method,
@@ -270,7 +265,7 @@ trait NotificationProcedure
             'success' => false,
             'message' => $message,
             'details' => $details,
-            'timestamp' => now()->toISOString()
+            'timestamp' => date('c')
         ];
     }
 }
