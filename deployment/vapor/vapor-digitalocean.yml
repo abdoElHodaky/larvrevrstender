@@ -1,0 +1,462 @@
+# Laravel Vapor Configuration for DigitalOcean Serverless
+# Hybrid approach: Traditional services + Serverless functions
+
+id: notification-system-do
+name: notification-system
+environments:
+    production:
+        provider: digitalocean
+        region: nyc1
+        
+        # Traditional Laravel services on DigitalOcean Droplets
+        services:
+            shared-service:
+                type: droplet
+                size: s-2vcpu-4gb
+                region: nyc1
+                image: ubuntu-22-04-x64
+                
+                # Build commands
+                build:
+                    - 'composer install --no-dev --optimize-autoloader'
+                    - 'php artisan config:clear'
+                    - 'php artisan cache:clear'
+                    - 'php artisan route:clear'
+                    - 'php artisan view:clear'
+                    - 'php artisan migrate --force'
+                    - 'php artisan config:cache'
+                    - 'php artisan route:cache'
+                    - 'php artisan view:cache'
+                
+                # Environment variables
+                variables:
+                    APP_NAME: "Shared Service"
+                    APP_ENV: production
+                    APP_DEBUG: false
+                    APP_URL: "https://api.yourdomain.com"
+                    
+                    # Service Communication
+                    NOTIFICATION_SERVICE_URL: "https://notification-core.yourdomain.com"
+                    SERVERLESS_PROVIDER: digitalocean
+                    SERVERLESS_EMAIL_ENDPOINT: "https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-email-processor/email/send"
+                    SERVERLESS_SMS_ENDPOINT: "https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-sms-processor/sms/send"
+                    SERVERLESS_PUSH_ENDPOINT: "https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-push-processor/push/send"
+                    
+                    # Cache and Queue
+                    CACHE_DRIVER: redis
+                    QUEUE_CONNECTION: redis
+                    SESSION_DRIVER: redis
+                
+                # Health checks
+                health_check:
+                    path: /api/health
+                    interval: 30
+                    timeout: 5
+                    retries: 3
+                
+                # Load balancer
+                load_balancer:
+                    enabled: true
+                    algorithm: round_robin
+                    health_check: true
+                
+            notification-core:
+                type: droplet
+                size: s-1vcpu-2gb
+                region: nyc1
+                image: ubuntu-22-04-x64
+                
+                # Build commands
+                build:
+                    - 'composer install --no-dev --optimize-autoloader'
+                    - 'php artisan config:clear'
+                    - 'php artisan cache:clear'
+                    - 'php artisan migrate --force'
+                    - 'php artisan db:seed --class=NotificationTemplateSeeder --force'
+                    - 'php artisan config:cache'
+                    - 'php artisan route:cache'
+                    - 'php artisan view:cache'
+                
+                # Environment variables
+                variables:
+                    APP_NAME: "Notification Core"
+                    APP_ENV: production
+                    APP_DEBUG: false
+                    APP_URL: "https://notification-core.yourdomain.com"
+                    
+                    # Service Configuration
+                    SERVICE_PORT: 8080
+                    SERVICE_NAME: notification-core
+                    
+                    # Serverless Integration
+                    SERVERLESS_PROVIDER: digitalocean
+                    SERVERLESS_ENABLED: true
+                    
+                    # Cache and Queue
+                    CACHE_DRIVER: redis
+                    QUEUE_CONNECTION: redis
+                
+                # Health checks
+                health_check:
+                    path: /api/health
+                    interval: 30
+                    timeout: 5
+                    retries: 3
+        
+        # DigitalOcean Functions for notification processing
+        functions:
+            email-processor:
+                runtime: php81
+                memory: 512
+                timeout: 300
+                source: functions/email-processor
+                
+                # Environment variables
+                environment:
+                    MAIL_DRIVER: smtp
+                    MAIL_HOST: ${DO_MAIL_HOST}
+                    MAIL_PORT: 587
+                    MAIL_USERNAME: ${DO_MAIL_USERNAME}
+                    MAIL_PASSWORD: ${DO_MAIL_PASSWORD}
+                    MAIL_FROM: ${MAIL_FROM_ADDRESS}
+                    SPACES_KEY: ${DO_SPACES_KEY}
+                    SPACES_SECRET: ${DO_SPACES_SECRET}
+                    SPACES_ENDPOINT: ${DO_SPACES_ENDPOINT}
+                    TEMPLATE_BUCKET: notification-templates
+                
+                # HTTP routes
+                routes:
+                    - path: /email/send
+                      method: POST
+                
+                # Triggers
+                triggers:
+                    - type: http
+                    - type: queue
+                      source: email-queue
+                
+                # Resource allocation
+                resources:
+                    memory: 512MB
+                    timeout: 300
+                
+            sms-processor:
+                runtime: php81
+                memory: 256
+                timeout: 180
+                source: functions/sms-processor
+                
+                # Environment variables
+                environment:
+                    TWILIO_SID: ${TWILIO_SID}
+                    TWILIO_TOKEN: ${TWILIO_TOKEN}
+                    TWILIO_FROM: ${TWILIO_FROM}
+                
+                # HTTP routes
+                routes:
+                    - path: /sms/send
+                      method: POST
+                
+                # Triggers
+                triggers:
+                    - type: http
+                    - type: queue
+                      source: sms-queue
+                
+                # Resource allocation
+                resources:
+                    memory: 256MB
+                    timeout: 180
+                
+            push-processor:
+                runtime: php81
+                memory: 256
+                timeout: 180
+                source: functions/push-processor
+                
+                # Environment variables
+                environment:
+                    FCM_SERVER_KEY: ${FCM_SERVER_KEY}
+                    FCM_PROJECT_ID: ${FCM_PROJECT_ID}
+                    APNS_KEY_ID: ${APNS_KEY_ID}
+                    APNS_TEAM_ID: ${APNS_TEAM_ID}
+                    APNS_PRIVATE_KEY: ${APNS_PRIVATE_KEY}
+                
+                # HTTP routes
+                routes:
+                    - path: /push/send
+                      method: POST
+                
+                # Triggers
+                triggers:
+                    - type: http
+                    - type: queue
+                      source: push-queue
+                
+                # Resource allocation
+                resources:
+                    memory: 256MB
+                    timeout: 180
+            
+            whatsapp-processor:
+                runtime: php81
+                memory: 256
+                timeout: 180
+                source: functions/whatsapp-processor
+                
+                # Environment variables
+                environment:
+                    WHATSAPP_SID: ${WHATSAPP_SID}
+                    WHATSAPP_TOKEN: ${WHATSAPP_TOKEN}
+                    WHATSAPP_FROM: ${WHATSAPP_FROM}
+                
+                # HTTP routes
+                routes:
+                    - path: /whatsapp/send
+                      method: POST
+                
+                # Triggers
+                triggers:
+                    - type: http
+                    - type: queue
+                      source: whatsapp-queue
+                
+                # Resource allocation
+                resources:
+                    memory: 256MB
+                    timeout: 180
+        
+        # Managed database
+        database: notification-db-prod
+        database_config:
+            name: notification-db
+            engine: mysql
+            version: 8
+            size: db-s-2vcpu-4gb
+            region: nyc1
+            num_nodes: 1
+            backup_retention: 7
+            high_availability: false
+        
+        # Managed Redis
+        redis: notification-cache-prod
+        redis_config:
+            name: notification-cache
+            size: db-s-1vcpu-1gb
+            region: nyc1
+            eviction_policy: allkeys-lru
+        
+        # DigitalOcean Spaces (Object Storage)
+        spaces: notification-assets-prod
+        spaces_config:
+            name: notification-assets
+            region: nyc3
+            cdn_enabled: true
+            versioning: true
+            lifecycle_rules:
+                - name: delete_old_logs
+                  status: enabled
+                  expiration_days: 30
+                  prefix: logs/
+        
+        # Load balancer configuration
+        load_balancer:
+            type: application
+            algorithm: round_robin
+            size: lb-small
+            region: nyc1
+            health_check:
+                enabled: true
+                path: /api/health
+                protocol: http
+                port: 80
+                check_interval_seconds: 10
+                response_timeout_seconds: 5
+                healthy_threshold: 3
+                unhealthy_threshold: 3
+        
+        # SSL/TLS configuration
+        ssl:
+            enabled: true
+            certificate_type: lets_encrypt
+            domains:
+                - api.yourdomain.com
+                - notification-core.yourdomain.com
+        
+        # Monitoring and alerting
+        monitoring:
+            enabled: true
+            uptime_checks:
+                - name: shared-service-health
+                  type: http
+                  target: https://api.yourdomain.com/api/health
+                  regions: [nyc1, sfo3, ams3]
+                  
+                - name: notification-core-health
+                  type: http
+                  target: https://notification-core.yourdomain.com/api/health
+                  regions: [nyc1, sfo3, ams3]
+            
+            alerts:
+                - type: uptime
+                  comparison: less_than
+                  threshold: 99
+                  window: 5m
+                  emails: [admin@yourdomain.com]
+                  
+                - type: response_time
+                  comparison: greater_than
+                  threshold: 2000
+                  window: 5m
+                  emails: [admin@yourdomain.com]
+        
+        # Backup configuration
+        backup:
+            enabled: true
+            schedule: "0 2 * * *"
+            retention_days: 30
+            
+        # Firewall configuration
+        firewall:
+            inbound_rules:
+                - type: http
+                  protocol: tcp
+                  ports: 80
+                  sources:
+                    addresses: [0.0.0.0/0, ::/0]
+                    
+                - type: https
+                  protocol: tcp
+                  ports: 443
+                  sources:
+                    addresses: [0.0.0.0/0, ::/0]
+                    
+                - type: ssh
+                  protocol: tcp
+                  ports: 22
+                  sources:
+                    addresses: [your.office.ip/32]
+            
+            outbound_rules:
+                - protocol: tcp
+                  ports: all
+                  destinations:
+                    addresses: [0.0.0.0/0, ::/0]
+                    
+                - protocol: udp
+                  ports: all
+                  destinations:
+                    addresses: [0.0.0.0/0, ::/0]
+        
+        # Auto-scaling configuration
+        auto_scaling:
+            enabled: true
+            min_instances: 1
+            max_instances: 5
+            target_cpu_utilization: 70
+            target_memory_utilization: 80
+            scale_up_cooldown: 300
+            scale_down_cooldown: 600
+
+    staging:
+        provider: digitalocean
+        region: nyc1
+        
+        # Simplified staging configuration
+        services:
+            shared-service:
+                type: droplet
+                size: s-1vcpu-1gb
+                region: nyc1
+                image: ubuntu-22-04-x64
+                
+                build:
+                    - 'composer install --optimize-autoloader'
+                    - 'php artisan migrate --force'
+                    - 'php artisan config:cache'
+                
+                variables:
+                    APP_ENV: staging
+                    APP_DEBUG: true
+                    SERVERLESS_PROVIDER: digitalocean
+                
+            notification-core:
+                type: droplet
+                size: s-1vcpu-1gb
+                region: nyc1
+                image: ubuntu-22-04-x64
+                
+                build:
+                    - 'composer install --optimize-autoloader'
+                    - 'php artisan migrate --force'
+                    - 'php artisan config:cache'
+                
+                variables:
+                    APP_ENV: staging
+                    APP_DEBUG: true
+                    SERVERLESS_PROVIDER: digitalocean
+        
+        # Staging functions with reduced resources
+        functions:
+            email-processor:
+                runtime: php81
+                memory: 256
+                timeout: 180
+                source: functions/email-processor
+                
+            sms-processor:
+                runtime: php81
+                memory: 128
+                timeout: 120
+                source: functions/sms-processor
+        
+        # Staging managed services
+        database: notification-db-staging
+        database_config:
+            name: notification-db-staging
+            engine: mysql
+            version: 8
+            size: db-s-1vcpu-1gb
+            region: nyc1
+            
+        redis: notification-cache-staging
+        redis_config:
+            name: notification-cache-staging
+            size: db-s-1vcpu-512mb
+            region: nyc1
+            
+        spaces: notification-assets-staging
+        spaces_config:
+            name: notification-assets-staging
+            region: nyc3
+            cdn_enabled: false
+
+    development:
+        provider: digitalocean
+        region: nyc1
+        
+        # Minimal development configuration
+        services:
+            shared-service:
+                type: droplet
+                size: s-1vcpu-512mb
+                region: nyc1
+                image: ubuntu-22-04-x64
+                
+                build:
+                    - 'composer install'
+                    - 'php artisan migrate --force'
+                
+                variables:
+                    APP_ENV: development
+                    APP_DEBUG: true
+                    SERVERLESS_ENABLED: false
+        
+        # Development uses traditional notification processing (no functions)
+        database: notification-db-dev
+        database_config:
+            name: notification-db-dev
+            engine: mysql
+            version: 8
+            size: db-s-1vcpu-512mb
+            region: nyc1
