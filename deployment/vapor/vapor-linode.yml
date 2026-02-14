@@ -1,0 +1,314 @@
+# Laravel Vapor Configuration for Linode Serverless
+# Hybrid approach: Traditional services + Serverless functions
+
+id: notification-system-linode
+name: notification-system
+environments:
+    production:
+        provider: linode
+        region: us-east
+        
+        # Traditional Laravel services on Linode Droplets
+        services:
+            shared-service:
+                type: droplet
+                size: s-2vcpu-4gb
+                region: nyc3
+                image: ubuntu-22-04-x64
+                
+                # Build commands
+                build:
+                    - 'composer install --no-dev --optimize-autoloader'
+                    - 'php artisan config:clear'
+                    - 'php artisan cache:clear'
+                    - 'php artisan route:clear'
+                    - 'php artisan view:clear'
+                    - 'php artisan migrate --force'
+                    - 'php artisan config:cache'
+                    - 'php artisan route:cache'
+                    - 'php artisan view:cache'
+                
+                # Environment variables
+                variables:
+                    APP_NAME: "Shared Service"
+                    APP_ENV: production
+                    APP_DEBUG: false
+                    APP_URL: "https://api.yourdomain.com"
+                    
+                    # Service Communication
+                    NOTIFICATION_SERVICE_URL: "https://notification-core.yourdomain.com"
+                    SERVERLESS_PROVIDER: linode
+                    SERVERLESS_EMAIL_ENDPOINT: "https://email-processor.linode-functions.net/email/send"
+                    SERVERLESS_SMS_ENDPOINT: "https://sms-processor.linode-functions.net/sms/send"
+                    SERVERLESS_PUSH_ENDPOINT: "https://push-processor.linode-functions.net/push/send"
+                    
+                    # Cache and Queue
+                    CACHE_DRIVER: redis
+                    QUEUE_CONNECTION: redis
+                    SESSION_DRIVER: redis
+                
+                # Health checks
+                health_check:
+                    path: /api/health
+                    interval: 30
+                    timeout: 5
+                    retries: 3
+                
+                # Load balancer
+                load_balancer:
+                    enabled: true
+                    algorithm: round_robin
+                    health_check: true
+                
+            notification-core:
+                type: droplet
+                size: s-1vcpu-2gb
+                region: nyc3
+                image: ubuntu-22-04-x64
+                
+                # Build commands
+                build:
+                    - 'composer install --no-dev --optimize-autoloader'
+                    - 'php artisan config:clear'
+                    - 'php artisan cache:clear'
+                    - 'php artisan migrate --force'
+                    - 'php artisan db:seed --class=NotificationTemplateSeeder --force'
+                    - 'php artisan config:cache'
+                    - 'php artisan route:cache'
+                    - 'php artisan view:cache'
+                
+                # Environment variables
+                variables:
+                    APP_NAME: "Notification Core"
+                    APP_ENV: production
+                    APP_DEBUG: false
+                    APP_URL: "https://notification-core.yourdomain.com"
+                    
+                    # Service Configuration
+                    SERVICE_PORT: 8080
+                    SERVICE_NAME: notification-core
+                    
+                    # Serverless Integration
+                    SERVERLESS_PROVIDER: linode
+                    SERVERLESS_ENABLED: true
+                    
+                    # Cache and Queue
+                    CACHE_DRIVER: redis
+                    QUEUE_CONNECTION: redis
+                
+                # Health checks
+                health_check:
+                    path: /api/health
+                    interval: 30
+                    timeout: 5
+                    retries: 3
+        
+        # Serverless functions for notification processing
+        functions:
+            email-processor:
+                runtime: nodejs18
+                memory: 512
+                timeout: 300
+                handler: index.handler
+                source: functions/email-processor
+                
+                # Environment variables
+                environment:
+                    MAIL_DRIVER: smtp
+                    MAIL_HOST: ${LINODE_MAIL_HOST}
+                    MAIL_PORT: 587
+                    MAIL_USERNAME: ${LINODE_MAIL_USERNAME}
+                    MAIL_PASSWORD: ${LINODE_MAIL_PASSWORD}
+                    MAIL_FROM: ${MAIL_FROM_ADDRESS}
+                    LINODE_ACCESS_KEY: ${LINODE_ACCESS_KEY}
+                    LINODE_SECRET_KEY: ${LINODE_SECRET_KEY}
+                    TEMPLATE_BUCKET: notification-templates
+                
+                # HTTP triggers
+                triggers:
+                    - type: http
+                      path: /email/send
+                      method: POST
+                    - type: queue
+                      source: email-queue
+                
+                # Resource allocation
+                resources:
+                    cpu: 0.5
+                    memory: 512Mi
+                    storage: 1Gi
+                
+            sms-processor:
+                runtime: nodejs18
+                memory: 256
+                timeout: 180
+                handler: index.handler
+                source: functions/sms-processor
+                
+                # Environment variables
+                environment:
+                    TWILIO_SID: ${TWILIO_SID}
+                    TWILIO_TOKEN: ${TWILIO_TOKEN}
+                    TWILIO_FROM: ${TWILIO_FROM}
+                
+                # HTTP triggers
+                triggers:
+                    - type: http
+                      path: /sms/send
+                      method: POST
+                    - type: queue
+                      source: sms-queue
+                
+                # Resource allocation
+                resources:
+                    cpu: 0.25
+                    memory: 256Mi
+                
+            push-processor:
+                runtime: nodejs18
+                memory: 256
+                timeout: 180
+                handler: index.handler
+                source: functions/push-processor
+                
+                # Environment variables
+                environment:
+                    FCM_SERVER_KEY: ${FCM_SERVER_KEY}
+                    FCM_PROJECT_ID: ${FCM_PROJECT_ID}
+                    APNS_KEY_ID: ${APNS_KEY_ID}
+                    APNS_TEAM_ID: ${APNS_TEAM_ID}
+                    APNS_PRIVATE_KEY: ${APNS_PRIVATE_KEY}
+                
+                # HTTP triggers
+                triggers:
+                    - type: http
+                      path: /push/send
+                      method: POST
+                    - type: queue
+                      source: push-queue
+                
+                # Resource allocation
+                resources:
+                    cpu: 0.25
+                    memory: 256Mi
+        
+        # Managed database
+        database: notification-db-prod
+        database_config:
+            engine: mysql
+            version: 8.0
+            plan: dedicated-4gb
+            region: us-east
+            backup_retention: 7
+            high_availability: true
+        
+        # Managed cache
+        cache: notification-cache-prod
+        cache_config:
+            engine: redis
+            version: 7.0
+            plan: dedicated-1gb
+            region: us-east
+            persistence: true
+        
+        # Object storage
+        storage: notification-assets-prod
+        storage_config:
+            type: object-storage
+            region: us-east-1
+            bucket: notification-assets
+            cdn_enabled: true
+            versioning: true
+        
+        # Load balancer configuration
+        load_balancer:
+            type: application
+            algorithm: round_robin
+            health_check:
+                enabled: true
+                path: /api/health
+                interval: 30
+                timeout: 5
+                healthy_threshold: 2
+                unhealthy_threshold: 3
+        
+        # SSL/TLS configuration
+        ssl:
+            enabled: true
+            certificate_type: letsencrypt
+            domains:
+                - api.yourdomain.com
+                - notification-core.yourdomain.com
+        
+        # Monitoring and logging
+        monitoring:
+            enabled: true
+            metrics_retention: 30
+            log_retention: 7
+            alerts:
+                - name: high_error_rate
+                  condition: error_rate > 5%
+                  duration: 5m
+                  channels: [email]
+                - name: high_response_time
+                  condition: avg_response_time > 2s
+                  duration: 5m
+                  channels: [email]
+        
+        # Backup configuration
+        backup:
+            enabled: true
+            schedule: "0 2 * * *"
+            retention: 30
+            cross_region: true
+        
+        # Auto-scaling configuration
+        auto_scaling:
+            enabled: true
+            min_instances: 1
+            max_instances: 5
+            target_cpu: 70
+            scale_up_cooldown: 300
+            scale_down_cooldown: 600
+
+    staging:
+        provider: linode
+        region: us-east
+        
+        # Simplified staging configuration
+        services:
+            shared-service:
+                type: droplet
+                size: s-1vcpu-1gb
+                build:
+                    - 'composer install --optimize-autoloader'
+                    - 'php artisan migrate --force'
+                    - 'php artisan config:cache'
+                
+            notification-core:
+                type: droplet
+                size: s-1vcpu-1gb
+                build:
+                    - 'composer install --optimize-autoloader'
+                    - 'php artisan migrate --force'
+                    - 'php artisan config:cache'
+        
+        # Staging functions with reduced resources
+        functions:
+            email-processor:
+                runtime: nodejs18
+                memory: 256
+                timeout: 180
+                handler: index.handler
+                source: functions/email-processor
+                
+            sms-processor:
+                runtime: nodejs18
+                memory: 128
+                timeout: 120
+                handler: index.handler
+                source: functions/sms-processor
+        
+        database: notification-db-staging
+        cache: notification-cache-staging
+        storage: notification-assets-staging

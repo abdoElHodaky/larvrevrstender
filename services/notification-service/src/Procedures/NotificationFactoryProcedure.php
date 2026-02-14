@@ -2,7 +2,7 @@
 
 namespace NotificationService\Procedures;
 
-use NotificationService\Services\NotificationFactory;
+use NotificationService\Factories\NotificationFactory;
 use Shared\Services\TemplateManager;
 
 /**

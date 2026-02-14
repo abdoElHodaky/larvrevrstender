@@ -85,6 +85,16 @@ jobs:
         # Get list of changed services
         CHANGED_SERVICES=$(git diff --name-only $BASE_SHA HEAD | grep "^services/" | cut -d'/' -f2 | sort -u | tr '\n' ',' | sed 's/,$//')
         
+        # Check if shared service changed - if so, notification-service needs to be rebuilt
+        if git diff --name-only $BASE_SHA HEAD | grep -q "^services/shared/"; then
+          echo "Shared service changed, adding notification-service to build list"
+          if [ -z "$CHANGED_SERVICES" ]; then
+            CHANGED_SERVICES="notification-service"
+          else
+            CHANGED_SERVICES="$CHANGED_SERVICES,notification-service"
+          fi
+        fi
+        
         if [ -z "$CHANGED_SERVICES" ]; then
           # If no specific services changed, test all services
           CHANGED_SERVICES="auth-service,user-service,analytics-service,order-service,payment-service,bidding-service,notification-service,vin-ocr-service,gateway-service,auction-service"
@@ -493,59 +503,20 @@ jobs:
     - name: Create optimized Helm values
       run: |
         cat > helm-values-optimized.yml << EOF
-        # Optimized values for faster deployment
+        # Optimized values for faster deployment - only deploy notification-service for this PR
         global:
           imageRegistry: ${{ env.REGISTRY }}
           imagePullPolicy: IfNotPresent
           
         services:
           authService:
-            enabled: true
-            replicas: 1
-            image:
-              repository: ${{ env.IMAGE_NAME }}/auth-service
-              tag: latest
-              pullPolicy: IfNotPresent
-            port: 8000
-            resources:
-              requests:
-                memory: "128Mi"
-                cpu: "100m"
-              limits:
-                memory: "256Mi"
-                cpu: "200m"
+            enabled: false
             
           userService:
-            enabled: true
-            replicas: 1
-            image:
-              repository: ${{ env.IMAGE_NAME }}/user-service
-              tag: latest
-              pullPolicy: IfNotPresent
-            port: 8001
-            resources:
-              requests:
-                memory: "128Mi"
-                cpu: "100m"
-              limits:
-                memory: "256Mi"
-                cpu: "200m"
+            enabled: false
                 
           analyticsService:
-            enabled: true
-            replicas: 1
-            image:
-              repository: ${{ env.IMAGE_NAME }}/analytics-service
-              tag: latest
-              pullPolicy: IfNotPresent
-            port: 8002
-            resources:
-              requests:
-                memory: "128Mi"
-                cpu: "100m"
-              limits:
-                memory: "256Mi"
-                cpu: "200m"
+            enabled: false
                 
           notificationService:
             enabled: true
@@ -554,7 +525,8 @@ jobs:
               repository: ${{ env.IMAGE_NAME }}/notification-service
               tag: latest
               pullPolicy: IfNotPresent
-            port: 8003
+            port: 8004
+            targetPort: 8004
             resources:
               requests:
                 memory: "128Mi"
@@ -562,6 +534,9 @@ jobs:
               limits:
                 memory: "256Mi"
                 cpu: "200m"
+            env:
+              - name: SERVICE_PORT
+                value: "8004"
             
         ingress:
           enabled: true

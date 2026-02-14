@@ -1,0 +1,302 @@
+# Laravel Cloud Configuration
+# This file defines the deployment configuration for the notification system microservices
+
+name: notification-system
+region: us-east-1
+
+# Application definitions
+applications:
+  shared-service:
+    type: web
+    php_version: 8.3
+    memory: 512Mi
+    cpu: 250m
+    
+    # Auto-scaling configuration
+    replicas:
+      min: 1
+      max: 10
+      target_cpu: 70
+      target_memory: 80
+    
+    # Build commands
+    build:
+      - composer install --optimize-autoloader --no-dev --no-interaction
+      - php artisan config:clear
+      - php artisan cache:clear
+      - php artisan route:clear
+      - php artisan view:clear
+      - php artisan migrate --force
+      - php artisan config:cache
+      - php artisan route:cache
+      - php artisan view:cache
+      - composer dump-autoload --optimize
+    
+    # Environment variables
+    environment:
+      APP_NAME: "Shared Service"
+      APP_ENV: production
+      APP_DEBUG: false
+      APP_URL: "https://api.yourdomain.com"
+      
+      # Service Communication
+      NOTIFICATION_SERVICE_URL: "https://notification-service.internal.cloud.laravel.com"
+      SERVICE_COMMUNICATION_METHOD: http
+      CIRCUIT_BREAKER_THRESHOLD: 10
+      CIRCUIT_BREAKER_TIMEOUT: 60
+      
+      # Monitoring
+      TRACE_SERVICE_REQUESTS: true
+      SERVICE_LOG_LEVEL: info
+      SERVICE_METRICS_ENABLED: true
+      
+      # Cache and Queue
+      CACHE_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      SESSION_LIFETIME: 120
+    
+    # Custom domains
+    domains:
+      - api.yourdomain.com
+    
+    # Health check configuration
+    health_check:
+      path: /api/health
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      initial_delay: 10s
+    
+    # Resource limits
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 125m
+      limits:
+        memory: 512Mi
+        cpu: 250m
+
+  notification-service:
+    type: web
+    php_version: 8.3
+    memory: 1Gi
+    cpu: 500m
+    
+    # Auto-scaling configuration
+    replicas:
+      min: 1
+      max: 20
+      target_cpu: 70
+      target_memory: 80
+    
+    # Build commands
+    build:
+      - composer install --optimize-autoloader --no-dev --no-interaction
+      - php artisan config:clear
+      - php artisan cache:clear
+      - php artisan route:clear
+      - php artisan view:clear
+      - php artisan migrate --force
+      - php artisan db:seed --class=NotificationTemplateSeeder --force
+      - php artisan config:cache
+      - php artisan route:cache
+      - php artisan view:cache
+      - composer dump-autoload --optimize
+    
+    # Environment variables
+    environment:
+      APP_NAME: "Notification Service"
+      APP_ENV: production
+      APP_DEBUG: false
+      APP_URL: "https://notifications.yourdomain.com"
+      
+      # Service Configuration
+      SERVICE_PORT: 8080
+      SERVICE_NAME: notification-service
+      
+      # Cache and Queue
+      CACHE_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      SESSION_LIFETIME: 120
+      
+      # Rate Limiting
+      RATE_LIMIT_EMAIL_PER_MINUTE: 60
+      RATE_LIMIT_SMS_PER_MINUTE: 30
+      RATE_LIMIT_PUSH_PER_MINUTE: 100
+      
+      # Template Configuration
+      TEMPLATE_CACHE_TTL: 3600
+      TEMPLATE_DEFAULT_LANGUAGE: en
+      
+      # Notification Configuration
+      NOTIFICATION_MAX_RETRIES: 3
+      NOTIFICATION_RETRY_DELAY: 300
+      NOTIFICATION_BATCH_SIZE: 100
+      
+      # Health Check Configuration
+      HEALTH_CHECK_TIMEOUT: 5
+      HEALTH_CHECK_INTERVAL: 30
+    
+    # Custom domains
+    domains:
+      - notifications.yourdomain.com
+    
+    # Health check configuration
+    health_check:
+      path: /api/health
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      initial_delay: 15s
+    
+    # Resource limits
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 250m
+      limits:
+        memory: 1Gi
+        cpu: 500m
+
+# Database configuration
+databases:
+  notification-system:
+    engine: mysql
+    version: 8.0
+    size: small
+    backup_retention: 7
+    high_availability: true
+    
+    # Performance tuning
+    parameters:
+      innodb_buffer_pool_size: "128M"
+      max_connections: 100
+      query_cache_size: "32M"
+      slow_query_log: 1
+      long_query_time: 2
+
+# Cache configuration
+caches:
+  notification-cache:
+    engine: redis
+    version: 7.0
+    size: small
+    high_availability: false
+    
+    # Redis configuration
+    parameters:
+      maxmemory_policy: "allkeys-lru"
+      timeout: 300
+      tcp_keepalive: 60
+
+# Object storage configuration
+storage:
+  notification-assets:
+    type: s3
+    region: us-east-1
+    versioning: true
+    lifecycle_rules:
+      - name: delete_old_logs
+        status: enabled
+        expiration_days: 30
+        prefix: logs/
+
+# Networking configuration
+networking:
+  internal_communication: true
+  service_mesh: true
+  load_balancer:
+    type: application
+    scheme: internet-facing
+    idle_timeout: 60
+
+# Monitoring and logging
+monitoring:
+  metrics:
+    enabled: true
+    retention_days: 30
+  
+  logging:
+    level: info
+    structured: true
+    retention_days: 7
+  
+  alerts:
+    - name: high_error_rate
+      condition: error_rate > 5%
+      duration: 5m
+      channels: [email, slack]
+    
+    - name: high_response_time
+      condition: avg_response_time > 2s
+      duration: 5m
+      channels: [email]
+    
+    - name: low_availability
+      condition: availability < 99%
+      duration: 1m
+      channels: [email, slack, sms]
+
+# Security configuration
+security:
+  tls:
+    min_version: "1.2"
+    cipher_suites: [
+      "ECDHE-RSA-AES256-GCM-SHA384",
+      "ECDHE-RSA-AES128-GCM-SHA256",
+      "ECDHE-RSA-AES256-SHA384"
+    ]
+  
+  waf:
+    enabled: true
+    rules:
+      - sql_injection_protection
+      - xss_protection
+      - rate_limiting
+  
+  network_policies:
+    - name: allow_internal_communication
+      from: [shared-service, notification-service]
+      to: [shared-service, notification-service]
+      ports: [80, 8080, 443]
+    
+    - name: allow_database_access
+      from: [shared-service, notification-service]
+      to: [notification-system]
+      ports: [3306]
+    
+    - name: allow_cache_access
+      from: [shared-service, notification-service]
+      to: [notification-cache]
+      ports: [6379]
+
+# Backup and disaster recovery
+backup:
+  database:
+    enabled: true
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    retention_days: 30
+    cross_region_replication: true
+  
+  storage:
+    enabled: true
+    schedule: "0 3 * * *"  # Daily at 3 AM
+    retention_days: 30
+    versioning: true
+
+# Cost optimization
+cost_optimization:
+  auto_shutdown:
+    enabled: false  # Keep services running for production
+  
+  resource_optimization:
+    enabled: true
+    cpu_threshold: 80
+    memory_threshold: 85
+  
+  storage_optimization:
+    enabled: true
+    compress_logs: true
+    archive_old_data: true

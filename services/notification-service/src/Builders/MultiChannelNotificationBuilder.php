@@ -1,6 +1,6 @@
 <?php
 
-namespace Shared\Services\Builders;
+namespace NotificationService\Builders;
 
 use Shared\Services\TemplateManager;
 
