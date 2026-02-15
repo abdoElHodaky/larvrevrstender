@@ -11,6 +11,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "guzzlehttp/guzzle": "^7.8",
+        "laravel-workflow/laravel-workflow": "^1.0",
         "predis/predis": "^2.2",
         "laravel/horizon": "^5.28",
         "laravel/telescope": "^5.2",

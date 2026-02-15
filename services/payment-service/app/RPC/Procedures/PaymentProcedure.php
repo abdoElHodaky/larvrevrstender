@@ -544,4 +544,219 @@ class PaymentProcedure extends BaseProcedure
             }
         });
     }
+
+    /**
+     * Reserve funds for future payment
+     */
+    public function reserveFunds(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer|min:1',
+            'amount' => 'required|numeric|min:0.01',
+            'currency' => 'required|string|size:3',
+            'purpose' => 'required|string|max:255',
+            'reference_id' => 'required|string|max:255',
+            'expires_at' => 'sometimes|date|after:now',
+            'description' => 'sometimes|string|max:500',
+        ]);
+
+        return $this->executeWithLogging('Payment@reserveFunds', $params, function () use ($params) {
+            // Rate limiting for fund reservations
+            $key = 'fund_reserve:' . $params['user_id'];
+            if (RateLimiter::tooManyAttempts($key, 20)) {
+                throw new RuntimeException(
+                    'Too many fund reservation attempts. Please try again later.',
+                    -32011,
+                    ['retry_after' => RateLimiter::availableIn($key)]
+                );
+            }
+
+            DB::beginTransaction();
+            try {
+                $reservation = $this->paymentService->reserveFundsForUser([
+                    'user_id' => $params['user_id'],
+                    'amount' => $params['amount'],
+                    'currency' => $params['currency'],
+                    'purpose' => $params['purpose'],
+                    'reference_id' => $params['reference_id'],
+                    'expires_at' => $params['expires_at'] ?? now()->addHours(24),
+                    'description' => $params['description'] ?? null,
+                ]);
+
+                DB::commit();
+
+                // Clear rate limiting on successful reservation
+                RateLimiter::clear($key);
+
+                return [
+                    'success' => true,
+                    'reservation' => $reservation,
+                    'reserved_at' => now()->toISOString(),
+                ];
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+
+                // Increment rate limiting on failed reservation
+                RateLimiter::hit($key, 300); // 5 minutes
+
+                throw new RuntimeException(
+                    'Fund reservation failed: ' . $e->getMessage(),
+                    -32011,
+                    [
+                        'user_id' => $params['user_id'],
+                        'amount' => $params['amount'],
+                        'reference_id' => $params['reference_id']
+                    ]
+                );
+            }
+        });
+    }
+
+    /**
+     * Release reserved funds
+     */
+    public function releaseFunds(array $params): array
+    {
+        $this->validate($params, [
+            'reservation_id' => 'sometimes|string|max:255',
+            'user_id' => 'required|integer|min:1',
+            'reference_id' => 'sometimes|string|max:255',
+            'reason' => 'required|string|max:500',
+            'saga_id' => 'sometimes|string|max:255',
+            'description' => 'sometimes|string|max:500',
+        ]);
+
+        return $this->executeWithLogging('Payment@releaseFunds', $params, function () use ($params) {
+            DB::beginTransaction();
+            try {
+                $result = $this->paymentService->releaseFundsForUser([
+                    'reservation_id' => $params['reservation_id'] ?? null,
+                    'user_id' => $params['user_id'],
+                    'reference_id' => $params['reference_id'] ?? null,
+                    'reason' => $params['reason'],
+                    'saga_id' => $params['saga_id'] ?? null,
+                    'description' => $params['description'] ?? null,
+                ]);
+
+                DB::commit();
+
+                return [
+                    'success' => true,
+                    'release' => $result,
+                    'released_at' => now()->toISOString(),
+                ];
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+
+                throw new RuntimeException(
+                    'Fund release failed: ' . $e->getMessage(),
+                    -32012,
+                    [
+                        'user_id' => $params['user_id'],
+                        'reference_id' => $params['reference_id'] ?? null
+                    ]
+                );
+            }
+        });
+    }
+
+    /**
+     * Process payment using PaymentProcessingSaga for transaction consistency
+     * 
+     * This method uses the saga pattern to ensure consistency across services
+     * when processing payments that involve validation, processing, record creation,
+     * confirmation, and order status updates.
+     * 
+     * @param array $params Payment processing parameters
+     * @return array Payment processing result
+     */
+    public function processPaymentWithSaga(array $params): array
+    {
+        try {
+            $validation = $this->validateParams($params, [
+                'order_id' => ['required' => true, 'type' => 'integer'],
+                'customer_id' => ['required' => true, 'type' => 'integer'],
+                'amount' => ['required' => true, 'type' => 'numeric'],
+                'currency' => ['required' => false, 'type' => 'string'],
+                'payment_method' => ['required' => true, 'type' => 'string'],
+                'payment_details' => ['required' => false, 'type' => 'array'],
+                'gateway' => ['required' => false, 'type' => 'string'],
+            ]);
+
+            if (!$validation['success']) {
+                return $this->errorResponse('Validation failed', $validation['errors'], -32020);
+            }
+
+            // Prepare payment data for saga
+            $paymentData = [
+                'order_id' => $params['order_id'],
+                'customer_id' => $params['customer_id'],
+                'amount' => $params['amount'],
+                'currency' => $params['currency'] ?? 'USD',
+                'payment_method' => $params['payment_method'],
+                'payment_details' => $params['payment_details'] ?? [],
+                'gateway' => $params['gateway'] ?? $this->determineGateway($params['payment_method']),
+                'initiated_at' => now()->toISOString(),
+            ];
+
+            // Generate unique saga ID
+            $sagaId = 'payment-processing-' . uniqid() . '-' . time();
+
+            Log::info('Starting PaymentProcessingSaga', [
+                'saga_id' => $sagaId,
+                'order_id' => $params['order_id'],
+                'customer_id' => $params['customer_id'],
+                'amount' => $params['amount'],
+                'payment_method' => $params['payment_method']
+            ]);
+
+            // Execute the saga workflow using Laravel Workflows
+            $workflow = \App\Workflows\PaymentProcessingSaga::start($paymentData);
+            $sagaResult = $workflow->output();
+
+            Log::info('PaymentProcessingSaga completed successfully', [
+                'workflow_id' => $workflow->id(),
+                'payment_id' => $sagaResult['payment_id'] ?? null,
+                'payment_reference' => $sagaResult['payment_reference'] ?? null
+            ]);
+
+            return $this->successResponse([
+                'payment_id' => $sagaResult['payment_id'],
+                'payment_reference' => $sagaResult['payment_reference'],
+                'order_id' => $sagaResult['order_id'],
+                'customer_id' => $sagaResult['customer_id'],
+                'amount' => $sagaResult['amount'],
+                'currency' => $sagaResult['currency'],
+                'payment_method' => $sagaResult['payment_method'],
+                'status' => $sagaResult['status'],
+                'gateway_response' => $sagaResult['gateway_response'] ?? null,
+                'workflow_id' => $workflow->id(),
+                'processed_at' => $sagaResult['processed_at'] ?? now()->toISOString(),
+                'message' => 'Payment processed successfully using saga pattern'
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Failed to execute PaymentProcessingSaga', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->errorResponse('Failed to process payment with saga', $e->getMessage(), -32022);
+        }
+    }
+
+    /**
+     * Determine the appropriate gateway based on payment method
+     */
+    private function determineGateway(string $paymentMethod): string
+    {
+        return match ($paymentMethod) {
+            'credit_card', 'debit_card' => 'stripe',
+            'paypal' => 'paypal',
+            'bank_transfer' => 'bank_transfer',
+            default => 'stripe'
+        };
+    }
 }
