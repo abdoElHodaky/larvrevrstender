@@ -490,14 +490,21 @@ jobs:
       with:
         version: '3.14.0'
 
-    # Optimization: Parallel Helm repository setup
+    # Optimization: Parallel Helm repository setup with connectivity check
     - name: Setup Helm repositories
       run: |
         echo "📦 Adding Helm repositories..."
         helm repo add bitnami https://charts.bitnami.com/bitnami &
         helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx &
         wait
+        
+        echo "🔄 Updating Helm repositories..."
         helm repo update
+        
+        echo "✅ Verifying repository connectivity..."
+        helm search repo bitnami/redis --versions | head -5
+        echo "📋 Available Helm repositories:"
+        helm repo list
 
     # Optimization: Create optimized Helm values
     - name: Create optimized Helm values
@@ -607,7 +614,7 @@ jobs:
         echo "✅ Skipping MySQL installation - using cloud-managed Neon PostgreSQL"
         echo "🌐 Database services now managed by Neon PostgreSQL cloud service"
 
-    # Optimization: Conditional service deployment with increased timeout
+    # Optimization: Conditional service deployment with better error handling
     - name: Deploy RPC services (if Helm chart exists)
       run: |
         if [ -d "deployment/helm/rpc-services" ]; then
@@ -615,24 +622,40 @@ jobs:
           
           # Check for existing Redis installations to avoid conflicts
           echo "🔍 Checking for existing Redis installations..."
-          if helm list -n rpc-services | grep -q redis; then
+          if helm list -n rpc-services 2>/dev/null | grep -q redis; then
             echo "⚠️ Found existing Redis installation, uninstalling to avoid conflicts..."
             helm uninstall redis -n rpc-services || true
             kubectl delete pvc --all -n rpc-services || true
+            sleep 10  # Wait for cleanup
           fi
           
-          echo "🔧 Building Helm chart dependencies..."
+          echo "🔧 Building Helm chart dependencies with timeout..."
           cd deployment/helm/rpc-services
-          helm dependency build
+          
+          # Add timeout to dependency build to prevent hanging
+          timeout 300 helm dependency build || {
+            echo "❌ Helm dependency build timed out or failed"
+            echo "📋 Available Helm repositories:"
+            helm repo list
+            echo "📋 Chart.yaml contents:"
+            cat Chart.yaml
+            exit 1
+          }
           cd ../../../
           
           echo "🚀 Installing RPC services with Redis dependency..."
+          # Reduce timeout and add better error handling
           helm install rpc-services deployment/helm/rpc-services \
             --namespace rpc-services \
             --create-namespace \
             --values helm-values-optimized.yml \
-            --wait --timeout=15m \
-            --debug
+            --wait --timeout=10m \
+            --debug || {
+            echo "❌ Helm installation failed, checking cluster state..."
+            kubectl get pods -n rpc-services || true
+            kubectl get events -n rpc-services --sort-by='.lastTimestamp' || true
+            exit 1
+          }
             
           echo "✅ RPC services deployment completed successfully"
         else
