@@ -27,13 +27,15 @@ class HealthController extends Controller
     }
 
     /**
-     * Simple up check
+     * Simple up check - doesn't depend on external services
      */
     public function up(): JsonResponse
     {
         return response()->json([
             'status' => 'up',
+            'service' => 'notification-service',
             'timestamp' => now()->toISOString(),
+            'version' => config('app.version', '1.0.0'),
         ]);
     }
 
@@ -43,12 +45,21 @@ class HealthController extends Controller
     private function checkDatabase(): array
     {
         try {
-            \DB::connection()->getPdo();
+            $pdo = \DB::connection()->getPdo();
+            if ($pdo) {
+                // Simple query to verify connection
+                \DB::select('SELECT 1');
+                return [
+                    'status' => 'healthy',
+                    'message' => 'Database connection successful'
+                ];
+            }
             return [
-                'status' => 'healthy',
-                'message' => 'Database connection successful'
+                'status' => 'unhealthy',
+                'message' => 'Database PDO connection is null'
             ];
         } catch (\Exception $e) {
+            \Log::warning('Database health check failed', ['error' => $e->getMessage()]);
             return [
                 'status' => 'unhealthy',
                 'message' => 'Database connection failed: ' . $e->getMessage()
@@ -62,12 +73,20 @@ class HealthController extends Controller
     private function checkRedis(): array
     {
         try {
-            \Redis::ping();
+            $redis = \Redis::connection();
+            $result = $redis->ping();
+            if ($result === true || $result === 'PONG') {
+                return [
+                    'status' => 'healthy',
+                    'message' => 'Redis connection successful'
+                ];
+            }
             return [
-                'status' => 'healthy',
-                'message' => 'Redis connection successful'
+                'status' => 'unhealthy',
+                'message' => 'Redis ping returned unexpected result: ' . $result
             ];
         } catch (\Exception $e) {
+            \Log::warning('Redis health check failed', ['error' => $e->getMessage()]);
             return [
                 'status' => 'unhealthy',
                 'message' => 'Redis connection failed: ' . $e->getMessage()
@@ -88,6 +107,7 @@ class HealthController extends Controller
                 'queue_size' => $queueSize
             ];
         } catch (\Exception $e) {
+            \Log::warning('Queue health check failed', ['error' => $e->getMessage()]);
             return [
                 'status' => 'unhealthy',
                 'message' => 'Queue check failed: ' . $e->getMessage()

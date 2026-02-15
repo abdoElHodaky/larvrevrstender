@@ -451,7 +451,7 @@ jobs:
       (needs.changes.outputs.services == 'true' || needs.changes.outputs.deployment == 'true') &&
       needs.build-and-push-optimized.result == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 35  # Increased timeout to accommodate Helm deployment
+    timeout-minutes: 20  # Optimized timeout for faster feedback
 
     steps:
     - name: Checkout code
@@ -506,6 +506,45 @@ jobs:
         echo "📋 Available Helm repositories:"
         helm repo list
 
+    # Validation: Check if required Docker images exist
+    - name: Validate Docker images
+      run: |
+        echo "🔍 Validating Docker image availability..."
+        IMAGE_NAME_LOWER=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')
+        
+        # Check if notification-service image exists
+        if docker manifest inspect ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/notification-service:latest >/dev/null 2>&1; then
+          echo "✅ notification-service image found"
+        else
+          echo "⚠️ notification-service image not found, will be built during deployment"
+        fi
+        
+        echo "📋 Available images in registry:"
+        # List available images (this may fail if no images exist yet, which is OK)
+        docker search ${IMAGE_NAME_LOWER} || echo "No images found in search"
+
+    # Build notification-service image if needed
+    - name: Build notification-service image
+      run: |
+        echo "🔨 Building notification-service Docker image..."
+        IMAGE_NAME_LOWER=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')
+        
+        # Login to registry
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+        
+        # Build and push the image
+        docker build \
+          --file deployment/docker/Dockerfile.rpc \
+          --build-arg SERVICE_NAME=notification-service \
+          --tag ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/notification-service:latest \
+          --tag ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/notification-service:${{ github.sha }} \
+          .
+        
+        docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/notification-service:latest
+        docker push ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}/notification-service:${{ github.sha }}
+        
+        echo "✅ notification-service image built and pushed successfully"
+
     # Optimization: Create optimized Helm values
     - name: Create optimized Helm values
       run: |
@@ -532,8 +571,8 @@ jobs:
               repository: ${{ env.IMAGE_NAME }}/notification-service
               tag: latest
               pullPolicy: IfNotPresent
-            port: 8004
-            targetPort: 8004
+            port: 8006
+            targetPort: 8006
             resources:
               requests:
                 memory: "128Mi"
@@ -543,7 +582,27 @@ jobs:
                 cpu: "200m"
             env:
               - name: SERVICE_PORT
-                value: "8004"
+                value: "8006"
+              - name: APP_ENV
+                value: "production"
+              - name: APP_DEBUG
+                value: "false"
+              - name: LOG_CHANNEL
+                value: "stderr"
+              - name: DB_CONNECTION
+                value: "pgsql"
+              - name: DB_HOST
+                value: "postgres.default.svc.cluster.local"
+              - name: DB_PORT
+                value: "5432"
+              - name: DB_DATABASE
+                value: "notification_service"
+              - name: REDIS_HOST
+                value: "rpc-services-redis-master.rpc-services.svc.cluster.local"
+              - name: REDIS_PORT
+                value: "6379"
+              - name: QUEUE_CONNECTION
+                value: "redis"
             
         ingress:
           enabled: true
@@ -649,11 +708,34 @@ jobs:
             --namespace rpc-services \
             --create-namespace \
             --values helm-values-optimized.yml \
-            --wait --timeout=10m \
+            --wait --timeout=8m \
             --debug || {
-            echo "❌ Helm installation failed, checking cluster state..."
-            kubectl get pods -n rpc-services || true
-            kubectl get events -n rpc-services --sort-by='.lastTimestamp' || true
+            echo "❌ Helm installation failed, collecting detailed diagnostics..."
+            
+            echo "📋 Pod Status:"
+            kubectl get pods -n rpc-services -o wide || true
+            
+            echo "📋 Pod Descriptions:"
+            kubectl describe pods -n rpc-services || true
+            
+            echo "📋 Recent Events:"
+            kubectl get events -n rpc-services --sort-by='.lastTimestamp' --field-selector type!=Normal || true
+            
+            echo "📋 Service Status:"
+            kubectl get services -n rpc-services || true
+            
+            echo "📋 Pod Logs (last 50 lines):"
+            for pod in $(kubectl get pods -n rpc-services -o name 2>/dev/null); do
+              echo "=== Logs for $pod ==="
+              kubectl logs $pod --tail=50 -n rpc-services || echo "Failed to get logs for $pod"
+            done
+            
+            echo "📋 Helm Release Status:"
+            helm status rpc-services -n rpc-services || true
+            
+            echo "📋 Generated Helm Values:"
+            cat helm-values-optimized.yml || true
+            
             exit 1
           }
             
