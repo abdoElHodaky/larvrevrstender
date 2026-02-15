@@ -215,7 +215,7 @@ class ReversePaymentActivity extends BaseRpcActivity
             ]);
 
             // Fire payment refunded event
-            event(new PaymentRefunded($payment));
+            event(new PaymentRefunded($payment, 'saga_compensation', $payment->amount, 'Saga compensation reversal'));
 
             DB::commit();
 

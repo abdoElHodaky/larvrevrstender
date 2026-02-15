@@ -712,42 +712,28 @@ class PaymentProcedure extends BaseProcedure
                 'payment_method' => $params['payment_method']
             ]);
 
-            // Execute the saga workflow
-            $saga = new \App\Workflows\PaymentProcessingSaga();
-            $saga->setSagaId($sagaId);
-            $sagaResult = $saga->execute($paymentData);
-
-            if (!$sagaResult['success']) {
-                Log::error('PaymentProcessingSaga failed', [
-                    'saga_id' => $sagaId,
-                    'error' => $sagaResult['error'] ?? 'Unknown error',
-                    'message' => $sagaResult['message'] ?? 'Saga execution failed'
-                ]);
-                return $this->errorResponse(
-                    $sagaResult['message'] ?? 'Payment processing failed', 
-                    $sagaResult['error'] ?? 'Saga execution failed',
-                    -32021
-                );
-            }
+            // Execute the saga workflow using Laravel Workflows
+            $workflow = \App\Workflows\PaymentProcessingSaga::start($paymentData);
+            $sagaResult = $workflow->output();
 
             Log::info('PaymentProcessingSaga completed successfully', [
-                'saga_id' => $sagaId,
-                'payment_id' => $sagaResult['data']['payment_id'] ?? null,
-                'payment_reference' => $sagaResult['data']['payment_reference'] ?? null
+                'workflow_id' => $workflow->id(),
+                'payment_id' => $sagaResult['payment_id'] ?? null,
+                'payment_reference' => $sagaResult['payment_reference'] ?? null
             ]);
 
             return $this->successResponse([
-                'payment_id' => $sagaResult['data']['payment_id'],
-                'payment_reference' => $sagaResult['data']['payment_reference'],
-                'order_id' => $sagaResult['data']['order_id'],
-                'customer_id' => $sagaResult['data']['customer_id'],
-                'amount' => $sagaResult['data']['amount'],
-                'currency' => $sagaResult['data']['currency'],
-                'payment_method' => $sagaResult['data']['payment_method'],
-                'status' => $sagaResult['data']['status'],
-                'gateway_response' => $sagaResult['data']['gateway_response'] ?? null,
-                'saga_id' => $sagaId,
-                'processed_at' => $sagaResult['data']['processed_at'] ?? now()->toISOString(),
+                'payment_id' => $sagaResult['payment_id'],
+                'payment_reference' => $sagaResult['payment_reference'],
+                'order_id' => $sagaResult['order_id'],
+                'customer_id' => $sagaResult['customer_id'],
+                'amount' => $sagaResult['amount'],
+                'currency' => $sagaResult['currency'],
+                'payment_method' => $sagaResult['payment_method'],
+                'status' => $sagaResult['status'],
+                'gateway_response' => $sagaResult['gateway_response'] ?? null,
+                'workflow_id' => $workflow->id(),
+                'processed_at' => $sagaResult['processed_at'] ?? now()->toISOString(),
                 'message' => 'Payment processed successfully using saga pattern'
             ]);
 

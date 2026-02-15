@@ -12,9 +12,8 @@ use App\Workflows\Compensation\CancelPaymentRecordActivity;
 use App\Workflows\Compensation\RestoreOrderStatusActivity;
 use Exception;
 use Illuminate\Support\Facades\Log;
-use Workflow\Activity;
-use Workflow\Saga;
-use Workflow\SagaInterface;
+use Workflow\Workflow;
+use function Workflow\activity;
 
 /**
  * Payment Processing Saga
@@ -35,270 +34,83 @@ use Workflow\SagaInterface;
  * 2. CancelPaymentRecordActivity - Cancel payment record
  * 3. ReversePaymentActivity - Reverse/refund the payment
  */
-class PaymentProcessingSaga extends Saga implements SagaInterface
+class PaymentProcessingSaga extends Workflow
 {
     /**
      * Execute the payment processing saga
      *
-     * @param array $paymentData Payment processing data
-     * @return array Saga execution result
+     * @return \Generator Saga execution workflow
      */
-    public function execute(array $paymentData): array
+    public function execute()
     {
-        $sagaId = $this->getSagaId();
+        $workflowId = $this->workflowId();
         
         Log::info("PaymentProcessingSaga started", [
-            'saga_id' => $sagaId,
-            'order_id' => $paymentData['order_id'] ?? null,
-            'customer_id' => $paymentData['customer_id'] ?? null,
-            'amount' => $paymentData['amount'] ?? null,
-            'payment_method' => $paymentData['payment_method'] ?? null
+            'workflow_id' => $workflowId,
+            'order_id' => $this->input('order_id'),
+            'customer_id' => $this->input('customer_id'),
+            'amount' => $this->input('amount'),
+            'payment_method' => $this->input('payment_method')
         ]);
 
         try {
             // Step 1: Validate Payment Data
-            $validationResult = $this->executeActivity(
-                ValidatePaymentDataActivity::class,
-                $paymentData,
-                [RestoreOrderStatusActivity::class] // No compensation needed for validation
-            );
-
-            if (!$validationResult['success']) {
-                Log::error("PaymentProcessingSaga failed at validation", [
-                    'saga_id' => $sagaId,
-                    'error' => $validationResult['error'] ?? 'Validation failed'
-                ]);
-                return $this->sagaFailure('Payment validation failed', $validationResult['error'] ?? 'Unknown validation error');
-            }
+            $validationResult = yield activity(ValidatePaymentDataActivity::class, $this->input());
+            $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $validationResult));
 
             // Step 2: Process Payment
-            $processingResult = $this->executeActivity(
-                ProcessPaymentActivity::class,
-                array_merge($paymentData, $validationResult['data']),
-                [RestoreOrderStatusActivity::class] // Only order restoration needed
-            );
-
-            if (!$processingResult['success']) {
-                Log::error("PaymentProcessingSaga failed at processing", [
-                    'saga_id' => $sagaId,
-                    'error' => $processingResult['error'] ?? 'Processing failed'
-                ]);
-                return $this->sagaFailure('Payment processing failed', $processingResult['error'] ?? 'Unknown processing error');
-            }
+            $processingResult = yield activity(ProcessPaymentActivity::class, array_merge($this->input(), $validationResult));
+            $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $processingResult));
 
             // Step 3: Create Payment Record
-            $recordResult = $this->executeActivity(
-                CreatePaymentRecordActivity::class,
-                array_merge($paymentData, $validationResult['data'], $processingResult['data']),
-                [
-                    ReversePaymentActivity::class,
-                    RestoreOrderStatusActivity::class
-                ]
-            );
-
-            if (!$recordResult['success']) {
-                Log::error("PaymentProcessingSaga failed at record creation", [
-                    'saga_id' => $sagaId,
-                    'error' => $recordResult['error'] ?? 'Record creation failed'
-                ]);
-                return $this->sagaFailure('Payment record creation failed', $recordResult['error'] ?? 'Unknown record error');
-            }
+            $recordResult = yield activity(CreatePaymentRecordActivity::class, array_merge($this->input(), $validationResult, $processingResult));
+            $this->addCompensation(fn() => activity(ReversePaymentActivity::class, $recordResult));
+            $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $recordResult));
 
             // Step 4: Confirm Payment
-            $confirmationResult = $this->executeActivity(
-                ConfirmPaymentActivity::class,
-                array_merge($paymentData, $validationResult['data'], $processingResult['data'], $recordResult['data']),
-                [
-                    CancelPaymentRecordActivity::class,
-                    ReversePaymentActivity::class,
-                    RestoreOrderStatusActivity::class
-                ]
-            );
-
-            if (!$confirmationResult['success']) {
-                Log::error("PaymentProcessingSaga failed at confirmation", [
-                    'saga_id' => $sagaId,
-                    'error' => $confirmationResult['error'] ?? 'Confirmation failed'
-                ]);
-                return $this->sagaFailure('Payment confirmation failed', $confirmationResult['error'] ?? 'Unknown confirmation error');
-            }
+            $confirmationResult = yield activity(ConfirmPaymentActivity::class, array_merge($this->input(), $validationResult, $processingResult, $recordResult));
+            $this->addCompensation(fn() => activity(CancelPaymentRecordActivity::class, $confirmationResult));
+            $this->addCompensation(fn() => activity(ReversePaymentActivity::class, $confirmationResult));
+            $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $confirmationResult));
 
             // Step 5: Update Order Status
-            $orderUpdateResult = $this->executeActivity(
-                UpdateOrderStatusActivity::class,
-                array_merge($paymentData, $validationResult['data'], $processingResult['data'], $recordResult['data'], $confirmationResult['data']),
-                [
-                    RestoreOrderStatusActivity::class,
-                    CancelPaymentRecordActivity::class,
-                    ReversePaymentActivity::class
-                ]
-            );
-
-            if (!$orderUpdateResult['success']) {
-                Log::error("PaymentProcessingSaga failed at order update", [
-                    'saga_id' => $sagaId,
-                    'error' => $orderUpdateResult['error'] ?? 'Order update failed'
-                ]);
-                return $this->sagaFailure('Order status update failed', $orderUpdateResult['error'] ?? 'Unknown order update error');
-            }
+            $orderUpdateResult = yield activity(UpdateOrderStatusActivity::class, array_merge($this->input(), $validationResult, $processingResult, $recordResult, $confirmationResult));
+            $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $orderUpdateResult));
+            $this->addCompensation(fn() => activity(CancelPaymentRecordActivity::class, $orderUpdateResult));
+            $this->addCompensation(fn() => activity(ReversePaymentActivity::class, $orderUpdateResult));
 
             // Saga completed successfully
             $finalResult = array_merge(
-                $validationResult['data'],
-                $processingResult['data'],
-                $recordResult['data'],
-                $confirmationResult['data'],
-                $orderUpdateResult['data']
+                $validationResult,
+                $processingResult,
+                $recordResult,
+                $confirmationResult,
+                $orderUpdateResult
             );
 
             Log::info("PaymentProcessingSaga completed successfully", [
-                'saga_id' => $sagaId,
+                'workflow_id' => $workflowId,
                 'payment_id' => $finalResult['payment_id'] ?? null,
                 'payment_reference' => $finalResult['payment_reference'] ?? null,
                 'order_id' => $finalResult['order_id'] ?? null,
                 'amount' => $finalResult['amount'] ?? null
             ]);
 
-            return $this->sagaSuccess($finalResult);
+            return $finalResult;
 
-        } catch (Exception $e) {
-            Log::error("PaymentProcessingSaga encountered unexpected error", [
-                'saga_id' => $sagaId,
+        } catch (\Throwable $e) {
+            Log::error("PaymentProcessingSaga encountered error, executing compensations", [
+                'workflow_id' => $workflowId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return $this->sagaFailure('Unexpected saga error', $e->getMessage());
+            // Execute compensations in reverse order
+            yield from $this->compensate();
+            
+            throw $e;
         }
     }
 
-    /**
-     * Execute an activity with compensation registration
-     */
-    private function executeActivity(string $activityClass, array $data, array $compensations = []): array
-    {
-        try {
-            // Inject saga context into activity data
-            $data['saga_id'] = $this->getSagaId();
-            $data['saga_step'] = class_basename($activityClass);
 
-            // Execute the activity
-            $activity = new $activityClass();
-            $result = $activity->execute($data);
-
-            // Register compensations for this step (in reverse order)
-            foreach (array_reverse($compensations) as $compensationClass) {
-                $this->addCompensation($compensationClass, array_merge($data, $result['data'] ?? []));
-            }
-
-            return $result;
-
-        } catch (Exception $e) {
-            Log::error("Activity execution failed", [
-                'saga_id' => $this->getSagaId(),
-                'activity' => $activityClass,
-                'error' => $e->getMessage()
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-                'data' => []
-            ];
-        }
-    }
-
-    /**
-     * Handle saga success
-     */
-    private function sagaSuccess(array $data): array
-    {
-        return [
-            'success' => true,
-            'saga_id' => $this->getSagaId(),
-            'message' => 'Payment processing completed successfully',
-            'data' => $data
-        ];
-    }
-
-    /**
-     * Handle saga failure and trigger compensations
-     */
-    private function sagaFailure(string $message, string $error): array
-    {
-        // Execute all registered compensations
-        $this->executeCompensations();
-
-        return [
-            'success' => false,
-            'saga_id' => $this->getSagaId(),
-            'message' => $message,
-            'error' => $error,
-            'data' => []
-        ];
-    }
-
-    /**
-     * Get the saga identifier
-     */
-    private function getSagaId(): string
-    {
-        return $this->sagaId ?? 'payment-saga-' . uniqid();
-    }
-
-    /**
-     * Execute compensation activities
-     */
-    private function executeCompensations(): void
-    {
-        foreach ($this->compensations as $compensation) {
-            try {
-                $compensationActivity = new $compensation['class']();
-                $result = $compensationActivity->execute($compensation['data']);
-
-                Log::info("Compensation executed", [
-                    'saga_id' => $this->getSagaId(),
-                    'compensation' => $compensation['class'],
-                    'success' => $result['success'] ?? false
-                ]);
-
-            } catch (Exception $e) {
-                // Compensations should never throw exceptions, but log if they do
-                Log::error("Compensation execution failed", [
-                    'saga_id' => $this->getSagaId(),
-                    'compensation' => $compensation['class'],
-                    'error' => $e->getMessage()
-                ]);
-            }
-        }
-    }
-
-    /**
-     * Add compensation activity
-     */
-    private function addCompensation(string $compensationClass, array $data): void
-    {
-        $this->compensations[] = [
-            'class' => $compensationClass,
-            'data' => $data
-        ];
-    }
-
-    /**
-     * Saga compensations registry
-     */
-    private array $compensations = [];
-
-    /**
-     * Saga identifier
-     */
-    private ?string $sagaId = null;
-
-    /**
-     * Set saga identifier
-     */
-    public function setSagaId(string $sagaId): void
-    {
-        $this->sagaId = $sagaId;
-    }
 }

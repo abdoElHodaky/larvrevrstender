@@ -207,7 +207,7 @@ class CancelPaymentRecordActivity extends BaseRpcActivity
             ]);
 
             // Fire payment cancelled event
-            event(new PaymentCancelled($payment));
+            event(new PaymentCancelled($payment, $previousStatus, 'Saga compensation cancellation'));
 
             DB::commit();
 
