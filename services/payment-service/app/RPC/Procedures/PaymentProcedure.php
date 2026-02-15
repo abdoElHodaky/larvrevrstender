@@ -544,4 +544,121 @@ class PaymentProcedure extends BaseProcedure
             }
         });
     }
+
+    /**
+     * Reserve funds for future payment
+     */
+    public function reserveFunds(array $params): array
+    {
+        $this->validate($params, [
+            'user_id' => 'required|integer|min:1',
+            'amount' => 'required|numeric|min:0.01',
+            'currency' => 'required|string|size:3',
+            'purpose' => 'required|string|max:255',
+            'reference_id' => 'required|string|max:255',
+            'expires_at' => 'sometimes|date|after:now',
+            'description' => 'sometimes|string|max:500',
+        ]);
+
+        return $this->executeWithLogging('Payment@reserveFunds', $params, function () use ($params) {
+            // Rate limiting for fund reservations
+            $key = 'fund_reserve:' . $params['user_id'];
+            if (RateLimiter::tooManyAttempts($key, 20)) {
+                throw new RuntimeException(
+                    'Too many fund reservation attempts. Please try again later.',
+                    -32011,
+                    ['retry_after' => RateLimiter::availableIn($key)]
+                );
+            }
+
+            DB::beginTransaction();
+            try {
+                $reservation = $this->paymentService->reserveFundsForUser([
+                    'user_id' => $params['user_id'],
+                    'amount' => $params['amount'],
+                    'currency' => $params['currency'],
+                    'purpose' => $params['purpose'],
+                    'reference_id' => $params['reference_id'],
+                    'expires_at' => $params['expires_at'] ?? now()->addHours(24),
+                    'description' => $params['description'] ?? null,
+                ]);
+
+                DB::commit();
+
+                // Clear rate limiting on successful reservation
+                RateLimiter::clear($key);
+
+                return [
+                    'success' => true,
+                    'reservation' => $reservation,
+                    'reserved_at' => now()->toISOString(),
+                ];
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+
+                // Increment rate limiting on failed reservation
+                RateLimiter::hit($key, 300); // 5 minutes
+
+                throw new RuntimeException(
+                    'Fund reservation failed: ' . $e->getMessage(),
+                    -32011,
+                    [
+                        'user_id' => $params['user_id'],
+                        'amount' => $params['amount'],
+                        'reference_id' => $params['reference_id']
+                    ]
+                );
+            }
+        });
+    }
+
+    /**
+     * Release reserved funds
+     */
+    public function releaseFunds(array $params): array
+    {
+        $this->validate($params, [
+            'reservation_id' => 'sometimes|string|max:255',
+            'user_id' => 'required|integer|min:1',
+            'reference_id' => 'sometimes|string|max:255',
+            'reason' => 'required|string|max:500',
+            'saga_id' => 'sometimes|string|max:255',
+            'description' => 'sometimes|string|max:500',
+        ]);
+
+        return $this->executeWithLogging('Payment@releaseFunds', $params, function () use ($params) {
+            DB::beginTransaction();
+            try {
+                $result = $this->paymentService->releaseFundsForUser([
+                    'reservation_id' => $params['reservation_id'] ?? null,
+                    'user_id' => $params['user_id'],
+                    'reference_id' => $params['reference_id'] ?? null,
+                    'reason' => $params['reason'],
+                    'saga_id' => $params['saga_id'] ?? null,
+                    'description' => $params['description'] ?? null,
+                ]);
+
+                DB::commit();
+
+                return [
+                    'success' => true,
+                    'release' => $result,
+                    'released_at' => now()->toISOString(),
+                ];
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+
+                throw new RuntimeException(
+                    'Fund release failed: ' . $e->getMessage(),
+                    -32012,
+                    [
+                        'user_id' => $params['user_id'],
+                        'reference_id' => $params['reference_id'] ?? null
+                    ]
+                );
+            }
+        });
+    }
 }
