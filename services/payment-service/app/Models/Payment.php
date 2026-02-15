@@ -101,6 +101,10 @@ class Payment extends Model
 
     const STATUS_PARTIALLY_REFUNDED = 'partially_refunded';
 
+    const STATUS_AUTHORIZED = 'authorized';
+
+    const STATUS_VOIDED = 'voided';
+
     /**
      * Type constants
      */
@@ -254,6 +258,8 @@ class Payment extends Model
             self::STATUS_CANCELLED => 'Cancelled',
             self::STATUS_REFUNDED => 'Refunded',
             self::STATUS_PARTIALLY_REFUNDED => 'Partially Refunded',
+            self::STATUS_AUTHORIZED => 'Authorized',
+            self::STATUS_VOIDED => 'Voided',
             default => 'Unknown'
         };
     }
@@ -271,6 +277,8 @@ class Payment extends Model
             self::STATUS_CANCELLED => 'gray',
             self::STATUS_REFUNDED => 'orange',
             self::STATUS_PARTIALLY_REFUNDED => 'orange',
+            self::STATUS_AUTHORIZED => 'blue',
+            self::STATUS_VOIDED => 'gray',
             default => 'gray'
         };
     }

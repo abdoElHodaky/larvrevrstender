@@ -661,4 +661,116 @@ class PaymentProcedure extends BaseProcedure
             }
         });
     }
+
+    /**
+     * Process payment using PaymentProcessingSaga for transaction consistency
+     * 
+     * This method uses the saga pattern to ensure consistency across services
+     * when processing payments that involve validation, processing, record creation,
+     * confirmation, and order status updates.
+     * 
+     * @param array $params Payment processing parameters
+     * @return array Payment processing result
+     */
+    public function processPaymentWithSaga(array $params): array
+    {
+        try {
+            $validation = $this->validateParams($params, [
+                'order_id' => ['required' => true, 'type' => 'integer'],
+                'customer_id' => ['required' => true, 'type' => 'integer'],
+                'amount' => ['required' => true, 'type' => 'numeric'],
+                'currency' => ['required' => false, 'type' => 'string'],
+                'payment_method' => ['required' => true, 'type' => 'string'],
+                'payment_details' => ['required' => false, 'type' => 'array'],
+                'gateway' => ['required' => false, 'type' => 'string'],
+            ]);
+
+            if (!$validation['success']) {
+                return $this->errorResponse('Validation failed', $validation['errors'], -32020);
+            }
+
+            // Prepare payment data for saga
+            $paymentData = [
+                'order_id' => $params['order_id'],
+                'customer_id' => $params['customer_id'],
+                'amount' => $params['amount'],
+                'currency' => $params['currency'] ?? 'USD',
+                'payment_method' => $params['payment_method'],
+                'payment_details' => $params['payment_details'] ?? [],
+                'gateway' => $params['gateway'] ?? $this->determineGateway($params['payment_method']),
+                'initiated_at' => now()->toISOString(),
+            ];
+
+            // Generate unique saga ID
+            $sagaId = 'payment-processing-' . uniqid() . '-' . time();
+
+            Log::info('Starting PaymentProcessingSaga', [
+                'saga_id' => $sagaId,
+                'order_id' => $params['order_id'],
+                'customer_id' => $params['customer_id'],
+                'amount' => $params['amount'],
+                'payment_method' => $params['payment_method']
+            ]);
+
+            // Execute the saga workflow
+            $saga = new \App\Workflows\PaymentProcessingSaga();
+            $saga->setSagaId($sagaId);
+            $sagaResult = $saga->execute($paymentData);
+
+            if (!$sagaResult['success']) {
+                Log::error('PaymentProcessingSaga failed', [
+                    'saga_id' => $sagaId,
+                    'error' => $sagaResult['error'] ?? 'Unknown error',
+                    'message' => $sagaResult['message'] ?? 'Saga execution failed'
+                ]);
+                return $this->errorResponse(
+                    $sagaResult['message'] ?? 'Payment processing failed', 
+                    $sagaResult['error'] ?? 'Saga execution failed',
+                    -32021
+                );
+            }
+
+            Log::info('PaymentProcessingSaga completed successfully', [
+                'saga_id' => $sagaId,
+                'payment_id' => $sagaResult['data']['payment_id'] ?? null,
+                'payment_reference' => $sagaResult['data']['payment_reference'] ?? null
+            ]);
+
+            return $this->successResponse([
+                'payment_id' => $sagaResult['data']['payment_id'],
+                'payment_reference' => $sagaResult['data']['payment_reference'],
+                'order_id' => $sagaResult['data']['order_id'],
+                'customer_id' => $sagaResult['data']['customer_id'],
+                'amount' => $sagaResult['data']['amount'],
+                'currency' => $sagaResult['data']['currency'],
+                'payment_method' => $sagaResult['data']['payment_method'],
+                'status' => $sagaResult['data']['status'],
+                'gateway_response' => $sagaResult['data']['gateway_response'] ?? null,
+                'saga_id' => $sagaId,
+                'processed_at' => $sagaResult['data']['processed_at'] ?? now()->toISOString(),
+                'message' => 'Payment processed successfully using saga pattern'
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Failed to execute PaymentProcessingSaga', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->errorResponse('Failed to process payment with saga', $e->getMessage(), -32022);
+        }
+    }
+
+    /**
+     * Determine the appropriate gateway based on payment method
+     */
+    private function determineGateway(string $paymentMethod): string
+    {
+        return match ($paymentMethod) {
+            'credit_card', 'debit_card' => 'stripe',
+            'paypal' => 'paypal',
+            'bank_transfer' => 'bank_transfer',
+            default => 'stripe'
+        };
+    }
 }
