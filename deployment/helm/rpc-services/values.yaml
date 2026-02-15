@@ -74,8 +74,8 @@ services:
       repository: abdoElHodaky/larvrevrstender/notification-service
       tag: latest
       pullPolicy: IfNotPresent
-    port: 8006
-    targetPort: 8006
+    port: 8004
+    targetPort: 8004
     resources:
       requests:
         memory: "128Mi"
@@ -102,7 +102,7 @@ ingress:
         - path: /api/analytics
           pathType: Prefix
           service: analytics-service
-        - path: /api/notifications
+        - path: /notifications
           pathType: Prefix
           service: notification-service
   tls: []

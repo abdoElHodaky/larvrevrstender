@@ -537,6 +537,28 @@ jobs:
             env:
               - name: SERVICE_PORT
                 value: "8004"
+              - name: APP_ENV
+                value: "production"
+              - name: APP_DEBUG
+                value: "false"
+              - name: LOG_CHANNEL
+                value: "stderr"
+              - name: DB_CONNECTION
+                value: "sqlite"
+              - name: DB_DATABASE
+                value: "/tmp/database.sqlite"
+              - name: CACHE_STORE
+                value: "redis"
+              - name: REDIS_HOST
+                value: "rpc-services-redis-master"
+              - name: REDIS_PORT
+                value: "6379"
+              - name: QUEUE_CONNECTION
+                value: "redis"
+              - name: SESSION_DRIVER
+                value: "redis"
+              - name: BROADCAST_CONNECTION
+                value: "redis"
             
         ingress:
           enabled: true
