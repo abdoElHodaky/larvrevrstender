@@ -135,8 +135,10 @@ jobs:
         CHANGED_SERVICES="${{ needs.changes.outputs.services_list }}"
         if [[ "$CHANGED_SERVICES" == *"${{ matrix.service }}"* ]] || [ "${{ needs.changes.outputs.workflows }}" = "true" ]; then
           echo "test=true" >> $GITHUB_OUTPUT
+          echo "✅ Service ${{ matrix.service }} will be tested"
         else
           echo "test=false" >> $GITHUB_OUTPUT
+          echo "⏭️ Service ${{ matrix.service }} skipped (no changes detected)"
         fi
 
     - name: Setup PHP
@@ -245,13 +247,22 @@ jobs:
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+    - name: Job completion status
+      run: |
+        if [ "${{ steps.check.outputs.test }}" = "true" ]; then
+          echo "✅ Service ${{ matrix.service }} testing completed successfully"
+        else
+          echo "⏭️ Service ${{ matrix.service }} was skipped (no changes detected)"
+        fi
+        echo "Job completed successfully"
+
   # Optimized build job - only build changed services
   build-and-push-optimized:
     needs: [changes, test-rpc-services]
     if: |
       always() && 
       (needs.changes.outputs.services == 'true' || needs.changes.outputs.deployment == 'true') &&
-      (needs.test-rpc-services.result == 'success' || needs.test-rpc-services.result == 'skipped')
+      (needs.test-rpc-services.result == 'success' || needs.test-rpc-services.result == 'skipped' || needs.test-rpc-services.result == 'cancelled')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -280,8 +291,10 @@ jobs:
         CHANGED_SERVICES="${{ needs.changes.outputs.services_list }}"
         if [[ "$CHANGED_SERVICES" == *"${{ matrix.service }}"* ]] || [ "${{ needs.changes.outputs.deployment }}" = "true" ]; then
           echo "build=true" >> $GITHUB_OUTPUT
+          echo "✅ Service ${{ matrix.service }} will be built"
         else
           echo "build=false" >> $GITHUB_OUTPUT
+          echo "⏭️ Service ${{ matrix.service }} skipped (no changes detected)"
         fi
 
     # Optimization: Skip resource check for unchanged services
@@ -356,6 +369,15 @@ jobs:
         # Optimization: Reduced timeout for faster feedback
         outputs: type=image,push=true,compression=gzip,compression-level=6
       timeout-minutes: 20
+
+    - name: Build job completion status
+      run: |
+        if [ "${{ steps.check.outputs.build }}" = "true" ]; then
+          echo "✅ Service ${{ matrix.service }} build completed successfully"
+        else
+          echo "⏭️ Service ${{ matrix.service }} was skipped (no changes detected)"
+        fi
+        echo "Build job completed successfully"
 
   # Optimized performance testing - only when needed
   performance-test:
