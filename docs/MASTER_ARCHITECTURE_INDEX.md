@@ -5,7 +5,7 @@
 
 <div align="center" style="margin: 3rem 0;">
 
-![Architecture Overview](./diagrams/master-architecture-overview.svg)
+![Architecture Overview](../diagrams/master-architecture-overview.svg)
 
 **Version 2.0** | **Golden Ratio Design (φ = 1.618)** | **Laravel 12 + PostgreSQL** | **100+ Workflow Files**
 
@@ -73,7 +73,7 @@ This documentation system implements **Golden Ratio principles** for optimal inf
 
 **📚 Documentation:**
 - [SAGA Architecture Guide](./SAGA_ARCHITECTURE_GUIDE.md)
-- [Visual Workflow Guide](./diagrams/saga-visual-guide.md)
+- [Visual Workflow Guide](../diagrams/saga-visual-guide.md)
 - [Sequential Flow Documentation](#sequential-flows)
 
 **🔄 Workflows:**
@@ -199,7 +199,7 @@ graph LR
 
 **📋 Step-by-Step:**
 1. **📖 Read**: [SAGA Architecture Guide](./SAGA_ARCHITECTURE_GUIDE.md) - Core concepts
-2. **👀 Visualize**: [Visual Workflow Guide](./diagrams/saga-visual-guide.md) - Interactive diagrams  
+2. **👀 Visualize**: [Visual Workflow Guide](../diagrams/saga-visual-guide.md) - Interactive diagrams  
 3. **🔧 Implement**: [Setup Guide](../services/auction-service/SETUP_SAGA_IMPLEMENTATION.md) - Hands-on implementation
 4. **🧪 Test**: [Testing Patterns](#testing-documentation) - Quality assurance
 5. **🚀 Deploy**: [Deployment Guide](./DEPLOYMENT_GUIDE.md) - Production deployment
@@ -254,7 +254,7 @@ graph LR
 
 ### **Core Architecture**
 - [SAGA Architecture Guide](./SAGA_ARCHITECTURE_GUIDE.md) - Complete distributed transaction patterns
-- [Visual Workflow Guide](./diagrams/saga-visual-guide.md) - Interactive diagrams and flows
+- [Visual Workflow Guide](../diagrams/saga-visual-guide.md) - Interactive diagrams and flows
 - [Golden Ratio Template](./GOLDEN_RATIO_TEMPLATE.md) - Design system guidelines
 
 ### **Implementation Guides**  
@@ -283,7 +283,7 @@ graph LR
 
 ### <span style="font-size: 20px; font-weight: 600; color: #4ECDC4;">🎯 Ready to Dive In?</span>
 
-<p style="font-size: 16px; line-height: 1.618; margin: 1rem 0;">Start with the <a href="./SAGA_ARCHITECTURE_GUIDE.md" style="color: #FF6B6B; text-decoration: none; font-weight: 600;">SAGA Architecture Guide</a> for comprehensive understanding, then explore the <a href="./diagrams/saga-visual-guide.md" style="color: #4ECDC4; text-decoration: none; font-weight: 600;">Visual Workflow Guide</a> for interactive diagrams.</p>
+<p style="font-size: 16px; line-height: 1.618; margin: 1rem 0;">Start with the <a href="./SAGA_ARCHITECTURE_GUIDE.md" style="color: #FF6B6B; text-decoration: none; font-weight: 600;">SAGA Architecture Guide</a> for comprehensive understanding, then explore the <a href="../diagrams/saga-visual-guide.md" style="color: #4ECDC4; text-decoration: none; font-weight: 600;">Visual Workflow Guide</a> for interactive diagrams.</p>
 
 **🚀 Next Steps:**
 1. Review architecture patterns
@@ -294,4 +294,3 @@ graph LR
 </div>
 
 </div>
-

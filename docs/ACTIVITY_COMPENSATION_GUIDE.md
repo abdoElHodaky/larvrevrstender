@@ -5,7 +5,7 @@
 
 <div align="center" style="margin: 3rem 0;">
 
-![Activity Architecture](./diagrams/activity-compensation-overview.svg)
+![Activity Architecture](../diagrams/activity-compensation-overview.svg)
 
 **Version 2.1** | **Golden Ratio Design (φ = 1.618)** | **100% Compensation Coverage**
 
@@ -538,7 +538,7 @@ stateDiagram-v2
 
 **📋 Development Path:**
 1. **🏛️ Architecture Understanding** - [SAGA Architecture Guide](./SAGA_ARCHITECTURE_GUIDE_ENHANCED.md)
-2. **🔄 Sequential Flows** - [Sequential Workflow Guide](./diagrams/SEQUENTIAL_WORKFLOW_GUIDE.md)
+2. **🔄 Sequential Flows** - [Sequential Workflow Guide](../diagrams/SEQUENTIAL_WORKFLOW_GUIDE.md)
 3. **⚡ Hands-on Implementation** - [Setup Guide](../services/auction-service/SETUP_SAGA_IMPLEMENTATION.md)
 4. **🧪 Testing Strategy** - [Testing Documentation](#testing-patterns)
 

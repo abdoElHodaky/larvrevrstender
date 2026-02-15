@@ -5,7 +5,7 @@
 
 <div align="center" style="margin: 3rem 0;">
 
-![SAGA Architecture Overview](./diagrams/saga-architecture-overview.svg)
+![SAGA Architecture Overview](../diagrams/saga-architecture-overview.svg)
 
 **Version 2.1** | **Golden Ratio Design (φ = 1.618)** | **Laravel 12 + PostgreSQL** | **Enterprise-Grade**
 
@@ -591,7 +591,7 @@ ALTER TABLE payments ADD COLUMN saga_metadata JSONB;
 <p style="font-size: 16px; line-height: 1.618; margin: 1rem 0;">Ready to implement SAGA patterns in your service? Follow our comprehensive guides:</p>
 
 **📋 Quick Start (φ-based priority):**
-1. **🏛️ Architecture Review** (61.8% importance) - [Visual Workflow Guide](./diagrams/saga-visual-guide.md)
+1. **🏛️ Architecture Review** (61.8% importance) - [Visual Workflow Guide](../diagrams/saga-visual-guide.md)
 2. **⚡ Implementation** (38.2% importance) - [Setup SAGA Guide](../services/auction-service/SETUP_SAGA_IMPLEMENTATION.md)
 3. **🧪 Testing** - [Testing Patterns](#testing-strategy)
 4. **🚀 Deployment** - [Production Guide](./DEPLOYMENT_GUIDE.md)
@@ -602,11 +602,10 @@ ALTER TABLE payments ADD COLUMN saga_metadata JSONB;
 
 <div style="text-align: center; margin: 3rem 0; padding: 1.618rem; background: linear-gradient(135deg, #FF6B6B20, #4ECDC420); border-radius: 8px;">
 
-**📚 Related Documentation:** [Master Architecture Index](./MASTER_ARCHITECTURE_INDEX.md) | [Visual Guide](./diagrams/saga-visual-guide.md) | [API Documentation](./API.md)
+**📚 Related Documentation:** [Master Architecture Index](./MASTER_ARCHITECTURE_INDEX.md) | [Visual Guide](../diagrams/saga-visual-guide.md) | [API Documentation](./API.md)
 
 **🎨 Design System:** [Golden Ratio Template](./GOLDEN_RATIO_TEMPLATE.md) | **Version:** 2.1 | **Updated:** February 2026
 
 </div>
 
 </div>
-
