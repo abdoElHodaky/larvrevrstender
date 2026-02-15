@@ -3,12 +3,14 @@
 namespace App\Procedures;
 
 use App\Models\Bid;
+use App\Workflows\BidPlacementSaga;
 use Exception;
 use Shared\Procedures\CrossServiceProcedure;
 use Shared\Procedures\Micro\SecurityProcedure;
 use Shared\Procedures\Micro\ValidationProcedure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Workflow\WorkflowStub;
 
 /**
  * Bidding Procedure
@@ -124,6 +126,93 @@ class BiddingProcedure extends CrossServiceProcedure
                 'error' => $e->getMessage()
             ]);
             return $this->errorResponse('Failed to place bid', $e->getMessage());
+        }
+    }
+
+    /**
+     * Place a bid using the BidPlacementSaga for transaction consistency
+     * 
+     * This method uses the saga pattern to ensure consistency across services
+     * when placing bids that involve fund reservation, validation, and updates.
+     */
+    public function placeBidWithSaga(array $params, array $context = []): array
+    {
+        try {
+            $validation = $this->validateParams($params, [
+                'auction_id' => ['required' => true, 'type' => 'integer'],
+                'user_id' => ['required' => true, 'type' => 'integer'],
+                'amount' => ['required' => true, 'type' => 'numeric'],
+                'currency' => ['required' => false, 'type' => 'string'],
+            ]);
+
+            if (!$validation['success']) {
+                return $this->errorResponse('Validation failed', $validation['errors']);
+            }
+
+            // Prepare bid data for saga
+            $bidData = [
+                'auction_id' => $params['auction_id'],
+                'user_id' => $params['user_id'],
+                'amount' => $params['amount'],
+                'currency' => $params['currency'] ?? 'USD',
+                'context' => $context,
+            ];
+
+            // Generate unique saga ID
+            $sagaId = 'bid-placement-' . uniqid() . '-' . time();
+
+            Log::info('Starting BidPlacementSaga', [
+                'saga_id' => $sagaId,
+                'auction_id' => $params['auction_id'],
+                'user_id' => $params['user_id'],
+                'amount' => $params['amount']
+            ]);
+
+            // Execute the saga workflow
+            $workflowStub = WorkflowStub::make(BidPlacementSaga::class, $sagaId);
+            $sagaResult = $workflowStub->execute($bidData);
+
+            if (!$sagaResult['success']) {
+                Log::error('BidPlacementSaga failed', [
+                    'saga_id' => $sagaId,
+                    'error' => $sagaResult['error'] ?? 'Unknown error'
+                ]);
+                return $this->errorResponse('Bid placement failed', $sagaResult['error'] ?? 'Saga execution failed');
+            }
+
+            // Publish bid placed event
+            $this->publishEvent([
+                'event_type' => 'bid.placed.saga',
+                'saga_id' => $sagaId,
+                'bid_id' => $sagaResult['data']['bid_id'],
+                'auction_id' => $params['auction_id'],
+                'user_id' => $params['user_id'],
+                'amount' => $params['amount'],
+                'anti_sniping_triggered' => $sagaResult['data']['anti_sniping_triggered'] ?? false,
+                'timestamp' => now()->toISOString(),
+            ], $context);
+
+            Log::info('BidPlacementSaga completed successfully', [
+                'saga_id' => $sagaId,
+                'bid_id' => $sagaResult['data']['bid_id']
+            ]);
+
+            return $this->successResponse([
+                'bid_id' => $sagaResult['data']['bid_id'],
+                'auction_id' => $sagaResult['data']['auction_id'],
+                'amount' => $sagaResult['data']['amount'],
+                'saga_id' => $sagaId,
+                'anti_sniping_triggered' => $sagaResult['data']['anti_sniping_triggered'] ?? false,
+                'message' => 'Bid placed successfully using saga pattern'
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Failed to execute BidPlacementSaga', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->errorResponse('Failed to place bid with saga', $e->getMessage());
         }
     }
 
