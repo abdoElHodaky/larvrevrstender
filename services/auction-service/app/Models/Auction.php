@@ -24,7 +24,10 @@ class Auction extends Model
         'status',
         'starts_at',
         'ends_at',
+        'ended_at',
         'created_by',
+        'winner_user_id',
+        'winning_bid_id',
     ];
 
     /**
@@ -36,6 +39,7 @@ class Auction extends Model
         'current_highest_bid' => 'decimal:2',
         'starts_at' => 'datetime',
         'ends_at' => 'datetime',
+        'ended_at' => 'datetime',
     ];
 
     /**
