@@ -207,10 +207,18 @@ jobs:
         # Ensure SQLite is available
         sqlite3 --version
         
-        # Copy environment file if it exists
+        # Copy environment file if it exists and configure for testing
         if [ -f ".env.example" ]; then
           cp .env.example .env
           echo "✅ Environment file copied"
+          
+          # Override Redis-dependent configurations for CI testing
+          echo "CACHE_STORE=array" >> .env
+          echo "SESSION_DRIVER=array" >> .env
+          echo "QUEUE_CONNECTION=sync" >> .env
+          echo "DB_CONNECTION=sqlite" >> .env
+          echo "DB_DATABASE=/tmp/${{ matrix.service }}_test.sqlite" >> .env
+          echo "✅ Test environment configurations applied"
         fi
 
     - name: Run PHPUnit tests
