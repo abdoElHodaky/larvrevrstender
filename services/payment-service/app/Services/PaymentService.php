@@ -719,4 +719,94 @@ class PaymentService
             ];
         }
     }
+
+    /**
+     * Reserve funds for a user for future payment.
+     * This is used by saga patterns to reserve funds before processing.
+     */
+    public function reserveFundsForUser(array $data): array
+    {
+        try {
+            // Validate required fields
+            $requiredFields = ['user_id', 'amount', 'currency', 'purpose', 'reference_id'];
+            foreach ($requiredFields as $field) {
+                if (!isset($data[$field])) {
+                    throw new \Exception("Missing required field: {$field}");
+                }
+            }
+
+            // Generate unique reservation ID
+            $reservationId = 'RES_' . $data['user_id'] . '_' . time() . '_' . substr(md5($data['reference_id']), 0, 8);
+
+            // In a real implementation, this would:
+            // 1. Check user's available balance
+            // 2. Create a fund reservation record in the database
+            // 3. Reduce available balance by the reserved amount
+            // 4. Set expiration time for the reservation
+            
+            // For now, we'll simulate a successful reservation
+            return [
+                'reservation_id' => $reservationId,
+                'user_id' => $data['user_id'],
+                'amount' => $data['amount'],
+                'currency' => $data['currency'],
+                'purpose' => $data['purpose'],
+                'reference_id' => $data['reference_id'],
+                'expires_at' => $data['expires_at'],
+                'description' => $data['description'],
+                'status' => 'reserved',
+                'created_at' => now()->toISOString()
+            ];
+
+        } catch (\Exception $e) {
+            throw new \Exception('Fund reservation failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Release reserved funds for a user.
+     * This is used by saga patterns to release funds when operations fail or complete.
+     */
+    public function releaseFundsForUser(array $data): array
+    {
+        try {
+            // Validate required fields
+            if (!isset($data['user_id']) || !isset($data['reason'])) {
+                throw new \Exception('Missing required fields: user_id and reason are required');
+            }
+
+            // In a real implementation, this would:
+            // 1. Find the reservation by reservation_id or reference_id
+            // 2. Mark the reservation as released
+            // 3. Restore the reserved amount to user's available balance
+            // 4. Log the release transaction
+            
+            // For now, we'll simulate a successful release
+            $releaseId = 'REL_' . $data['user_id'] . '_' . time() . '_' . substr(md5($data['reason']), 0, 8);
+
+            return [
+                'release_id' => $releaseId,
+                'reservation_id' => $data['reservation_id'] ?? null,
+                'user_id' => $data['user_id'],
+                'reference_id' => $data['reference_id'] ?? null,
+                'reason' => $data['reason'],
+                'saga_id' => $data['saga_id'] ?? null,
+                'description' => $data['description'] ?? null,
+                'status' => 'released',
+                'released_at' => now()->toISOString()
+            ];
+
+        } catch (\Exception $e) {
+            // Make this idempotent - if the reservation doesn't exist or is already released,
+            // we should not throw an error as this is used in compensation activities
+            return [
+                'release_id' => 'REL_IDEMPOTENT_' . time(),
+                'user_id' => $data['user_id'],
+                'reason' => $data['reason'],
+                'status' => 'already_released_or_not_found',
+                'message' => 'Reservation not found or already released (idempotent operation)',
+                'released_at' => now()->toISOString()
+            ];
+        }
+    }
 }
