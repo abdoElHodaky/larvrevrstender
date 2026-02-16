@@ -21,19 +21,21 @@ namePrefix: staging-
 
 # Environment-specific images
 images:
-  - name: reversetender/api-gateway
+  - name: reversetender/gateway-service
     newTag: staging
   - name: reversetender/auth-service
     newTag: staging
-  - name: reversetender/user-service
+  - name: reversetender/auction-service
     newTag: staging
   - name: reversetender/bidding-service
     newTag: staging
+  - name: reversetender/user-service
+    newTag: staging
   - name: reversetender/order-service
     newTag: staging
-  - name: reversetender/payment-service
-    newTag: staging
   - name: reversetender/notification-service
+    newTag: staging
+  - name: reversetender/payment-service
     newTag: staging
   - name: reversetender/analytics-service
     newTag: staging
@@ -85,7 +87,7 @@ patches:
   # Reduce resource requests for staging
   - target:
       kind: Deployment
-      name: api-gateway
+      name: gateway-service
     patch: |-
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/memory
@@ -103,7 +105,7 @@ patches:
   # Staging replica counts
   - target:
       kind: Deployment
-      name: api-gateway
+      name: gateway-service
     patch: |-
       - op: replace
         path: /spec/replicas
@@ -128,7 +130,7 @@ patches:
   # Staging HPA adjustments
   - target:
       kind: HorizontalPodAutoscaler
-      name: api-gateway-hpa
+      name: gateway-service-hpa
     patch: |-
       - op: replace
         path: /spec/minReplicas
@@ -207,4 +209,3 @@ secretGenerator:
       - REDIS_PASSWORD=staging-redis-password
       - JWT_SECRET=staging-jwt-secret
       - APP_KEY=base64:staging-app-key
-

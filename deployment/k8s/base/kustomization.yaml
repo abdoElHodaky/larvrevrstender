@@ -29,7 +29,7 @@ resources:
   - service-discovery-config.yaml
   - resilience-config.yaml
   - event-bus-config.yaml
-  - secrets.yaml
+  - secrets/app-secrets.yaml
   - deployments.yaml
   - services.yaml
   - ingress.yaml
