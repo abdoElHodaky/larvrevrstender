@@ -171,6 +171,32 @@ jobs:
           ${{ runner.os }}-composer-${{ matrix.service }}-
           ${{ runner.os }}-composer-
 
+    - name: Setup Test Environment
+      if: steps.check.outputs.test == 'true'
+      working-directory: services/${{ matrix.service }}
+      run: |
+        # Create SQLite test databases
+        touch /tmp/${{ matrix.service }}_test.sqlite
+        echo "✅ SQLite database files created successfully"
+        
+        # Ensure SQLite is available
+        sqlite3 --version
+        
+        # Copy environment file if it exists and configure for testing
+        if [ -f ".env.example" ]; then
+          cp .env.example .env
+          echo "✅ Environment file copied"
+          
+          # Override Redis-dependent configurations for CI testing
+          echo "CACHE_STORE=array" >> .env
+          echo "SESSION_DRIVER=array" >> .env
+          echo "QUEUE_CONNECTION=sync" >> .env
+          echo "DB_CONNECTION=sqlite" >> .env
+          echo "DB_DATABASE=/tmp/${{ matrix.service }}_test.sqlite" >> .env
+          echo "REDIS_CLIENT=predis" >> .env
+          echo "✅ Test environment configurations applied"
+        fi
+
     - name: Check and Install Composer Dependencies
       if: steps.check.outputs.test == 'true'
       working-directory: services/${{ matrix.service }}
@@ -206,31 +232,7 @@ jobs:
         path: services/${{ matrix.service }}/dependency-report.md
         retention-days: 7
 
-    # Optimization: Create test database files in parallel
-    - name: Setup Test Environment
-      if: steps.check.outputs.test == 'true'
-      working-directory: services/${{ matrix.service }}
-      run: |
-        # Create SQLite test databases
-        touch /tmp/${{ matrix.service }}_test.sqlite
-        echo "✅ SQLite database files created successfully"
-        
-        # Ensure SQLite is available
-        sqlite3 --version
-        
-        # Copy environment file if it exists and configure for testing
-        if [ -f ".env.example" ]; then
-          cp .env.example .env
-          echo "✅ Environment file copied"
-          
-          # Override Redis-dependent configurations for CI testing
-          echo "CACHE_STORE=array" >> .env
-          echo "SESSION_DRIVER=array" >> .env
-          echo "QUEUE_CONNECTION=sync" >> .env
-          echo "DB_CONNECTION=sqlite" >> .env
-          echo "DB_DATABASE=/tmp/${{ matrix.service }}_test.sqlite" >> .env
-          echo "✅ Test environment configurations applied"
-        fi
+
 
     - name: Run PHPUnit tests
       if: steps.check.outputs.test == 'true'
