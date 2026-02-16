@@ -23,6 +23,12 @@ commonAnnotations:
 resources:
   - namespace.yaml
   - configmap.yaml
+  - common-config.yaml
+  - gateway-config.yaml
+  - saga-config.yaml
+  - service-discovery-config.yaml
+  - resilience-config.yaml
+  - event-bus-config.yaml
   - secrets.yaml
   - deployments.yaml
   - services.yaml
@@ -35,9 +41,11 @@ resources:
 
 # Images to use (can be overridden in overlays)
 images:
-  - name: reversetender/api-gateway
+  - name: reversetender/gateway-service
     newTag: latest
   - name: reversetender/auth-service
+    newTag: latest
+  - name: reversetender/auction-service
     newTag: latest
   - name: reversetender/bidding-service
     newTag: latest
@@ -113,9 +121,11 @@ patches:
 
 # Replicas for each service (can be overridden)
 replicas:
-  - name: api-gateway
+  - name: gateway-service
     count: 2
   - name: auth-service
+    count: 2
+  - name: auction-service
     count: 2
   - name: bidding-service
     count: 3

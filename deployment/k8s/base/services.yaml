@@ -4,9 +4,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: api-gateway
+  name: gateway-service
   labels:
-    app: api-gateway
+    app: gateway-service
     tier: gateway
 spec:
   type: ClusterIP
@@ -16,7 +16,7 @@ spec:
     protocol: TCP
     name: http
   selector:
-    app: api-gateway
+    app: gateway-service
 
 ---
 apiVersion: v1
@@ -40,6 +40,24 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: auction-service
+  labels:
+    app: auction-service
+    tier: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8002
+    targetPort: 8002
+    protocol: TCP
+    name: http
+  selector:
+    app: auction-service
+
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: bidding-service
   labels:
     app: bidding-service
@@ -47,8 +65,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8002
-    targetPort: 8002
+  - port: 8003
+    targetPort: 8003
     protocol: TCP
     name: http
   - port: 8080
@@ -69,8 +87,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8003
-    targetPort: 8003
+  - port: 8004
+    targetPort: 8004
     protocol: TCP
     name: http
   selector:
@@ -87,8 +105,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8004
-    targetPort: 8004
+  - port: 8005
+    targetPort: 8005
     protocol: TCP
     name: http
   selector:
@@ -105,8 +123,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8005
-    targetPort: 8005
+  - port: 8006
+    targetPort: 8006
     protocol: TCP
     name: http
   selector:
@@ -123,8 +141,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8006
-    targetPort: 8006
+  - port: 8007
+    targetPort: 8007
     protocol: TCP
     name: http
   selector:
@@ -141,8 +159,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8007
-    targetPort: 8007
+  - port: 8008
+    targetPort: 8008
     protocol: TCP
     name: http
   selector:
@@ -159,8 +177,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8008
-    targetPort: 8008
+  - port: 8009
+    targetPort: 8009
     protocol: TCP
     name: http
   selector:
@@ -179,7 +197,7 @@ metadata:
     service.beta.kubernetes.io/do-loadbalancer-name: "reverse-tender-lb"
     service.beta.kubernetes.io/do-loadbalancer-protocol: "http"
     service.beta.kubernetes.io/do-loadbalancer-algorithm: "round_robin"
-    service.beta.kubernetes.io/do-loadbalancer-health-check-path: "/octane/health"
+    service.beta.kubernetes.io/do-loadbalancer-health-check-path: "/health"
     service.beta.kubernetes.io/do-loadbalancer-health-check-protocol: "http"
     service.beta.kubernetes.io/do-loadbalancer-health-check-interval-seconds: "30"
     service.beta.kubernetes.io/do-loadbalancer-health-check-response-timeout-seconds: "5"
@@ -197,4 +215,4 @@ spec:
     protocol: TCP
     name: https
   selector:
-    app: api-gateway
+    app: gateway-service

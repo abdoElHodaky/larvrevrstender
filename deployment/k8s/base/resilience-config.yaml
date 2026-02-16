@@ -1,0 +1,76 @@
+# Resilience Configuration
+# Contains circuit breaker, retry policies, and fault tolerance settings
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resilience-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: resilience
+    app.kubernetes.io/part-of: reverse-tender-platform
+data:
+  # Circuit Breaker Configuration
+  CIRCUIT_BREAKER_ENABLED: "true"
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: "5"
+  CIRCUIT_BREAKER_SUCCESS_THRESHOLD: "3"
+  CIRCUIT_BREAKER_TIMEOUT: "60"
+  CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS: "3"
+  
+  # Retry Policy Configuration
+  RETRY_ENABLED: "true"
+  RETRY_MAX_ATTEMPTS: "3"
+  RETRY_INITIAL_DELAY: "1"
+  RETRY_MAX_DELAY: "10"
+  RETRY_MULTIPLIER: "2"
+  RETRY_JITTER: "true"
+  
+  # Timeout Configuration
+  DEFAULT_TIMEOUT: "30"
+  GATEWAY_TIMEOUT: "30"
+  AUTH_TIMEOUT: "10"
+  AUCTION_TIMEOUT: "15"
+  BIDDING_TIMEOUT: "20"
+  USER_TIMEOUT: "10"
+  ORDER_TIMEOUT: "25"
+  NOTIFICATION_TIMEOUT: "5"
+  PAYMENT_TIMEOUT: "30"
+  ANALYTICS_TIMEOUT: "60"
+  VIN_OCR_TIMEOUT: "45"
+  
+  # Bulkhead Configuration
+  BULKHEAD_ENABLED: "true"
+  BULKHEAD_MAX_CONCURRENT_CALLS: "100"
+  BULKHEAD_MAX_WAIT_DURATION: "10"
+  
+  # Rate Limiting Configuration
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_REQUESTS_PER_SECOND: "100"
+  RATE_LIMIT_BURST_SIZE: "200"
+  RATE_LIMIT_WINDOW_SIZE: "60"
+  
+  # Service-Specific Circuit Breaker Thresholds
+  AUTH_SERVICE_FAILURE_THRESHOLD: "3"
+  AUCTION_SERVICE_FAILURE_THRESHOLD: "5"
+  BIDDING_SERVICE_FAILURE_THRESHOLD: "5"
+  USER_SERVICE_FAILURE_THRESHOLD: "3"
+  ORDER_SERVICE_FAILURE_THRESHOLD: "5"
+  NOTIFICATION_SERVICE_FAILURE_THRESHOLD: "10"
+  PAYMENT_SERVICE_FAILURE_THRESHOLD: "3"
+  ANALYTICS_SERVICE_FAILURE_THRESHOLD: "10"
+  VIN_OCR_SERVICE_FAILURE_THRESHOLD: "5"
+  
+  # Fallback Configuration
+  FALLBACK_ENABLED: "true"
+  FALLBACK_CACHE_ENABLED: "true"
+  FALLBACK_CACHE_TTL: "300"
+  
+  # Health Check Resilience
+  HEALTH_CHECK_CIRCUIT_BREAKER_ENABLED: "true"
+  HEALTH_CHECK_FAILURE_THRESHOLD: "3"
+  HEALTH_CHECK_RECOVERY_TIMEOUT: "30"
+  
+  # Monitoring and Alerting
+  RESILIENCE_METRICS_ENABLED: "true"
+  RESILIENCE_ALERTS_ENABLED: "true"
+  CIRCUIT_BREAKER_ALERT_THRESHOLD: "3"
