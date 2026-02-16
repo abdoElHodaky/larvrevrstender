@@ -1,0 +1,66 @@
+# Auction Service Configuration
+# Contains configuration specific to the auction service
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auction-service-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: auction-service
+    app.kubernetes.io/part-of: reverse-tender-platform
+data:
+  # Service Identity
+  SERVICE_NAME: "auction-service"
+  SERVICE_PORT: "8002"
+  SERVICE_ROLE: "auction_management"
+  
+  # Auction-Specific Configuration
+  AUCTION_MIN_DURATION: "3600"
+  AUCTION_MAX_DURATION: "604800"
+  AUCTION_DEFAULT_DURATION: "86400"
+  AUCTION_EXTENSION_TIME: "300"
+  AUCTION_AUTO_EXTEND: "true"
+  
+  # Bidding Configuration
+  MIN_BID_INCREMENT: "1.00"
+  MAX_BID_AMOUNT: "1000000.00"
+  BID_VALIDATION_ENABLED: "true"
+  RESERVE_PRICE_ENABLED: "true"
+  
+  # Auction States
+  AUCTION_STATES: "draft,active,paused,ended,cancelled"
+  AUCTION_DEFAULT_STATE: "draft"
+  
+  # Notification Configuration
+  NOTIFY_ON_AUCTION_START: "true"
+  NOTIFY_ON_AUCTION_END: "true"
+  NOTIFY_ON_BID_PLACED: "true"
+  NOTIFY_ON_OUTBID: "true"
+  
+  # Cache Configuration (Auction-specific)
+  CACHE_PREFIX: "auction:"
+  CACHE_AUCTION_TTL: "1800"
+  CACHE_ACTIVE_AUCTIONS_TTL: "300"
+  
+  # Event Publishing
+  PUBLISH_AUCTION_EVENTS: "true"
+  AUCTION_EVENT_CHANNEL: "auction.events"
+  
+  # File Upload Configuration
+  AUCTION_IMAGE_MAX_SIZE: "5MB"
+  AUCTION_IMAGE_FORMATS: "jpg,jpeg,png,webp"
+  AUCTION_MAX_IMAGES: "10"
+  
+  # Search Configuration
+  SEARCH_ENABLED: "true"
+  SEARCH_INDEX_NAME: "auctions"
+  FULL_TEXT_SEARCH: "true"
+  
+  # Rate Limiting (Auction-specific)
+  RATE_LIMIT_CREATE_AUCTION: "10"
+  RATE_LIMIT_UPDATE_AUCTION: "20"
+  
+  # Monitoring Configuration
+  TRACK_AUCTION_VIEWS: "true"
+  TRACK_SEARCH_QUERIES: "true"

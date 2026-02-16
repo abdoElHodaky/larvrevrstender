@@ -22,14 +22,22 @@ commonAnnotations:
 # Resources to include
 resources:
   - namespace.yaml
-  - configmap.yaml
+  # Common configurations
   - common-config.yaml
+  - api-service-config.yaml
+  # Service-specific configurations
   - gateway-config.yaml
+  - auth-service-config.yaml
+  - auction-service-config.yaml
+  - payment-service-config.yaml
+  # Cross-cutting concern configurations
   - saga-config.yaml
   - service-discovery-config.yaml
   - resilience-config.yaml
   - event-bus-config.yaml
+  # Secrets
   - secrets/app-secrets.yaml
+  # Kubernetes resources
   - deployments.yaml
   - services.yaml
   - ingress.yaml
@@ -62,35 +70,7 @@ images:
   - name: reversetender/vin-ocr-service
     newTag: latest
 
-# ConfigMap generator for environment variables
-configMapGenerator:
-  - name: app-config
-    literals:
-      - APP_NAME=Reverse Tender Platform
-      - APP_TIMEZONE=UTC
-      - APP_LOCALE=en
-      - DB_CONNECTION=mysql
-      - DB_PORT=3306
-      - REDIS_PORT=6379
-      - CACHE_DRIVER=redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
-      - BROADCAST_DRIVER=reverb
-      - LOG_CHANNEL=stack
-      - API_RATE_LIMIT=60
-      - JWT_ALGO=RS256
-      - JWT_TTL=900
-      - REFRESH_TTL=43200
-      - OTP_EXPIRY=300
-      - DEFAULT_PAGE_SIZE=20
-      - MAX_PAGE_SIZE=100
-      - HEALTH_CHECK_INTERVAL=30s
-      - HEALTH_CHECK_TIMEOUT=10s
-      - HEALTH_CHECK_RETRIES=3
-      # Laravel Octane Configuration
-      - OCTANE_SERVER=frankenphp
-      - OCTANE_HTTPS=true
-      - FRANKENPHP_WORKER_MODE=true
+# ConfigMap generator removed - using explicit ConfigMap files instead
 
 # Secret generator for sensitive data
 secretGenerator:

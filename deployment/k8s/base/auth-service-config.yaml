@@ -1,0 +1,63 @@
+# Auth Service Configuration
+# Contains configuration specific to the authentication service
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-service-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: auth-service
+    app.kubernetes.io/part-of: reverse-tender-platform
+data:
+  # Service Identity
+  SERVICE_NAME: "auth-service"
+  SERVICE_PORT: "8001"
+  SERVICE_ROLE: "authentication"
+  
+  # Authentication-Specific Configuration
+  AUTH_PROVIDER: "jwt"
+  AUTH_GUARD: "api"
+  AUTH_PASSWORD_TIMEOUT: "10800"
+  AUTH_SESSION_TIMEOUT: "3600"
+  
+  # JWT-Specific Configuration
+  JWT_BLACKLIST_ENABLED: "true"
+  JWT_BLACKLIST_GRACE_PERIOD: "10"
+  JWT_REFRESH_TTL: "20160"
+  JWT_REQUIRED_CLAIMS: "iss,iat,exp,nbf,sub,jti"
+  JWT_PERSISTENT_CLAIMS: "sub,name,email"
+  
+  # Password Policy Configuration
+  PASSWORD_MIN_LENGTH: "8"
+  PASSWORD_REQUIRE_UPPERCASE: "true"
+  PASSWORD_REQUIRE_LOWERCASE: "true"
+  PASSWORD_REQUIRE_NUMBERS: "true"
+  PASSWORD_REQUIRE_SYMBOLS: "false"
+  PASSWORD_HISTORY_COUNT: "5"
+  
+  # Account Security Configuration
+  MAX_LOGIN_ATTEMPTS: "5"
+  LOGIN_LOCKOUT_DURATION: "900"
+  ACCOUNT_VERIFICATION_REQUIRED: "true"
+  TWO_FACTOR_ENABLED: "false"
+  
+  # OAuth Configuration
+  OAUTH_GOOGLE_ENABLED: "true"
+  OAUTH_FACEBOOK_ENABLED: "true"
+  OAUTH_GITHUB_ENABLED: "false"
+  
+  # Cache Configuration (Auth-specific)
+  CACHE_PREFIX: "auth:"
+  CACHE_USER_TTL: "3600"
+  CACHE_TOKEN_TTL: "900"
+  
+  # Rate Limiting (Auth-specific)
+  RATE_LIMIT_LOGIN: "5"
+  RATE_LIMIT_REGISTER: "3"
+  RATE_LIMIT_PASSWORD_RESET: "3"
+  
+  # Monitoring Configuration
+  LOG_FAILED_LOGINS: "true"
+  LOG_SUCCESSFUL_LOGINS: "false"
+  AUDIT_ENABLED: "true"

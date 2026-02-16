@@ -1,5 +1,6 @@
 # Gateway Service Configuration
 # Contains configuration specific to the gateway service (main door)
+# Inherits generic API service configurations from api-service-config.yaml
 
 apiVersion: v1
 kind: ConfigMap
@@ -10,51 +11,48 @@ metadata:
     app.kubernetes.io/component: gateway
     app.kubernetes.io/part-of: reverse-tender-platform
 data:
-  # Service Identity
+  # Gateway-Specific Service Identity
   SERVICE_NAME: "gateway-service"
-  SERVICE_PORT: "8000"
   SERVICE_ROLE: "main_entry_point"
   
-  # API Gateway Configuration
-  API_RATE_LIMIT: "60"
-  API_RATE_LIMIT_WINDOW: "1"
-  API_TIMEOUT: "30"
-  
-  # Service Discovery Configuration
-  SERVICE_REGISTRY_ENABLED: "true"
-  SERVICE_DISCOVERY_TIMEOUT: "5"
-  SERVICE_DISCOVERY_RETRIES: "3"
-  
-  # Request Routing Configuration
-  ROUTING_TIMEOUT: "30"
-  ROUTING_RETRIES: "3"
-  ROUTING_CIRCUIT_BREAKER_ENABLED: "true"
-  ROUTING_CIRCUIT_BREAKER_THRESHOLD: "5"
-  ROUTING_CIRCUIT_BREAKER_TIMEOUT: "60"
-  
-  # Authentication Configuration
-  JWT_ALGO: "RS256"
-  JWT_TTL: "900"
-  REFRESH_TTL: "43200"
-  
-  # Cache Configuration (Gateway-specific)
-  CACHE_TTL: "300"
+  # Gateway-Specific Cache Configuration
   CACHE_PREFIX: "gateway:"
+  CACHE_NAMESPACE: "gateway"
   
-  # Health Check Configuration (Gateway-specific)
+  # Gateway-Specific Health Check Configuration
   HEALTH_CHECK_SERVICES: "auth-service,auction-service,bidding-service,user-service,order-service,notification-service,payment-service,analytics-service,vin-ocr-service"
   HEALTH_CHECK_DEEP: "true"
+  HEALTH_CHECK_AGGREGATE: "true"
   
-  # Load Balancing Configuration
-  LOAD_BALANCER_ALGORITHM: "round_robin"
-  LOAD_BALANCER_HEALTH_CHECK_PATH: "/health"
+  # Gateway-Specific Routing Configuration
+  ROUTE_PREFIX: "/api/v1"
+  ROUTE_REWRITE_ENABLED: "true"
+  ROUTE_STRIP_PREFIX: "true"
   
-  # Security Configuration
-  CORS_ENABLED: "true"
-  CORS_ORIGINS: "*"
-  CSRF_PROTECTION: "false"
+  # Service Routing Map
+  AUTH_SERVICE_ROUTE: "/auth"
+  AUCTION_SERVICE_ROUTE: "/auctions"
+  BIDDING_SERVICE_ROUTE: "/bids"
+  USER_SERVICE_ROUTE: "/users"
+  ORDER_SERVICE_ROUTE: "/orders"
+  NOTIFICATION_SERVICE_ROUTE: "/notifications"
+  PAYMENT_SERVICE_ROUTE: "/payments"
+  ANALYTICS_SERVICE_ROUTE: "/analytics"
+  VIN_OCR_SERVICE_ROUTE: "/vin-ocr"
   
-  # Monitoring Configuration
-  METRICS_ENABLED: "true"
-  TRACING_ENABLED: "true"
-  TRACE_SAMPLING_RATE: "0.1"
+  # Gateway-Specific Security Configuration
+  GATEWAY_AUTH_BYPASS_ROUTES: "/health,/metrics,/docs"
+  GATEWAY_RATE_LIMIT_GLOBAL: "1000"
+  GATEWAY_RATE_LIMIT_PER_IP: "100"
+  
+  # Gateway-Specific Load Balancing
+  UPSTREAM_STRATEGY: "least_conn"
+  UPSTREAM_HEALTH_CHECK_INTERVAL: "10s"
+  UPSTREAM_MAX_FAILS: "3"
+  UPSTREAM_FAIL_TIMEOUT: "30s"
+  
+  # Gateway-Specific Monitoring
+  ACCESS_LOG_ENABLED: "true"
+  ACCESS_LOG_FORMAT: "json"
+  REQUEST_ID_HEADER: "X-Request-ID"
+  TRACE_HEADER_PROPAGATION: "true"
