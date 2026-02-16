@@ -576,7 +576,7 @@ class CrossServiceProcedure extends BaseProcedure
     }
 
     /**
-     * Call another service via RPC or REST
+     * Call another service via RPC or REST with circuit breaker protection
      *
      * @param string $serviceName
      * @param string $method
@@ -596,14 +596,32 @@ class CrossServiceProcedure extends BaseProcedure
                 'timestamp' => now()->toISOString()
             ]);
 
-            // Determine communication protocol (prefer RPC, fallback to REST)
-            $useRpc = $this->config->get('enable_rpc', true) && $this->isRpcAvailable($serviceName);
+            // Configure circuit breaker for this service call
+            $circuitConfig = [
+                'failure_threshold' => $this->config->get("circuit_breaker.{$serviceName}.failure_threshold", 5),
+                'recovery_timeout' => $this->config->get("circuit_breaker.{$serviceName}.recovery_timeout", 60),
+                'request_timeout' => $this->config->get("circuit_breaker.{$serviceName}.request_timeout", 30)
+            ];
 
-            if ($useRpc) {
-                return $this->callServiceViaRpc($serviceName, $method, $params, $callContext);
-            } else {
-                return $this->callServiceViaRest($serviceName, $method, $params, $callContext);
-            }
+            // Use circuit breaker protection for service calls
+            return $this->executeWithCircuitBreaker([
+                'service_name' => $serviceName,
+                'operation' => 'executeServiceCall',
+                'operation_params' => [
+                    'service_name' => $serviceName,
+                    'method' => $method,
+                    'params' => $params,
+                    'context' => $callContext
+                ],
+                'fallback_operation' => 'executeServiceCallFallback',
+                'fallback_params' => [
+                    'service_name' => $serviceName,
+                    'method' => $method,
+                    'error' => 'Circuit breaker open'
+                ],
+                'circuit_config' => $circuitConfig
+            ], $callContext);
+
         } catch (Exception $e) {
             $this->log('error', 'Cross-service call failed', [
                 'service' => $serviceName,
@@ -618,6 +636,66 @@ class CrossServiceProcedure extends BaseProcedure
                 'error' => $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Execute the actual service call (used by circuit breaker)
+     *
+     * @param array $params
+     * @param array $context
+     * @return array
+     */
+    private function executeServiceCall(array $params, array $context): array
+    {
+        $serviceName = $params['service_name'];
+        $method = $params['method'];
+        $callParams = $params['params'];
+        $callContext = $params['context'];
+
+        // Determine communication protocol (prefer RPC, fallback to REST)
+        $useRpc = $this->config->get('enable_rpc', true) && $this->isRpcAvailable($serviceName);
+
+        if ($useRpc) {
+            return $this->callServiceViaRpc($serviceName, $method, $callParams, $callContext);
+        } else {
+            return $this->callServiceViaRest($serviceName, $method, $callParams, $callContext);
+        }
+    }
+
+    /**
+     * Fallback method when circuit breaker is open
+     *
+     * @param array $params
+     * @param array $context
+     * @return array
+     */
+    private function executeServiceCallFallback(array $params, array $context): array
+    {
+        $serviceName = $params['service_name'];
+        $method = $params['method'];
+        $error = $params['error'] ?? 'Service temporarily unavailable';
+
+        $this->log('warning', 'Service call fallback triggered', [
+            'service' => $serviceName,
+            'method' => $method,
+            'reason' => $error
+        ]);
+
+        // Try to get cached response if available
+        $cacheKey = "service_fallback:{$serviceName}:{$method}";
+        $cachedResponse = $this->getCachedResponse($cacheKey);
+        
+        if ($cachedResponse) {
+            return $this->successResponse($cachedResponse, 'Fallback response from cache');
+        }
+
+        // Return default fallback response
+        return $this->errorResponse('Service temporarily unavailable', [
+            'service' => $serviceName,
+            'method' => $method,
+            'fallback' => true,
+            'circuit_breaker_open' => true
+        ]);
     }
 
     /**
@@ -767,6 +845,36 @@ class CrossServiceProcedure extends BaseProcedure
         $kubernetesUrl = "http://{$serviceName}:8080";
         
         return $kubernetesUrl;
+    }
+
+    /**
+     * Get cached response for fallback scenarios
+     *
+     * @param string $cacheKey
+     * @return array|null
+     */
+    private function getCachedResponse(string $cacheKey): ?array
+    {
+        try {
+            // Try to get from cache using the cache management procedure
+            $cacheResult = $this->getCacheValue([
+                'key' => $cacheKey,
+                'default' => null
+            ]);
+
+            if ($cacheResult['success'] && $cacheResult['data']['value'] !== null) {
+                return $cacheResult['data']['value'];
+            }
+
+            return null;
+        } catch (Exception $e) {
+            $this->log('warning', 'Failed to get cached response for fallback', [
+                'cache_key' => $cacheKey,
+                'error' => $e->getMessage()
+            ]);
+
+            return null;
+        }
     }
 
     /**
