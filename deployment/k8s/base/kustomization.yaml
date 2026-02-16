@@ -1,4 +1,5 @@
 # Kustomize Base Configuration for Reverse Tender Platform
+# Updated for JSON-RPC/tRPC microservices architecture v2.0
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -13,11 +14,14 @@ namespace: reverse-tender
 commonLabels:
   app.kubernetes.io/name: reverse-tender
   app.kubernetes.io/part-of: reverse-tender-platform
+  protocol: json-rpc
+  version: v2.0
 
 # Common annotations applied to all resources
 commonAnnotations:
   app.kubernetes.io/managed-by: kustomize
-  app.kubernetes.io/version: "1.0.0"
+  app.kubernetes.io/version: "2.0.0"
+  app.kubernetes.io/protocol: "json-rpc"
 
 # Resources to include
 resources:
@@ -33,6 +37,7 @@ resources:
   # Cross-cutting concern configurations
   - saga-config.yaml
   - service-discovery-config.yaml
+  - rpc-client-config.yaml
   - resilience-config.yaml
   - event-bus-config.yaml
   # Secrets

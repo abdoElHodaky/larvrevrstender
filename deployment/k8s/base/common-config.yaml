@@ -1,5 +1,6 @@
 # Common Configuration for Reverse Tender Platform
 # Contains shared configuration data used by all services
+# Updated for JSON-RPC/tRPC microservices architecture v2.0
 
 apiVersion: v1
 kind: ConfigMap
@@ -9,6 +10,11 @@ metadata:
     app.kubernetes.io/name: reverse-tender
     app.kubernetes.io/component: configuration
     app.kubernetes.io/part-of: reverse-tender-platform
+    protocol: json-rpc
+    version: v2.0
+  annotations:
+    config.kubernetes.io/description: "Common configuration for RPC microservices"
+    config.kubernetes.io/protocol: "json-rpc"
 data:
   # Application Common Settings
   APP_NAME: "Reverse Tender Platform"
@@ -91,3 +97,49 @@ data:
   
   # Horizon Configuration
   HORIZON_ENABLED: "true"
+  
+  # RPC Configuration (JSON-RPC 2.0)
+  RPC_PROTOCOL_VERSION: "2.0"
+  RPC_CONTENT_TYPE: "application/json"
+  RPC_CHARSET: "utf-8"
+  RPC_TIMEOUT: "30"
+  RPC_RETRY_ATTEMPTS: "3"
+  RPC_RETRY_DELAY: "1"
+  RPC_CONNECTION_POOL_SIZE: "10"
+  RPC_CONNECTION_TIMEOUT: "30"
+  RPC_READ_TIMEOUT: "60"
+  RPC_WRITE_TIMEOUT: "30"
+  
+  # Sajya RPC Server Configuration
+  SAJYA_ENABLED: "true"
+  SAJYA_ROUTE_PREFIX: "rpc"
+  SAJYA_MIDDLEWARE: "api"
+  SAJYA_DOCS_ENABLED: "false"
+  SAJYA_BATCH_REQUESTS: "true"
+  SAJYA_MAX_BATCH_SIZE: "10"
+  
+  # RPC Client Configuration
+  RPC_CLIENT_TIMEOUT: "30"
+  RPC_CLIENT_RETRIES: "3"
+  RPC_CLIENT_BACKOFF: "exponential"
+  RPC_CLIENT_MAX_BACKOFF: "60"
+  RPC_CLIENT_JITTER: "true"
+  
+  # RPC Service Discovery
+  RPC_SERVICE_DISCOVERY_ENABLED: "true"
+  RPC_SERVICE_DISCOVERY_TTL: "300"
+  RPC_SERVICE_DISCOVERY_REFRESH: "60"
+  
+  # RPC Health Checks
+  RPC_HEALTH_CHECK_ENABLED: "true"
+  RPC_HEALTH_CHECK_METHOD: "health.check"
+  RPC_HEALTH_CHECK_INTERVAL: "30"
+  RPC_HEALTH_CHECK_TIMEOUT: "10"
+  
+  # RPC Logging and Monitoring
+  RPC_LOGGING_ENABLED: "true"
+  RPC_LOG_REQUESTS: "true"
+  RPC_LOG_RESPONSES: "false"
+  RPC_LOG_ERRORS: "true"
+  RPC_METRICS_ENABLED: "true"
+  RPC_TRACING_ENABLED: "true"
