@@ -53,9 +53,10 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.2'
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, mysql, redis
+        php-version: '8.3'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, redis, curl
         coverage: xdebug
+        ini-file: production
 
     - name: Cache Composer packages
       id: composer-cache
@@ -244,6 +245,20 @@ jobs:
         if ! command -v sqlite3 >/dev/null 2>&1; then
           echo "📦 Installing SQLite..."
           sudo apt-get update && sudo apt-get install -y sqlite3
+        fi
+        
+        # Setup test environment configuration
+        if [ -f ".env.example" ]; then
+          cp .env.example .env
+          echo "✅ Environment file copied"
+          
+          # Override configurations for CI testing
+          echo "CACHE_STORE=array" >> .env
+          echo "SESSION_DRIVER=array" >> .env
+          echo "QUEUE_CONNECTION=sync" >> .env
+          echo "DB_CONNECTION=sqlite" >> .env
+          echo "DB_DATABASE=/tmp/${{ matrix.service }}_test.sqlite" >> .env
+          echo "✅ Test environment configurations applied"
         fi
         
         # Run tests using Laravel's test command if artisan exists, otherwise use PHPUnit directly
