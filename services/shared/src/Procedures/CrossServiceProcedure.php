@@ -34,7 +34,9 @@ class CrossServiceProcedure extends BaseProcedure
     use EventPublishingProcedure;
     use CacheManagementProcedure;
     use NotificationProcedure;
-    use WebPushProcedure;
+    use WebPushProcedure {
+        WebPushProcedure::makeRpcCall insteadof NotificationProcedure;
+    }
     use ValidationProcedure;
     use SecurityProcedure;
     use CircuitBreakerProcedure;
@@ -45,16 +47,16 @@ class CrossServiceProcedure extends BaseProcedure
     private ProcedureEngine $engine;
     private RestHandler $restHandler;
     private RpcHandler $rpcHandler;
-    private CrossServiceConfig $config;
+    protected CrossServiceConfig $crossServiceConfig;
 
     public function __construct()
     {
         parent::__construct();
         
-        $this->config = CrossServiceConfig::getInstance();
-        $this->engine = new ProcedureEngine($this->config->getComponent('procedure_engine'));
-        $this->restHandler = new RestHandler($this->engine, $this->config->getComponent('rest_handler'));
-        $this->rpcHandler = new RpcHandler($this->engine, $this->config->getComponent('rpc_handler'));
+        $this->crossServiceConfig = CrossServiceConfig::getInstance();
+        $this->engine = new ProcedureEngine($this->crossServiceConfig->getComponent('procedure_engine'));
+        $this->restHandler = new RestHandler($this->engine, $this->crossServiceConfig->getComponent('rest_handler'));
+        $this->rpcHandler = new RpcHandler($this->engine, $this->crossServiceConfig->getComponent('rpc_handler'));
         
         $this->registerProcedures();
     }
@@ -203,7 +205,7 @@ class CrossServiceProcedure extends BaseProcedure
                     'registered' => $this->engine->getRegisteredProcedures(),
                     'total_count' => count($this->engine->getRegisteredProcedures())
                 ],
-                'configuration' => $this->config->getSummary(),
+                'configuration' => $this->crossServiceConfig->getSummary(),
                 'handlers' => [
                     'rest' => [
                         'enabled' => true,
@@ -334,9 +336,9 @@ class CrossServiceProcedure extends BaseProcedure
             $settings = $params['settings'];
 
             // Update configuration
-            $currentConfig = $this->config->getComponent($component);
+            $currentConfig = $this->crossServiceConfig->getComponent($component);
             $newConfig = array_merge($currentConfig, $settings);
-            $this->config->set($component, $newConfig);
+            $this->crossServiceConfig->set($component, $newConfig);
 
             // Update handlers if needed
             if ($component === 'rest_handler') {
@@ -353,7 +355,7 @@ class CrossServiceProcedure extends BaseProcedure
             return $this->successResponse([
                 'component' => $component,
                 'updated_settings' => $settings,
-                'current_config' => $this->config->getComponent($component)
+                'current_config' => $this->crossServiceConfig->getComponent($component)
             ], 'Configuration updated successfully');
 
         } catch (\Exception $e) {
@@ -507,7 +509,7 @@ class CrossServiceProcedure extends BaseProcedure
     private function checkConfigurationHealth(): array
     {
         try {
-            $validationErrors = $this->config->validate();
+            $validationErrors = $this->crossServiceConfig->validate();
             
             if (!empty($validationErrors)) {
                 return [
@@ -572,7 +574,7 @@ class CrossServiceProcedure extends BaseProcedure
      */
     public function getConfig(): CrossServiceConfig
     {
-        return $this->config;
+        return $this->crossServiceConfig;
     }
 
     /**
@@ -598,9 +600,9 @@ class CrossServiceProcedure extends BaseProcedure
 
             // Configure circuit breaker for this service call
             $circuitConfig = [
-                'failure_threshold' => $this->config->get("circuit_breaker.{$serviceName}.failure_threshold", 5),
-                'recovery_timeout' => $this->config->get("circuit_breaker.{$serviceName}.recovery_timeout", 60),
-                'request_timeout' => $this->config->get("circuit_breaker.{$serviceName}.request_timeout", 30)
+                'failure_threshold' => $this->crossServiceConfig->get("circuit_breaker.{$serviceName}.failure_threshold", 5),
+                'recovery_timeout' => $this->crossServiceConfig->get("circuit_breaker.{$serviceName}.recovery_timeout", 60),
+                'request_timeout' => $this->crossServiceConfig->get("circuit_breaker.{$serviceName}.request_timeout", 30)
             ];
 
             // Use circuit breaker protection for service calls
@@ -653,7 +655,7 @@ class CrossServiceProcedure extends BaseProcedure
         $callContext = $params['context'];
 
         // Determine communication protocol (prefer RPC, fallback to REST)
-        $useRpc = $this->config->get('enable_rpc', true) && $this->isRpcAvailable($serviceName);
+        $useRpc = $this->crossServiceConfig->get('enable_rpc', true) && $this->isRpcAvailable($serviceName);
 
         if ($useRpc) {
             return $this->callServiceViaRpc($serviceName, $method, $callParams, $callContext);
