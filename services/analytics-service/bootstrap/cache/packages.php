@@ -1,11 +1,4 @@
 <?php return array (
-  'laravel-notification-channels/webpush' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'NotificationChannels\\WebPush\\WebPushServiceProvider',
-    ),
-  ),
   'laravel/horizon' => 
   array (
     'aliases' => 
@@ -49,11 +42,29 @@
       0 => 'Laravel\\Sanctum\\SanctumServiceProvider',
     ),
   ),
+  'laravel/telescope' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Laravel\\Telescope\\TelescopeServiceProvider',
+    ),
+  ),
   'laravel/tinker' => 
   array (
     'providers' => 
     array (
       0 => 'Laravel\\Tinker\\TinkerServiceProvider',
+    ),
+  ),
+  'maatwebsite/excel' => 
+  array (
+    'aliases' => 
+    array (
+      'Excel' => 'Maatwebsite\\Excel\\Facades\\Excel',
+    ),
+    'providers' => 
+    array (
+      0 => 'Maatwebsite\\Excel\\ExcelServiceProvider',
     ),
   ),
   'nesbot/carbon' => 
@@ -86,6 +97,17 @@
     'providers' => 
     array (
       0 => 'Sajya\\Server\\ServerServiceProvider',
+    ),
+  ),
+  'spatie/laravel-analytics' => 
+  array (
+    'aliases' => 
+    array (
+      'Analytics' => 'Spatie\\Analytics\\Facades\\Analytics',
+    ),
+    'providers' => 
+    array (
+      0 => 'Spatie\\Analytics\\AnalyticsServiceProvider',
     ),
   ),
   'spatie/laravel-ignition' => 

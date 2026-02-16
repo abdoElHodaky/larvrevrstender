@@ -1,11 +1,4 @@
 <?php return array (
-  'laravel-notification-channels/webpush' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'NotificationChannels\\WebPush\\WebPushServiceProvider',
-    ),
-  ),
   'laravel/horizon' => 
   array (
     'aliases' => 
@@ -47,6 +40,13 @@
     'providers' => 
     array (
       0 => 'Laravel\\Sanctum\\SanctumServiceProvider',
+    ),
+  ),
+  'laravel/telescope' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Laravel\\Telescope\\TelescopeServiceProvider',
     ),
   ),
   'laravel/tinker' => 

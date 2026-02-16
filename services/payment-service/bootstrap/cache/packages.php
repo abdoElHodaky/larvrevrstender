@@ -1,9 +1,9 @@
 <?php return array (
-  'laravel-notification-channels/webpush' => 
+  'laravel-workflow/laravel-workflow' => 
   array (
     'providers' => 
     array (
-      0 => 'NotificationChannels\\WebPush\\WebPushServiceProvider',
+      0 => 'Workflow\\Providers\\WorkflowServiceProvider',
     ),
   ),
   'laravel/horizon' => 
@@ -47,6 +47,13 @@
     'providers' => 
     array (
       0 => 'Laravel\\Sanctum\\SanctumServiceProvider',
+    ),
+  ),
+  'laravel/telescope' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Laravel\\Telescope\\TelescopeServiceProvider',
     ),
   ),
   'laravel/tinker' => 
@@ -97,6 +104,20 @@
     'providers' => 
     array (
       0 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
+    ),
+  ),
+  'spatie/laravel-model-states' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
+    ),
+  ),
+  'spatie/php-structure-discoverer' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
     ),
   ),
 );
