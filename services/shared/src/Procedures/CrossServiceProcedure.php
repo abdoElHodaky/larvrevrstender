@@ -19,6 +19,8 @@ use Shared\Procedures\Micro\CircuitBreakerProcedure;
 use Shared\Procedures\Micro\QueueCircuitBreakerProcedure;
 use Shared\Procedures\Micro\ThirdPartyIntegrationProcedure;
 use Shared\Procedures\Macro\WorkflowProcedure;
+use Illuminate\Support\Facades\Http;
+use Exception;
 
 /**
  * Cross-Service Procedure Hub
@@ -571,5 +573,209 @@ class CrossServiceProcedure extends BaseProcedure
     public function getConfig(): CrossServiceConfig
     {
         return $this->config;
+    }
+
+    /**
+     * Call another service via RPC or REST
+     *
+     * @param string $serviceName
+     * @param string $method
+     * @param array $params
+     * @param array $context
+     * @return array
+     */
+    public function callService(string $serviceName, string $method, array $params = [], array $context = []): array
+    {
+        try {
+            // Prepare context with trace information
+            $callContext = array_merge($context, [
+                'caller_service' => $this->procedureName,
+                'target_service' => $serviceName,
+                'method' => $method,
+                'trace_id' => $context['trace_id'] ?? $this->generateTraceId(),
+                'timestamp' => now()->toISOString()
+            ]);
+
+            // Determine communication protocol (prefer RPC, fallback to REST)
+            $useRpc = $this->config->get('enable_rpc', true) && $this->isRpcAvailable($serviceName);
+
+            if ($useRpc) {
+                return $this->callServiceViaRpc($serviceName, $method, $params, $callContext);
+            } else {
+                return $this->callServiceViaRest($serviceName, $method, $params, $callContext);
+            }
+        } catch (Exception $e) {
+            $this->log('error', 'Cross-service call failed', [
+                'service' => $serviceName,
+                'method' => $method,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse('Service call failed', [
+                'service' => $serviceName,
+                'method' => $method,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Call service via RPC
+     *
+     * @param string $serviceName
+     * @param string $method
+     * @param array $params
+     * @param array $context
+     * @return array
+     */
+    private function callServiceViaRpc(string $serviceName, string $method, array $params, array $context): array
+    {
+        // Get service endpoint from configuration
+        $serviceUrl = $this->getServiceRpcEndpoint($serviceName);
+        if (!$serviceUrl) {
+            throw new Exception("RPC endpoint not found for service: {$serviceName}");
+        }
+
+        // Prepare RPC request
+        $rpcRequest = [
+            'jsonrpc' => '2.0',
+            'method' => $method,
+            'params' => $params,
+            'id' => $context['trace_id'] ?? uniqid('rpc_', true)
+        ];
+
+        // Make RPC call using HTTP client
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'X-Trace-ID' => $context['trace_id'] ?? '',
+            'X-Caller-Service' => $this->procedureName,
+            'X-Request-ID' => uniqid('req_', true)
+        ])
+        ->timeout(30)
+        ->retry(3, 1000)
+        ->post($serviceUrl, $rpcRequest);
+
+        if (!$response->successful()) {
+            throw new Exception("RPC call failed with status: {$response->status()}");
+        }
+
+        $responseData = $response->json();
+
+        // Handle RPC error response
+        if (isset($responseData['error'])) {
+            return $this->errorResponse('RPC error', $responseData['error']);
+        }
+
+        // Return successful RPC response
+        return $this->successResponse($responseData['result'] ?? []);
+    }
+
+    /**
+     * Call service via REST
+     *
+     * @param string $serviceName
+     * @param string $method
+     * @param array $params
+     * @param array $context
+     * @return array
+     */
+    private function callServiceViaRest(string $serviceName, string $method, array $params, array $context): array
+    {
+        // Get service endpoint from configuration
+        $serviceUrl = $this->getServiceRestEndpoint($serviceName);
+        if (!$serviceUrl) {
+            throw new Exception("REST endpoint not found for service: {$serviceName}");
+        }
+
+        // Build REST endpoint URL
+        $endpoint = "{$serviceUrl}/api/{$method}";
+
+        // Make REST call using HTTP client
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+            'X-Trace-ID' => $context['trace_id'] ?? '',
+            'X-Caller-Service' => $this->procedureName,
+            'X-Request-ID' => uniqid('req_', true)
+        ])
+        ->timeout(30)
+        ->retry(3, 1000)
+        ->post($endpoint, $params);
+
+        if (!$response->successful()) {
+            throw new Exception("REST call failed with status: {$response->status()}");
+        }
+
+        $responseData = $response->json();
+
+        // Return REST response (assuming standard format)
+        return $responseData;
+    }
+
+    /**
+     * Check if RPC is available for a service
+     *
+     * @param string $serviceName
+     * @return bool
+     */
+    private function isRpcAvailable(string $serviceName): bool
+    {
+        $rpcEndpoint = $this->getServiceRpcEndpoint($serviceName);
+        return !empty($rpcEndpoint);
+    }
+
+    /**
+     * Get RPC endpoint for a service
+     *
+     * @param string $serviceName
+     * @return string|null
+     */
+    private function getServiceRpcEndpoint(string $serviceName): ?string
+    {
+        // Try to get from environment variables first
+        $envKey = 'RPC_' . strtoupper(str_replace('-', '_', $serviceName)) . '_URL';
+        $endpoint = env($envKey);
+        
+        if ($endpoint) {
+            return rtrim($endpoint, '/') . '/rpc';
+        }
+
+        // Fallback to Kubernetes service discovery pattern
+        $kubernetesUrl = "http://{$serviceName}:8080/rpc";
+        
+        return $kubernetesUrl;
+    }
+
+    /**
+     * Get REST endpoint for a service
+     *
+     * @param string $serviceName
+     * @return string|null
+     */
+    private function getServiceRestEndpoint(string $serviceName): ?string
+    {
+        // Try to get from environment variables first
+        $envKey = 'REST_' . strtoupper(str_replace('-', '_', $serviceName)) . '_URL';
+        $endpoint = env($envKey);
+        
+        if ($endpoint) {
+            return rtrim($endpoint, '/');
+        }
+
+        // Fallback to Kubernetes service discovery pattern
+        $kubernetesUrl = "http://{$serviceName}:8080";
+        
+        return $kubernetesUrl;
+    }
+
+    /**
+     * Generate trace ID for request tracking
+     *
+     * @return string
+     */
+    private function generateTraceId(): string
+    {
+        return uniqid('trace_', true);
     }
 }
