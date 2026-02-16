@@ -1,0 +1,60 @@
+# Gateway Service Configuration
+# Contains configuration specific to the gateway service (main door)
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: reverse-tender-platform
+data:
+  # Service Identity
+  SERVICE_NAME: "gateway-service"
+  SERVICE_PORT: "8000"
+  SERVICE_ROLE: "main_entry_point"
+  
+  # API Gateway Configuration
+  API_RATE_LIMIT: "60"
+  API_RATE_LIMIT_WINDOW: "1"
+  API_TIMEOUT: "30"
+  
+  # Service Discovery Configuration
+  SERVICE_REGISTRY_ENABLED: "true"
+  SERVICE_DISCOVERY_TIMEOUT: "5"
+  SERVICE_DISCOVERY_RETRIES: "3"
+  
+  # Request Routing Configuration
+  ROUTING_TIMEOUT: "30"
+  ROUTING_RETRIES: "3"
+  ROUTING_CIRCUIT_BREAKER_ENABLED: "true"
+  ROUTING_CIRCUIT_BREAKER_THRESHOLD: "5"
+  ROUTING_CIRCUIT_BREAKER_TIMEOUT: "60"
+  
+  # Authentication Configuration
+  JWT_ALGO: "RS256"
+  JWT_TTL: "900"
+  REFRESH_TTL: "43200"
+  
+  # Cache Configuration (Gateway-specific)
+  CACHE_TTL: "300"
+  CACHE_PREFIX: "gateway:"
+  
+  # Health Check Configuration (Gateway-specific)
+  HEALTH_CHECK_SERVICES: "auth-service,auction-service,bidding-service,user-service,order-service,notification-service,payment-service,analytics-service,vin-ocr-service"
+  HEALTH_CHECK_DEEP: "true"
+  
+  # Load Balancing Configuration
+  LOAD_BALANCER_ALGORITHM: "round_robin"
+  LOAD_BALANCER_HEALTH_CHECK_PATH: "/health"
+  
+  # Security Configuration
+  CORS_ENABLED: "true"
+  CORS_ORIGINS: "*"
+  CSRF_PROTECTION: "false"
+  
+  # Monitoring Configuration
+  METRICS_ENABLED: "true"
+  TRACING_ENABLED: "true"
+  TRACE_SAMPLING_RATE: "0.1"

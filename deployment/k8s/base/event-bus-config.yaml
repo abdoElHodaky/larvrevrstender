@@ -1,0 +1,77 @@
+# Event Bus Configuration
+# Contains configuration for inter-service event communication
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: event-bus-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: event-bus
+    app.kubernetes.io/part-of: reverse-tender-platform
+data:
+  # Event Bus Configuration
+  EVENT_BUS_ENABLED: "true"
+  EVENT_BUS_DRIVER: "redis"
+  EVENT_BUS_CONNECTION: "redis"
+  
+  # Broadcasting Configuration
+  BROADCAST_DRIVER: "reverb"
+  BROADCAST_CONNECTION: "reverb"
+  
+  # Event Publishing Configuration
+  EVENT_PUBLISHING_ENABLED: "true"
+  EVENT_PUBLISHING_TIMEOUT: "10"
+  EVENT_PUBLISHING_RETRIES: "3"
+  EVENT_PUBLISHING_RETRY_DELAY: "2"
+  
+  # Event Subscription Configuration
+  EVENT_SUBSCRIPTION_ENABLED: "true"
+  EVENT_SUBSCRIPTION_TIMEOUT: "30"
+  EVENT_SUBSCRIPTION_RETRIES: "5"
+  
+  # Event Channels Configuration
+  AUCTION_EVENTS_CHANNEL: "auction.events"
+  BIDDING_EVENTS_CHANNEL: "bidding.events"
+  PAYMENT_EVENTS_CHANNEL: "payment.events"
+  ORDER_EVENTS_CHANNEL: "order.events"
+  USER_EVENTS_CHANNEL: "user.events"
+  NOTIFICATION_EVENTS_CHANNEL: "notification.events"
+  ANALYTICS_EVENTS_CHANNEL: "analytics.events"
+  
+  # Event Types Configuration
+  AUCTION_CREATED_EVENT: "auction.created"
+  AUCTION_UPDATED_EVENT: "auction.updated"
+  AUCTION_ENDED_EVENT: "auction.ended"
+  BID_PLACED_EVENT: "bid.placed"
+  BID_UPDATED_EVENT: "bid.updated"
+  BID_CANCELLED_EVENT: "bid.cancelled"
+  PAYMENT_INITIATED_EVENT: "payment.initiated"
+  PAYMENT_COMPLETED_EVENT: "payment.completed"
+  PAYMENT_FAILED_EVENT: "payment.failed"
+  ORDER_CREATED_EVENT: "order.created"
+  ORDER_UPDATED_EVENT: "order.updated"
+  ORDER_COMPLETED_EVENT: "order.completed"
+  USER_REGISTERED_EVENT: "user.registered"
+  USER_UPDATED_EVENT: "user.updated"
+  
+  # Event Persistence Configuration
+  EVENT_PERSISTENCE_ENABLED: "true"
+  EVENT_PERSISTENCE_TTL: "2592000"
+  EVENT_PERSISTENCE_CLEANUP_INTERVAL: "86400"
+  
+  # Event Replay Configuration
+  EVENT_REPLAY_ENABLED: "true"
+  EVENT_REPLAY_BATCH_SIZE: "100"
+  EVENT_REPLAY_TIMEOUT: "300"
+  
+  # Dead Letter Queue Configuration
+  DEAD_LETTER_QUEUE_ENABLED: "true"
+  DEAD_LETTER_QUEUE_TTL: "604800"
+  DEAD_LETTER_QUEUE_MAX_RETRIES: "5"
+  
+  # Event Monitoring Configuration
+  EVENT_METRICS_ENABLED: "true"
+  EVENT_TRACING_ENABLED: "true"
+  EVENT_LOGGING_ENABLED: "true"
+  EVENT_LOGGING_LEVEL: "info"
