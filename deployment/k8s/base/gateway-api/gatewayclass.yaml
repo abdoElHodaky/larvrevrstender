@@ -1,5 +1,5 @@
-# Generic GatewayClass for Reverse Tender Platform
-# Defines the controller and configuration for Gateway resources
+# Optimal GatewayClass for Reverse Tender Platform
+# Following Kubernetes Gateway API v1 best practices for microservices architecture
 
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
@@ -9,50 +9,114 @@ metadata:
     app.kubernetes.io/name: reverse-tender
     app.kubernetes.io/component: gateway-api
     app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v1.0"
+  annotations:
+    # Standard Gateway API annotations
+    gateway.networking.k8s.io/bundle-version: "v1.0.0"
 spec:
-  # Controller name - can be overridden in overlays for different environments
-  controllerName: gateway.nginx.org/nginx-gateway-controller
+  # Use standard Gateway API controller - optimal for microservices
+  # Can be overridden in overlays: istio, nginx, envoy-gateway, etc.
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
   
-  # Optional: Parameters reference for controller-specific configuration
+  # Optional: Parameters for controller-specific optimizations
   parametersRef:
-    group: gateway.nginx.org
-    kind: NginxGateway
-    name: nginx-gateway-config
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: reverse-tender-proxy-config
     namespace: reverse-tender
   
-  description: "Generic Gateway Class for Reverse Tender Platform microservices"
+  description: "Optimal Gateway Class for Reverse Tender Platform - supports microservices patterns, WebSocket, and high availability"
 
 ---
-# Optional: Controller-specific configuration
-apiVersion: gateway.nginx.org/v1alpha1
-kind: NginxGateway
+# Optimal proxy configuration for microservices architecture
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
 metadata:
-  name: nginx-gateway-config
+  name: reverse-tender-proxy-config
   namespace: reverse-tender
   labels:
     app.kubernetes.io/name: reverse-tender
     app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
 spec:
-  # Generic configuration that can be overridden per environment
-  logging:
-    level: info
+  # Optimal configuration for microservices workloads
+  provider:
+    type: Kubernetes
+    kubernetes:
+      # High availability configuration
+      replicas: 3
+      
+      # Optimal resource allocation for microservices traffic
+      resources:
+        requests:
+          cpu: 200m
+          memory: 256Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+      
+      # Service configuration optimized for load balancing
+      service:
+        type: LoadBalancer
+        annotations:
+          # Cloud-agnostic annotations - customize in overlays
+          service.beta.kubernetes.io/load-balancer-source-ranges: "0.0.0.0/0"
+        
+        # Optimal ports for microservices architecture
+        ports:
+          - name: http
+            port: 80
+            targetPort: 8080
+            protocol: TCP
+          - name: https
+            port: 443
+            targetPort: 8443
+            protocol: TCP
   
-  # Generic resource limits
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
+  # Optimal telemetry configuration
+  telemetry:
+    metrics:
+      prometheus:
+        disable: false
+    tracing:
+      provider:
+        name: "envoy.tracers.opentelemetry"
+    accessLog:
+      settings:
+        - format:
+            type: Text
+            text: |
+              [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"
+              %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT%
+              %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% "%REQ(X-FORWARDED-FOR)%"
+              "%REQ(USER-AGENT)%" "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%"
+              service="%REQ(X-SERVICE-ROUTE)%" user="%REQ(X-USER-ID)%"
   
-  # Generic replica configuration
-  replicas: 2
-  
-  # Generic service configuration
-  service:
-    type: LoadBalancer
-    annotations:
-      # Generic annotations - can be overridden in overlays
-      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
-      service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+  # Bootstrap configuration for optimal performance
+  bootstrap:
+    type: Replace
+    value: |
+      node:
+        cluster: reverse-tender-gateway
+        id: reverse-tender-proxy
+      static_resources:
+        listeners: []
+        clusters: []
+      dynamic_resources:
+        ads_config:
+          api_type: GRPC
+          transport_api_version: V3
+          grpc_services:
+          - envoy_grpc:
+              cluster_name: xds_cluster
+        cds_config:
+          ads: {}
+          resource_api_version: V3
+        lds_config:
+          ads: {}
+          resource_api_version: V3
+      admin:
+        address:
+          socket_address:
+            address: 127.0.0.1
+            port_value: 19000

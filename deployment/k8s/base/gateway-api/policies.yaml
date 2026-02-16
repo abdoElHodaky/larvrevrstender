@@ -1,38 +1,43 @@
-# Generic Gateway API Policies for Reverse Tender Platform
-# Defines reusable policies that can be applied across environments
+# Optimal Gateway API Policies for Reverse Tender Platform
+# Following Kubernetes Gateway API v1 best practices for microservices architecture
 
-# Generic rate limiting policy
+# Optimal Backend Load Balancing Policy for microservices
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: BackendLBPolicy
 metadata:
-  name: generic-load-balancing
+  name: reverse-tender-lb-policy
   namespace: reverse-tender
   labels:
     app.kubernetes.io/name: reverse-tender
     app.kubernetes.io/component: gateway-api
     app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v1.0"
+  annotations:
+    gateway.networking.k8s.io/description: "Optimal load balancing for microservices architecture"
 spec:
-  # Generic load balancing configuration
+  # Optimal session persistence for stateless microservices
   sessionPersistence:
-    sessionName: "reverse-tender-session"
-    absoluteTimeout: 3600s
-    idleTimeout: 300s
+    sessionName: "RT_SESSION_ID"  # Custom session name for reverse tender
+    absoluteTimeout: 1800s        # 30 minutes - optimal for web sessions
+    idleTimeout: 900s             # 15 minutes - balance between UX and resources
     type: Cookie
+    cookieConfig:
+      lifetimeType: Session       # Session cookies for security
   
-  # Generic target references - can be overridden
+  # Target all microservices with optimal configuration
   targetRefs:
     - group: ""
       kind: Service
       name: auth-service
     - group: ""
       kind: Service
+      name: user-service
+    - group: ""
+      kind: Service
       name: auction-service
     - group: ""
       kind: Service
       name: bidding-service
-    - group: ""
-      kind: Service
-      name: user-service
     - group: ""
       kind: Service
       name: order-service
@@ -50,41 +55,49 @@ spec:
       name: vin-ocr-service
 
 ---
-# Generic health check policy
+# Optimal Health Check Policy for microservices
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: HealthCheckPolicy
 metadata:
-  name: generic-health-check
+  name: reverse-tender-health-policy
   namespace: reverse-tender
   labels:
     app.kubernetes.io/name: reverse-tender
     app.kubernetes.io/component: gateway-api
     app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v1.0"
+  annotations:
+    gateway.networking.k8s.io/description: "Optimal health checks for microservices architecture"
 spec:
-  # Generic health check configuration
+  # Optimal health check configuration for microservices
   default:
     path: "/health"
-    interval: 30s
-    timeout: 5s
-    unhealthyThreshold: 3
-    healthyThreshold: 2
+    interval: 15s              # More frequent checks for better responsiveness
+    timeout: 3s               # Faster timeout for microservices
+    unhealthyThreshold: 2     # Faster failure detection
+    healthyThreshold: 2       # Faster recovery detection
     port: 80
     protocol: HTTP
+    httpHeaders:
+      - name: "User-Agent"
+        value: "Gateway-HealthCheck/1.0"
+      - name: "X-Health-Check"
+        value: "true"
   
-  # Generic target references
+  # Target all microservices with optimal health checks
   targetRefs:
     - group: ""
       kind: Service
       name: auth-service
     - group: ""
       kind: Service
+      name: user-service
+    - group: ""
+      kind: Service
       name: auction-service
     - group: ""
       kind: Service
       name: bidding-service
-    - group: ""
-      kind: Service
-      name: user-service
     - group: ""
       kind: Service
       name: order-service
@@ -102,22 +115,25 @@ spec:
       name: vin-ocr-service
 
 ---
-# Generic timeout policy
+# Optimal Timeout Policy for microservices
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: TimeoutPolicy
 metadata:
-  name: generic-timeout
+  name: reverse-tender-timeout-policy
   namespace: reverse-tender
   labels:
     app.kubernetes.io/name: reverse-tender
     app.kubernetes.io/component: gateway-api
     app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v1.0"
+  annotations:
+    gateway.networking.k8s.io/description: "Optimal timeouts for microservices architecture"
 spec:
-  # Generic timeout configuration
-  request: 30s
-  backendRequest: 25s
+  # Optimal timeout configuration for microservices
+  request: 60s              # Longer for file uploads (VIN OCR)
+  backendRequest: 45s       # Allow time for ML processing
   
-  # Apply to HTTPRoutes
+  # Apply to all HTTPRoutes
   targetRefs:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
@@ -133,25 +149,33 @@ spec:
       name: websocket-routes
 
 ---
-# Generic retry policy
+# Optimal Retry Policy for microservices
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: RetryPolicy
 metadata:
-  name: generic-retry
+  name: reverse-tender-retry-policy
   namespace: reverse-tender
   labels:
     app.kubernetes.io/name: reverse-tender
     app.kubernetes.io/component: gateway-api
     app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v1.0"
+  annotations:
+    gateway.networking.k8s.io/description: "Optimal retry policy for microservices resilience"
 spec:
-  # Generic retry configuration
-  numRetries: 3
-  perTryTimeout: 10s
+  # Optimal retry configuration for microservices
+  numRetries: 2                # Conservative retries to avoid cascading failures
+  perTryTimeout: 15s          # Allow time for microservice processing
   retryOn:
-    - "5xx"
-    - "reset"
-    - "connect-failure"
-    - "refused-stream"
+    - "5xx"                   # Server errors
+    - "reset"                 # Connection resets
+    - "connect-failure"       # Connection failures
+    - "refused-stream"        # Stream refused
+    - "retriable-4xx"         # Retriable client errors
+  backoffPolicy:
+    baseInterval: 1s          # Start with 1 second
+    maxInterval: 10s          # Cap at 10 seconds
+    multiplier: 2             # Exponential backoff
   
   # Backoff configuration
   backoff:

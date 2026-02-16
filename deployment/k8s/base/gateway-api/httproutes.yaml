@@ -1,7 +1,7 @@
-# Generic HTTPRoutes for Reverse Tender Platform
-# Defines routing rules that can be reused across environments
+# Optimal HTTPRoutes for Reverse Tender Platform
+# Following Kubernetes Gateway API v1 best practices for microservices architecture
 
-# HTTP to HTTPS redirect route
+# HTTP to HTTPS redirect route - security best practice
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -11,16 +11,20 @@ metadata:
     app.kubernetes.io/name: reverse-tender
     app.kubernetes.io/component: gateway-api
     app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v1.0"
+  annotations:
+    gateway.networking.k8s.io/description: "Redirect all HTTP traffic to HTTPS for security"
 spec:
   parentRefs:
     - name: reverse-tender-gateway
       sectionName: http-redirect
   
-  # Generic hostname matching - can be overridden
+  # All domains should redirect to HTTPS
   hostnames:
     - "api.reversetender.com"
     - "app.reversetender.com"
     - "admin.reversetender.com"
+    - "ws.reversetender.com"
   
   rules:
     - filters:
@@ -30,7 +34,7 @@ spec:
             statusCode: 301
 
 ---
-# Generic API routing template
+# Optimal API routing - microservices architecture with advanced features
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -40,21 +44,29 @@ metadata:
     app.kubernetes.io/name: reverse-tender
     app.kubernetes.io/component: gateway-api
     app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v1.0"
+    app.kubernetes.io/route-type: "microservices-api"
+  annotations:
+    gateway.networking.k8s.io/description: "Main API routes for microservices with optimal patterns"
 spec:
   parentRefs:
     - name: reverse-tender-gateway
       sectionName: https-api
   
-  # Generic API hostname
+  # API domain
   hostnames:
     - "api.reversetender.com"
   
   rules:
-    # Authentication service routes
+    # Authentication service routes - critical path optimization
     - matches:
         - path:
             type: PathPrefix
             value: /auth
+        - headers:
+            - name: "Content-Type"
+              type: RegularExpression
+              value: "application/(json|x-www-form-urlencoded)"
       backendRefs:
         - name: auth-service
           port: 80
@@ -65,8 +77,17 @@ spec:
             add:
               - name: X-Service-Route
                 value: auth-service
+              - name: X-Service-Type
+                value: authentication
+              - name: X-Request-ID
+                value: "${request_id}"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: auth-service
     
-    # User management service routes
+    # User management service routes - with user context optimization
     - matches:
         - path:
             type: PathPrefix
@@ -81,8 +102,17 @@ spec:
             add:
               - name: X-Service-Route
                 value: user-service
+              - name: X-Service-Type
+                value: user-management
+              - name: X-Request-ID
+                value: "${request_id}"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: user-service
     
-    # Auction service routes
+    # Auction service routes - core business logic optimization
     - matches:
         - path:
             type: PathPrefix
@@ -97,8 +127,19 @@ spec:
             add:
               - name: X-Service-Route
                 value: auction-service
+              - name: X-Service-Type
+                value: auction-management
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-Business-Context
+                value: auction
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: auction-service
     
-    # Bidding service routes
+    # Bidding service routes - real-time optimization
     - matches:
         - path:
             type: PathPrefix
@@ -113,8 +154,21 @@ spec:
             add:
               - name: X-Service-Route
                 value: bidding-service
+              - name: X-Service-Type
+                value: real-time-bidding
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-Business-Context
+                value: bidding
+              - name: X-Real-Time
+                value: "true"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: bidding-service
     
-    # Order management service routes
+    # Order management service routes - transaction optimization
     - matches:
         - path:
             type: PathPrefix
@@ -129,12 +183,27 @@ spec:
             add:
               - name: X-Service-Route
                 value: order-service
+              - name: X-Service-Type
+                value: order-management
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-Business-Context
+                value: transaction
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: order-service
     
-    # Payment service routes
+    # Payment service routes - security optimization
     - matches:
         - path:
             type: PathPrefix
             value: /payments
+        - headers:
+            - name: "Content-Type"
+              type: RegularExpression
+              value: "application/json"
       backendRefs:
         - name: payment-service
           port: 80
@@ -145,8 +214,21 @@ spec:
             add:
               - name: X-Service-Route
                 value: payment-service
+              - name: X-Service-Type
+                value: payment-processing
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-Business-Context
+                value: payment
+              - name: X-Security-Level
+                value: high
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: payment-service
     
-    # Notification service routes
+    # Notification service routes - async optimization
     - matches:
         - path:
             type: PathPrefix
@@ -161,8 +243,19 @@ spec:
             add:
               - name: X-Service-Route
                 value: notification-service
+              - name: X-Service-Type
+                value: notification-delivery
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-Async-Processing
+                value: "true"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: notification-service
     
-    # Analytics service routes
+    # Analytics service routes - data processing optimization
     - matches:
         - path:
             type: PathPrefix
@@ -177,12 +270,27 @@ spec:
             add:
               - name: X-Service-Route
                 value: analytics-service
+              - name: X-Service-Type
+                value: data-analytics
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-Data-Processing
+                value: "true"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: analytics-service
     
-    # VIN OCR service routes
+    # VIN OCR service routes - ML/AI optimization
     - matches:
         - path:
             type: PathPrefix
             value: /vin-ocr
+        - headers:
+            - name: "Content-Type"
+              type: RegularExpression
+              value: "multipart/form-data|application/json"
       backendRefs:
         - name: vin-ocr-service
           port: 80
@@ -193,6 +301,53 @@ spec:
             add:
               - name: X-Service-Route
                 value: vin-ocr-service
+              - name: X-Service-Type
+                value: ml-processing
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-AI-Processing
+                value: "true"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: vin-ocr-service
+    
+    # Health check route - monitoring optimization
+    - matches:
+        - path:
+            type: Exact
+            value: /health
+        - method: GET
+      backendRefs:
+        - name: gateway-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: health-check
+              - name: X-Health-Check
+                value: "true"
+    
+    # API documentation route
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /docs
+        - method: GET
+      backendRefs:
+        - name: gateway-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: api-docs
     
     # Default fallback route to gateway service
     - matches:
@@ -209,6 +364,10 @@ spec:
             add:
               - name: X-Service-Route
                 value: gateway-service
+              - name: X-Service-Type
+                value: gateway-fallback
+              - name: X-Request-ID
+                value: "${request_id}"
 
 ---
 # Frontend application routes
