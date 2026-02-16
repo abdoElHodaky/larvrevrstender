@@ -1,0 +1,65 @@
+# Generic Gateway for Reverse Tender Platform
+# Defines the entry point for external traffic with generic configuration
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: reverse-tender-gateway
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+spec:
+  # Reference to the generic GatewayClass
+  gatewayClassName: reverse-tender-gateway-class
+  
+  # Generic listeners configuration
+  listeners:
+    # HTTPS listener for API traffic
+    - name: https-api
+      hostname: "*.reversetender.com"  # Generic wildcard - can be overridden
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: tls-secret
+            kind: Secret
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # HTTP listener for redirects
+    - name: http-redirect
+      hostname: "*.reversetender.com"  # Generic wildcard - can be overridden
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # WebSocket listener for real-time features
+    - name: websocket
+      hostname: "ws.reversetender.com"  # Can be parameterized
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: tls-secret
+            kind: Secret
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+  # Generic addresses - can be overridden in overlays
+  addresses:
+    - type: NamedAddress
+      value: reverse-tender-gateway-address

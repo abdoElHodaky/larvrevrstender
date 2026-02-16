@@ -61,12 +61,18 @@ deployment/k8s/base/
 └── # Kubernetes Resources
     ├── deployments.yaml               # Service deployments
     ├── services.yaml                  # Kubernetes services
-    ├── ingress.yaml                   # Ingress configuration
+    ├── ingress.yaml                   # Traditional Ingress configuration
     ├── hpa.yaml                       # Horizontal Pod Autoscaler
     ├── pdb.yaml                       # Pod Disruption Budget
     ├── networkpolicy.yaml             # Network policies
     ├── serviceaccount.yaml            # Service accounts
-    └── rbac.yaml                      # Role-based access control
+    ├── rbac.yaml                      # Role-based access control
+    └── gateway-api/                   # Next-generation Gateway API resources
+        ├── README.md                  # Gateway API documentation
+        ├── gatewayclass.yaml          # Gateway controller configuration
+        ├── gateway.yaml               # Gateway listeners and TLS
+        ├── httproutes.yaml            # HTTP routing rules
+        └── policies.yaml              # Traffic policies
 ```
 
 ## 🔧 **Configuration Inheritance**
@@ -199,8 +205,33 @@ When updating configurations:
 3. Apply changes through Kustomize overlays
 4. Monitor service behavior after deployment
 
+## 🚀 **Gateway API Integration**
+
+This configuration now includes **Kubernetes Gateway API** resources alongside traditional Ingress:
+
+### **Why Gateway API?**
+- **Next-generation** traffic routing (successor to Ingress)
+- **Role-oriented design** with clear separation of concerns
+- **Generic and extensible** - works with multiple controllers
+- **Advanced features** - traffic splitting, policies, header manipulation
+
+### **Gateway API Resources:**
+- **GatewayClass** - Controller configuration (infrastructure layer)
+- **Gateway** - Listeners and TLS termination (infrastructure layer)
+- **HTTPRoutes** - Service routing rules (application layer)
+- **Policies** - Traffic management (timeouts, retries, health checks)
+
+### **Migration Path:**
+1. Traditional Ingress remains for backward compatibility
+2. Gateway API provides modern routing capabilities
+3. Gradual migration from Ingress to Gateway API
+4. Environment-specific customization through overlays
+
+See `gateway-api/README.md` for detailed Gateway API documentation.
+
 ## 📚 **Related Documentation**
 
 - [Kustomize Documentation](https://kustomize.io/)
 - [Kubernetes ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/)
 - [Laravel Configuration](https://laravel.com/docs/configuration)
+- [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/)

@@ -46,6 +46,11 @@ resources:
   - networkpolicy.yaml
   - serviceaccount.yaml
   - rbac.yaml
+  # Gateway API resources (next-generation traffic routing)
+  - gateway-api/gatewayclass.yaml
+  - gateway-api/gateway.yaml
+  - gateway-api/httproutes.yaml
+  - gateway-api/policies.yaml
 
 # Images to use (can be overridden in overlays)
 images:

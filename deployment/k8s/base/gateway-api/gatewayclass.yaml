@@ -1,0 +1,58 @@
+# Generic GatewayClass for Reverse Tender Platform
+# Defines the controller and configuration for Gateway resources
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: reverse-tender-gateway-class
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+spec:
+  # Controller name - can be overridden in overlays for different environments
+  controllerName: gateway.nginx.org/nginx-gateway-controller
+  
+  # Optional: Parameters reference for controller-specific configuration
+  parametersRef:
+    group: gateway.nginx.org
+    kind: NginxGateway
+    name: nginx-gateway-config
+    namespace: reverse-tender
+  
+  description: "Generic Gateway Class for Reverse Tender Platform microservices"
+
+---
+# Optional: Controller-specific configuration
+apiVersion: gateway.nginx.org/v1alpha1
+kind: NginxGateway
+metadata:
+  name: nginx-gateway-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+spec:
+  # Generic configuration that can be overridden per environment
+  logging:
+    level: info
+  
+  # Generic resource limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Generic replica configuration
+  replicas: 2
+  
+  # Generic service configuration
+  service:
+    type: LoadBalancer
+    annotations:
+      # Generic annotations - can be overridden in overlays
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"

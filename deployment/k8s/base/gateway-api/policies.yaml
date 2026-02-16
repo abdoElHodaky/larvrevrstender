@@ -1,0 +1,171 @@
+# Generic Gateway API Policies for Reverse Tender Platform
+# Defines reusable policies that can be applied across environments
+
+# Generic rate limiting policy
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: BackendLBPolicy
+metadata:
+  name: generic-load-balancing
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+spec:
+  # Generic load balancing configuration
+  sessionPersistence:
+    sessionName: "reverse-tender-session"
+    absoluteTimeout: 3600s
+    idleTimeout: 300s
+    type: Cookie
+  
+  # Generic target references - can be overridden
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: auth-service
+    - group: ""
+      kind: Service
+      name: auction-service
+    - group: ""
+      kind: Service
+      name: bidding-service
+    - group: ""
+      kind: Service
+      name: user-service
+    - group: ""
+      kind: Service
+      name: order-service
+    - group: ""
+      kind: Service
+      name: payment-service
+    - group: ""
+      kind: Service
+      name: notification-service
+    - group: ""
+      kind: Service
+      name: analytics-service
+    - group: ""
+      kind: Service
+      name: vin-ocr-service
+
+---
+# Generic health check policy
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HealthCheckPolicy
+metadata:
+  name: generic-health-check
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+spec:
+  # Generic health check configuration
+  default:
+    path: "/health"
+    interval: 30s
+    timeout: 5s
+    unhealthyThreshold: 3
+    healthyThreshold: 2
+    port: 80
+    protocol: HTTP
+  
+  # Generic target references
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: auth-service
+    - group: ""
+      kind: Service
+      name: auction-service
+    - group: ""
+      kind: Service
+      name: bidding-service
+    - group: ""
+      kind: Service
+      name: user-service
+    - group: ""
+      kind: Service
+      name: order-service
+    - group: ""
+      kind: Service
+      name: payment-service
+    - group: ""
+      kind: Service
+      name: notification-service
+    - group: ""
+      kind: Service
+      name: analytics-service
+    - group: ""
+      kind: Service
+      name: vin-ocr-service
+
+---
+# Generic timeout policy
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TimeoutPolicy
+metadata:
+  name: generic-timeout
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+spec:
+  # Generic timeout configuration
+  request: 30s
+  backendRequest: 25s
+  
+  # Apply to HTTPRoutes
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: api-routes
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: app-routes
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: admin-routes
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: websocket-routes
+
+---
+# Generic retry policy
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: RetryPolicy
+metadata:
+  name: generic-retry
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+spec:
+  # Generic retry configuration
+  numRetries: 3
+  perTryTimeout: 10s
+  retryOn:
+    - "5xx"
+    - "reset"
+    - "connect-failure"
+    - "refused-stream"
+  
+  # Backoff configuration
+  backoff:
+    baseInterval: 1s
+    maxInterval: 10s
+  
+  # Apply to HTTPRoutes
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: api-routes
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: app-routes
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: admin-routes
