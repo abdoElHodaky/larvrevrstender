@@ -84,6 +84,10 @@ jobs:
           echo "DB_DATABASE=/tmp/${{ matrix.service }}_test.sqlite" >> .env
           echo "REDIS_CLIENT=predis" >> .env
           echo "✅ Test environment configurations applied"
+          
+          # Create the SQLite test database file
+          touch "/tmp/${{ matrix.service }}_test.sqlite"
+          echo "✅ Test database file created"
         fi
 
     - name: Check and Install Composer Dependencies
