@@ -97,7 +97,7 @@ abstract class NonUniqueActivity implements ShouldBeEncrypted, ShouldQueue
             throw new BadMethodCallException('Execute method not implemented.');
         }
 
-        $this->container = App::make(Container::class);
+        $this->container = app(Container::class);
 
         // Handle case where storedWorkflow is not initialized yet
         if (!isset($this->storedWorkflow) || !$this->storedWorkflow) {
@@ -117,7 +117,36 @@ abstract class NonUniqueActivity implements ShouldBeEncrypted, ShouldQueue
         }
 
         try {
-            return $this->{'execute'}(...$this->resolveClassMethodDependencies($this->arguments, $this, 'execute'));
+            $result = $this->{'execute'}(...$this->resolveClassMethodDependencies($this->arguments, $this, 'execute'));
+            
+            // Create log entry for successful execution
+            if (isset($this->storedWorkflow) && $this->storedWorkflow) {
+                $this->storedWorkflow->logs()->create([
+                    'index' => $this->index,
+                    'now' => $this->now,
+                    'class' => $this::class,
+                    'result' => Serializer::serialize($result),
+                ]);
+                
+                error_log("Created workflow log entry for activity index {$this->index}");
+                
+                // Manually resume the workflow
+                try {
+                    // Try to call the onUnlock callback if it exists
+                    if (isset($this->onUnlock) && is_callable($this->onUnlock)) {
+                        error_log("Calling onUnlock callback");
+                        ($this->onUnlock)(true);
+                    } else {
+                        error_log("onUnlock callback not available, calling next() directly");
+                        $this->storedWorkflow->toWorkflow()->next($this->index, $this->now, $this::class, $result, false);
+                    }
+                    error_log("Resumed workflow after activity index {$this->index}");
+                } catch (\Exception $e) {
+                    error_log("Failed to resume workflow: " . $e->getMessage());
+                }
+            }
+            
+            return $result;
         } catch (\Throwable $throwable) {
             // Only create exception record if storedWorkflow is initialized
             if (isset($this->storedWorkflow) && $this->storedWorkflow) {
@@ -140,13 +169,9 @@ abstract class NonUniqueActivity implements ShouldBeEncrypted, ShouldQueue
             return [];
         }
         
+        // Return only ActivityMiddleware, skip WithoutOverlappingMiddleware for now
+        // WithoutOverlappingMiddleware was causing issues with job execution
         return [
-            new WithoutOverlappingMiddleware(
-                $this->storedWorkflow->id,
-                WithoutOverlappingMiddleware::ACTIVITY,
-                0,
-                $this->timeout
-            ),
             new ActivityMiddleware(),
         ];
     }

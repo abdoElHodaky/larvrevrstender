@@ -45,50 +45,55 @@ class PaymentProcessingSaga extends Workflow
      */
     public static function start(array $paymentData): WorkflowStub
     {
+        error_log("PaymentProcessingSaga::start called with data: " . json_encode($paymentData));
         $workflow = WorkflowStub::make(static::class);
+        error_log("WorkflowStub created: " . get_class($workflow));
         $workflow->start($paymentData);
+        error_log("Workflow started, returning stub");
         return $workflow;
     }
 
     /**
      * Execute the payment processing saga
      *
+     * @param array $paymentData Payment data to process
      * @return \Generator Saga execution workflow
      */
-    public function execute()
+    public function execute(array $paymentData)
     {
-        $workflowId = $this->workflowId();
-        
+        error_log("PaymentProcessingSaga execute method called with data: " . json_encode($paymentData));
         Log::info("PaymentProcessingSaga started", [
-            'workflow_id' => $workflowId,
-            'order_id' => $this->input('order_id'),
-            'customer_id' => $this->input('customer_id'),
-            'amount' => $this->input('amount'),
-            'payment_method' => $this->input('payment_method')
+            'order_id' => $paymentData['order_id'] ?? null,
+            'customer_id' => $paymentData['customer_id'] ?? null,
+            'amount' => $paymentData['amount'] ?? null,
+            'payment_method' => $paymentData['payment_method'] ?? null
         ]);
 
         try {
             // Step 1: Validate Payment Data
-            $validationResult = yield activity(ValidatePaymentDataActivity::class, $this->input());
+            error_log("About to call ValidatePaymentDataActivity");
+            $validationResult = yield activity(ValidatePaymentDataActivity::class, $paymentData);
+            error_log("ValidatePaymentDataActivity result: " . json_encode($validationResult));
+            error_log("ValidatePaymentDataActivity result type: " . gettype($validationResult));
             $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $validationResult));
 
             // Step 2: Process Payment
-            $processingResult = yield activity(ProcessPaymentActivity::class, array_merge($this->input(), $validationResult));
+            $processingResult = yield activity(ProcessPaymentActivity::class, array_merge($paymentData, $validationResult));
             $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $processingResult));
 
             // Step 3: Create Payment Record
-            $recordResult = yield activity(CreatePaymentRecordActivity::class, array_merge($this->input(), $validationResult, $processingResult));
+            $recordResult = yield activity(CreatePaymentRecordActivity::class, array_merge($paymentData, $validationResult, $processingResult));
             $this->addCompensation(fn() => activity(ReversePaymentActivity::class, $recordResult));
             $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $recordResult));
 
             // Step 4: Confirm Payment
-            $confirmationResult = yield activity(ConfirmPaymentActivity::class, array_merge($this->input(), $validationResult, $processingResult, $recordResult));
+            $confirmationResult = yield activity(ConfirmPaymentActivity::class, array_merge($paymentData, $validationResult, $processingResult, $recordResult));
             $this->addCompensation(fn() => activity(CancelPaymentRecordActivity::class, $confirmationResult));
             $this->addCompensation(fn() => activity(ReversePaymentActivity::class, $confirmationResult));
             $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $confirmationResult));
 
             // Step 5: Update Order Status
-            $orderUpdateResult = yield activity(UpdateOrderStatusActivity::class, array_merge($this->input(), $validationResult, $processingResult, $recordResult, $confirmationResult));
+            $orderUpdateResult = yield activity(UpdateOrderStatusActivity::class, array_merge($paymentData, $validationResult, $processingResult, $recordResult, $confirmationResult));
             $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $orderUpdateResult));
             $this->addCompensation(fn() => activity(CancelPaymentRecordActivity::class, $orderUpdateResult));
             $this->addCompensation(fn() => activity(ReversePaymentActivity::class, $orderUpdateResult));
@@ -103,7 +108,6 @@ class PaymentProcessingSaga extends Workflow
             );
 
             Log::info("PaymentProcessingSaga completed successfully", [
-                'workflow_id' => $workflowId,
                 'payment_id' => $finalResult['payment_id'] ?? null,
                 'payment_reference' => $finalResult['payment_reference'] ?? null,
                 'order_id' => $finalResult['order_id'] ?? null,
@@ -114,7 +118,6 @@ class PaymentProcessingSaga extends Workflow
 
         } catch (\Throwable $e) {
             Log::error("PaymentProcessingSaga encountered error, executing compensations", [
-                'workflow_id' => $workflowId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);

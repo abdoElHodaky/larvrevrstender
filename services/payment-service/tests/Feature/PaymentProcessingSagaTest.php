@@ -22,9 +22,9 @@ class PaymentProcessingSagaTest extends TestCase
     {
         parent::setUp();
         
-        // Fake events and queues for testing
+        // Fake events for testing
         Event::fake();
-        Queue::fake();
+        // Queue::fake(); // Commented out to allow workflow activities to execute
     }
 
     /**
@@ -39,17 +39,47 @@ class PaymentProcessingSagaTest extends TestCase
             'merchant_id' => 1,
             'amount' => 100.00,
             'currency' => 'SAR',
-            'payment_method' => 'card',
+            'payment_method' => 'credit_card',
             'payment_provider' => 'stripe',
             'card_token' => 'tok_test_123',
             'payment_details' => [
+                'card_number' => '4242424242424242',
+                'expiry_month' => '12',
+                'expiry_year' => '2025',
+                'cvv' => '123',
+                'cardholder_name' => 'John Doe',
                 'card_last_four' => '4242',
                 'card_brand' => 'visa'
             ]
         ];
 
+        // Check if workflow tables exist
+        $tables = \DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'workflow%'");
+        error_log("Workflow tables in test database: " . json_encode($tables));
+        
+        // Check queue configuration
+        error_log("QUEUE_CONNECTION env: " . env('QUEUE_CONNECTION'));
+        error_log("Queue default config: " . config('queue.default'));
+        
+        // Test if sync queue is working
+        \App\Jobs\TestJob::dispatch();
+        error_log("TestJob dispatched");
+        
+        // Check if StoredWorkflow exists in database
+        $workflows = \Workflow\Models\StoredWorkflow::all();
+        error_log("StoredWorkflows in database: " . json_encode($workflows->toArray()));
+
         // Act
         $workflow = PaymentProcessingSaga::start($paymentData);
+        
+        // Check workflows after start
+        $workflowsAfter = \Workflow\Models\StoredWorkflow::all();
+        error_log("StoredWorkflows after start: " . json_encode($workflowsAfter->toArray()));
+        
+        // Check workflow logs
+        $workflowLogs = \Workflow\Models\StoredWorkflowLog::all();
+        error_log("WorkflowLogs: " . json_encode($workflowLogs->toArray()));
+        
         $result = $workflow->output();
 
         // Assert

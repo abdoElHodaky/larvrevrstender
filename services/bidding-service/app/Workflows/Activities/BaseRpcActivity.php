@@ -56,7 +56,7 @@ abstract class BaseRpcActivity extends Activity
                 'activity' => static::class
             ]);
             
-            $result = $this->rpcClient->callRpc($service, $method, $sagaContext);
+            $result = $this->rpcClient->callService($service, $method, $sagaContext);
             
             $duration = microtime(true) - $startTime;
             $success = $result['success'] ?? false;
