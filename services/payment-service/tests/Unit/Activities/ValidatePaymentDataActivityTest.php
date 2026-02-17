@@ -18,6 +18,8 @@ class ValidatePaymentDataActivityTest extends TestCase
     {
         // Arrange
         $storedWorkflow = \Mockery::mock(\Workflow\Models\StoredWorkflow::class);
+        $storedWorkflow->shouldReceive('getAttribute')->with('id')->andReturn('workflow-123');
+        
         $activity = new ValidatePaymentDataActivity(1, now()->toISOString(), $storedWorkflow);
         $paymentData = [
             'order_id' => 12345,
@@ -25,7 +27,13 @@ class ValidatePaymentDataActivityTest extends TestCase
             'amount' => 100.00,
             'currency' => 'SAR',
             'payment_method' => 'card',
-            'payment_provider' => 'stripe'
+            'payment_provider' => 'stripe',
+            'payment_details' => [
+                'card_number' => '4111111111111111',
+                'expiry_month' => '12',
+                'expiry_year' => '2025',
+                'cvv' => '123'
+            ]
         ];
 
         // Mock successful order validation (would require RPC mocking)
@@ -43,9 +51,14 @@ class ValidatePaymentDataActivityTest extends TestCase
     {
         // Arrange
         $storedWorkflow = \Mockery::mock(\Workflow\Models\StoredWorkflow::class);
+        $storedWorkflow->shouldReceive('getAttribute')->with('id')->andReturn('workflow-123');
+        
         $activity = new ValidatePaymentDataActivity(1, now()->toISOString(), $storedWorkflow);
         $invalidData = [
             'customer_id' => 67890,
+            'payment_details' => [
+                'card_number' => '4111111111111111'
+            ]
             // Missing order_id, amount, etc.
         ];
 
@@ -65,13 +78,21 @@ class ValidatePaymentDataActivityTest extends TestCase
     {
         // Arrange
         $storedWorkflow = \Mockery::mock(\Workflow\Models\StoredWorkflow::class);
+        $storedWorkflow->shouldReceive('getAttribute')->with('id')->andReturn('workflow-123');
+        
         $activity = new ValidatePaymentDataActivity(1, now()->toISOString(), $storedWorkflow);
         $invalidData = [
             'order_id' => 12345,
             'customer_id' => 67890,
             'amount' => -100.00, // Invalid negative amount
             'currency' => 'SAR',
-            'payment_method' => 'card'
+            'payment_method' => 'card',
+            'payment_details' => [
+                'card_number' => '4111111111111111',
+                'expiry_month' => '12',
+                'expiry_year' => '2025',
+                'cvv' => '123'
+            ]
         ];
 
         // Act
@@ -80,7 +101,7 @@ class ValidatePaymentDataActivityTest extends TestCase
         // Assert
         $this->assertIsArray($result);
         $this->assertFalse($result['success'] ?? true);
-        $this->assertStringContains('amount', strtolower($result['error'] ?? ''));
+        $this->assertStringContainsString('amount', strtolower($result['error'] ?? ''));
     }
 
     /**
@@ -90,13 +111,21 @@ class ValidatePaymentDataActivityTest extends TestCase
     {
         // Arrange
         $storedWorkflow = \Mockery::mock(\Workflow\Models\StoredWorkflow::class);
+        $storedWorkflow->shouldReceive('getAttribute')->with('id')->andReturn('workflow-123');
+        
         $activity = new ValidatePaymentDataActivity(1, now()->toISOString(), $storedWorkflow);
         $invalidData = [
             'order_id' => 12345,
             'customer_id' => 67890,
             'amount' => 100.00,
             'currency' => 'INVALID', // Invalid currency code
-            'payment_method' => 'card'
+            'payment_method' => 'card',
+            'payment_details' => [
+                'card_number' => '4111111111111111',
+                'expiry_month' => '12',
+                'expiry_year' => '2025',
+                'cvv' => '123'
+            ]
         ];
 
         // Act
@@ -105,6 +134,6 @@ class ValidatePaymentDataActivityTest extends TestCase
         // Assert
         $this->assertIsArray($result);
         $this->assertFalse($result['success'] ?? true);
-        $this->assertStringContains('currency', strtolower($result['error'] ?? ''));
+        $this->assertStringContainsString('currency', strtolower($result['error'] ?? ''));
     }
 }
