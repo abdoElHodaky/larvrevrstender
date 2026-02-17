@@ -1,0 +1,318 @@
+heat_template_version: 2021-04-16
+
+description: >
+  Networking stack for Reverse Tender Platform on OpenStack.
+  Creates VPC, subnets, security groups, and routing for microservices deployment.
+
+parameters:
+  environment:
+    type: string
+    description: Environment name (dev, staging, prod)
+    default: dev
+    constraints:
+      - allowed_values: [dev, staging, prod]
+  
+  project_name:
+    type: string
+    description: Project name for resource naming
+    default: reverse-tender
+  
+  external_network:
+    type: string
+    description: External network for floating IPs
+    constraints:
+      - custom_constraint: neutron.network
+  
+  dns_servers:
+    type: comma_delimited_list
+    description: DNS servers for the network
+    default: ["8.8.8.8", "8.8.4.4"]
+  
+  vpc_cidr:
+    type: string
+    description: CIDR block for the VPC
+    default: "10.0.0.0/16"
+  
+  public_subnet_cidr:
+    type: string
+    description: CIDR block for public subnet
+    default: "10.0.1.0/24"
+  
+  microservices_subnet_cidr:
+    type: string
+    description: CIDR block for microservices subnet
+    default: "10.0.2.0/24"
+  
+  database_subnet_cidr:
+    type: string
+    description: CIDR block for database subnet
+    default: "10.0.3.0/24"
+  
+  monitoring_subnet_cidr:
+    type: string
+    description: CIDR block for monitoring subnet
+    default: "10.0.4.0/24"
+
+resources:
+  # Private Network (VPC)
+  private_network:
+    type: OS::Neutron::Net
+    properties:
+      name: { str_replace: { template: "net-PROJECT-ENV", params: { PROJECT: { get_param: project_name }, ENV: { get_param: environment } } } }
+      admin_state_up: true
+
+  # Public Subnet
+  public_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: { str_replace: { template: "subnet-public-PROJECT-ENV", params: { PROJECT: { get_param: project_name }, ENV: { get_param: environment } } } }
+      network_id: { get_resource: private_network }
+      cidr: { get_param: public_subnet_cidr }
+      gateway_ip: { str_replace: { template: "GATEWAY", params: { GATEWAY: { str_split: ['.', { get_param: public_subnet_cidr }, 0] } } } }.1
+      dns_nameservers: { get_param: dns_servers }
+      enable_dhcp: true
+      ip_version: 4
+
+  # Microservices Subnet
+  microservices_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: { str_replace: { template: "subnet-microservices-PROJECT-ENV", params: { PROJECT: { get_param: project_name }, ENV: { get_param: environment } } } }
+      network_id: { get_resource: private_network }
+      cidr: { get_param: microservices_subnet_cidr }
+      dns_nameservers: { get_param: dns_servers }
+      enable_dhcp: true
+      ip_version: 4
+
+  # Database Subnet
+  database_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: { str_replace: { template: "subnet-database-PROJECT-ENV", params: { PROJECT: { get_param: project_name }, ENV: { get_param: environment } } } }
+      network_id: { get_resource: private_network }
+      cidr: { get_param: database_subnet_cidr }
+      dns_nameservers: { get_param: dns_servers }
+      enable_dhcp: true
+      ip_version: 4
+
+  # Monitoring Subnet
+  monitoring_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: { str_replace: { template: "subnet-monitoring-PROJECT-ENV", params: { PROJECT: { get_param: project_name }, ENV: { get_param: environment } } } }
+      network_id: { get_resource: private_network }
+      cidr: { get_param: monitoring_subnet_cidr }
+      dns_nameservers: { get_param: dns_servers }
+      enable_dhcp: true
+      ip_version: 4
+
+  # Router for external connectivity
+  router:
+    type: OS::Neutron::Router
+    properties:
+      name: { str_replace: { template: "router-PROJECT-ENV", params: { PROJECT: { get_param: project_name }, ENV: { get_param: environment } } } }
+      external_gateway_info:
+        network: { get_param: external_network }
+
+  # Router interfaces
+  router_interface_public:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: public_subnet }
+
+  router_interface_microservices:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: microservices_subnet }
+
+  router_interface_database:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: database_subnet }
+
+  router_interface_monitoring:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: monitoring_subnet }
+
+  # Security Groups
+  
+  # Load Balancer Security Group
+  lb_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: { str_replace: { template: "sg-lb-PROJECT-ENV", params: { PROJECT: { get_param: project_name }, ENV: { get_param: environment } } } }
+      description: Security group for load balancer
+      rules:
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: tcp
+          port_range_min: 80
+          port_range_max: 80
+          direction: ingress
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: tcp
+          port_range_min: 443
+          port_range_max: 443
+          direction: ingress
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: icmp
+          direction: ingress
+
+  # Microservices Security Group
+  microservices_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: { str_replace: { template: "sg-microservices-PROJECT-ENV", params: { PROJECT: { get_param: project_name }, ENV: { get_param: environment } } } }
+      description: Security group for microservices
+      rules:
+        # Allow HTTP traffic from load balancer
+        - remote_group_id: { get_resource: lb_security_group }
+          protocol: tcp
+          port_range_min: 8000
+          port_range_max: 8010
+          direction: ingress
+        # Allow internal communication between microservices
+        - remote_mode: remote_group_id
+          remote_group_id: { get_resource: microservices_security_group }
+          protocol: tcp
+          port_range_min: 8000
+          port_range_max: 8010
+          direction: ingress
+        # Allow SSH access
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+          direction: ingress
+        # Allow ICMP
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: icmp
+          direction: ingress
+
+  # Database Security Group
+  database_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: { str_replace: { template: "sg-database-PROJECT-ENV", params: { PROJECT: { get_param: project_name }, ENV: { get_param: environment } } } }
+      description: Security group for databases
+      rules:
+        # Allow PostgreSQL from microservices
+        - remote_group_id: { get_resource: microservices_security_group }
+          protocol: tcp
+          port_range_min: 5432
+          port_range_max: 5432
+          direction: ingress
+        # Allow Redis from microservices
+        - remote_group_id: { get_resource: microservices_security_group }
+          protocol: tcp
+          port_range_min: 6379
+          port_range_max: 6379
+          direction: ingress
+        # Allow SSH access
+        - remote_ip_prefix: { get_param: microservices_subnet_cidr }
+          protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+          direction: ingress
+        # Allow ICMP
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: icmp
+          direction: ingress
+
+  # Monitoring Security Group
+  monitoring_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: { str_replace: { template: "sg-monitoring-PROJECT-ENV", params: { PROJECT: { get_param: project_name }, ENV: { get_param: environment } } } }
+      description: Security group for monitoring services
+      rules:
+        # Allow Prometheus
+        - remote_group_id: { get_resource: microservices_security_group }
+          protocol: tcp
+          port_range_min: 9090
+          port_range_max: 9090
+          direction: ingress
+        # Allow Grafana
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: tcp
+          port_range_min: 3000
+          port_range_max: 3000
+          direction: ingress
+        # Allow Jaeger
+        - remote_group_id: { get_resource: microservices_security_group }
+          protocol: tcp
+          port_range_min: 16686
+          port_range_max: 16686
+          direction: ingress
+        # Allow SSH access
+        - remote_ip_prefix: { get_param: microservices_subnet_cidr }
+          protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+          direction: ingress
+        # Allow ICMP
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: icmp
+          direction: ingress
+
+  # Network ACLs (if supported by OpenStack deployment)
+  
+  # Port for load balancer (will be used by Octavia)
+  lb_port:
+    type: OS::Neutron::Port
+    properties:
+      name: { str_replace: { template: "port-lb-PROJECT-ENV", params: { PROJECT: { get_param: project_name }, ENV: { get_param: environment } } } }
+      network_id: { get_resource: private_network }
+      fixed_ips:
+        - subnet_id: { get_resource: public_subnet }
+      security_groups:
+        - { get_resource: lb_security_group }
+
+outputs:
+  private_network_id:
+    description: ID of the private network
+    value: { get_resource: private_network }
+  
+  public_subnet_id:
+    description: ID of the public subnet
+    value: { get_resource: public_subnet }
+  
+  microservices_subnet_id:
+    description: ID of the microservices subnet
+    value: { get_resource: microservices_subnet }
+  
+  database_subnet_id:
+    description: ID of the database subnet
+    value: { get_resource: database_subnet }
+  
+  monitoring_subnet_id:
+    description: ID of the monitoring subnet
+    value: { get_resource: monitoring_subnet }
+  
+  router_id:
+    description: ID of the router
+    value: { get_resource: router }
+  
+  lb_security_group_id:
+    description: ID of the load balancer security group
+    value: { get_resource: lb_security_group }
+  
+  microservices_security_group_id:
+    description: ID of the microservices security group
+    value: { get_resource: microservices_security_group }
+  
+  database_security_group_id:
+    description: ID of the database security group
+    value: { get_resource: database_security_group }
+  
+  monitoring_security_group_id:
+    description: ID of the monitoring security group
+    value: { get_resource: monitoring_security_group }
+  
+  lb_port_id:
+    description: ID of the load balancer port
+    value: { get_resource: lb_port }
