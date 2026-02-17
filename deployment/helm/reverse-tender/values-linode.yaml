@@ -1,0 +1,343 @@
+# Linode-specific Helm values for Reverse Tender Platform
+# Optimized for Linode Kubernetes Engine (LKE) with NodeBalancer
+
+# Global Linode-specific settings
+global:
+  imageRegistry: "docker.io/reversetender"
+  imagePullPolicy: IfNotPresent
+  storageClass: "linode-block-storage-retain"
+  cloudProvider: "linode"
+  region: "us-east"
+
+# Blue-Green deployment configuration for Linode
+blueGreen:
+  enabled: true
+  activeEnvironment: "blue"  # blue or green
+  trafficSwitching:
+    strategy: "linode-nodebalancer"  # Linode-specific strategy
+    canaryPercentage: 10
+    stabilizationTime: 300  # 5 minutes
+  healthChecks:
+    enabled: true
+    path: "/octane/health"
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# Linode NodeBalancer with NGINX Ingress Controller
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    # Linode NodeBalancer specific annotations
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    
+    # Linode-specific load balancer annotations
+    service.beta.kubernetes.io/linode-loadbalancer-protocol: "http"
+    service.beta.kubernetes.io/linode-loadbalancer-port-443: '{ "tls-secret-name": "reversetender-tls", "protocol": "https" }'
+    service.beta.kubernetes.io/linode-loadbalancer-check-type: "http"
+    service.beta.kubernetes.io/linode-loadbalancer-check-path: "/octane/health"
+    service.beta.kubernetes.io/linode-loadbalancer-check-body: ""
+    service.beta.kubernetes.io/linode-loadbalancer-algorithm: "roundrobin"
+    service.beta.kubernetes.io/linode-loadbalancer-session-stickiness: "table"
+    service.beta.kubernetes.io/linode-loadbalancer-session-persistence: "300"
+    service.beta.kubernetes.io/linode-loadbalancer-proxy-protocol: "v2"
+    service.beta.kubernetes.io/linode-loadbalancer-hostname-only-ingress: "true"
+    
+    # Rate limiting and CORS
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    
+    # Blue-Green traffic management
+    nginx.ingress.kubernetes.io/canary: "false"
+    nginx.ingress.kubernetes.io/canary-weight: "0"
+    
+  hosts:
+    - host: api.reversetender.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: gateway-service
+            port: 80
+    - host: app.reversetender.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: gateway-service
+            port: 80
+  tls:
+    - secretName: reversetender-tls
+      hosts:
+        - api.reversetender.com
+        - app.reversetender.com
+
+# Blue-Green specific ingress for environment isolation
+blueGreenIngress:
+  enabled: true
+  blue:
+    host: blue.reversetender.com
+    annotations:
+      nginx.ingress.kubernetes.io/canary: "false"
+      service.beta.kubernetes.io/linode-loadbalancer-hostname-only-ingress: "true"
+  green:
+    host: green.reversetender.com
+    annotations:
+      nginx.ingress.kubernetes.io/canary: "true"
+      nginx.ingress.kubernetes.io/canary-weight: "0"
+      service.beta.kubernetes.io/linode-loadbalancer-hostname-only-ingress: "true"
+
+# Linode NodeBalancer service configuration
+service:
+  type: LoadBalancer  # Use LoadBalancer for Linode NodeBalancer
+  annotations:
+    # Linode NodeBalancer annotations
+    service.beta.kubernetes.io/linode-loadbalancer-protocol: "http"
+    service.beta.kubernetes.io/linode-loadbalancer-port-443: '{ "tls-secret-name": "reversetender-tls", "protocol": "https" }'
+    service.beta.kubernetes.io/linode-loadbalancer-check-type: "http"
+    service.beta.kubernetes.io/linode-loadbalancer-check-path: "/octane/health"
+    service.beta.kubernetes.io/linode-loadbalancer-check-body: ""
+    service.beta.kubernetes.io/linode-loadbalancer-algorithm: "roundrobin"
+    service.beta.kubernetes.io/linode-loadbalancer-session-stickiness: "table"
+    service.beta.kubernetes.io/linode-loadbalancer-session-persistence: "300"
+    service.beta.kubernetes.io/linode-loadbalancer-proxy-protocol: "v2"
+    service.beta.kubernetes.io/linode-loadbalancer-hostname-only-ingress: "true"
+    service.beta.kubernetes.io/linode-loadbalancer-throttle: "20"
+
+# Linode-specific resource configurations
+resources:
+  # Gateway service (optimized for Linode)
+  gateway-service:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+  
+  # Saga pattern services (balanced for Linode pricing)
+  auction-service:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  payment-service:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  order-service:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  bidding-service:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# Linode-specific autoscaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 12
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  # Linode-optimized scaling behavior
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+
+# Linode Managed Database configuration
+postgresql:
+  enabled: false  # Use Linode Managed Database
+  external:
+    enabled: true
+    host: "lin-123456-789-mysql-primary.servers.linodedb.net"
+    port: 3306
+    database: "reversetender"
+    sslMode: "require"
+
+# Linode Managed Redis configuration (using external Redis provider)
+redis:
+  enabled: false  # Use external Redis provider
+  external:
+    enabled: true
+    host: "redis-cluster.reversetender.com"
+    port: 6379
+    ssl: false
+
+# Linode-specific ConfigMap settings
+configMap:
+  data:
+    # Linode-specific environment variables
+    CLOUD_PROVIDER: "linode"
+    LINODE_REGION: "us-east"
+    LINODE_TOKEN: "${LINODE_TOKEN}"
+    
+    # NodeBalancer specific
+    INGRESS_CONTROLLER: "nginx"
+    LOAD_BALANCER_TYPE: "linode-nodebalancer"
+    
+    # Blue-Green specific
+    BLUE_GREEN_ENABLED: "true"
+    BLUE_GREEN_STRATEGY: "linode-nodebalancer"
+    HEALTH_CHECK_PATH: "/octane/health"
+    
+    # Performance optimizations for Linode
+    OCTANE_WORKERS: "4"
+    OCTANE_TASK_WORKERS: "6"
+    OCTANE_MAX_REQUESTS: "500"
+    OCTANE_MEMORY_LIMIT: "512M"
+    
+    # Linode-specific caching
+    CACHE_DRIVER: "redis"
+    SESSION_DRIVER: "redis"
+    QUEUE_CONNECTION: "redis"
+
+# Linode-specific secrets
+secrets:
+  data:
+    # Linode API credentials
+    LINODE_TOKEN: "${LINODE_TOKEN}"
+    LINODE_ROOT_PASS: "${LINODE_ROOT_PASS}"
+    
+    # Database credentials (from Linode Managed Database)
+    DB_PASSWORD: "${LINODE_DB_PASSWORD}"
+    REDIS_PASSWORD: "${REDIS_PASSWORD}"
+
+# Pod Disruption Budget for Linode
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  maxUnavailable: 1
+
+# Linode-specific node affinity
+nodeSelector:
+  kubernetes.io/os: linux
+
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: lke.linode.com/pool-id
+              operator: Exists
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - reverse-tender
+          topologyKey: kubernetes.io/hostname
+
+# Linode-specific tolerations
+tolerations: []
+
+# Linode monitoring integration
+monitoring:
+  enabled: true
+  linodeMonitoring:
+    enabled: true
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+  grafana:
+    enabled: true
+
+# Linode-specific security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_BIND_SERVICE
+
+# Linode-specific network policies
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8000
+
+# Linode Object Storage configuration
+storage:
+  objectStorage:
+    enabled: true
+    endpoint: "us-east-1.linodeobjects.com"
+    bucket: "reversetender-assets"
+    region: "us-east-1"
+    accessKey: "${LINODE_OBJECT_STORAGE_KEY}"
+    secretKey: "${LINODE_OBJECT_STORAGE_SECRET}"
+
+# Linode-specific backup configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: "30d"
+  storage:
+    type: "linode-object-storage"
+    bucket: "reversetender-backups"
+
+# Linode Block Storage configuration
+persistence:
+  enabled: true
+  storageClass: "linode-block-storage-retain"
+  accessMode: ReadWriteOnce
+  size: 20Gi
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "linode-block-storage-retain"

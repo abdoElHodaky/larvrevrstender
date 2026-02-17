@@ -47,6 +47,8 @@ jobs:
       services_list: ${{ steps.services.outputs.list }}
       services_matrix: ${{ steps.services.outputs.matrix }}
       deploy_strategy: ${{ steps.strategy.outputs.strategy }}
+      cloud_provider: ${{ steps.cloud.outputs.provider }}
+      helm_values_file: ${{ steps.cloud.outputs.values_file }}
     
     steps:
     - name: Checkout code
@@ -145,6 +147,57 @@ jobs:
           echo "strategy=staging" >> $GITHUB_OUTPUT
           echo "🎯 Feature branch: Using staging deployment"
         fi
+
+    - name: Detect cloud provider
+      id: cloud
+      run: |
+        # Default to Azure if no specific provider is detected
+        CLOUD_PROVIDER="azure"
+        HELM_VALUES_FILE="values-azure.yaml"
+        
+        # Check for cloud provider hints in commit message or branch name
+        COMMIT_MSG="${{ github.event.head_commit.message || github.event.pull_request.title }}"
+        BRANCH_NAME="${{ github.ref_name }}"
+        
+        if echo "$COMMIT_MSG $BRANCH_NAME" | grep -qi "digitalocean\|do\|doks"; then
+          CLOUD_PROVIDER="digitalocean"
+          HELM_VALUES_FILE="values-digitalocean.yaml"
+          echo "🌊 DigitalOcean deployment detected"
+        elif echo "$COMMIT_MSG $BRANCH_NAME" | grep -qi "linode\|lke"; then
+          CLOUD_PROVIDER="linode"
+          HELM_VALUES_FILE="values-linode.yaml"
+          echo "🔗 Linode deployment detected"
+        elif echo "$COMMIT_MSG $BRANCH_NAME" | grep -qi "openstack\|heat"; then
+          CLOUD_PROVIDER="openstack"
+          HELM_VALUES_FILE="values-openstack.yaml"
+          echo "☁️ OpenStack deployment detected"
+        elif echo "$COMMIT_MSG $BRANCH_NAME" | grep -qi "azure\|aks"; then
+          CLOUD_PROVIDER="azure"
+          HELM_VALUES_FILE="values-azure.yaml"
+          echo "🔷 Azure deployment detected"
+        else
+          echo "🔷 Default Azure deployment selected"
+        fi
+        
+        # Check for environment variables that might indicate cloud provider
+        if [ -n "${{ secrets.DO_TOKEN }}" ] && [ "$CLOUD_PROVIDER" = "azure" ]; then
+          CLOUD_PROVIDER="digitalocean"
+          HELM_VALUES_FILE="values-digitalocean.yaml"
+          echo "🌊 DigitalOcean detected via secrets"
+        elif [ -n "${{ secrets.LINODE_TOKEN }}" ] && [ "$CLOUD_PROVIDER" = "azure" ]; then
+          CLOUD_PROVIDER="linode"
+          HELM_VALUES_FILE="values-linode.yaml"
+          echo "🔗 Linode detected via secrets"
+        elif [ -n "${{ secrets.OS_AUTH_URL }}" ] && [ "$CLOUD_PROVIDER" = "azure" ]; then
+          CLOUD_PROVIDER="openstack"
+          HELM_VALUES_FILE="values-openstack.yaml"
+          echo "☁️ OpenStack detected via secrets"
+        fi
+        
+        echo "provider=$CLOUD_PROVIDER" >> $GITHUB_OUTPUT
+        echo "values_file=$HELM_VALUES_FILE" >> $GITHUB_OUTPUT
+        echo "🎯 Selected cloud provider: $CLOUD_PROVIDER"
+        echo "📄 Helm values file: $HELM_VALUES_FILE"
 
   # ============================================================================
   # PHASE 2: CODE QUALITY & SECURITY
@@ -495,33 +548,38 @@ jobs:
       id: deploy
       run: |
         TARGET_ENV="${{ steps.current.outputs.target }}"
+        CLOUD_PROVIDER="${{ needs.detect-changes.outputs.cloud_provider }}"
+        HELM_VALUES_FILE="${{ needs.detect-changes.outputs.helm_values_file }}"
         
         echo "🚀 Deploying to $TARGET_ENV environment..."
+        echo "☁️ Using cloud provider: $CLOUD_PROVIDER"
+        echo "📄 Using Helm values: $HELM_VALUES_FILE"
         
-        # Update Helm values for target environment
-        cat > values-$TARGET_ENV.yaml << EOF
+        # Create cloud provider-specific values override
+        cat > values-$TARGET_ENV-override.yaml << EOF
+        blueGreen:
+          enabled: true
+          activeEnvironment: $TARGET_ENV
         environment: $TARGET_ENV
         image:
           tag: ${{ github.sha }}
         replicaCount: 3
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
+        global:
+          cloudProvider: $CLOUD_PROVIDER
         EOF
         
-        # Deploy using Helm
+        # Deploy using Helm with cloud provider-specific values
         helm upgrade --install app-$TARGET_ENV ./deployment/helm/reverse-tender \
           --namespace default \
-          --values values-$TARGET_ENV.yaml \
+          --values ./deployment/helm/reverse-tender/$HELM_VALUES_FILE \
+          --values values-$TARGET_ENV-override.yaml \
           --set image.tag=${{ github.sha }} \
           --set environment=$TARGET_ENV \
-          --wait --timeout=10m
+          --set blueGreen.activeEnvironment=$TARGET_ENV \
+          --set global.cloudProvider=$CLOUD_PROVIDER \
+          --wait --timeout=15m
         
-        echo "✅ Deployment to $TARGET_ENV completed"
+        echo "✅ Blue-Green deployment to $TARGET_ENV completed for $CLOUD_PROVIDER"
         echo "environment_url=https://$TARGET_ENV.reversetender.com" >> $GITHUB_OUTPUT
 
     - name: Run health checks
@@ -632,16 +690,23 @@ jobs:
     - name: Deploy to staging with Helm
       run: |
         echo "🎭 Deploying to staging environment..."
+        CLOUD_PROVIDER="${{ needs.detect-changes.outputs.cloud_provider }}"
+        HELM_VALUES_FILE="${{ needs.detect-changes.outputs.helm_values_file }}"
         
-        # Install Helm chart
+        echo "☁️ Using cloud provider: $CLOUD_PROVIDER"
+        echo "📄 Using Helm values: $HELM_VALUES_FILE"
+        
+        # Install Helm chart with cloud provider-specific values
         helm upgrade --install reverse-tender-staging ./deployment/helm/reverse-tender \
           --namespace staging --create-namespace \
+          --values ./deployment/helm/reverse-tender/$HELM_VALUES_FILE \
           --set image.tag=${{ github.sha }} \
           --set environment=staging \
           --set replicaCount=2 \
+          --set global.cloudProvider=$CLOUD_PROVIDER \
           --wait --timeout=10m
         
-        echo "✅ Staging deployment completed"
+        echo "✅ Staging deployment completed for $CLOUD_PROVIDER"
 
     - name: Run integration tests
       run: |
