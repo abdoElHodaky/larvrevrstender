@@ -57,6 +57,15 @@ jobs:
         extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, redis, curl
         coverage: xdebug
         ini-file: production
+        
+    - name: Verify PHP Configuration
+      run: |
+        echo "🔍 PHP Configuration:"
+        php --version
+        echo "📋 Installed extensions:"
+        php -m | grep -E "(xdebug|sqlite|pdo)"
+        echo "🎯 Xdebug status:"
+        php -m | grep -i xdebug && echo "✅ Xdebug is installed" || echo "❌ Xdebug not found"
 
     - name: Cache Composer packages
       id: composer-cache
@@ -274,16 +283,34 @@ jobs:
         
         # Run tests using Laravel's test command if artisan exists, otherwise use PHPUnit directly
         if [ -f "artisan" ]; then
-          # Try with coverage first, if it fails due to no coverage driver, try without coverage
-          if ! php artisan test --coverage-clover coverage.xml 2>/dev/null; then
-            echo "⚠️ Coverage generation failed, running tests without coverage..."
-            php artisan test
+          echo "🧪 Running Laravel tests for ${{ matrix.service }}..."
+          # First try with coverage if Xdebug is available
+          if php -m | grep -i xdebug > /dev/null; then
+            echo "✅ Xdebug detected, running tests with coverage..."
+            if php artisan test --coverage-clover coverage.xml --log-junit test-results.xml; then
+              echo "✅ Tests with coverage completed successfully"
+            else
+              echo "⚠️ Tests with coverage failed, trying without coverage..."
+              php artisan test --log-junit test-results.xml
+            fi
+          else
+            echo "⚠️ Xdebug not available, running tests without coverage..."
+            php artisan test --log-junit test-results.xml
           fi
         else
-          # Try with coverage first, if it fails due to no coverage driver, try without coverage
-          if ! ./vendor/bin/phpunit --coverage-clover coverage.xml 2>/dev/null; then
-            echo "⚠️ Coverage generation failed, running tests without coverage..."
-            ./vendor/bin/phpunit
+          echo "🧪 Running PHPUnit tests for ${{ matrix.service }}..."
+          # First try with coverage if Xdebug is available
+          if php -m | grep -i xdebug > /dev/null; then
+            echo "✅ Xdebug detected, running tests with coverage..."
+            if XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-clover=coverage.xml --log-junit=test-results.xml --testdox; then
+              echo "✅ Tests with coverage completed successfully"
+            else
+              echo "⚠️ Tests with coverage failed, trying without coverage..."
+              ./vendor/bin/phpunit --log-junit=test-results.xml --testdox
+            fi
+          else
+            echo "⚠️ Xdebug not available, running tests without coverage..."
+            ./vendor/bin/phpunit --log-junit=test-results.xml --testdox
           fi
         fi
 
