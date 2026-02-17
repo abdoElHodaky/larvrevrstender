@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN docker-php-ext-install -j$(nproc) \
     pdo_mysql \
     pdo_pgsql \
+    pgsql \
     pcntl \
     bcmath \
     gd \
@@ -63,6 +64,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN docker-php-ext-install -j$(nproc) \
     pdo_mysql \
     pdo_pgsql \
+    pgsql \
     pcntl \
     bcmath \
     intl \
