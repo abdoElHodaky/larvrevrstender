@@ -22,8 +22,13 @@ abstract class BaseRpcActivity extends Activity
     protected CorrelationService $correlationService;
     protected WorkflowTracingService $tracingService;
     
-    public function __construct()
-    {
+    public function __construct(
+        int $index,
+        string $now,
+        \Workflow\Models\StoredWorkflow $storedWorkflow,
+        ...$arguments
+    ) {
+        parent::__construct($index, $now, $storedWorkflow, ...$arguments);
         $this->rpcClient = new CrossServiceProcedure();
         $this->correlationService = app(CorrelationService::class);
         $this->tracingService = app(WorkflowTracingService::class);

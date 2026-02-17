@@ -18,8 +18,13 @@ abstract class BaseRpcActivity extends Activity
 {
     protected CrossServiceProcedure $rpcClient;
     
-    public function __construct()
-    {
+    public function __construct(
+        int $index,
+        string $now,
+        \Workflow\Models\StoredWorkflow $storedWorkflow,
+        ...$arguments
+    ) {
+        parent::__construct($index, $now, $storedWorkflow, ...$arguments);
         $this->rpcClient = new CrossServiceProcedure();
     }
     
@@ -136,4 +141,3 @@ abstract class BaseRpcActivity extends Activity
         ];
     }
 }
-
