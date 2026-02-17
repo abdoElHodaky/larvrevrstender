@@ -112,7 +112,8 @@ class PaymentProcessingSagaTest extends TestCase
             'customer_id' => 67890,
             'amount' => -100.00, // Invalid amount
             'currency' => 'INVALID',
-            'payment_method' => 'invalid_method'
+            'payment_method' => 'invalid_method',
+            'payment_details' => [] // Empty payment details to trigger validation failure
         ];
 
         // Act
@@ -185,7 +186,11 @@ class PaymentProcessingSagaTest extends TestCase
             'payment_method' => 'card',
             'payment_provider' => 'stripe',
             'card_token' => 'tok_test_123',
-            'idempotency_key' => 'test_key_123'
+            'idempotency_key' => 'test_key_123',
+            'payment_details' => [
+                'card_last_four' => '4242',
+                'card_brand' => 'visa'
+            ]
         ];
 
         // Act - Run the same saga twice
@@ -270,7 +275,11 @@ class PaymentProcessingSagaTest extends TestCase
             'currency' => 'SAR',
             'payment_method' => 'card',
             'payment_provider' => 'stripe',
-            'card_token' => 'tok_test_123'
+            'card_token' => 'tok_test_123',
+            'payment_details' => [
+                'card_last_four' => '4242',
+                'card_brand' => 'visa'
+            ]
         ];
 
         // Act

@@ -50,7 +50,7 @@ class ValidatePaymentDataActivity extends BaseRpcActivity
             }
 
             // Validate payment method
-            $supportedMethods = ['credit_card', 'debit_card', 'paypal', 'stripe', 'bank_transfer'];
+            $supportedMethods = ['credit_card', 'debit_card', 'card', 'paypal', 'stripe', 'bank_transfer', 'wallet'];
             if (!in_array($data['payment_method'], $supportedMethods)) {
                 throw new Exception('Unsupported payment method: ' . $data['payment_method']);
             }
@@ -129,6 +129,13 @@ class ValidatePaymentDataActivity extends BaseRpcActivity
                 }
                 break;
 
+            case 'card':
+                // For generic 'card' method, we accept either full card details or tokenized details
+                if (empty($details['card_last_four']) && empty($details['card_number'])) {
+                    throw new Exception('Card details are required (either card_number or card_last_four)');
+                }
+                break;
+
             case 'paypal':
                 if (empty($details['paypal_email'])) {
                     throw new Exception('PayPal email is required');
@@ -147,6 +154,12 @@ class ValidatePaymentDataActivity extends BaseRpcActivity
                     if (empty($details[$field])) {
                         throw new Exception("Missing required bank field: {$field}");
                     }
+                }
+                break;
+
+            case 'wallet':
+                if (empty($details['wallet_id'])) {
+                    throw new Exception('Wallet ID is required');
                 }
                 break;
         }

@@ -75,6 +75,18 @@ class PaymentProcessingSaga extends Workflow
             $validationResult = yield activity(ValidatePaymentDataActivity::class, $paymentData);
             error_log("ValidatePaymentDataActivity result: " . json_encode($validationResult));
             error_log("ValidatePaymentDataActivity result type: " . gettype($validationResult));
+            
+            // Check if validation failed
+            if (!($validationResult['success'] ?? false)) {
+                $errorMessage = $validationResult['error'] ?? 'Payment validation failed';
+                Log::error("Payment validation failed, stopping saga", [
+                    'saga_id' => $this->workflowId(),
+                    'error' => $errorMessage,
+                    'validation_result' => $validationResult
+                ]);
+                throw new Exception($errorMessage);
+            }
+            
             $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $validationResult));
 
             // Step 2: Process Payment
@@ -125,7 +137,14 @@ class PaymentProcessingSaga extends Workflow
             // Execute compensations in reverse order
             yield from $this->compensate();
             
-            throw $e;
+            // Return error response instead of throwing exception
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'saga_id' => $this->workflowId(),
+                'timestamp' => now()->toISOString(),
+                'compensations_executed' => true
+            ];
         }
     }
 
