@@ -745,3 +745,19 @@
 [2026-02-05 22:48:02] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
 [2026-02-05 22:48:02] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
 [2026-02-05 22:48:02] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-02-17 07:23:34] local.ERROR: Command "test" is not defined.
+
+Did you mean one of these?
+    make:test
+    schedule:test {"exception":"[object] (Symfony\\Component\\Console\\Exception\\CommandNotFoundException(code: 0): Command \"test\" is not defined.
+
+Did you mean one of these?
+    make:test
+    schedule:test at /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/vendor/symfony/console/Application.php:759)
+[stacktrace]
+#0 /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/vendor/symfony/console/Application.php(298): Symfony\\Component\\Console\\Application->find()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/vendor/symfony/console/Application.php(195): Symfony\\Component\\Console\\Application->doRun()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/gateway-service/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
+#4 {main}
+"} 

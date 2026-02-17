@@ -2,6 +2,56 @@
 
 All notable changes to `laravel-event-sourcing` will be documented in this file:
 
+## 7.12.9 - 2026-02-13
+
+### What's Changed
+
+* Fix #[Ignore] attributes on ShouldBeStored conflicting with child class properties
+
+**Full Changelog**: https://github.com/spatie/laravel-event-sourcing/compare/7.12.8...7.12.9
+
+## 7.12.8 - 2026-02-11
+
+### What's Changed
+
+* Use generic FakeAggregateRoot by @Bloemendaal in https://github.com/spatie/laravel-event-sourcing/pull/522
+
+**Full Changelog**: https://github.com/spatie/laravel-event-sourcing/compare/7.12.7...7.12.8
+
+## 7.12.7 - 2026-02-11
+
+### What's Changed
+
+* Allow alphanumeric stored event IDs (e.g. UUID7) in addition to numeric values by @plusquamperfekt in https://github.com/spatie/laravel-event-sourcing/pull/521
+
+## 7.12.6 - 2026-02-09
+
+### What's Changed
+
+* Constrain phpunit-snapshot-assertions to <5.2 to fix CI in https://github.com/spatie/laravel-event-sourcing/pull/520
+
+**Full Changelog**: https://github.com/spatie/laravel-event-sourcing/compare/7.12.5...7.12.6
+
+## 7.12.5 - 2026-02-09
+
+### What's Changed
+
+* Fix metaData leaking into event_properties since Symfony Serializer v8.0.4 in https://github.com/spatie/laravel-event-sourcing/pull/519
+
+**Full Changelog**: https://github.com/spatie/laravel-event-sourcing/compare/7.12.4...7.12.5
+
+## 7.12.4 - 2026-01-22
+
+### What's Changed
+
+* Introduce configurable aggregate event ordering. by @Gummibeer in https://github.com/spatie/laravel-event-sourcing/pull/516
+
+### New Contributors
+
+* @Gummibeer made their first contribution in https://github.com/spatie/laravel-event-sourcing/pull/516
+
+**Full Changelog**: https://github.com/spatie/laravel-event-sourcing/compare/7.12.3...7.12.4
+
 ## 7.12.3 - 2025-11-23
 
 ### What's Changed
@@ -574,6 +624,12 @@ All notable changes to `laravel-event-sourcing` will be documented in this file:
 
 
 
+
+
+
+
+
+
 ```
 ## 6.0.0 - 2021-??-??
 
@@ -586,6 +642,12 @@ All notable changes to `laravel-event-sourcing` will be documented in this file:
 
 -    public function handle(StoredEvent $event);
 +    public function handle(StoredEvent $storedEvent): void;
+
+
+
+
+
+
 
 
 
@@ -925,6 +987,12 @@ class MyProjector extends Projector
 
 
 
+
+
+
+
+
+
 ```
 Note that `__invoke` in projectors and reactors works the same way, it's automatically registered based on the type hinted event.
 
@@ -948,6 +1016,12 @@ public function up()
         $table->unique(['aggregate_uuid', 'aggregate_version']);
     });
 }
+
+
+
+
+
+
 
 
 

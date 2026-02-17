@@ -1,0 +1,14 @@
+{
+    "name": "codespaces-laravel",
+    "dockerComposeFile": ["docker-compose.yml"],
+    "workspaceFolder": "/workspace",
+    "service": "app",
+    "shutdownAction": "stopCompose",
+    "extensions": [
+    	"editorconfig.editorconfig",
+	],
+    "settings": {
+        "#terminal.integrated.shell.linux": "/bin/bash"
+    },
+	"postCreateCommand": "composer install",
+}
