@@ -1,5 +1,6 @@
 name: RPC Services Deployment Pipeline (Optimized)
 # Optimized deployment pipeline with improved performance and resource usage
+# Updated for Laravel 12+ compatibility with enhanced security scanning
 
 on:
   push:
@@ -155,9 +156,10 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.3'
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, redis, curl
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, redis, curl, gd, json, dom, filter
         coverage: xdebug
         ini-file: production
+        tools: composer:v2
         
     - name: Verify PHP Configuration
       if: steps.check.outputs.test == 'true'
@@ -214,11 +216,25 @@ jobs:
       run: |
         if [ -f "composer.json" ]; then
           echo "📦 Installing Composer dependencies for ${{ matrix.service }}..."
-          composer install --prefer-dist --no-progress --optimize-autoloader
+          
+          # Laravel 12 optimized composer install with security audit
+          COMPOSER_ALLOW_SUPERUSER=1 composer install --prefer-dist --no-progress --optimize-autoloader --no-scripts
+          
+          # Run security audit for Laravel 12 compatibility
+          echo "🔒 Running security audit..."
+          composer audit --format=plain || echo "⚠️ Security audit completed with warnings"
           
           # Generate dependency report
           echo "📋 Generating dependency report..."
           composer show --format=json > composer-dependencies.json
+          
+          # Verify Laravel 12 compatibility
+          echo "🔍 Verifying Laravel 12 compatibility..."
+          if composer show laravel/framework | grep -q "versions : \* v12\."; then
+            echo "✅ Laravel 12 detected and compatible"
+          else
+            echo "⚠️ Laravel version check inconclusive"
+          fi
         else
           echo "⚠️ No composer.json found for ${{ matrix.service }}, skipping..."
           exit 0

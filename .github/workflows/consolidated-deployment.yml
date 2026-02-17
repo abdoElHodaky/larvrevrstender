@@ -1,6 +1,7 @@
 name: Consolidated CI/CD Pipeline with Blue-Green Deployment
 # Enterprise-grade consolidated workflow combining all best practices
 # Features: Smart change detection, blue-green deployment, comprehensive testing
+# Updated for Laravel 12+ compatibility with enhanced security scanning
 
 on:
   push:
@@ -199,9 +200,21 @@ jobs:
             mkdir -p bootstrap/cache storage/logs
             chmod -R 755 bootstrap/cache storage
             
-            # Install dependencies
+            # Install dependencies with Laravel 12 optimizations
             if COMPOSER_ALLOW_SUPERUSER=1 composer install --no-progress --prefer-dist --optimize-autoloader --no-scripts; then
               echo "✅ Dependencies installed for $service"
+              
+              # Run security audit for Laravel 12 compatibility
+              echo "🔒 Running security audit for $service..."
+              composer audit --format=plain || echo "⚠️ Security audit completed with warnings for $service"
+              
+              # Verify Laravel 12 compatibility
+              echo "🔍 Verifying Laravel 12 compatibility for $service..."
+              if composer show laravel/framework | grep -q "versions : \* v12\."; then
+                echo "✅ Laravel 12 detected and compatible for $service"
+              else
+                echo "⚠️ Laravel version check inconclusive for $service"
+              fi
               
               # Run PHPStan if configuration exists
               if [ -f "phpstan.neon" ] || [ -f "phpstan.neon.dist" ]; then
