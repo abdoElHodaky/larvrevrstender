@@ -27,19 +27,15 @@
     23 => 'Workflow\\Providers\\WorkflowServiceProvider',
     24 => 'Laravel\\Horizon\\HorizonServiceProvider',
     25 => 'Laravel\\Octane\\OctaneServiceProvider',
-    26 => 'Laravel\\Pail\\PailServiceProvider',
-    27 => 'Laravel\\Sail\\SailServiceProvider',
-    28 => 'Laravel\\Sanctum\\SanctumServiceProvider',
-    29 => 'Laravel\\Telescope\\TelescopeServiceProvider',
-    30 => 'Laravel\\Tinker\\TinkerServiceProvider',
-    31 => 'Carbon\\Laravel\\ServiceProvider',
-    32 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
-    33 => 'Termwind\\Laravel\\TermwindServiceProvider',
-    34 => 'Sajya\\Server\\ServerServiceProvider',
-    35 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
-    36 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
-    37 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
-    38 => 'App\\Providers\\AppServiceProvider',
+    26 => 'Laravel\\Sanctum\\SanctumServiceProvider',
+    27 => 'Laravel\\Telescope\\TelescopeServiceProvider',
+    28 => 'Laravel\\Tinker\\TinkerServiceProvider',
+    29 => 'Carbon\\Laravel\\ServiceProvider',
+    30 => 'Termwind\\Laravel\\TermwindServiceProvider',
+    31 => 'Sajya\\Server\\ServerServiceProvider',
+    32 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
+    33 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
+    34 => 'App\\Providers\\AppServiceProvider',
   ),
   'eager' => 
   array (
@@ -56,17 +52,14 @@
     10 => 'Workflow\\Providers\\WorkflowServiceProvider',
     11 => 'Laravel\\Horizon\\HorizonServiceProvider',
     12 => 'Laravel\\Octane\\OctaneServiceProvider',
-    13 => 'Laravel\\Pail\\PailServiceProvider',
-    14 => 'Laravel\\Sanctum\\SanctumServiceProvider',
-    15 => 'Laravel\\Telescope\\TelescopeServiceProvider',
-    16 => 'Carbon\\Laravel\\ServiceProvider',
-    17 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
-    18 => 'Termwind\\Laravel\\TermwindServiceProvider',
-    19 => 'Sajya\\Server\\ServerServiceProvider',
-    20 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
-    21 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
-    22 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
-    23 => 'App\\Providers\\AppServiceProvider',
+    13 => 'Laravel\\Sanctum\\SanctumServiceProvider',
+    14 => 'Laravel\\Telescope\\TelescopeServiceProvider',
+    15 => 'Carbon\\Laravel\\ServiceProvider',
+    16 => 'Termwind\\Laravel\\TermwindServiceProvider',
+    17 => 'Sajya\\Server\\ServerServiceProvider',
+    18 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
+    19 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
+    20 => 'App\\Providers\\AppServiceProvider',
   ),
   'deferred' => 
   array (
@@ -224,8 +217,6 @@
     'validator' => 'Illuminate\\Validation\\ValidationServiceProvider',
     'validation.presence' => 'Illuminate\\Validation\\ValidationServiceProvider',
     'Illuminate\\Contracts\\Validation\\UncompromisedVerifier' => 'Illuminate\\Validation\\ValidationServiceProvider',
-    'Laravel\\Sail\\Console\\InstallCommand' => 'Laravel\\Sail\\SailServiceProvider',
-    'Laravel\\Sail\\Console\\PublishCommand' => 'Laravel\\Sail\\SailServiceProvider',
     'command.tinker' => 'Laravel\\Tinker\\TinkerServiceProvider',
   ),
   'when' => 
@@ -267,9 +258,6 @@
     array (
     ),
     'Illuminate\\Validation\\ValidationServiceProvider' => 
-    array (
-    ),
-    'Laravel\\Sail\\SailServiceProvider' => 
     array (
     ),
     'Laravel\\Tinker\\TinkerServiceProvider' => 

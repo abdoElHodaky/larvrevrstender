@@ -60,7 +60,7 @@ class PaymentProcessingSaga extends Workflow
      */
     public function execute(array $paymentData = [])
     {
-        $workflowId = $this->workflowId();
+        $workflowId = $this->uniqueId();
         
         // Use provided data or fall back to workflow input
         $data = !empty($paymentData) ? $paymentData : $this->input();
