@@ -17,7 +17,8 @@ class ValidatePaymentDataActivityTest extends TestCase
     public function test_successful_payment_data_validation()
     {
         // Arrange
-        $activity = new ValidatePaymentDataActivity();
+        $storedWorkflow = \Mockery::mock(\Workflow\Models\StoredWorkflow::class);
+        $activity = new ValidatePaymentDataActivity(1, now()->toISOString(), $storedWorkflow);
         $paymentData = [
             'order_id' => 12345,
             'customer_id' => 67890,
@@ -41,7 +42,8 @@ class ValidatePaymentDataActivityTest extends TestCase
     public function test_validation_with_missing_required_fields()
     {
         // Arrange
-        $activity = new ValidatePaymentDataActivity();
+        $storedWorkflow = \Mockery::mock(\Workflow\Models\StoredWorkflow::class);
+        $activity = new ValidatePaymentDataActivity(1, now()->toISOString(), $storedWorkflow);
         $invalidData = [
             'customer_id' => 67890,
             // Missing order_id, amount, etc.
@@ -62,7 +64,8 @@ class ValidatePaymentDataActivityTest extends TestCase
     public function test_validation_with_invalid_amount()
     {
         // Arrange
-        $activity = new ValidatePaymentDataActivity();
+        $storedWorkflow = \Mockery::mock(\Workflow\Models\StoredWorkflow::class);
+        $activity = new ValidatePaymentDataActivity(1, now()->toISOString(), $storedWorkflow);
         $invalidData = [
             'order_id' => 12345,
             'customer_id' => 67890,
@@ -86,7 +89,8 @@ class ValidatePaymentDataActivityTest extends TestCase
     public function test_validation_with_invalid_currency()
     {
         // Arrange
-        $activity = new ValidatePaymentDataActivity();
+        $storedWorkflow = \Mockery::mock(\Workflow\Models\StoredWorkflow::class);
+        $activity = new ValidatePaymentDataActivity(1, now()->toISOString(), $storedWorkflow);
         $invalidData = [
             'order_id' => 12345,
             'customer_id' => 67890,
