@@ -17,8 +17,11 @@ use App\States\Orders\Shipped;
 use App\States\Orders\Completed;
 use App\States\Orders\Cancelled;
 use Workflow\Workflow;
+use Workflow\ActivityOptions;
+use Workflow\RetryOptions;
 use Throwable;
 use Illuminate\Support\Facades\Log;
+use function Workflow\activity;
 
 /**
  * Order Saga Workflow
@@ -48,49 +51,86 @@ class OrderSagaWorkflow extends Workflow
             'workflow_id' => $this->getWorkflowId(),
             'saga_data' => $orderData
         ]);
+
+        // Configure activity options with retry policies and timeouts
+        $standardActivityOptions = ActivityOptions::new()
+            ->withRetryOptions(
+                RetryOptions::new()
+                    ->withMaximumAttempts(3)
+                    ->withInitialInterval(1) // 1 second
+                    ->withMaximumInterval(60) // 1 minute
+                    ->withBackoffCoefficient(2.0) // Exponential backoff
+            )
+            ->withStartToCloseTimeout(180); // 3 minutes
+
+        $criticalActivityOptions = ActivityOptions::new()
+            ->withRetryOptions(
+                RetryOptions::new()
+                    ->withMaximumAttempts(5)
+                    ->withInitialInterval(2) // 2 seconds
+                    ->withMaximumInterval(300) // 5 minutes
+                    ->withBackoffCoefficient(2.0)
+            )
+            ->withStartToCloseTimeout(600); // 10 minutes
+
+        $inventoryActivityOptions = ActivityOptions::new()
+            ->withRetryOptions(
+                RetryOptions::new()
+                    ->withMaximumAttempts(4)
+                    ->withInitialInterval(1) // 1 second
+                    ->withMaximumInterval(120) // 2 minutes
+                    ->withBackoffCoefficient(2.0)
+            )
+            ->withStartToCloseTimeout(300); // 5 minutes
         
         try {
             // Step 1: Update order state to awaiting payment
             $this->updateOrderState($orderId, AwaitingPayment::class, 'Payment processing initiated');
             
-            // Step 2: Process payment
+            // Step 2: Process payment (Critical - higher retry count)
             Log::info("Processing payment", ['order_id' => $orderId]);
-            $paymentResult = yield activity(ProcessPaymentActivity::class, $orderData);
+            $paymentResult = yield activity(ProcessPaymentActivity::class, $orderData)
+                ->withActivityOptions($criticalActivityOptions);
             
             if (!$paymentResult['success']) {
                 throw new \Exception('Payment processing failed: ' . ($paymentResult['error'] ?? 'Unknown error'));
             }
             
             $paymentId = $paymentResult['data']['payment_id'];
-            $this->addCompensation(fn () => activity(RefundPaymentActivity::class, $paymentId));
+            $this->addCompensation(fn () => activity(RefundPaymentActivity::class, $paymentId)
+                ->withActivityOptions($criticalActivityOptions));
             
             // Update order state to paid
             $this->updateOrderState($orderId, Paid::class, 'Payment completed successfully');
             
-            // Step 3: Reserve inventory
+            // Step 3: Reserve inventory (Inventory-specific retry policy)
             Log::info("Reserving inventory", ['order_id' => $orderId]);
-            $inventoryResult = yield activity(ReserveInventoryActivity::class, $orderData);
+            $inventoryResult = yield activity(ReserveInventoryActivity::class, $orderData)
+                ->withActivityOptions($inventoryActivityOptions);
             
             if (!$inventoryResult['success']) {
                 throw new \Exception('Inventory reservation failed: ' . ($inventoryResult['error'] ?? 'Unknown error'));
             }
             
             $reservationId = $inventoryResult['data']['reservation_id'];
-            $this->addCompensation(fn () => activity(ReleaseInventoryActivity::class, $reservationId));
+            $this->addCompensation(fn () => activity(ReleaseInventoryActivity::class, $reservationId)
+                ->withActivityOptions($inventoryActivityOptions));
             
             // Update order state to processing
             $this->updateOrderState($orderId, Processing::class, 'Inventory reserved, preparing for shipment');
             
             // Step 4: Schedule shipping
             Log::info("Scheduling shipping", ['order_id' => $orderId]);
-            $shippingResult = yield activity(ScheduleShippingActivity::class, $orderData);
+            $shippingResult = yield activity(ScheduleShippingActivity::class, $orderData)
+                ->withActivityOptions($standardActivityOptions);
             
             if (!$shippingResult['success']) {
                 throw new \Exception('Shipping scheduling failed: ' . ($shippingResult['error'] ?? 'Unknown error'));
             }
             
             $shipmentId = $shippingResult['data']['shipment_id'];
-            $this->addCompensation(fn () => activity(CancelShippingActivity::class, $shipmentId));
+            $this->addCompensation(fn () => activity(CancelShippingActivity::class, $shipmentId)
+                ->withActivityOptions($standardActivityOptions));
             
             // Update order state to shipped
             $this->updateOrderState($orderId, Shipped::class, 'Order shipped successfully');
@@ -185,4 +225,3 @@ class OrderSagaWorkflow extends Workflow
         return method_exists($this, 'getId') ? $this->getId() : null;
     }
 }
-
