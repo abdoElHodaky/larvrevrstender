@@ -13,6 +13,7 @@ use App\Workflows\Compensation\RestoreOrderStatusActivity;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Workflow\Workflow;
+use Workflow\WorkflowStub;
 use function Workflow\activity;
 
 /**
@@ -36,6 +37,19 @@ use function Workflow\activity;
  */
 class PaymentProcessingSaga extends Workflow
 {
+    /**
+     * Start the payment processing saga
+     *
+     * @param array $paymentData Payment data to process
+     * @return WorkflowStub Workflow stub for monitoring and control
+     */
+    public static function start(array $paymentData): WorkflowStub
+    {
+        $workflow = WorkflowStub::make(static::class);
+        $workflow->start($paymentData);
+        return $workflow;
+    }
+
     /**
      * Execute the payment processing saga
      *

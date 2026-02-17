@@ -84,7 +84,7 @@ abstract class BaseRpcActivity extends NonUniqueActivity
      */
     protected function getSagaId(): ?string
     {
-        return ActivityStub::getWorkflowId();
+        return $this->workflowId();
     }
     
     /**

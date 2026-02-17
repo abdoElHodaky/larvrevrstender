@@ -17,7 +17,7 @@ use Workflow\Models\StoredWorkflow;
 use Workflow\Serializer;
 use Workflow\Middleware\ActivityMiddleware;
 use Workflow\Middleware\WithoutOverlappingMiddleware;
-use Workflow\Traits\RouteDependencyResolverTrait;
+use Illuminate\Routing\RouteDependencyResolverTrait;
 use Illuminate\Container\Container;
 use Illuminate\Foundation\Application as App;
 
@@ -171,4 +171,3 @@ abstract class NonUniqueActivity implements ShouldBeEncrypted, ShouldQueue
         $workflow->catch($throwable, $lines);
     }
 }
-
