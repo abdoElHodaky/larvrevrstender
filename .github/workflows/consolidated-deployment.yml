@@ -125,7 +125,7 @@ jobs:
         fi
         
         # Create JSON matrix for GitHub Actions
-        SERVICES_ARRAY=$(echo "$CHANGED_SERVICES" | tr ',' '\n' | jq -R . | jq -s .)
+        SERVICES_ARRAY=$(echo "$CHANGED_SERVICES" | tr ',' '\n' | sed 's/^/"/;s/$/"/' | paste -sd ',' | sed 's/^/[/;s/$/]/')
         
         echo "list=$CHANGED_SERVICES" >> $GITHUB_OUTPUT
         echo "matrix=$SERVICES_ARRAY" >> $GITHUB_OUTPUT
