@@ -1,0 +1,497 @@
+# Shared Service Definitions for Multi-Cloud Deployment
+# This file defines all microservices with their common properties across
+# Azure, OpenStack, Linode, and DigitalOcean deployments
+
+metadata:
+  project: reverse-tender
+  version: "1.0.0"
+  description: "Laravel 12 + Octane microservices platform"
+  maintainer: "Reverse Tender Platform Team"
+
+# Global service defaults
+defaults:
+  image:
+    registry: "ghcr.io/reverse-tender"
+    tag: "latest"
+    pull_policy: "IfNotPresent"
+  
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  
+  health_checks:
+    liveness_probe:
+      path: "/health"
+      port: "http"
+      initial_delay: 30
+      period: 10
+      timeout: 5
+      failure_threshold: 3
+    
+    readiness_probe:
+      path: "/ready"
+      port: "http"
+      initial_delay: 5
+      period: 5
+      timeout: 3
+      failure_threshold: 3
+  
+  environment:
+    APP_ENV: "production"
+    APP_DEBUG: "false"
+    LOG_CHANNEL: "stderr"
+    LOG_LEVEL: "info"
+    CACHE_DRIVER: "redis"
+    SESSION_DRIVER: "redis"
+    QUEUE_CONNECTION: "redis"
+
+# Service definitions
+services:
+  api-gateway:
+    description: "Central API gateway and request routing"
+    port: 8000
+    replicas:
+      dev: 2
+      staging: 3
+      prod: 5
+    
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+    
+    environment:
+      SERVICE_NAME: "api-gateway"
+      SERVICE_PORT: "8000"
+      GATEWAY_TIMEOUT: "30"
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_REQUESTS: "1000"
+      RATE_LIMIT_WINDOW: "60"
+    
+    ingress:
+      enabled: true
+      paths:
+        - "/"
+        - "/api/*"
+      annotations:
+        nginx.ingress.kubernetes.io/rate-limit: "100"
+        nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+
+  auth-service:
+    description: "Authentication and authorization service"
+    port: 8001
+    replicas:
+      dev: 2
+      staging: 2
+      prod: 3
+    
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    
+    environment:
+      SERVICE_NAME: "auth-service"
+      SERVICE_PORT: "8001"
+      JWT_SECRET: "${JWT_SECRET}"
+      JWT_TTL: "3600"
+      BCRYPT_ROUNDS: "12"
+      SESSION_LIFETIME: "120"
+    
+    database:
+      name: "auth_service"
+      migrations: true
+      seeders: false
+
+  bidding-service:
+    description: "Real-time bidding with Laravel Reverb WebSocket"
+    port: 8002
+    replicas:
+      dev: 2
+      staging: 3
+      prod: 5
+    
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+    
+    environment:
+      SERVICE_NAME: "bidding-service"
+      SERVICE_PORT: "8002"
+      REVERB_HOST: "0.0.0.0"
+      REVERB_PORT: "8080"
+      REVERB_SCHEME: "http"
+      WEBSOCKET_ENABLED: "true"
+      BID_TIMEOUT: "300"
+    
+    database:
+      name: "bidding_service"
+      migrations: true
+      seeders: true
+    
+    websocket:
+      enabled: true
+      port: 8080
+
+  user-service:
+    description: "User management and profiles"
+    port: 8003
+    replicas:
+      dev: 2
+      staging: 2
+      prod: 3
+    
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    
+    environment:
+      SERVICE_NAME: "user-service"
+      SERVICE_PORT: "8003"
+      AVATAR_STORAGE: "s3"
+      PROFILE_CACHE_TTL: "3600"
+      EMAIL_VERIFICATION: "true"
+    
+    database:
+      name: "user_service"
+      migrations: true
+      seeders: true
+
+  order-service:
+    description: "Order processing and management"
+    port: 8004
+    replicas:
+      dev: 2
+      staging: 2
+      prod: 4
+    
+    resources:
+      requests:
+        cpu: "150m"
+        memory: "192Mi"
+      limits:
+        cpu: "750m"
+        memory: "768Mi"
+    
+    environment:
+      SERVICE_NAME: "order-service"
+      SERVICE_PORT: "8004"
+      ORDER_TIMEOUT: "1800"
+      INVENTORY_CHECK: "true"
+      PAYMENT_TIMEOUT: "300"
+    
+    database:
+      name: "order_service"
+      migrations: true
+      seeders: false
+
+  notification-service:
+    description: "Multi-channel notifications"
+    port: 8005
+    replicas:
+      dev: 2
+      staging: 2
+      prod: 3
+    
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    
+    environment:
+      SERVICE_NAME: "notification-service"
+      SERVICE_PORT: "8005"
+      MAIL_MAILER: "smtp"
+      MAIL_HOST: "${MAIL_HOST}"
+      MAIL_PORT: "587"
+      MAIL_ENCRYPTION: "tls"
+      SMS_PROVIDER: "twilio"
+      PUSH_PROVIDER: "fcm"
+    
+    database:
+      name: "notification_service"
+      migrations: true
+      seeders: false
+
+  payment-service:
+    description: "Payment processing and transactions"
+    port: 8006
+    replicas:
+      dev: 2
+      staging: 3
+      prod: 5
+    
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+    
+    environment:
+      SERVICE_NAME: "payment-service"
+      SERVICE_PORT: "8006"
+      PAYMENT_GATEWAY: "stripe"
+      PAYMENT_TIMEOUT: "300"
+      REFUND_ENABLED: "true"
+      WEBHOOK_VERIFICATION: "true"
+    
+    database:
+      name: "payment_service"
+      migrations: true
+      seeders: false
+    
+    security:
+      pci_compliance: true
+      encryption_at_rest: true
+
+  analytics-service:
+    description: "Data analytics and reporting"
+    port: 8007
+    replicas:
+      dev: 1
+      staging: 2
+      prod: 3
+    
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "512Mi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
+    
+    environment:
+      SERVICE_NAME: "analytics-service"
+      SERVICE_PORT: "8007"
+      ANALYTICS_BATCH_SIZE: "1000"
+      ANALYTICS_FLUSH_INTERVAL: "60"
+      DATA_RETENTION_DAYS: "365"
+    
+    database:
+      name: "analytics_service"
+      migrations: true
+      seeders: false
+
+  vin-ocr-service:
+    description: "Vehicle identification and OCR processing"
+    port: 8008
+    replicas:
+      dev: 1
+      staging: 2
+      prod: 3
+    
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+      limits:
+        cpu: "2000m"
+        memory: "4Gi"
+    
+    environment:
+      SERVICE_NAME: "vin-ocr-service"
+      SERVICE_PORT: "8008"
+      OCR_ENGINE: "tesseract"
+      OCR_LANGUAGE: "eng"
+      IMAGE_MAX_SIZE: "10485760"
+      PROCESSING_TIMEOUT: "120"
+    
+    database:
+      name: "vin_ocr_service"
+      migrations: true
+      seeders: false
+    
+    storage:
+      enabled: true
+      type: "object"
+      bucket: "vin-images"
+
+  auction-service:
+    description: "Auction management and bidding logic"
+    port: 8009
+    replicas:
+      dev: 2
+      staging: 2
+      prod: 4
+    
+    resources:
+      requests:
+        cpu: "150m"
+        memory: "192Mi"
+      limits:
+        cpu: "750m"
+        memory: "768Mi"
+    
+    environment:
+      SERVICE_NAME: "auction-service"
+      SERVICE_PORT: "8009"
+      AUCTION_DURATION: "86400"
+      BID_INCREMENT: "100"
+      AUTO_EXTEND: "true"
+      EXTEND_DURATION: "300"
+    
+    database:
+      name: "auction_service"
+      migrations: true
+      seeders: true
+
+  gateway-service:
+    description: "Service mesh gateway and routing"
+    port: 8010
+    replicas:
+      dev: 2
+      staging: 2
+      prod: 3
+    
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    
+    environment:
+      SERVICE_NAME: "gateway-service"
+      SERVICE_PORT: "8010"
+      CIRCUIT_BREAKER: "true"
+      RETRY_ATTEMPTS: "3"
+      TIMEOUT: "30"
+      LOAD_BALANCER: "round_robin"
+
+# Cloud-specific configurations
+cloud_configs:
+  azure:
+    ingress:
+      class: "azure/application-gateway"
+      annotations:
+        kubernetes.io/ingress.class: "azure/application-gateway"
+        appgw.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    storage:
+      class: "managed-csi"
+      type: "Premium_LRS"
+    
+    monitoring:
+      application_insights: true
+      log_analytics: true
+
+  openstack:
+    ingress:
+      class: "nginx"
+      annotations:
+        kubernetes.io/ingress.class: "nginx"
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    storage:
+      class: "cinder-csi"
+      type: "ssd"
+    
+    load_balancer:
+      provider: "octavia"
+      algorithm: "round_robin"
+
+  linode:
+    ingress:
+      class: "nginx"
+      annotations:
+        kubernetes.io/ingress.class: "nginx"
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    storage:
+      class: "linode-block-storage-retain"
+      type: "ext4"
+    
+    load_balancer:
+      provider: "nodebalancer"
+      algorithm: "roundrobin"
+
+  digitalocean:
+    ingress:
+      class: "nginx"
+      annotations:
+        kubernetes.io/ingress.class: "nginx"
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    storage:
+      class: "do-block-storage"
+      type: "ext4"
+    
+    load_balancer:
+      provider: "digitalocean"
+      algorithm: "round_robin"
+
+# Environment-specific overrides
+environments:
+  dev:
+    replicas_multiplier: 0.5
+    resources_multiplier: 0.5
+    monitoring:
+      enabled: true
+      retention: "7d"
+    
+    database:
+      backup_enabled: false
+      high_availability: false
+    
+    ssl:
+      enabled: false
+      self_signed: true
+
+  staging:
+    replicas_multiplier: 0.75
+    resources_multiplier: 0.75
+    monitoring:
+      enabled: true
+      retention: "30d"
+    
+    database:
+      backup_enabled: true
+      high_availability: false
+    
+    ssl:
+      enabled: true
+      letsencrypt: true
+
+  prod:
+    replicas_multiplier: 1.0
+    resources_multiplier: 1.0
+    monitoring:
+      enabled: true
+      retention: "90d"
+    
+    database:
+      backup_enabled: true
+      high_availability: true
+    
+    ssl:
+      enabled: true
+      custom_certificates: true
+    
+    security:
+      network_policies: true
+      pod_security_policies: true
+      rbac: true
