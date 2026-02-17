@@ -14,7 +14,7 @@ use SplFileObject;
 use LimitIterator;
 use Throwable;
 use Workflow\Models\StoredWorkflow;
-use Workflow\Serializer;
+use Workflow\Serializers\Serializer;
 use Workflow\Middleware\ActivityMiddleware;
 use Workflow\Middleware\WithoutOverlappingMiddleware;
 use Illuminate\Routing\RouteDependencyResolverTrait;
@@ -110,8 +110,10 @@ abstract class NonUniqueActivity implements ShouldBeEncrypted, ShouldQueue
             }
         }
 
-        if ($this->storedWorkflow->logs()->whereIndex($this->index)->exists()) {
-            return null;
+        $existingLog = $this->storedWorkflow->logs()->whereIndex($this->index)->first();
+        if ($existingLog) {
+            // Return the cached result instead of null, properly deserialized
+            return $existingLog->result ? Serializer::unserialize($existingLog->result) : null;
         }
 
         try {
