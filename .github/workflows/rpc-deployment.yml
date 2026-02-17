@@ -43,7 +43,8 @@ jobs:
           notification-service,
           vin-ocr-service,
           gateway-service,
-          auction-service
+          auction-service,
+          shared
         ]
     
     steps:
@@ -307,7 +308,8 @@ jobs:
           user-service,
           analytics-service,
           order-service,
-          gateway-service
+          gateway-service,
+          shared
         ]
 
     steps:
