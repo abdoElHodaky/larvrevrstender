@@ -1,0 +1,58 @@
+# Gateway Service Configuration
+# Contains configuration specific to the gateway service (main door)
+# Inherits generic API service configurations from api-service-config.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: reverse-tender-platform
+data:
+  # Gateway-Specific Service Identity
+  SERVICE_NAME: "gateway-service"
+  SERVICE_ROLE: "main_entry_point"
+  
+  # Gateway-Specific Cache Configuration
+  CACHE_PREFIX: "gateway:"
+  CACHE_NAMESPACE: "gateway"
+  
+  # Gateway-Specific Health Check Configuration
+  HEALTH_CHECK_SERVICES: "auth-service,auction-service,bidding-service,user-service,order-service,notification-service,payment-service,analytics-service,vin-ocr-service"
+  HEALTH_CHECK_DEEP: "true"
+  HEALTH_CHECK_AGGREGATE: "true"
+  
+  # Gateway-Specific Routing Configuration
+  ROUTE_PREFIX: "/api/v1"
+  ROUTE_REWRITE_ENABLED: "true"
+  ROUTE_STRIP_PREFIX: "true"
+  
+  # Service Routing Map
+  AUTH_SERVICE_ROUTE: "/auth"
+  AUCTION_SERVICE_ROUTE: "/auctions"
+  BIDDING_SERVICE_ROUTE: "/bids"
+  USER_SERVICE_ROUTE: "/users"
+  ORDER_SERVICE_ROUTE: "/orders"
+  NOTIFICATION_SERVICE_ROUTE: "/notifications"
+  PAYMENT_SERVICE_ROUTE: "/payments"
+  ANALYTICS_SERVICE_ROUTE: "/analytics"
+  VIN_OCR_SERVICE_ROUTE: "/vin-ocr"
+  
+  # Gateway-Specific Security Configuration
+  GATEWAY_AUTH_BYPASS_ROUTES: "/health,/metrics,/docs"
+  GATEWAY_RATE_LIMIT_GLOBAL: "1000"
+  GATEWAY_RATE_LIMIT_PER_IP: "100"
+  
+  # Gateway-Specific Load Balancing
+  UPSTREAM_STRATEGY: "least_conn"
+  UPSTREAM_HEALTH_CHECK_INTERVAL: "10s"
+  UPSTREAM_MAX_FAILS: "3"
+  UPSTREAM_FAIL_TIMEOUT: "30s"
+  
+  # Gateway-Specific Monitoring
+  ACCESS_LOG_ENABLED: "true"
+  ACCESS_LOG_FORMAT: "json"
+  REQUEST_ID_HEADER: "X-Request-ID"
+  TRACE_HEADER_PROPAGATION: "true"

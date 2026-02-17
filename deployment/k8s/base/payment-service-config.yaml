@@ -1,0 +1,77 @@
+# Payment Service Configuration
+# Contains configuration specific to the payment service
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-service-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: payment-service
+    app.kubernetes.io/part-of: reverse-tender-platform
+data:
+  # Service Identity
+  SERVICE_NAME: "payment-service"
+  SERVICE_PORT: "8007"
+  SERVICE_ROLE: "payment_processing"
+  
+  # Payment Gateway Configuration
+  PAYMENT_GATEWAY_PRIMARY: "stripe"
+  PAYMENT_GATEWAY_FALLBACK: "paypal"
+  PAYMENT_TIMEOUT: "30"
+  PAYMENT_RETRY_ATTEMPTS: "3"
+  PAYMENT_RETRY_DELAY: "5"
+  
+  # Stripe Configuration
+  STRIPE_ENABLED: "true"
+  STRIPE_WEBHOOK_TOLERANCE: "300"
+  STRIPE_CAPTURE_METHOD: "automatic"
+  STRIPE_CONFIRMATION_METHOD: "automatic"
+  
+  # PayPal Configuration
+  PAYPAL_ENABLED: "true"
+  PAYPAL_MODE: "sandbox"
+  PAYPAL_WEBHOOK_ENABLED: "true"
+  
+  # Transaction Configuration
+  MIN_TRANSACTION_AMOUNT: "1.00"
+  MAX_TRANSACTION_AMOUNT: "100000.00"
+  TRANSACTION_CURRENCY: "USD"
+  TRANSACTION_FEE_PERCENTAGE: "2.9"
+  TRANSACTION_FIXED_FEE: "0.30"
+  
+  # Security Configuration
+  PCI_COMPLIANCE_ENABLED: "true"
+  TOKENIZATION_ENABLED: "true"
+  CARD_VALIDATION_ENABLED: "true"
+  FRAUD_DETECTION_ENABLED: "true"
+  
+  # Refund Configuration
+  REFUND_ENABLED: "true"
+  REFUND_TIMEOUT: "86400"
+  PARTIAL_REFUND_ENABLED: "true"
+  AUTO_REFUND_FAILED_PAYMENTS: "true"
+  
+  # Cache Configuration (Payment-specific)
+  CACHE_PREFIX: "payment:"
+  CACHE_TRANSACTION_TTL: "3600"
+  CACHE_PAYMENT_METHOD_TTL: "1800"
+  
+  # Event Publishing
+  PUBLISH_PAYMENT_EVENTS: "true"
+  PAYMENT_EVENT_CHANNEL: "payment.events"
+  
+  # Webhook Configuration
+  WEBHOOK_SIGNATURE_VERIFICATION: "true"
+  WEBHOOK_RETRY_ATTEMPTS: "3"
+  WEBHOOK_TIMEOUT: "10"
+  
+  # Rate Limiting (Payment-specific)
+  RATE_LIMIT_PAYMENT_ATTEMPTS: "10"
+  RATE_LIMIT_REFUND_REQUESTS: "5"
+  
+  # Monitoring Configuration
+  LOG_PAYMENT_ATTEMPTS: "true"
+  LOG_FAILED_PAYMENTS: "true"
+  AUDIT_PAYMENT_CHANGES: "true"
+  ALERT_ON_FAILED_PAYMENTS: "true"

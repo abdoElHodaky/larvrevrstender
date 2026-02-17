@@ -99,7 +99,7 @@ return new class extends Migration
             $table->index(['payment_provider', 'status']);
             $table->index(['status', 'created_at']);
             $table->index('completed_at');
-            $table->index('reconciled');
+            // Note: 'reconciled' index already created on line 81
         });
     }
 

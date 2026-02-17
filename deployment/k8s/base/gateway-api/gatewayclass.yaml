@@ -1,0 +1,136 @@
+# RPC-Optimized GatewayClass for Reverse Tender Platform
+# Following Kubernetes Gateway API v1 best practices for JSON-RPC/tRPC microservices architecture
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: reverse-tender-rpc-gateway-class
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/protocol: "json-rpc"
+  annotations:
+    # Standard Gateway API annotations
+    gateway.networking.k8s.io/bundle-version: "v2.0.0"
+    gateway.networking.k8s.io/description: "RPC-optimized GatewayClass for JSON-RPC/tRPC microservices"
+spec:
+  # Use Envoy Gateway for optimal RPC-over-HTTP support
+  # Envoy provides excellent HTTP/1.1 and HTTP/2 support for RPC patterns
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  
+  # RPC-optimized parameters for controller-specific optimizations
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: reverse-tender-rpc-proxy-config
+    namespace: reverse-tender
+  
+  description: "RPC-Optimized Gateway Class for Reverse Tender Platform - supports JSON-RPC/tRPC patterns, method dispatch, and RPC session handling"
+
+---
+# RPC-optimized proxy configuration for JSON-RPC/tRPC microservices architecture
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: reverse-tender-rpc-proxy-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/protocol: "json-rpc"
+spec:
+  # RPC-optimized configuration for JSON-RPC/tRPC workloads
+  provider:
+    type: Kubernetes
+    kubernetes:
+      # High availability configuration for RPC traffic
+      replicas: 3
+      
+      # RPC-optimized resource allocation for method dispatch and session handling
+      resources:
+        requests:
+          cpu: 300m          # Higher CPU for RPC method dispatch
+          memory: 512Mi      # More memory for RPC session handling
+        limits:
+          cpu: 1500m         # Higher limits for RPC processing
+          memory: 2Gi        # Increased memory for RPC call buffering
+      
+      # Service configuration optimized for load balancing
+      service:
+        type: LoadBalancer
+        annotations:
+          # Cloud-agnostic annotations - customize in overlays
+          service.beta.kubernetes.io/load-balancer-source-ranges: "0.0.0.0/0"
+        
+        # Optimal ports for microservices architecture
+        ports:
+          - name: http
+            port: 80
+            targetPort: 8080
+            protocol: TCP
+          - name: https
+            port: 443
+            targetPort: 8443
+            protocol: TCP
+  
+  # RPC-optimized telemetry configuration
+  telemetry:
+    metrics:
+      prometheus:
+        disable: false
+        # RPC-specific metrics collection
+        configOverride:
+          metric_relabeling_configs:
+            - source_labels: [__name__]
+              regex: 'envoy_http_.*'
+              target_label: protocol
+              replacement: 'json-rpc'
+    tracing:
+      provider:
+        name: "envoy.tracers.opentelemetry"
+        # RPC method tracing configuration
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.tracers.opentelemetry.v3.OpenTelemetryConfig
+          service_name: "reverse-tender-rpc-gateway"
+    accessLog:
+      settings:
+        - format:
+            type: Text
+            text: |
+              [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"
+              %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT%
+              %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% "%REQ(X-FORWARDED-FOR)%"
+              "%REQ(USER-AGENT)%" "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%"
+              service="%REQ(X-SERVICE-ROUTE)%" rpc_method="%REQ(X-RPC-METHOD)%" user="%REQ(X-USER-ID)%"
+  
+  # Bootstrap configuration for optimal performance
+  bootstrap:
+    type: Replace
+    value: |
+      node:
+        cluster: reverse-tender-gateway
+        id: reverse-tender-proxy
+      static_resources:
+        listeners: []
+        clusters: []
+      dynamic_resources:
+        ads_config:
+          api_type: GRPC
+          transport_api_version: V3
+          grpc_services:
+          - envoy_grpc:
+              cluster_name: xds_cluster
+        cds_config:
+          ads: {}
+          resource_api_version: V3
+        lds_config:
+          ads: {}
+          resource_api_version: V3
+      admin:
+        address:
+          socket_address:
+            address: 127.0.0.1
+            port_value: 19000

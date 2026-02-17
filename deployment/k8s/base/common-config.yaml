@@ -1,0 +1,145 @@
+# Common Configuration for Reverse Tender Platform
+# Contains shared configuration data used by all services
+# Updated for JSON-RPC/tRPC microservices architecture v2.0
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: common-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: configuration
+    app.kubernetes.io/part-of: reverse-tender-platform
+    protocol: json-rpc
+    version: v2.0
+  annotations:
+    config.kubernetes.io/description: "Common configuration for RPC microservices"
+    config.kubernetes.io/protocol: "json-rpc"
+data:
+  # Application Common Settings
+  APP_NAME: "Reverse Tender Platform"
+  APP_TIMEZONE: "UTC"
+  APP_LOCALE: "en"
+  APP_DEBUG: "false"
+  APP_URL: "https://reversetender.com"
+  
+  # Database Configuration - PostgreSQL
+  DB_CONNECTION: "pgsql"
+  DB_PORT: "5432"
+  DB_CHARSET: "utf8mb4"
+  DB_COLLATION: "utf8mb4_unicode_ci"
+  # Note: DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD provided via secrets
+  
+  # Redis Configuration
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  # Note: REDIS_HOST, REDIS_PASSWORD provided via secrets
+  
+  # Cache and Session Configuration
+  CACHE_DRIVER: "redis"
+  SESSION_DRIVER: "redis"
+  SESSION_LIFETIME: "120"
+  SESSION_ENCRYPT: "false"
+  SESSION_PATH: "/"
+  SESSION_DOMAIN: ""
+  QUEUE_CONNECTION: "redis"
+  BROADCAST_DRIVER: "reverb"
+  
+  # Logging Configuration
+  LOG_CHANNEL: "stack"
+  LOG_LEVEL: "info"
+  LOG_DEPRECATIONS_CHANNEL: "null"
+  LOG_STACK: "single"
+  
+  # JWT Configuration (Common defaults)
+  JWT_ALGO: "RS256"
+  JWT_TTL: "900"
+  REFRESH_TTL: "43200"
+  
+  # OTP Configuration
+  OTP_EXPIRY: "300"
+  OTP_LENGTH: "6"
+  
+  # Pagination Configuration
+  DEFAULT_PAGE_SIZE: "20"
+  MAX_PAGE_SIZE: "100"
+  
+  # Health Check Configuration
+  HEALTH_CHECK_INTERVAL: "30s"
+  HEALTH_CHECK_TIMEOUT: "10s"
+  HEALTH_CHECK_RETRIES: "3"
+  
+  # Laravel Octane Configuration
+  OCTANE_SERVER: "frankenphp"
+  OCTANE_HTTPS: "true"
+  FRANKENPHP_WORKER_MODE: "true"
+  
+  # File Storage Configuration
+  FILESYSTEM_DISK: "local"
+  
+  # Mail Configuration
+  MAIL_MAILER: "smtp"
+  MAIL_PORT: "587"
+  MAIL_ENCRYPTION: "tls"
+  MAIL_FROM_ADDRESS: "noreply@reversetender.com"
+  MAIL_FROM_NAME: "Reverse Tender Platform"
+  
+  # Broadcasting Configuration
+  PUSHER_PORT: "443"
+  PUSHER_SCHEME: "https"
+  PUSHER_APP_CLUSTER: "mt1"
+  
+  # Sanctum Configuration
+  SANCTUM_STATEFUL_DOMAINS: "localhost,127.0.0.1,reversetender.com"
+  
+  # Telescope Configuration
+  TELESCOPE_ENABLED: "true"
+  
+  # Horizon Configuration
+  HORIZON_ENABLED: "true"
+  
+  # RPC Configuration (JSON-RPC 2.0)
+  RPC_PROTOCOL_VERSION: "2.0"
+  RPC_CONTENT_TYPE: "application/json"
+  RPC_CHARSET: "utf-8"
+  RPC_TIMEOUT: "30"
+  RPC_RETRY_ATTEMPTS: "3"
+  RPC_RETRY_DELAY: "1"
+  RPC_CONNECTION_POOL_SIZE: "10"
+  RPC_CONNECTION_TIMEOUT: "30"
+  RPC_READ_TIMEOUT: "60"
+  RPC_WRITE_TIMEOUT: "30"
+  
+  # Sajya RPC Server Configuration
+  SAJYA_ENABLED: "true"
+  SAJYA_ROUTE_PREFIX: "rpc"
+  SAJYA_MIDDLEWARE: "api"
+  SAJYA_DOCS_ENABLED: "false"
+  SAJYA_BATCH_REQUESTS: "true"
+  SAJYA_MAX_BATCH_SIZE: "10"
+  
+  # RPC Client Configuration
+  RPC_CLIENT_TIMEOUT: "30"
+  RPC_CLIENT_RETRIES: "3"
+  RPC_CLIENT_BACKOFF: "exponential"
+  RPC_CLIENT_MAX_BACKOFF: "60"
+  RPC_CLIENT_JITTER: "true"
+  
+  # RPC Service Discovery
+  RPC_SERVICE_DISCOVERY_ENABLED: "true"
+  RPC_SERVICE_DISCOVERY_TTL: "300"
+  RPC_SERVICE_DISCOVERY_REFRESH: "60"
+  
+  # RPC Health Checks
+  RPC_HEALTH_CHECK_ENABLED: "true"
+  RPC_HEALTH_CHECK_METHOD: "health.check"
+  RPC_HEALTH_CHECK_INTERVAL: "30"
+  RPC_HEALTH_CHECK_TIMEOUT: "10"
+  
+  # RPC Logging and Monitoring
+  RPC_LOGGING_ENABLED: "true"
+  RPC_LOG_REQUESTS: "true"
+  RPC_LOG_RESPONSES: "false"
+  RPC_LOG_ERRORS: "true"
+  RPC_METRICS_ENABLED: "true"
+  RPC_TRACING_ENABLED: "true"

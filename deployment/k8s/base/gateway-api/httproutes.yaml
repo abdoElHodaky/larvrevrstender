@@ -1,0 +1,543 @@
+# RPC-Optimized HTTPRoutes for Reverse Tender Platform
+# Following Kubernetes Gateway API v1 best practices for JSON-RPC/tRPC microservices architecture
+
+# HTTP to HTTPS redirect route - security best practice
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: http-redirect
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/protocol: "json-rpc"
+  annotations:
+    gateway.networking.k8s.io/description: "Redirect all HTTP traffic to HTTPS for security"
+spec:
+  parentRefs:
+    - name: reverse-tender-rpc-gateway
+      sectionName: http-redirect
+  
+  # All domains should redirect to HTTPS
+  hostnames:
+    - "api.reversetender.com"
+    - "app.reversetender.com"
+    - "admin.reversetender.com"
+    - "ws.reversetender.com"
+  
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+
+---
+# RPC-Optimized API routing - JSON-RPC/tRPC microservices architecture
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rpc-api-routes
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/route-type: "rpc-api"
+    app.kubernetes.io/protocol: "json-rpc"
+  annotations:
+    gateway.networking.k8s.io/description: "RPC-optimized API routes for JSON-RPC/tRPC microservices"
+spec:
+  parentRefs:
+    - name: reverse-tender-rpc-gateway
+      sectionName: https-rpc-api
+  
+  # API domain
+  hostnames:
+    - "api.reversetender.com"
+  
+  rules:
+    # Authentication service RPC endpoint - JSON-RPC/tRPC optimization
+    - matches:
+        - path:
+            type: Exact
+            value: /rpc/auth
+        - headers:
+            - name: "Content-Type"
+              type: RegularExpression
+              value: "application/json"
+      backendRefs:
+        - name: auth-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: auth-service
+              - name: X-Service-Type
+                value: rpc-authentication
+              - name: X-RPC-Service
+                value: auth
+              - name: X-Request-ID
+                value: "${request_id}"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: auth-service
+              - name: X-RPC-Response
+                value: "true"
+    
+    # User management service RPC endpoint - JSON-RPC/tRPC optimization
+    - matches:
+        - path:
+            type: Exact
+            value: /rpc/users
+        - headers:
+            - name: "Content-Type"
+              type: RegularExpression
+              value: "application/json"
+      backendRefs:
+        - name: user-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: user-service
+              - name: X-Service-Type
+                value: rpc-user-management
+              - name: X-RPC-Service
+                value: users
+              - name: X-Request-ID
+                value: "${request_id}"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: user-service
+              - name: X-RPC-Response
+                value: "true"
+    
+    # Auction service RPC endpoint - core business logic optimization
+    - matches:
+        - path:
+            type: Exact
+            value: /rpc/auction
+        - headers:
+            - name: "Content-Type"
+              type: RegularExpression
+              value: "application/json"
+      backendRefs:
+        - name: auction-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: auction-service
+              - name: X-Service-Type
+                value: rpc-auction-management
+              - name: X-RPC-Service
+                value: auction
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-Business-Context
+                value: auction
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: auction-service
+              - name: X-RPC-Response
+                value: "true"
+    
+    # Bidding service RPC endpoint - real-time optimization
+    - matches:
+        - path:
+            type: Exact
+            value: /rpc/bidding
+        - headers:
+            - name: "Content-Type"
+              type: RegularExpression
+              value: "application/json"
+      backendRefs:
+        - name: bidding-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: bidding-service
+              - name: X-Service-Type
+                value: rpc-real-time-bidding
+              - name: X-RPC-Service
+                value: bidding
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-Business-Context
+                value: bidding
+              - name: X-Real-Time
+                value: "true"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: bidding-service
+              - name: X-RPC-Response
+                value: "true"
+    
+    # Order management service RPC endpoint - transaction optimization
+    - matches:
+        - path:
+            type: Exact
+            value: /rpc/order
+        - headers:
+            - name: "Content-Type"
+              type: RegularExpression
+              value: "application/json"
+      backendRefs:
+        - name: order-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: order-service
+              - name: X-Service-Type
+                value: rpc-order-management
+              - name: X-RPC-Service
+                value: order
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-Business-Context
+                value: transaction
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: order-service
+              - name: X-RPC-Response
+                value: "true"
+    
+    # Payment service RPC endpoint - security optimization
+    - matches:
+        - path:
+            type: Exact
+            value: /rpc/payment
+        - headers:
+            - name: "Content-Type"
+              type: RegularExpression
+              value: "application/json"
+      backendRefs:
+        - name: payment-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: payment-service
+              - name: X-Service-Type
+                value: rpc-payment-processing
+              - name: X-RPC-Service
+                value: payment
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-Business-Context
+                value: payment
+              - name: X-Security-Level
+                value: high
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: payment-service
+              - name: X-RPC-Response
+                value: "true"
+    
+    # Notification service RPC endpoint - async optimization
+    - matches:
+        - path:
+            type: Exact
+            value: /rpc/notification
+        - headers:
+            - name: "Content-Type"
+              type: RegularExpression
+              value: "application/json"
+      backendRefs:
+        - name: notification-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: notification-service
+              - name: X-Service-Type
+                value: rpc-notification-delivery
+              - name: X-RPC-Service
+                value: notification
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-Async-Processing
+                value: "true"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: notification-service
+              - name: X-RPC-Response
+                value: "true"
+    
+    # Analytics service RPC endpoint - data processing optimization
+    - matches:
+        - path:
+            type: Exact
+            value: /rpc/analytics
+        - headers:
+            - name: "Content-Type"
+              type: RegularExpression
+              value: "application/json"
+      backendRefs:
+        - name: analytics-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: analytics-service
+              - name: X-Service-Type
+                value: rpc-data-analytics
+              - name: X-RPC-Service
+                value: analytics
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-Data-Processing
+                value: "true"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: analytics-service
+              - name: X-RPC-Response
+                value: "true"
+    
+    # VIN OCR service RPC endpoint - ML/AI optimization
+    - matches:
+        - path:
+            type: Exact
+            value: /rpc/vin-ocr
+        - headers:
+            - name: "Content-Type"
+              type: RegularExpression
+              value: "application/json"
+      backendRefs:
+        - name: vin-ocr-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: vin-ocr-service
+              - name: X-Service-Type
+                value: rpc-ml-processing
+              - name: X-RPC-Service
+                value: vin-ocr
+              - name: X-Request-ID
+                value: "${request_id}"
+              - name: X-AI-Processing
+                value: "true"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: X-Service-Response
+                value: vin-ocr-service
+              - name: X-RPC-Response
+                value: "true"
+    
+    # Health check route - monitoring optimization
+    - matches:
+        - path:
+            type: Exact
+            value: /health
+        - method: GET
+      backendRefs:
+        - name: gateway-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: health-check
+              - name: X-Health-Check
+                value: "true"
+    
+    # API documentation route
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /docs
+        - method: GET
+      backendRefs:
+        - name: gateway-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: api-docs
+    
+    # Default fallback route to gateway service
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: gateway-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: gateway-service
+              - name: X-Service-Type
+                value: gateway-fallback
+              - name: X-Request-ID
+                value: "${request_id}"
+
+---
+# Frontend application routes
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: app-routes
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+spec:
+  parentRefs:
+    - name: reverse-tender-gateway
+      sectionName: https-api
+  
+  # Generic app hostname
+  hostnames:
+    - "app.reversetender.com"
+  
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: gateway-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: frontend-app
+
+---
+# Admin panel routes
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: admin-routes
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+spec:
+  parentRefs:
+    - name: reverse-tender-gateway
+      sectionName: https-api
+  
+  # Generic admin hostname
+  hostnames:
+    - "admin.reversetender.com"
+  
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: gateway-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: admin-panel
+
+---
+# WebSocket routes for real-time features
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: websocket-routes
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+spec:
+  parentRefs:
+    - name: reverse-tender-gateway
+      sectionName: websocket
+  
+  # Generic WebSocket hostname
+  hostnames:
+    - "ws.reversetender.com"
+  
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+        - headers:
+            - name: Upgrade
+              value: websocket
+      backendRefs:
+        - name: bidding-service
+          port: 80
+          weight: 100
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Service-Route
+                value: websocket-bidding

@@ -64,6 +64,7 @@ return array(
     'Spatie\\ErrorSolutions\\' => array($vendorDir . '/spatie/error-solutions/src'),
     'Spatie\\BetterTypes\\' => array($vendorDir . '/spatie/better-types/src'),
     'Spatie\\Backtrace\\' => array($vendorDir . '/spatie/backtrace/src'),
+    'Shared\\' => array($baseDir . '/../shared/src'),
     'Sajya\\Server\\' => array($vendorDir . '/sajya/server/src'),
     'Sajya\\Client\\' => array($vendorDir . '/sajya/client/src'),
     'Ramsey\\Uuid\\' => array($vendorDir . '/ramsey/uuid/src'),

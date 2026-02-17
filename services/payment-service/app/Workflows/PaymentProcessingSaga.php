@@ -13,6 +13,9 @@ use App\Workflows\Compensation\RestoreOrderStatusActivity;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Workflow\Workflow;
+use Workflow\WorkflowStub;
+use Workflow\ActivityOptions;
+use Workflow\RetryOptions;
 use function Workflow\activity;
 
 /**
@@ -37,47 +40,88 @@ use function Workflow\activity;
 class PaymentProcessingSaga extends Workflow
 {
     /**
+     * Start the payment processing saga
+     *
+     * @param array $paymentData Payment data to process
+     * @return WorkflowStub Workflow stub for monitoring and control
+     */
+    public static function start(array $paymentData): WorkflowStub
+    {
+        $workflow = WorkflowStub::make(static::class);
+        $workflow->start($paymentData);
+        return $workflow;
+    }
+
+    /**
      * Execute the payment processing saga
      *
-     * @return \Generator Saga execution workflow
+     * @param array $paymentData Payment data to process
+     * @return array Final result of the saga execution
      */
-    public function execute()
+    public function execute(array $paymentData = [])
     {
         $workflowId = $this->workflowId();
         
+        // Use provided data or fall back to workflow input
+        $data = !empty($paymentData) ? $paymentData : $this->input();
+        
         Log::info("PaymentProcessingSaga started", [
             'workflow_id' => $workflowId,
-            'order_id' => $this->input('order_id'),
-            'customer_id' => $this->input('customer_id'),
-            'amount' => $this->input('amount'),
-            'payment_method' => $this->input('payment_method')
+            'order_id' => $data['order_id'] ?? null,
+            'customer_id' => $data['customer_id'] ?? null,
+            'amount' => $data['amount'] ?? null,
+            'payment_method' => $data['payment_method'] ?? null
         ]);
+
+        // Configure activity options with retry policies and timeouts
+        $standardActivityOptions = ActivityOptions::new()
+            ->withRetryOptions(
+                RetryOptions::new()
+                    ->withMaximumAttempts(3)
+                    ->withInitialInterval(1) // 1 second
+                    ->withMaximumInterval(60) // 1 minute
+                    ->withBackoffCoefficient(2.0) // Exponential backoff
+            )
+            ->withStartToCloseTimeout(120); // 2 minutes
+
+        $criticalActivityOptions = ActivityOptions::new()
+            ->withRetryOptions(
+                RetryOptions::new()
+                    ->withMaximumAttempts(5)
+                    ->withInitialInterval(2) // 2 seconds
+                    ->withMaximumInterval(300) // 5 minutes
+                    ->withBackoffCoefficient(2.0)
+            )
+            ->withStartToCloseTimeout(300); // 5 minutes
 
         try {
             // Step 1: Validate Payment Data
-            $validationResult = yield activity(ValidatePaymentDataActivity::class, $this->input());
-            $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $validationResult));
+            $validationResult = yield activity(ValidatePaymentDataActivity::class, $data)
+                ->withActivityOptions($standardActivityOptions);
+            // No compensation needed for validation step
 
-            // Step 2: Process Payment
-            $processingResult = yield activity(ProcessPaymentActivity::class, array_merge($this->input(), $validationResult));
-            $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $processingResult));
+            // Step 2: Process Payment (Critical - higher retry count)
+            $processingResult = yield activity(ProcessPaymentActivity::class, array_merge($data, $validationResult))
+                ->withActivityOptions($criticalActivityOptions);
+            $this->addCompensation(fn() => activity(ReversePaymentActivity::class, $processingResult)
+                ->withActivityOptions($criticalActivityOptions));
 
             // Step 3: Create Payment Record
-            $recordResult = yield activity(CreatePaymentRecordActivity::class, array_merge($this->input(), $validationResult, $processingResult));
-            $this->addCompensation(fn() => activity(ReversePaymentActivity::class, $recordResult));
-            $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $recordResult));
+            $recordResult = yield activity(CreatePaymentRecordActivity::class, array_merge($data, $validationResult, $processingResult))
+                ->withActivityOptions($standardActivityOptions);
+            $this->addCompensation(fn() => activity(CancelPaymentRecordActivity::class, $recordResult)
+                ->withActivityOptions($standardActivityOptions));
 
-            // Step 4: Confirm Payment
-            $confirmationResult = yield activity(ConfirmPaymentActivity::class, array_merge($this->input(), $validationResult, $processingResult, $recordResult));
-            $this->addCompensation(fn() => activity(CancelPaymentRecordActivity::class, $confirmationResult));
-            $this->addCompensation(fn() => activity(ReversePaymentActivity::class, $confirmationResult));
-            $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $confirmationResult));
+            // Step 4: Confirm Payment (Critical - higher retry count)
+            $confirmationResult = yield activity(ConfirmPaymentActivity::class, array_merge($data, $validationResult, $processingResult, $recordResult))
+                ->withActivityOptions($criticalActivityOptions);
+            // Confirmation compensation is handled by previous steps
 
             // Step 5: Update Order Status
-            $orderUpdateResult = yield activity(UpdateOrderStatusActivity::class, array_merge($this->input(), $validationResult, $processingResult, $recordResult, $confirmationResult));
-            $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $orderUpdateResult));
-            $this->addCompensation(fn() => activity(CancelPaymentRecordActivity::class, $orderUpdateResult));
-            $this->addCompensation(fn() => activity(ReversePaymentActivity::class, $orderUpdateResult));
+            $orderUpdateResult = yield activity(UpdateOrderStatusActivity::class, array_merge($data, $validationResult, $processingResult, $recordResult, $confirmationResult))
+                ->withActivityOptions($standardActivityOptions);
+            $this->addCompensation(fn() => activity(RestoreOrderStatusActivity::class, $orderUpdateResult)
+                ->withActivityOptions($standardActivityOptions));
 
             // Saga completed successfully
             $finalResult = array_merge(

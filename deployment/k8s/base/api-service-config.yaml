@@ -1,0 +1,90 @@
+# Generic API Service Configuration Template
+# Contains reusable configuration patterns for any service acting as an API endpoint
+# Service-specific values should be provided via environment variables or overlays
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-service-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: api-service
+    app.kubernetes.io/part-of: reverse-tender-platform
+data:
+  # Generic Service Identity (to be overridden by specific services)
+  SERVICE_PORT: "8000"
+  SERVICE_ROLE: "api_endpoint"
+  
+  # API Configuration
+  API_RATE_LIMIT: "60"
+  API_RATE_LIMIT_WINDOW: "1"
+  API_TIMEOUT: "30"
+  API_VERSION: "v1"
+  
+  # Service Discovery Configuration
+  SERVICE_REGISTRY_ENABLED: "true"
+  SERVICE_DISCOVERY_TIMEOUT: "5"
+  SERVICE_DISCOVERY_RETRIES: "3"
+  SERVICE_DISCOVERY_REFRESH_INTERVAL: "60"
+  
+  # Request Routing Configuration
+  ROUTING_TIMEOUT: "30"
+  ROUTING_RETRIES: "3"
+  ROUTING_CIRCUIT_BREAKER_ENABLED: "true"
+  ROUTING_CIRCUIT_BREAKER_THRESHOLD: "5"
+  ROUTING_CIRCUIT_BREAKER_TIMEOUT: "60"
+  
+  # Authentication Configuration
+  JWT_ALGO: "RS256"
+  JWT_TTL: "900"
+  REFRESH_TTL: "43200"
+  AUTH_ENABLED: "true"
+  AUTH_MIDDLEWARE: "jwt"
+  
+  # Cache Configuration (Generic)
+  CACHE_TTL: "300"
+  CACHE_ENABLED: "true"
+  CACHE_STRATEGY: "redis"
+  
+  # Health Check Configuration (Generic)
+  HEALTH_CHECK_ENABLED: "true"
+  HEALTH_CHECK_PATH: "/health"
+  HEALTH_CHECK_DEEP: "false"
+  HEALTH_CHECK_DEPENDENCIES: "database,redis"
+  
+  # Load Balancing Configuration
+  LOAD_BALANCER_ALGORITHM: "round_robin"
+  LOAD_BALANCER_HEALTH_CHECK_PATH: "/health"
+  LOAD_BALANCER_ENABLED: "true"
+  
+  # Security Configuration
+  CORS_ENABLED: "true"
+  CORS_ORIGINS: "*"
+  CORS_METHODS: "GET,POST,PUT,DELETE,OPTIONS"
+  CORS_HEADERS: "Content-Type,Authorization,X-Requested-With"
+  CSRF_PROTECTION: "false"
+  RATE_LIMITING_ENABLED: "true"
+  
+  # Monitoring Configuration
+  METRICS_ENABLED: "true"
+  METRICS_PATH: "/metrics"
+  TRACING_ENABLED: "true"
+  TRACE_SAMPLING_RATE: "0.1"
+  LOGGING_LEVEL: "info"
+  
+  # Request/Response Configuration
+  REQUEST_TIMEOUT: "30"
+  MAX_REQUEST_SIZE: "10MB"
+  RESPONSE_COMPRESSION: "true"
+  RESPONSE_CACHE_ENABLED: "true"
+  
+  # Error Handling Configuration
+  ERROR_REPORTING_ENABLED: "true"
+  ERROR_STACK_TRACE: "false"
+  ERROR_LOGGING_ENABLED: "true"
+  
+  # Performance Configuration
+  CONNECTION_POOL_SIZE: "10"
+  CONNECTION_TIMEOUT: "5"
+  KEEP_ALIVE_TIMEOUT: "60"
+  MAX_CONCURRENT_REQUESTS: "100"

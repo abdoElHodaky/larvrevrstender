@@ -1,0 +1,143 @@
+# RPC Client Configuration for Inter-Service Communication
+# Provides centralized configuration for sajya/client connections
+# Aligned with JSON-RPC/tRPC Gateway API v2.0
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rpc-client-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: rpc-client
+    app.kubernetes.io/part-of: reverse-tender-platform
+    protocol: json-rpc
+    version: v2.0
+  annotations:
+    config.kubernetes.io/description: "RPC client configuration for inter-service communication"
+    config.kubernetes.io/protocol: "json-rpc"
+data:
+  # RPC Client Global Settings
+  RPC_CLIENT_VERSION: "2.0"
+  RPC_CLIENT_CONTENT_TYPE: "application/json"
+  RPC_CLIENT_USER_AGENT: "Reversetender-RPC-Client/2.0"
+  RPC_CLIENT_ACCEPT: "application/json"
+  
+  # Connection Settings
+  RPC_CLIENT_TIMEOUT: "30"
+  RPC_CLIENT_CONNECT_TIMEOUT: "10"
+  RPC_CLIENT_READ_TIMEOUT: "60"
+  RPC_CLIENT_WRITE_TIMEOUT: "30"
+  RPC_CLIENT_POOL_SIZE: "10"
+  RPC_CLIENT_POOL_MAX_IDLE: "5"
+  RPC_CLIENT_POOL_IDLE_TIMEOUT: "300"
+  
+  # Retry Configuration
+  RPC_CLIENT_RETRY_ENABLED: "true"
+  RPC_CLIENT_RETRY_ATTEMPTS: "3"
+  RPC_CLIENT_RETRY_DELAY: "1"
+  RPC_CLIENT_RETRY_BACKOFF: "exponential"
+  RPC_CLIENT_RETRY_MAX_DELAY: "60"
+  RPC_CLIENT_RETRY_JITTER: "true"
+  
+  # Circuit Breaker Configuration
+  RPC_CLIENT_CIRCUIT_BREAKER_ENABLED: "true"
+  RPC_CLIENT_CIRCUIT_BREAKER_THRESHOLD: "5"
+  RPC_CLIENT_CIRCUIT_BREAKER_TIMEOUT: "60"
+  RPC_CLIENT_CIRCUIT_BREAKER_RESET_TIMEOUT: "300"
+  
+  # Service-Specific RPC Client Configurations
+  
+  # Auth Service RPC Client
+  AUTH_RPC_CLIENT_ENABLED: "true"
+  AUTH_RPC_CLIENT_URL: "http://auth-service/rpc/auth"
+  AUTH_RPC_CLIENT_TIMEOUT: "15"
+  AUTH_RPC_CLIENT_RETRIES: "2"
+  AUTH_RPC_CLIENT_METHODS: "login,logout,verify,refresh,validate"
+  
+  # User Service RPC Client
+  USER_RPC_CLIENT_ENABLED: "true"
+  USER_RPC_CLIENT_URL: "http://user-service/rpc/users"
+  USER_RPC_CLIENT_TIMEOUT: "20"
+  USER_RPC_CLIENT_RETRIES: "3"
+  USER_RPC_CLIENT_METHODS: "getUser,updateUser,createUser,deleteUser,getUserProfile"
+  
+  # Auction Service RPC Client
+  AUCTION_RPC_CLIENT_ENABLED: "true"
+  AUCTION_RPC_CLIENT_URL: "http://auction-service/rpc/auction"
+  AUCTION_RPC_CLIENT_TIMEOUT: "30"
+  AUCTION_RPC_CLIENT_RETRIES: "3"
+  AUCTION_RPC_CLIENT_METHODS: "createAuction,updateAuction,getAuction,listAuctions,closeAuction"
+  
+  # Bidding Service RPC Client
+  BIDDING_RPC_CLIENT_ENABLED: "true"
+  BIDDING_RPC_CLIENT_URL: "http://bidding-service/rpc/bidding"
+  BIDDING_RPC_CLIENT_TIMEOUT: "10"
+  BIDDING_RPC_CLIENT_RETRIES: "2"
+  BIDDING_RPC_CLIENT_METHODS: "placeBid,getBids,validateBid,cancelBid,getHighestBid"
+  
+  # Order Service RPC Client
+  ORDER_RPC_CLIENT_ENABLED: "true"
+  ORDER_RPC_CLIENT_URL: "http://order-service/rpc/order"
+  ORDER_RPC_CLIENT_TIMEOUT: "45"
+  ORDER_RPC_CLIENT_RETRIES: "3"
+  ORDER_RPC_CLIENT_METHODS: "createOrder,updateOrder,getOrder,listOrders,cancelOrder,fulfillOrder"
+  
+  # Payment Service RPC Client
+  PAYMENT_RPC_CLIENT_ENABLED: "true"
+  PAYMENT_RPC_CLIENT_URL: "http://payment-service/rpc/payment"
+  PAYMENT_RPC_CLIENT_TIMEOUT: "60"
+  PAYMENT_RPC_CLIENT_RETRIES: "3"
+  PAYMENT_RPC_CLIENT_METHODS: "processPayment,refundPayment,getPayment,validatePayment,capturePayment"
+  
+  # Notification Service RPC Client
+  NOTIFICATION_RPC_CLIENT_ENABLED: "true"
+  NOTIFICATION_RPC_CLIENT_URL: "http://notification-service/rpc/notification"
+  NOTIFICATION_RPC_CLIENT_TIMEOUT: "20"
+  NOTIFICATION_RPC_CLIENT_RETRIES: "2"
+  NOTIFICATION_RPC_CLIENT_METHODS: "send,sendBulk,getUserNotifications,markAsRead,getPreferences"
+  
+  # Analytics Service RPC Client
+  ANALYTICS_RPC_CLIENT_ENABLED: "true"
+  ANALYTICS_RPC_CLIENT_URL: "http://analytics-service/rpc/analytics"
+  ANALYTICS_RPC_CLIENT_TIMEOUT: "30"
+  ANALYTICS_RPC_CLIENT_RETRIES: "2"
+  ANALYTICS_RPC_CLIENT_METHODS: "trackEvent,getMetrics,generateReport,getInsights"
+  
+  # VIN OCR Service RPC Client
+  VIN_OCR_RPC_CLIENT_ENABLED: "true"
+  VIN_OCR_RPC_CLIENT_URL: "http://vin-ocr-service/rpc/vin-ocr"
+  VIN_OCR_RPC_CLIENT_TIMEOUT: "120"
+  VIN_OCR_RPC_CLIENT_RETRIES: "2"
+  VIN_OCR_RPC_CLIENT_METHODS: "processImage,extractVIN,validateVIN,getVehicleInfo"
+  
+  # RPC Client Security Configuration
+  RPC_CLIENT_AUTH_ENABLED: "true"
+  RPC_CLIENT_AUTH_TYPE: "bearer"
+  RPC_CLIENT_AUTH_HEADER: "Authorization"
+  RPC_CLIENT_VERIFY_SSL: "true"
+  RPC_CLIENT_SSL_CERT_PATH: "/etc/ssl/certs"
+  
+  # RPC Client Logging Configuration
+  RPC_CLIENT_LOG_ENABLED: "true"
+  RPC_CLIENT_LOG_LEVEL: "info"
+  RPC_CLIENT_LOG_REQUESTS: "true"
+  RPC_CLIENT_LOG_RESPONSES: "false"
+  RPC_CLIENT_LOG_ERRORS: "true"
+  RPC_CLIENT_LOG_PERFORMANCE: "true"
+  
+  # RPC Client Monitoring Configuration
+  RPC_CLIENT_METRICS_ENABLED: "true"
+  RPC_CLIENT_METRICS_PREFIX: "rpc_client"
+  RPC_CLIENT_TRACING_ENABLED: "true"
+  RPC_CLIENT_TRACING_SAMPLE_RATE: "0.1"
+  
+  # RPC Client Cache Configuration
+  RPC_CLIENT_CACHE_ENABLED: "false"
+  RPC_CLIENT_CACHE_TTL: "300"
+  RPC_CLIENT_CACHE_PREFIX: "rpc_client_cache"
+  
+  # RPC Client Rate Limiting
+  RPC_CLIENT_RATE_LIMIT_ENABLED: "true"
+  RPC_CLIENT_RATE_LIMIT_REQUESTS: "100"
+  RPC_CLIENT_RATE_LIMIT_WINDOW: "60"
+  RPC_CLIENT_RATE_LIMIT_BURST: "10"

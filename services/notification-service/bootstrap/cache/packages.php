@@ -1,4 +1,11 @@
 <?php return array (
+  'laravel-notification-channels/webpush' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'NotificationChannels\\WebPush\\WebPushServiceProvider',
+    ),
+  ),
   'laravel/horizon' => 
   array (
     'aliases' => 
@@ -19,6 +26,13 @@
     'providers' => 
     array (
       0 => 'Laravel\\Octane\\OctaneServiceProvider',
+    ),
+  ),
+  'laravel/pail' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Laravel\\Pail\\PailServiceProvider',
     ),
   ),
   'laravel/sail' => 

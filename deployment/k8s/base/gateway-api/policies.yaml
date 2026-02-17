@@ -1,0 +1,202 @@
+# RPC-Optimized Gateway API Policies for Reverse Tender Platform
+# Following Kubernetes Gateway API v1 best practices for JSON-RPC/tRPC microservices architecture
+
+# RPC-Optimized Backend Load Balancing Policy for JSON-RPC/tRPC services
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: BackendLBPolicy
+metadata:
+  name: reverse-tender-rpc-lb-policy
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/protocol: "json-rpc"
+  annotations:
+    gateway.networking.k8s.io/description: "RPC-optimized load balancing for JSON-RPC/tRPC microservices"
+spec:
+  # RPC-optimized session persistence for method-based calls
+  sessionPersistence:
+    sessionName: "RT_RPC_SESSION_ID"  # Custom RPC session name
+    absoluteTimeout: 3600s            # 60 minutes - longer for RPC sessions
+    idleTimeout: 1800s                # 30 minutes - RPC calls may be longer
+    type: Cookie
+    cookieConfig:
+      lifetimeType: Session           # Session cookies for RPC security
+  
+  # Target all microservices with optimal configuration
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: auth-service
+    - group: ""
+      kind: Service
+      name: user-service
+    - group: ""
+      kind: Service
+      name: auction-service
+    - group: ""
+      kind: Service
+      name: bidding-service
+    - group: ""
+      kind: Service
+      name: order-service
+    - group: ""
+      kind: Service
+      name: payment-service
+    - group: ""
+      kind: Service
+      name: notification-service
+    - group: ""
+      kind: Service
+      name: analytics-service
+    - group: ""
+      kind: Service
+      name: vin-ocr-service
+
+---
+# RPC-Optimized Health Check Policy for JSON-RPC/tRPC services
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HealthCheckPolicy
+metadata:
+  name: reverse-tender-rpc-health-policy
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/protocol: "json-rpc"
+  annotations:
+    gateway.networking.k8s.io/description: "RPC-optimized health checks for JSON-RPC/tRPC microservices"
+spec:
+  # RPC-optimized health check configuration
+  default:
+    path: "/health"
+    interval: 20s              # Slightly longer for RPC services
+    timeout: 5s               # Longer timeout for RPC method calls
+    unhealthyThreshold: 3     # More tolerance for RPC processing delays
+    healthyThreshold: 2       # Standard recovery detection
+    port: 80
+    protocol: HTTP
+    httpHeaders:
+      - name: "User-Agent"
+        value: "Gateway-RPC-HealthCheck/2.0"
+      - name: "X-Health-Check"
+        value: "true"
+      - name: "X-RPC-Health-Check"
+        value: "true"
+  
+  # Target all microservices with optimal health checks
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: auth-service
+    - group: ""
+      kind: Service
+      name: user-service
+    - group: ""
+      kind: Service
+      name: auction-service
+    - group: ""
+      kind: Service
+      name: bidding-service
+    - group: ""
+      kind: Service
+      name: order-service
+    - group: ""
+      kind: Service
+      name: payment-service
+    - group: ""
+      kind: Service
+      name: notification-service
+    - group: ""
+      kind: Service
+      name: analytics-service
+    - group: ""
+      kind: Service
+      name: vin-ocr-service
+
+---
+# RPC-Optimized Timeout Policy for JSON-RPC/tRPC services
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TimeoutPolicy
+metadata:
+  name: reverse-tender-rpc-timeout-policy
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/protocol: "json-rpc"
+  annotations:
+    gateway.networking.k8s.io/description: "RPC-optimized timeouts for JSON-RPC/tRPC microservices"
+spec:
+  # RPC-optimized timeout configuration for method calls
+  request: 300s             # 5 minutes - longer for complex RPC methods
+  backendRequest: 240s      # 4 minutes - allow time for RPC method processing
+  
+  # Apply to RPC HTTPRoutes
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: rpc-api-routes
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: app-routes
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: admin-routes
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: websocket-routes
+
+---
+# RPC-Optimized Retry Policy for JSON-RPC/tRPC services
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: RetryPolicy
+metadata:
+  name: reverse-tender-rpc-retry-policy
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/protocol: "json-rpc"
+  annotations:
+    gateway.networking.k8s.io/description: "RPC-optimized retry policy for JSON-RPC/tRPC resilience"
+spec:
+  # RPC-optimized retry configuration for method calls
+  numRetries: 3                # More retries for RPC method calls
+  perTryTimeout: 60s          # Longer timeout for RPC method processing
+  retryOn:
+    - "5xx"                   # Server errors
+    - "reset"                 # Connection resets
+    - "connect-failure"       # Connection failures
+    - "refused-stream"        # Stream refused
+    - "retriable-4xx"         # Retriable client errors
+    - "gateway-error"         # Gateway-specific errors
+  backoffPolicy:
+    baseInterval: 2s          # Start with 2 seconds for RPC
+    maxInterval: 30s          # Higher cap for RPC processing
+    multiplier: 2             # Exponential backoff
+  
+  # RPC-optimized backoff configuration
+  backoff:
+    baseInterval: 2s
+    maxInterval: 30s
+  
+  # Apply to RPC HTTPRoutes
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: rpc-api-routes
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: app-routes
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: admin-routes

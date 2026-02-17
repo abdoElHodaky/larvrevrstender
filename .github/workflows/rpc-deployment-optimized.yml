@@ -49,7 +49,8 @@ jobs:
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
         else
-          BASE_SHA="${{ github.event.before }}"
+          # For push events, use origin/main as base for more reliable comparison
+          BASE_SHA="origin/main"
         fi
         
         # Check if services changed
@@ -79,11 +80,19 @@ jobs:
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
         else
-          BASE_SHA="${{ github.event.before }}"
+          # For push events, use origin/main as base for more reliable comparison
+          BASE_SHA="origin/main"
         fi
+        
+        echo "Comparing against base: $BASE_SHA"
+        echo "Current HEAD: $(git rev-parse HEAD)"
         
         # Get list of changed services
         CHANGED_SERVICES=$(git diff --name-only $BASE_SHA HEAD | grep "^services/" | cut -d'/' -f2 | sort -u | tr '\n' ',' | sed 's/,$//')
+        
+        echo "Raw changed files:"
+        git diff --name-only $BASE_SHA HEAD | grep "^services/" || echo "No service files changed"
+        echo "Detected changed services: $CHANGED_SERVICES"
         
         # Check if shared service changed - if so, notification-service needs to be rebuilt
         if git diff --name-only $BASE_SHA HEAD | grep -q "^services/shared/"; then
@@ -106,7 +115,7 @@ jobs:
   # Optimized test job - only test changed services
   test-rpc-services:
     needs: changes
-    if: needs.changes.outputs.services == 'true' || needs.changes.outputs.workflows == 'true'
+    if: needs.changes.outputs.services == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -133,7 +142,7 @@ jobs:
       id: check
       run: |
         CHANGED_SERVICES="${{ needs.changes.outputs.services_list }}"
-        if [[ "$CHANGED_SERVICES" == *"${{ matrix.service }}"* ]] || [ "${{ needs.changes.outputs.workflows }}" = "true" ]; then
+        if [[ "$CHANGED_SERVICES" == *"${{ matrix.service }}"* ]] || [[ "$CHANGED_SERVICES" == *"shared"* ]]; then
           echo "test=true" >> $GITHUB_OUTPUT
           echo "✅ Service ${{ matrix.service }} will be tested"
         else
@@ -146,7 +155,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.3'
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, redis
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, redis, curl
         coverage: xdebug
 
     # Optimization: Enhanced caching strategy
@@ -161,6 +170,32 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-composer-${{ matrix.service }}-
           ${{ runner.os }}-composer-
+
+    - name: Setup Test Environment
+      if: steps.check.outputs.test == 'true'
+      working-directory: services/${{ matrix.service }}
+      run: |
+        # Create SQLite test databases
+        touch /tmp/${{ matrix.service }}_test.sqlite
+        echo "✅ SQLite database files created successfully"
+        
+        # Ensure SQLite is available
+        sqlite3 --version
+        
+        # Copy environment file if it exists and configure for testing
+        if [ -f ".env.example" ]; then
+          cp .env.example .env
+          echo "✅ Environment file copied"
+          
+          # Override Redis-dependent configurations for CI testing
+          echo "CACHE_STORE=array" >> .env
+          echo "SESSION_DRIVER=array" >> .env
+          echo "QUEUE_CONNECTION=sync" >> .env
+          echo "DB_CONNECTION=sqlite" >> .env
+          echo "DB_DATABASE=/tmp/${{ matrix.service }}_test.sqlite" >> .env
+          echo "REDIS_CLIENT=predis" >> .env
+          echo "✅ Test environment configurations applied"
+        fi
 
     - name: Check and Install Composer Dependencies
       if: steps.check.outputs.test == 'true'
@@ -197,31 +232,7 @@ jobs:
         path: services/${{ matrix.service }}/dependency-report.md
         retention-days: 7
 
-    # Optimization: Create test database files in parallel
-    - name: Setup Test Environment
-      if: steps.check.outputs.test == 'true'
-      working-directory: services/${{ matrix.service }}
-      run: |
-        # Create SQLite test databases
-        touch /tmp/${{ matrix.service }}_test.sqlite
-        echo "✅ SQLite database files created successfully"
-        
-        # Ensure SQLite is available
-        sqlite3 --version
-        
-        # Copy environment file if it exists and configure for testing
-        if [ -f ".env.example" ]; then
-          cp .env.example .env
-          echo "✅ Environment file copied"
-          
-          # Override Redis-dependent configurations for CI testing
-          echo "CACHE_STORE=array" >> .env
-          echo "SESSION_DRIVER=array" >> .env
-          echo "QUEUE_CONNECTION=sync" >> .env
-          echo "DB_CONNECTION=sqlite" >> .env
-          echo "DB_DATABASE=/tmp/${{ matrix.service }}_test.sqlite" >> .env
-          echo "✅ Test environment configurations applied"
-        fi
+
 
     - name: Run PHPUnit tests
       if: steps.check.outputs.test == 'true'

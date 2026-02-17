@@ -7,7 +7,7 @@ metadata:
   name: reverse-tender-production
 
 # Base configuration to extend
-bases:
+resources:
   - ../../base
 
 # Namespace override
@@ -25,9 +25,11 @@ commonAnnotations:
 
 # Production image tags
 images:
-  - name: reversetender/api-gateway
+  - name: reversetender/gateway-service
     newTag: v1.0.0
   - name: reversetender/auth-service
+    newTag: v1.0.0
+  - name: reversetender/auction-service
     newTag: v1.0.0
   - name: reversetender/bidding-service
     newTag: v1.0.0
@@ -46,10 +48,12 @@ images:
 
 # Production replica counts
 replicas:
-  - name: api-gateway
+  - name: gateway-service
     count: 3
   - name: auth-service
     count: 3
+  - name: auction-service
+    count: 2
   - name: bidding-service
     count: 5
   - name: user-service
@@ -110,7 +114,7 @@ patches:
   # Increase resource limits for production
   - target:
       kind: Deployment
-      name: api-gateway
+      name: gateway-service
     patch: |-
       - op: replace
         path: /spec/template/spec/containers/0/resources
@@ -195,7 +199,7 @@ patches:
                   - key: app
                     operator: In
                     values:
-                    - api-gateway
+                    - gateway-service
                     - auth-service
                     - bidding-service
                 topologyKey: kubernetes.io/hostname

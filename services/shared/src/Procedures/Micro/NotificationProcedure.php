@@ -259,12 +259,13 @@ trait NotificationProcedure
      * @param array $details Additional error details
      * @return array
      */
-    private function errorResponse(string $message, array $details = []): array
+    protected function errorResponse(string $message, $data = null, array $metadata = []): array
     {
         return [
             'success' => false,
             'message' => $message,
-            'details' => $details,
+            'data' => $data,
+            'metadata' => $metadata,
             'timestamp' => date('c')
         ];
     }

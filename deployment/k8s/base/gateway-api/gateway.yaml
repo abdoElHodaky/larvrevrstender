@@ -1,0 +1,131 @@
+# RPC-Optimized Gateway for Reverse Tender Platform
+# Following Kubernetes Gateway API v1 best practices for JSON-RPC/tRPC microservices architecture
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: reverse-tender-rpc-gateway
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/protocol: "json-rpc"
+  annotations:
+    # RPC-optimized annotations for microservices architecture
+    gateway.networking.k8s.io/description: "RPC-optimized gateway for JSON-RPC/tRPC microservices"
+    gateway.networking.k8s.io/managed-by: "reverse-tender-platform"
+spec:
+  # Reference to the RPC-optimized GatewayClass
+  gatewayClassName: reverse-tender-rpc-gateway-class
+  
+  # RPC-optimized listeners configuration for JSON-RPC/tRPC microservices
+  listeners:
+    # Primary HTTPS listener - optimized for RPC API traffic
+    - name: https-rpc-api
+      hostname: "api.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        # RPC-optimized TLS configuration (supports HTTP/1.1 and HTTP/2)
+        options:
+          gateway.envoyproxy.io/tls-min-version: "1.2"
+          gateway.envoyproxy.io/tls-max-version: "1.3"
+          gateway.envoyproxy.io/tls-ciphers: "ECDHE-ECDSA-AES256-GCM-SHA384,ECDHE-RSA-AES256-GCM-SHA384"
+          # Enable HTTP/2 for better RPC performance
+          gateway.envoyproxy.io/http2-max-concurrent-streams: "1000"
+          gateway.envoyproxy.io/connection-idle-timeout: "300s"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # Frontend application HTTPS listener - optional HTTP for UI
+    - name: https-app
+      hostname: "app.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: app-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        # Standard TLS for frontend (may use traditional HTTP)
+        options:
+          gateway.envoyproxy.io/tls-min-version: "1.2"
+          gateway.envoyproxy.io/tls-max-version: "1.3"
+          gateway.envoyproxy.io/connection-idle-timeout: "60s"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # Admin panel HTTPS listener - optional HTTP for admin interface
+    - name: https-admin
+      hostname: "admin.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: admin-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        # Standard TLS for admin interface
+        options:
+          gateway.envoyproxy.io/tls-min-version: "1.2"
+          gateway.envoyproxy.io/tls-max-version: "1.3"
+          gateway.envoyproxy.io/connection-idle-timeout: "60s"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # WebSocket HTTPS listener - optimized for real-time bidding
+    - name: https-websocket
+      hostname: "ws.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: ws-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          gateway.envoyproxy.io/tls-min-version: "1.2"
+          gateway.envoyproxy.io/tls-max-version: "1.3"
+          # WebSocket-specific optimizations
+          gateway.envoyproxy.io/websocket-enabled: "true"
+          gateway.envoyproxy.io/connection-idle-timeout: "300s"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # HTTP listener for redirects - security best practice
+    - name: http-redirect
+      hostname: "*.reversetender.com"
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+  # Optimal addresses configuration
+  addresses:
+    - type: NamedAddress
+      value: reverse-tender-gateway-lb

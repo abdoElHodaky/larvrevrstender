@@ -2,6 +2,8 @@
 
 namespace Spatie\EventSourcing\Support;
 
+use ReflectionClass;
+use Spatie\EventSourcing\StoredEvents\ShouldBeStored;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\PropertyInfo\Extractor\PhpDocExtractor;
 use Symfony\Component\PropertyInfo\PropertyTypeExtractorInterface;
@@ -14,6 +16,15 @@ use Symfony\Component\Serializer\Normalizer\ObjectNormalizer as SymfonyObjectNor
 class ObjectNormalizer extends SymfonyAbstractObjectNormalizer
 {
     protected SymfonyObjectNormalizer $normalizer;
+
+    private const SHOULD_BE_STORED_ATTRIBUTES = [
+        'metaData',
+        'eventVersion',
+        'createdAt',
+        'aggregateRootUuid',
+        'storedEventId',
+        'aggregateRootVersion',
+    ];
 
     public function __construct(?ClassMetadataFactoryInterface $classMetadataFactory = null, ?NameConverterInterface $nameConverter = null, ?PropertyAccessorInterface $propertyAccessor = null, ?PropertyTypeExtractorInterface $propertyTypeExtractor = null, ?ClassDiscriminatorResolverInterface $classDiscriminatorResolver = null, ?callable $objectClassResolver = null, array $defaultContext = [])
     {
@@ -47,11 +58,25 @@ class ObjectNormalizer extends SymfonyAbstractObjectNormalizer
 
     protected function extractAttributes(object $object, ?string $format = null, array $context = []): array
     {
-        return $this->normalizer->extractAttributes($object, $format, $context);
+        $attributes = $this->normalizer->extractAttributes($object, $format, $context);
+
+        if ($object instanceof ShouldBeStored) {
+            $attributes = $this->filterShouldBeStoredAttributes($object, $attributes);
+        }
+
+        return $attributes;
     }
 
     protected function getAttributeValue(object $object, string $attribute, ?string $format = null, array $context = []): mixed
     {
+        if ($object instanceof ShouldBeStored && in_array($attribute, self::SHOULD_BE_STORED_ATTRIBUTES)) {
+            $reflection = new ReflectionClass($object);
+
+            if ($this->childClassDeclaresProperty($reflection, $attribute)) {
+                return $reflection->getProperty($attribute)->getValue($object);
+            }
+        }
+
         return $this->normalizer->getAttributeValue($object, $attribute, $format, $context);
     }
 
@@ -63,5 +88,27 @@ class ObjectNormalizer extends SymfonyAbstractObjectNormalizer
     protected function getAllowedAttributes(string|object $classOrObject, array $context, bool $attributesAsString = false): array|bool
     {
         return $this->normalizer->getAllowedAttributes($classOrObject, $context, $attributesAsString);
+    }
+
+    private function filterShouldBeStoredAttributes(ShouldBeStored $object, array $attributes): array
+    {
+        $reflection = new ReflectionClass($object);
+
+        return array_values(array_filter($attributes, function (string $attribute) use ($reflection) {
+            if (! in_array($attribute, self::SHOULD_BE_STORED_ATTRIBUTES)) {
+                return true;
+            }
+
+            return $this->childClassDeclaresProperty($reflection, $attribute);
+        }));
+    }
+
+    private function childClassDeclaresProperty(ReflectionClass $reflection, string $attribute): bool
+    {
+        if (! $reflection->hasProperty($attribute)) {
+            return false;
+        }
+
+        return $reflection->getProperty($attribute)->getDeclaringClass()->getName() !== ShouldBeStored::class;
     }
 }
