@@ -1,0 +1,203 @@
+# DigitalOcean DOKS Gateway API Configuration for Reverse Tender Platform
+# Optimized for DigitalOcean Load Balancer with NGINX Gateway Fabric
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: reverse-tender-do-gateway-class
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/cloud-provider: "digitalocean"
+  annotations:
+    gateway.networking.k8s.io/bundle-version: "v2.0.0"
+    gateway.networking.k8s.io/description: "DigitalOcean-optimized GatewayClass for JSON-RPC/tRPC microservices on DOKS"
+spec:
+  # Use NGINX Gateway Fabric for DigitalOcean
+  controllerName: nginx.org/nginx-gateway-fabric
+  
+  # DigitalOcean-specific parameters
+  parametersRef:
+    group: gateway.nginx.org
+    kind: NginxGateway
+    name: reverse-tender-do-config
+    namespace: reverse-tender
+  
+  description: "DigitalOcean DOKS-optimized Gateway Class for Reverse Tender Platform - supports JSON-RPC/tRPC patterns with DO Load Balancer integration"
+
+---
+# NGINX Gateway Configuration for DigitalOcean
+apiVersion: gateway.nginx.org/v1alpha1
+kind: NginxGateway
+metadata:
+  name: reverse-tender-do-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/cloud-provider: "digitalocean"
+spec:
+  # NGINX configuration optimized for RPC workloads
+  nginx:
+    # Worker processes configuration
+    workerProcesses: "auto"
+    workerConnections: 1024
+    
+    # Logging configuration
+    logging:
+      level: "info"
+      format: |
+        '$remote_addr - $remote_user [$time_local] "$request" '
+        '$status $body_bytes_sent "$http_referer" '
+        '"$http_user_agent" "$http_x_forwarded_for" '
+        'rt=$request_time uct="$upstream_connect_time" '
+        'uht="$upstream_header_time" urt="$upstream_response_time"'
+    
+    # Performance optimizations
+    config:
+      # Connection settings
+      keepalive_timeout: "65s"
+      keepalive_requests: 100
+      
+      # Buffer settings for RPC
+      client_body_buffer_size: "128k"
+      client_max_body_size: "10m"
+      client_header_buffer_size: "1k"
+      large_client_header_buffers: "4 4k"
+      
+      # Proxy settings for backend services
+      proxy_connect_timeout: "60s"
+      proxy_send_timeout: "60s"
+      proxy_read_timeout: "60s"
+      proxy_buffer_size: "4k"
+      proxy_buffers: "8 4k"
+      proxy_busy_buffers_size: "8k"
+      
+      # Gzip compression
+      gzip: "on"
+      gzip_vary: "on"
+      gzip_min_length: 1000
+      gzip_proxied: "any"
+      gzip_comp_level: 6
+      gzip_types: |
+        text/plain
+        text/css
+        text/xml
+        text/javascript
+        application/json
+        application/javascript
+        application/xml+rss
+        application/atom+xml
+        image/svg+xml
+      
+      # Rate limiting for RPC endpoints
+      limit_req_zone: '$binary_remote_addr zone=rpc_limit:10m rate=100r/s'
+      limit_req_zone_admin: '$binary_remote_addr zone=admin_limit:10m rate=10r/s'
+      
+      # Connection limiting
+      limit_conn_zone: '$binary_remote_addr zone=conn_limit_per_ip:10m'
+      limit_conn: 'conn_limit_per_ip 20'
+
+---
+# DigitalOcean Load Balancer Service Configuration
+apiVersion: v1
+kind: Service
+metadata:
+  name: reverse-tender-do-lb-service
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "digitalocean"
+  annotations:
+    # DigitalOcean Load Balancer configuration
+    service.beta.kubernetes.io/do-loadbalancer-protocol: "http"
+    service.beta.kubernetes.io/do-loadbalancer-algorithm: "round_robin"
+    service.beta.kubernetes.io/do-loadbalancer-size-slug: "lb-medium"
+    service.beta.kubernetes.io/do-loadbalancer-hostname: "api.reversetender.com"
+    service.beta.kubernetes.io/do-loadbalancer-certificate-id: "${DO_CERTIFICATE_ID}"
+    service.beta.kubernetes.io/do-loadbalancer-redirect-http-to-https: "true"
+    service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: "http"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-path: "/health"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-check-interval-seconds: "10"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-response-timeout-seconds: "5"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-unhealthy-threshold: "3"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-healthy-threshold: "2"
+    
+    # Sticky sessions for RPC
+    service.beta.kubernetes.io/do-loadbalancer-sticky-sessions-type: "cookies"
+    service.beta.kubernetes.io/do-loadbalancer-sticky-sessions-cookie-name: "lb-session"
+    service.beta.kubernetes.io/do-loadbalancer-sticky-sessions-cookie-ttl: "3600"
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+    - name: https
+      port: 443
+      targetPort: 8443
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: nginx-gateway
+
+---
+# DigitalOcean Firewall Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reverse-tender-do-firewall-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "digitalocean"
+data:
+  firewall-rules.yaml: |
+    # DigitalOcean Firewall Rules for Reverse Tender Platform
+    inbound_rules:
+      # Allow HTTP traffic
+      - protocol: "tcp"
+        ports: "80"
+        sources:
+          addresses: ["0.0.0.0/0", "::/0"]
+      
+      # Allow HTTPS traffic
+      - protocol: "tcp"
+        ports: "443"
+        sources:
+          addresses: ["0.0.0.0/0", "::/0"]
+      
+      # Allow SSH (restrict to admin IPs in production)
+      - protocol: "tcp"
+        ports: "22"
+        sources:
+          addresses: ["0.0.0.0/0"]  # Restrict this in production
+      
+      # Allow Kubernetes API server
+      - protocol: "tcp"
+        ports: "6443"
+        sources:
+          addresses: ["10.244.0.0/16"]  # Kubernetes pod CIDR
+    
+    outbound_rules:
+      # Allow all outbound traffic
+      - protocol: "tcp"
+        ports: "1-65535"
+        destinations:
+          addresses: ["0.0.0.0/0", "::/0"]
+      
+      - protocol: "udp"
+        ports: "1-65535"
+        destinations:
+          addresses: ["0.0.0.0/0", "::/0"]
+      
+      - protocol: "icmp"
+        destinations:
+          addresses: ["0.0.0.0/0", "::/0"]
+
