@@ -36,6 +36,17 @@ use Illuminate\Support\Facades\Log;
 class BidPlacementSaga extends Workflow
 {
     /**
+     * Start the bid placement saga workflow
+     *
+     * @param array $input Workflow input data
+     * @return mixed Workflow execution result
+     */
+    public static function start(array $input = [])
+    {
+        return parent::start($input);
+    }
+
+    /**
      * Execute the bid placement saga
      *
      * @param array $bidData Bid placement data
@@ -188,4 +199,3 @@ class BidPlacementSaga extends Workflow
         }
     }
 }
-
