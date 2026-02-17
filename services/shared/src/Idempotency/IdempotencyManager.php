@@ -281,7 +281,11 @@ class IdempotencyManager
         
         // Use a more secure approach with salt to prevent hash collisions
         $jsonData = json_encode($filteredInput, JSON_THROW_ON_ERROR);
-        $salt = config('app.key', 'default-salt');
+        $salt = config('app.key');
+        
+        if (empty($salt)) {
+            throw new \RuntimeException('Application key is required for secure idempotency key generation');
+        }
         
         return hash_hmac('sha256', $jsonData, $salt);
     }
