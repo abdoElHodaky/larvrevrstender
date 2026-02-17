@@ -3,7 +3,7 @@
         'name' => 'reversetender/user-service',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '37721044d41cdf4b9077c20f507eff13e28cd5a4',
+        'reference' => '19fa2ebae79308403abfb56b29b272d5d5c07ec3',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -647,9 +647,9 @@
             'dev_requirement' => false,
         ),
         'nette/utils' => array(
-            'pretty_version' => 'v4.1.2',
-            'version' => '4.1.2.0',
-            'reference' => 'f76b5dc3d6c6d3043c8d937df2698515b99cbaf5',
+            'pretty_version' => 'v4.1.3',
+            'version' => '4.1.3.0',
+            'reference' => 'bb3ea637e3d131d72acc033cfc2746ee893349fe',
             'type' => 'library',
             'install_path' => __DIR__ . '/../nette/utils',
             'aliases' => array(),
@@ -876,8 +876,8 @@
         'psr/log-implementation' => array(
             'dev_requirement' => false,
             'provided' => array(
-                0 => '3.0.0',
-                1 => '1.0|2.0|3.0',
+                0 => '1.0|2.0|3.0',
+                1 => '3.0.0',
             ),
         ),
         'psr/simple-cache' => array(
@@ -896,9 +896,9 @@
             ),
         ),
         'psy/psysh' => array(
-            'pretty_version' => 'v0.12.19',
-            'version' => '0.12.19.0',
-            'reference' => 'a4f766e5c5b6773d8399711019bb7d90875a50ee',
+            'pretty_version' => 'v0.12.20',
+            'version' => '0.12.20.0',
+            'reference' => '19678eb6b952a03b8a1d96ecee9edba518bb0373',
             'type' => 'library',
             'install_path' => __DIR__ . '/../psy/psysh',
             'aliases' => array(),
@@ -934,7 +934,7 @@
         'reversetender/user-service' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '37721044d41cdf4b9077c20f507eff13e28cd5a4',
+            'reference' => '19fa2ebae79308403abfb56b29b272d5d5c07ec3',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -1172,9 +1172,9 @@
             'dev_requirement' => true,
         ),
         'spatie/laravel-medialibrary' => array(
-            'pretty_version' => '11.18.2',
-            'version' => '11.18.2.0',
-            'reference' => 'ab6d9099fb1cfc4573ca2ff66a75be424ad3ca65',
+            'pretty_version' => '11.20.0',
+            'version' => '11.20.0.0',
+            'reference' => '7eb9b31229b3610e48eb164f1ffb4d60b4a39168',
             'type' => 'library',
             'install_path' => __DIR__ . '/../spatie/laravel-medialibrary',
             'aliases' => array(),
