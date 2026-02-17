@@ -59,7 +59,7 @@ class OrderSagaWorkflow extends Workflow
         
         Log::info("Order Saga started", [
             'order_id' => $orderId,
-            'workflow_id' => $this->getWorkflowId(),
+            'workflow_id' => $this->workflowId(),
             'saga_data' => $orderData
         ]);
 
@@ -162,7 +162,7 @@ class OrderSagaWorkflow extends Workflow
             
             Log::info("Order Saga completed successfully", [
                 'order_id' => $orderId,
-                'workflow_id' => $this->getWorkflowId(),
+                'workflow_id' => $this->workflowId(),
                 'result' => $finalResult
             ]);
             
@@ -171,7 +171,7 @@ class OrderSagaWorkflow extends Workflow
         } catch (Throwable $th) {
             Log::error("Order Saga failed", [
                 'order_id' => $orderId,
-                'workflow_id' => $this->getWorkflowId(),
+                'workflow_id' => $this->workflowId(),
                 'error' => $th->getMessage(),
                 'trace' => $th->getTraceAsString()
             ]);
@@ -208,7 +208,7 @@ class OrderSagaWorkflow extends Workflow
                     'order_id' => $orderId,
                     'new_state' => $stateClass,
                     'reason' => $reason,
-                    'workflow_id' => $this->getWorkflowId()
+                    'workflow_id' => $this->workflowId()
                 ]);
             } else {
                 Log::warning("Order not found for state update", [
@@ -228,11 +228,5 @@ class OrderSagaWorkflow extends Workflow
         }
     }
     
-    /**
-     * Get workflow ID for logging and correlation
-     */
-    private function getWorkflowId(): ?string
-    {
-        return method_exists($this, 'getId') ? $this->getId() : null;
-    }
+
 }

@@ -28,6 +28,15 @@ class IdempotencyManager
      */
     public static function generateKey(string $activityClass, array $input, ?string $sagaId = null): string
     {
+        // Validate input parameters
+        if (empty($activityClass) || !is_string($activityClass)) {
+            throw new \InvalidArgumentException('Activity class must be a non-empty string');
+        }
+        
+        if ($sagaId !== null && (!is_string($sagaId) || empty($sagaId))) {
+            throw new \InvalidArgumentException('Saga ID must be null or a non-empty string');
+        }
+        
         // Create a deterministic key based on activity class, input, and saga context
         $keyData = [
             'activity' => $activityClass,
@@ -36,7 +45,7 @@ class IdempotencyManager
             'timestamp_bucket' => self::getTimestampBucket() // Prevents indefinite caching
         ];
 
-        return self::CACHE_PREFIX . hash('sha256', json_encode($keyData));
+        return self::CACHE_PREFIX . hash('sha256', json_encode($keyData, JSON_THROW_ON_ERROR));
     }
 
     /**
@@ -63,8 +72,8 @@ class IdempotencyManager
             return null;
         } catch (\Exception $e) {
             Log::warning('Idempotency: Failed to retrieve existing result', [
-                'key' => $idempotencyKey,
-                'error' => $e->getMessage()
+                'key' => substr($idempotencyKey, 0, 16) . '...', // Only log partial key for security
+                'error_type' => get_class($e)
             ]);
             
             return null;
@@ -107,8 +116,8 @@ class IdempotencyManager
             return true;
         } catch (\Exception $e) {
             Log::error('Idempotency: Failed to mark operation as in progress', [
-                'key' => $idempotencyKey,
-                'error' => $e->getMessage()
+                'key' => substr($idempotencyKey, 0, 16) . '...',
+                'error_type' => get_class($e)
             ]);
             
             return false;
@@ -142,8 +151,8 @@ class IdempotencyManager
             ]);
         } catch (\Exception $e) {
             Log::error('Idempotency: Failed to store operation result', [
-                'key' => $idempotencyKey,
-                'error' => $e->getMessage()
+                'key' => substr($idempotencyKey, 0, 16) . '...',
+                'error_type' => get_class($e)
             ]);
         }
     }
@@ -166,8 +175,8 @@ class IdempotencyManager
             return true;
         } catch (\Exception $e) {
             Log::error('Idempotency: Failed to clear key', [
-                'key' => $idempotencyKey,
-                'error' => $e->getMessage()
+                'key' => substr($idempotencyKey, 0, 16) . '...',
+                'error_type' => get_class($e)
             ]);
             
             return false;
@@ -259,14 +268,26 @@ class IdempotencyManager
                 'updated_at',
                 'workflow_id',
                 'activity_id',
-                'attempt_number'
+                'attempt_number',
+                'password',
+                'token',
+                'secret',
+                'api_key'
             ]);
         }, ARRAY_FILTER_USE_KEY);
 
         // Sort to ensure consistent hashing
         ksort($filteredInput);
         
-        return hash('sha256', json_encode($filteredInput));
+        // Use a more secure approach with salt to prevent hash collisions
+        $jsonData = json_encode($filteredInput, JSON_THROW_ON_ERROR);
+        $salt = config('app.key');
+        
+        if (empty($salt)) {
+            throw new \RuntimeException('Application key is required for secure idempotency key generation');
+        }
+        
+        return hash_hmac('sha256', $jsonData, $salt);
     }
 
     /**

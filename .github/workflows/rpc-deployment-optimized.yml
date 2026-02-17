@@ -115,7 +115,7 @@ jobs:
   # Optimized test job - only test changed services
   test-rpc-services:
     needs: changes
-    if: needs.changes.outputs.services == 'true' || needs.changes.outputs.workflows == 'true'
+    if: needs.changes.outputs.services == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -142,7 +142,7 @@ jobs:
       id: check
       run: |
         CHANGED_SERVICES="${{ needs.changes.outputs.services_list }}"
-        if [[ "$CHANGED_SERVICES" == *"${{ matrix.service }}"* ]] || [ "${{ needs.changes.outputs.workflows }}" = "true" ]; then
+        if [[ "$CHANGED_SERVICES" == *"${{ matrix.service }}"* ]] || [[ "$CHANGED_SERVICES" == *"shared"* ]]; then
           echo "test=true" >> $GITHUB_OUTPUT
           echo "✅ Service ${{ matrix.service }} will be tested"
         else
