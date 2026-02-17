@@ -1,0 +1,60 @@
+# Saga Pattern Configuration
+# Contains configuration for distributed transaction coordination
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: saga-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: saga-coordinator
+    app.kubernetes.io/part-of: reverse-tender-platform
+data:
+  # Saga Coordinator Configuration
+  SAGA_COORDINATOR_ENABLED: "true"
+  SAGA_COORDINATOR_TIMEOUT: "300"
+  SAGA_COORDINATOR_RETRIES: "3"
+  SAGA_COORDINATOR_RETRY_DELAY: "5"
+  
+  # Saga Transaction Configuration
+  SAGA_TRANSACTION_TIMEOUT: "600"
+  SAGA_TRANSACTION_MAX_STEPS: "20"
+  SAGA_COMPENSATION_TIMEOUT: "120"
+  SAGA_COMPENSATION_RETRIES: "5"
+  
+  # Saga Event Configuration
+  SAGA_EVENT_STORE_ENABLED: "true"
+  SAGA_EVENT_RETENTION_DAYS: "30"
+  SAGA_EVENT_BATCH_SIZE: "100"
+  
+  # Saga Workflow Configuration
+  AUCTION_CREATION_SAGA_ENABLED: "true"
+  AUCTION_ENDING_SAGA_ENABLED: "true"
+  BID_PLACEMENT_SAGA_ENABLED: "true"
+  PAYMENT_PROCESSING_SAGA_ENABLED: "true"
+  ORDER_FULFILLMENT_SAGA_ENABLED: "true"
+  
+  # Saga Monitoring Configuration
+  SAGA_METRICS_ENABLED: "true"
+  SAGA_TRACING_ENABLED: "true"
+  SAGA_LOGGING_LEVEL: "info"
+  
+  # Saga Recovery Configuration
+  SAGA_RECOVERY_ENABLED: "true"
+  SAGA_RECOVERY_INTERVAL: "60"
+  SAGA_RECOVERY_MAX_ATTEMPTS: "10"
+  
+  # Saga Persistence Configuration
+  SAGA_PERSISTENCE_DRIVER: "redis"
+  SAGA_PERSISTENCE_TTL: "86400"
+  SAGA_PERSISTENCE_CLEANUP_INTERVAL: "3600"
+  
+  # Saga Communication Configuration
+  SAGA_COMMUNICATION_DRIVER: "redis"
+  SAGA_COMMUNICATION_CHANNEL_PREFIX: "saga:"
+  SAGA_COMMUNICATION_TIMEOUT: "30"
+  
+  # Saga Services Configuration
+  SAGA_SERVICES: "auction-service,bidding-service,payment-service,order-service,notification-service,user-service"
+  SAGA_SERVICE_TIMEOUT: "60"
+  SAGA_SERVICE_RETRIES: "3"

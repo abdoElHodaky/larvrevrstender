@@ -37,6 +37,17 @@ use function Workflow\activity;
 class PaymentProcessingSaga extends Workflow
 {
     /**
+     * Start the payment processing saga workflow
+     *
+     * @param array $input Workflow input data
+     * @return mixed Workflow execution result
+     */
+    public static function start(array $input = [])
+    {
+        return parent::start($input);
+    }
+
+    /**
      * Execute the payment processing saga
      *
      * @return \Generator Saga execution workflow

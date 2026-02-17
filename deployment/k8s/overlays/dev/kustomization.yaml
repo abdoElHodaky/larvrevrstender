@@ -1,0 +1,105 @@
+# Development Environment Overlay
+# Contains development-specific configurations
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: reverse-tender-dev
+
+# Base configuration to extend
+resources:
+  - ../../base
+  - secrets.yaml
+
+# Namespace for development
+namespace: reverse-tender-dev
+
+# Development-specific labels
+commonLabels:
+  environment: development
+  app.kubernetes.io/instance: reverse-tender-dev
+
+# Development-specific annotations
+commonAnnotations:
+  app.kubernetes.io/environment: development
+  deployment.kubernetes.io/revision: "dev"
+
+# Development-specific images (using dev tags)
+images:
+  - name: reversetender/gateway-service
+    newTag: dev
+  - name: reversetender/auth-service
+    newTag: dev
+  - name: reversetender/auction-service
+    newTag: dev
+  - name: reversetender/bidding-service
+    newTag: dev
+  - name: reversetender/user-service
+    newTag: dev
+  - name: reversetender/order-service
+    newTag: dev
+  - name: reversetender/notification-service
+    newTag: dev
+  - name: reversetender/payment-service
+    newTag: dev
+  - name: reversetender/analytics-service
+    newTag: dev
+  - name: reversetender/vin-ocr-service
+    newTag: dev
+
+# Development-specific replicas (lower for cost)
+replicas:
+  - name: gateway-service
+    count: 1
+  - name: auth-service
+    count: 1
+  - name: auction-service
+    count: 1
+  - name: bidding-service
+    count: 1
+  - name: user-service
+    count: 1
+  - name: order-service
+    count: 1
+  - name: notification-service
+    count: 1
+  - name: payment-service
+    count: 1
+  - name: analytics-service
+    count: 1
+  - name: vin-ocr-service
+    count: 1
+
+# Development-specific patches
+patches:
+  # Reduce resource limits for development
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+# Development-specific ConfigMaps
+configMapGenerator:
+  - name: dev-config
+    literals:
+      - APP_ENV=development
+      - APP_DEBUG=true
+      - LOG_LEVEL=debug
+      - CACHE_TTL=60
+      - SESSION_LIFETIME=120
+      - JWT_TTL=3600
+      - API_RATE_LIMIT=1000
+      - HEALTH_CHECK_INTERVAL=60s
+      - METRICS_ENABLED=true
+      - TRACING_ENABLED=true
+      - CIRCUIT_BREAKER_ENABLED=false
+      - RETRY_MAX_ATTEMPTS=1

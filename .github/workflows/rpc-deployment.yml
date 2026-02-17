@@ -53,9 +53,10 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.2'
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, mysql, redis
+        php-version: '8.3'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, redis, curl
         coverage: xdebug
+        ini-file: production
 
     - name: Cache Composer packages
       id: composer-cache
@@ -65,6 +66,25 @@ jobs:
         key: ${{ runner.os }}-php-${{ matrix.service }}-${{ hashFiles('services/${{ matrix.service }}/composer.lock') }}
         restore-keys: |
           ${{ runner.os }}-php-${{ matrix.service }}-
+
+    - name: Setup Test Environment
+      run: |
+        cd services/${{ matrix.service }}
+        
+        # Setup test environment configuration before composer install
+        if [ -f ".env.example" ]; then
+          cp .env.example .env
+          echo "✅ Environment file copied"
+          
+          # Override configurations for CI testing to avoid Redis issues during composer install
+          echo "CACHE_STORE=array" >> .env
+          echo "SESSION_DRIVER=array" >> .env
+          echo "QUEUE_CONNECTION=sync" >> .env
+          echo "DB_CONNECTION=sqlite" >> .env
+          echo "DB_DATABASE=/tmp/${{ matrix.service }}_test.sqlite" >> .env
+          echo "REDIS_CLIENT=predis" >> .env
+          echo "✅ Test environment configurations applied"
+        fi
 
     - name: Check and Install Composer Dependencies
       run: |
@@ -245,6 +265,8 @@ jobs:
           echo "📦 Installing SQLite..."
           sudo apt-get update && sudo apt-get install -y sqlite3
         fi
+        
+        # Environment already configured in earlier step
         
         # Run tests using Laravel's test command if artisan exists, otherwise use PHPUnit directly
         if [ -f "artisan" ]; then

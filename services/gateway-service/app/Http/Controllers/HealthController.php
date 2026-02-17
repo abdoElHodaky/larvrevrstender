@@ -15,7 +15,7 @@ class HealthController extends Controller
     {
         $health = [
             'status' => 'healthy',
-            'service' => 'auth-service',
+            'service' => 'gateway-service',
             'timestamp' => now()->toISOString(),
             'version' => config('app.version', '1.0.0'),
             'environment' => config('app.env'),
