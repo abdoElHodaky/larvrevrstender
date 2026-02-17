@@ -1,5 +1,6 @@
-# Service Discovery Configuration
-# Contains configuration for service registry and discovery
+# RPC Service Discovery Configuration
+# Contains configuration for RPC service registry and discovery
+# Aligned with JSON-RPC/tRPC Gateway API v2.0
 
 apiVersion: v1
 kind: ConfigMap
@@ -9,51 +10,83 @@ metadata:
     app.kubernetes.io/name: reverse-tender
     app.kubernetes.io/component: service-discovery
     app.kubernetes.io/part-of: reverse-tender-platform
+    protocol: json-rpc
+    version: v2.0
+  annotations:
+    config.kubernetes.io/description: "RPC service discovery and registry configuration"
+    config.kubernetes.io/protocol: "json-rpc"
 data:
-  # Service Registry Configuration
+  # RPC Service Registry Configuration
   SERVICE_REGISTRY_ENABLED: "true"
   SERVICE_REGISTRY_TTL: "300"
   SERVICE_REGISTRY_REFRESH_INTERVAL: "60"
   SERVICE_REGISTRY_CLEANUP_INTERVAL: "300"
+  RPC_PROTOCOL_VERSION: "2.0"
+  RPC_CONTENT_TYPE: "application/json"
   
-  # Service Discovery Configuration
+  # RPC Service Discovery Configuration
   SERVICE_DISCOVERY_ENABLED: "true"
   SERVICE_DISCOVERY_CACHE_TTL: "60"
-  SERVICE_DISCOVERY_TIMEOUT: "10"
+  SERVICE_DISCOVERY_TIMEOUT: "30"  # Increased for RPC calls
   SERVICE_DISCOVERY_RETRIES: "3"
   SERVICE_DISCOVERY_RETRY_DELAY: "2"
+  RPC_CONNECTION_TIMEOUT: "30"
+  RPC_READ_TIMEOUT: "60"
   
-  # Service Health Check Configuration
+  # RPC Service Health Check Configuration
   SERVICE_HEALTH_CHECK_ENABLED: "true"
   SERVICE_HEALTH_CHECK_INTERVAL: "30"
-  SERVICE_HEALTH_CHECK_TIMEOUT: "10"
+  SERVICE_HEALTH_CHECK_TIMEOUT: "15"  # Increased for RPC health checks
   SERVICE_HEALTH_CHECK_RETRIES: "3"
   SERVICE_HEALTH_CHECK_UNHEALTHY_THRESHOLD: "3"
   SERVICE_HEALTH_CHECK_HEALTHY_THRESHOLD: "2"
+  RPC_HEALTH_CHECK_METHOD: "health.check"
   
-  # Service Registry Endpoints
-  GATEWAY_SERVICE_URL: "http://gateway-service:8000"
-  AUTH_SERVICE_URL: "http://auth-service:8001"
-  AUCTION_SERVICE_URL: "http://auction-service:8002"
-  BIDDING_SERVICE_URL: "http://bidding-service:8003"
-  USER_SERVICE_URL: "http://user-service:8004"
-  ORDER_SERVICE_URL: "http://order-service:8005"
-  NOTIFICATION_SERVICE_URL: "http://notification-service:8006"
-  PAYMENT_SERVICE_URL: "http://payment-service:8007"
-  ANALYTICS_SERVICE_URL: "http://analytics-service:8008"
-  VIN_OCR_SERVICE_URL: "http://vin-ocr-service:8009"
+  # RPC Service Registry Endpoints (Standardized Port 80)
+  GATEWAY_SERVICE_URL: "http://gateway-service"
+  AUTH_SERVICE_URL: "http://auth-service"
+  AUCTION_SERVICE_URL: "http://auction-service"
+  BIDDING_SERVICE_URL: "http://bidding-service"
+  USER_SERVICE_URL: "http://user-service"
+  ORDER_SERVICE_URL: "http://order-service"
+  NOTIFICATION_SERVICE_URL: "http://notification-service"
+  PAYMENT_SERVICE_URL: "http://payment-service"
+  ANALYTICS_SERVICE_URL: "http://analytics-service"
+  VIN_OCR_SERVICE_URL: "http://vin-ocr-service"
+  
+  # RPC Endpoint Paths
+  AUTH_RPC_ENDPOINT: "/rpc/auth"
+  USER_RPC_ENDPOINT: "/rpc/users"
+  AUCTION_RPC_ENDPOINT: "/rpc/auction"
+  BIDDING_RPC_ENDPOINT: "/rpc/bidding"
+  ORDER_RPC_ENDPOINT: "/rpc/order"
+  NOTIFICATION_RPC_ENDPOINT: "/rpc/notification"
+  PAYMENT_RPC_ENDPOINT: "/rpc/payment"
+  ANALYTICS_RPC_ENDPOINT: "/rpc/analytics"
+  VIN_OCR_RPC_ENDPOINT: "/rpc/vin-ocr"
+  
+  # RPC Service Full URLs
+  AUTH_RPC_URL: "http://auth-service/rpc/auth"
+  USER_RPC_URL: "http://user-service/rpc/users"
+  AUCTION_RPC_URL: "http://auction-service/rpc/auction"
+  BIDDING_RPC_URL: "http://bidding-service/rpc/bidding"
+  ORDER_RPC_URL: "http://order-service/rpc/order"
+  NOTIFICATION_RPC_URL: "http://notification-service/rpc/notification"
+  PAYMENT_RPC_URL: "http://payment-service/rpc/payment"
+  ANALYTICS_RPC_URL: "http://analytics-service/rpc/analytics"
+  VIN_OCR_RPC_URL: "http://vin-ocr-service/rpc/vin-ocr"
   
   # Service Health Check Endpoints
   GATEWAY_SERVICE_HEALTH: "/health"
-  AUTH_SERVICE_HEALTH: "/health"
-  AUCTION_SERVICE_HEALTH: "/health"
-  BIDDING_SERVICE_HEALTH: "/health"
-  USER_SERVICE_HEALTH: "/health"
-  ORDER_SERVICE_HEALTH: "/health"
-  NOTIFICATION_SERVICE_HEALTH: "/health"
-  PAYMENT_SERVICE_HEALTH: "/health"
-  ANALYTICS_SERVICE_HEALTH: "/health"
-  VIN_OCR_SERVICE_HEALTH: "/health"
+  AUTH_SERVICE_HEALTH: "/api/up"
+  AUCTION_SERVICE_HEALTH: "/api/up"
+  BIDDING_SERVICE_HEALTH: "/api/up"
+  USER_SERVICE_HEALTH: "/api/up"
+  ORDER_SERVICE_HEALTH: "/api/up"
+  NOTIFICATION_SERVICE_HEALTH: "/api/up"
+  PAYMENT_SERVICE_HEALTH: "/api/up"
+  ANALYTICS_SERVICE_HEALTH: "/api/up"
+  VIN_OCR_SERVICE_HEALTH: "/api/up"
   
   # Load Balancing Configuration
   LOAD_BALANCING_STRATEGY: "round_robin"

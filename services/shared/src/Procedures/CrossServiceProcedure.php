@@ -19,6 +19,8 @@ use Shared\Procedures\Micro\CircuitBreakerProcedure;
 use Shared\Procedures\Micro\QueueCircuitBreakerProcedure;
 use Shared\Procedures\Micro\ThirdPartyIntegrationProcedure;
 use Shared\Procedures\Macro\WorkflowProcedure;
+use Illuminate\Support\Facades\Http;
+use Exception;
 
 /**
  * Cross-Service Procedure Hub
@@ -32,7 +34,9 @@ class CrossServiceProcedure extends BaseProcedure
     use EventPublishingProcedure;
     use CacheManagementProcedure;
     use NotificationProcedure;
-    use WebPushProcedure;
+    use WebPushProcedure {
+        WebPushProcedure::makeRpcCall insteadof NotificationProcedure;
+    }
     use ValidationProcedure;
     use SecurityProcedure;
     use CircuitBreakerProcedure;
@@ -43,16 +47,16 @@ class CrossServiceProcedure extends BaseProcedure
     private ProcedureEngine $engine;
     private RestHandler $restHandler;
     private RpcHandler $rpcHandler;
-    private CrossServiceConfig $config;
+    protected CrossServiceConfig $crossServiceConfig;
 
     public function __construct()
     {
         parent::__construct();
         
-        $this->config = CrossServiceConfig::getInstance();
-        $this->engine = new ProcedureEngine($this->config->getComponent('procedure_engine'));
-        $this->restHandler = new RestHandler($this->engine, $this->config->getComponent('rest_handler'));
-        $this->rpcHandler = new RpcHandler($this->engine, $this->config->getComponent('rpc_handler'));
+        $this->crossServiceConfig = CrossServiceConfig::getInstance();
+        $this->engine = new ProcedureEngine($this->crossServiceConfig->getComponent('procedure_engine'));
+        $this->restHandler = new RestHandler($this->engine, $this->crossServiceConfig->getComponent('rest_handler'));
+        $this->rpcHandler = new RpcHandler($this->engine, $this->crossServiceConfig->getComponent('rpc_handler'));
         
         $this->registerProcedures();
     }
@@ -201,7 +205,7 @@ class CrossServiceProcedure extends BaseProcedure
                     'registered' => $this->engine->getRegisteredProcedures(),
                     'total_count' => count($this->engine->getRegisteredProcedures())
                 ],
-                'configuration' => $this->config->getSummary(),
+                'configuration' => $this->crossServiceConfig->getSummary(),
                 'handlers' => [
                     'rest' => [
                         'enabled' => true,
@@ -332,9 +336,9 @@ class CrossServiceProcedure extends BaseProcedure
             $settings = $params['settings'];
 
             // Update configuration
-            $currentConfig = $this->config->getComponent($component);
+            $currentConfig = $this->crossServiceConfig->getComponent($component);
             $newConfig = array_merge($currentConfig, $settings);
-            $this->config->set($component, $newConfig);
+            $this->crossServiceConfig->set($component, $newConfig);
 
             // Update handlers if needed
             if ($component === 'rest_handler') {
@@ -351,7 +355,7 @@ class CrossServiceProcedure extends BaseProcedure
             return $this->successResponse([
                 'component' => $component,
                 'updated_settings' => $settings,
-                'current_config' => $this->config->getComponent($component)
+                'current_config' => $this->crossServiceConfig->getComponent($component)
             ], 'Configuration updated successfully');
 
         } catch (\Exception $e) {
@@ -505,7 +509,7 @@ class CrossServiceProcedure extends BaseProcedure
     private function checkConfigurationHealth(): array
     {
         try {
-            $validationErrors = $this->config->validate();
+            $validationErrors = $this->crossServiceConfig->validate();
             
             if (!empty($validationErrors)) {
                 return [
@@ -570,6 +574,318 @@ class CrossServiceProcedure extends BaseProcedure
      */
     public function getConfig(): CrossServiceConfig
     {
-        return $this->config;
+        return $this->crossServiceConfig;
+    }
+
+    /**
+     * Call another service via RPC or REST with circuit breaker protection
+     *
+     * @param string $serviceName
+     * @param string $method
+     * @param array $params
+     * @param array $context
+     * @return array
+     */
+    public function callService(string $serviceName, string $method, array $params = [], array $context = []): array
+    {
+        try {
+            // Prepare context with trace information
+            $callContext = array_merge($context, [
+                'caller_service' => $this->procedureName,
+                'target_service' => $serviceName,
+                'method' => $method,
+                'trace_id' => $context['trace_id'] ?? $this->generateTraceId(),
+                'timestamp' => now()->toISOString()
+            ]);
+
+            // Configure circuit breaker for this service call
+            $circuitConfig = [
+                'failure_threshold' => $this->crossServiceConfig->get("circuit_breaker.{$serviceName}.failure_threshold", 5),
+                'recovery_timeout' => $this->crossServiceConfig->get("circuit_breaker.{$serviceName}.recovery_timeout", 60),
+                'request_timeout' => $this->crossServiceConfig->get("circuit_breaker.{$serviceName}.request_timeout", 30)
+            ];
+
+            // Use circuit breaker protection for service calls
+            return $this->executeWithCircuitBreaker([
+                'service_name' => $serviceName,
+                'operation' => 'executeServiceCall',
+                'operation_params' => [
+                    'service_name' => $serviceName,
+                    'method' => $method,
+                    'params' => $params,
+                    'context' => $callContext
+                ],
+                'fallback_operation' => 'executeServiceCallFallback',
+                'fallback_params' => [
+                    'service_name' => $serviceName,
+                    'method' => $method,
+                    'error' => 'Circuit breaker open'
+                ],
+                'circuit_config' => $circuitConfig
+            ], $callContext);
+
+        } catch (Exception $e) {
+            $this->log('error', 'Cross-service call failed', [
+                'service' => $serviceName,
+                'method' => $method,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse('Service call failed', [
+                'service' => $serviceName,
+                'method' => $method,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Execute the actual service call (used by circuit breaker)
+     *
+     * @param array $params
+     * @param array $context
+     * @return array
+     */
+    private function executeServiceCall(array $params, array $context): array
+    {
+        $serviceName = $params['service_name'];
+        $method = $params['method'];
+        $callParams = $params['params'];
+        $callContext = $params['context'];
+
+        // Determine communication protocol (prefer RPC, fallback to REST)
+        $useRpc = $this->crossServiceConfig->get('enable_rpc', true) && $this->isRpcAvailable($serviceName);
+
+        if ($useRpc) {
+            return $this->callServiceViaRpc($serviceName, $method, $callParams, $callContext);
+        } else {
+            return $this->callServiceViaRest($serviceName, $method, $callParams, $callContext);
+        }
+    }
+
+    /**
+     * Fallback method when circuit breaker is open
+     *
+     * @param array $params
+     * @param array $context
+     * @return array
+     */
+    private function executeServiceCallFallback(array $params, array $context): array
+    {
+        $serviceName = $params['service_name'];
+        $method = $params['method'];
+        $error = $params['error'] ?? 'Service temporarily unavailable';
+
+        $this->log('warning', 'Service call fallback triggered', [
+            'service' => $serviceName,
+            'method' => $method,
+            'reason' => $error
+        ]);
+
+        // Try to get cached response if available
+        $cacheKey = "service_fallback:{$serviceName}:{$method}";
+        $cachedResponse = $this->getCachedResponse($cacheKey);
+        
+        if ($cachedResponse) {
+            return $this->successResponse($cachedResponse, 'Fallback response from cache');
+        }
+
+        // Return default fallback response
+        return $this->errorResponse('Service temporarily unavailable', [
+            'service' => $serviceName,
+            'method' => $method,
+            'fallback' => true,
+            'circuit_breaker_open' => true
+        ]);
+    }
+
+    /**
+     * Call service via RPC
+     *
+     * @param string $serviceName
+     * @param string $method
+     * @param array $params
+     * @param array $context
+     * @return array
+     */
+    private function callServiceViaRpc(string $serviceName, string $method, array $params, array $context): array
+    {
+        // Get service endpoint from configuration
+        $serviceUrl = $this->getServiceRpcEndpoint($serviceName);
+        if (!$serviceUrl) {
+            throw new Exception("RPC endpoint not found for service: {$serviceName}");
+        }
+
+        // Prepare RPC request
+        $rpcRequest = [
+            'jsonrpc' => '2.0',
+            'method' => $method,
+            'params' => $params,
+            'id' => $context['trace_id'] ?? uniqid('rpc_', true)
+        ];
+
+        // Make RPC call using HTTP client
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'X-Trace-ID' => $context['trace_id'] ?? '',
+            'X-Caller-Service' => $this->procedureName,
+            'X-Request-ID' => uniqid('req_', true)
+        ])
+        ->timeout(30)
+        ->retry(3, 1000)
+        ->post($serviceUrl, $rpcRequest);
+
+        if (!$response->successful()) {
+            throw new Exception("RPC call failed with status: {$response->status()}");
+        }
+
+        $responseData = $response->json();
+
+        // Handle RPC error response
+        if (isset($responseData['error'])) {
+            return $this->errorResponse('RPC error', $responseData['error']);
+        }
+
+        // Return successful RPC response
+        return $this->successResponse($responseData['result'] ?? []);
+    }
+
+    /**
+     * Call service via REST
+     *
+     * @param string $serviceName
+     * @param string $method
+     * @param array $params
+     * @param array $context
+     * @return array
+     */
+    private function callServiceViaRest(string $serviceName, string $method, array $params, array $context): array
+    {
+        // Get service endpoint from configuration
+        $serviceUrl = $this->getServiceRestEndpoint($serviceName);
+        if (!$serviceUrl) {
+            throw new Exception("REST endpoint not found for service: {$serviceName}");
+        }
+
+        // Build REST endpoint URL
+        $endpoint = "{$serviceUrl}/api/{$method}";
+
+        // Make REST call using HTTP client
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+            'X-Trace-ID' => $context['trace_id'] ?? '',
+            'X-Caller-Service' => $this->procedureName,
+            'X-Request-ID' => uniqid('req_', true)
+        ])
+        ->timeout(30)
+        ->retry(3, 1000)
+        ->post($endpoint, $params);
+
+        if (!$response->successful()) {
+            throw new Exception("REST call failed with status: {$response->status()}");
+        }
+
+        $responseData = $response->json();
+
+        // Return REST response (assuming standard format)
+        return $responseData;
+    }
+
+    /**
+     * Check if RPC is available for a service
+     *
+     * @param string $serviceName
+     * @return bool
+     */
+    private function isRpcAvailable(string $serviceName): bool
+    {
+        $rpcEndpoint = $this->getServiceRpcEndpoint($serviceName);
+        return !empty($rpcEndpoint);
+    }
+
+    /**
+     * Get RPC endpoint for a service
+     *
+     * @param string $serviceName
+     * @return string|null
+     */
+    private function getServiceRpcEndpoint(string $serviceName): ?string
+    {
+        // Try to get from environment variables first
+        $envKey = 'RPC_' . strtoupper(str_replace('-', '_', $serviceName)) . '_URL';
+        $endpoint = env($envKey);
+        
+        if ($endpoint) {
+            return rtrim($endpoint, '/') . '/rpc';
+        }
+
+        // Fallback to Kubernetes service discovery pattern
+        $kubernetesUrl = "http://{$serviceName}:8080/rpc";
+        
+        return $kubernetesUrl;
+    }
+
+    /**
+     * Get REST endpoint for a service
+     *
+     * @param string $serviceName
+     * @return string|null
+     */
+    private function getServiceRestEndpoint(string $serviceName): ?string
+    {
+        // Try to get from environment variables first
+        $envKey = 'REST_' . strtoupper(str_replace('-', '_', $serviceName)) . '_URL';
+        $endpoint = env($envKey);
+        
+        if ($endpoint) {
+            return rtrim($endpoint, '/');
+        }
+
+        // Fallback to Kubernetes service discovery pattern
+        $kubernetesUrl = "http://{$serviceName}:8080";
+        
+        return $kubernetesUrl;
+    }
+
+    /**
+     * Get cached response for fallback scenarios
+     *
+     * @param string $cacheKey
+     * @return array|null
+     */
+    private function getCachedResponse(string $cacheKey): ?array
+    {
+        try {
+            // Try to get from cache using the cache management procedure
+            $cacheResult = $this->getCacheValue([
+                'key' => $cacheKey,
+                'default' => null
+            ]);
+
+            if ($cacheResult['success'] && $cacheResult['data']['value'] !== null) {
+                return $cacheResult['data']['value'];
+            }
+
+            return null;
+        } catch (Exception $e) {
+            $this->log('warning', 'Failed to get cached response for fallback', [
+                'cache_key' => $cacheKey,
+                'error' => $e->getMessage()
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Generate trace ID for request tracking
+     *
+     * @return string
+     */
+    private function generateTraceId(): string
+    {
+        return uniqid('trace_', true);
     }
 }

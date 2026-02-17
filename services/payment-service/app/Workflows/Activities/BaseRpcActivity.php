@@ -3,7 +3,6 @@
 namespace App\Workflows\Activities;
 
 use Shared\Procedures\CrossServiceProcedure;
-use Workflow\Activity;
 use Workflow\ActivityStub;
 use Exception;
 use Illuminate\Support\Facades\Log;
@@ -14,12 +13,17 @@ use Illuminate\Support\Facades\Log;
  * Provides common functionality for workflow activities that interact
  * with RPC services through the existing Sajya infrastructure.
  */
-abstract class BaseRpcActivity extends Activity
+abstract class BaseRpcActivity extends NonUniqueActivity
 {
     protected CrossServiceProcedure $rpcClient;
     
-    public function __construct()
-    {
+    public function __construct(
+        int $index,
+        string $now,
+        \Workflow\Models\StoredWorkflow $storedWorkflow,
+        ...$arguments
+    ) {
+        parent::__construct($index, $now, $storedWorkflow, ...$arguments);
         $this->rpcClient = new CrossServiceProcedure();
     }
     
@@ -79,7 +83,7 @@ abstract class BaseRpcActivity extends Activity
      */
     protected function getSagaId(): ?string
     {
-        return ActivityStub::getWorkflowId();
+        return $this->workflowId();
     }
     
     /**

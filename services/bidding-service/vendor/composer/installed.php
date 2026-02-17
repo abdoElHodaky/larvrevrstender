@@ -3,7 +3,11 @@
         'name' => 'reversetender/bidding-service',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
+<<<<<<< HEAD
         'reference' => 'ca0be995e0e53a9cd52a0836684b6176cbca6013',
+=======
+        'reference' => '19fa2ebae79308403abfb56b29b272d5d5c07ec3',
+>>>>>>> origin/codegen-bot/update-kubernetes-gateway-api-configs
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -1042,7 +1046,11 @@
         'reversetender/bidding-service' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
+<<<<<<< HEAD
             'reference' => 'ca0be995e0e53a9cd52a0836684b6176cbca6013',
+=======
+            'reference' => '19fa2ebae79308403abfb56b29b272d5d5c07ec3',
+>>>>>>> origin/codegen-bot/update-kubernetes-gateway-api-configs
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

@@ -1,0 +1,19 @@
+# Ignore actual secrets files that might be created during deployment
+*-secrets-actual.yaml
+*-secrets-prod.yaml
+*-secrets-staging.yaml
+*-secrets-dev.yaml
+secrets-actual/
+secrets-prod/
+secrets-staging/
+secrets-dev/
+
+# Ignore any files with actual credentials
+*actual*
+*prod*
+*staging*
+*dev*
+
+# Ignore temporary files
+*.tmp
+*.temp

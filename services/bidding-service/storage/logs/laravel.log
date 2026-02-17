@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 [2026-02-16 13:17:57] local.ERROR: Class "Redis" not found {"exception":"[object] (Error(code: 0): Class \"Redis\" not found at /tmp/abdoElHodaky/larvrevrstender/services/bidding-service/vendor/laravel/framework/src/Illuminate/Redis/Connectors/PhpRedisConnector.php:80)
+=======
+[2026-02-16 13:24:53] local.ERROR: Class "Redis" not found {"exception":"[object] (Error(code: 0): Class \"Redis\" not found at /tmp/abdoElHodaky/larvrevrstender/services/bidding-service/vendor/laravel/framework/src/Illuminate/Redis/Connectors/PhpRedisConnector.php:80)
+>>>>>>> origin/codegen-bot/update-kubernetes-gateway-api-configs
 [stacktrace]
 #0 /tmp/abdoElHodaky/larvrevrstender/services/bidding-service/vendor/laravel/framework/src/Illuminate/Redis/Connectors/PhpRedisConnector.php(34): Illuminate\\Redis\\Connectors\\PhpRedisConnector->createClient()
 #1 /tmp/abdoElHodaky/larvrevrstender/services/bidding-service/vendor/laravel/framework/src/Illuminate/Redis/Connectors/PhpRedisConnector.php(39): Illuminate\\Redis\\Connectors\\PhpRedisConnector->Illuminate\\Redis\\Connectors\\{closure}()

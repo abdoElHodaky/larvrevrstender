@@ -1,4 +1,5 @@
-# Services for Reverse Tender Platform Microservices
+# RPC-Optimized Services for Reverse Tender Platform Microservices
+# Aligned with JSON-RPC/tRPC Gateway API configuration
 
 ---
 apiVersion: v1
@@ -8,13 +9,22 @@ metadata:
   labels:
     app: gateway-service
     tier: gateway
+    protocol: http
+    version: v2.0
+  annotations:
+    service.kubernetes.io/description: "API Gateway for RPC microservices"
+    service.kubernetes.io/protocol: "http"
 spec:
   type: ClusterIP
   ports:
-  - port: 8000
+  - port: 80
     targetPort: 8000
     protocol: TCP
     name: http
+  - port: 443
+    targetPort: 8000
+    protocol: TCP
+    name: https
   selector:
     app: gateway-service
 
@@ -26,13 +36,20 @@ metadata:
   labels:
     app: auth-service
     tier: backend
+    protocol: json-rpc
+    version: v2.0
+    rpc-endpoint: "/rpc/auth"
+  annotations:
+    service.kubernetes.io/description: "Authentication RPC service"
+    service.kubernetes.io/protocol: "json-rpc"
+    service.kubernetes.io/rpc-endpoint: "/rpc/auth"
 spec:
   type: ClusterIP
   ports:
-  - port: 8001
+  - port: 80
     targetPort: 8001
     protocol: TCP
-    name: http
+    name: rpc-http
   selector:
     app: auth-service
 
@@ -44,13 +61,20 @@ metadata:
   labels:
     app: auction-service
     tier: backend
+    protocol: json-rpc
+    version: v2.0
+    rpc-endpoint: "/rpc/auction"
+  annotations:
+    service.kubernetes.io/description: "Auction management RPC service"
+    service.kubernetes.io/protocol: "json-rpc"
+    service.kubernetes.io/rpc-endpoint: "/rpc/auction"
 spec:
   type: ClusterIP
   ports:
-  - port: 8002
+  - port: 80
     targetPort: 8002
     protocol: TCP
-    name: http
+    name: rpc-http
   selector:
     app: auction-service
 
@@ -62,13 +86,20 @@ metadata:
   labels:
     app: bidding-service
     tier: backend
+    protocol: json-rpc
+    version: v2.0
+    rpc-endpoint: "/rpc/bidding"
+  annotations:
+    service.kubernetes.io/description: "Real-time bidding RPC service"
+    service.kubernetes.io/protocol: "json-rpc"
+    service.kubernetes.io/rpc-endpoint: "/rpc/bidding"
 spec:
   type: ClusterIP
   ports:
-  - port: 8003
+  - port: 80
     targetPort: 8003
     protocol: TCP
-    name: http
+    name: rpc-http
   - port: 8080
     targetPort: 8080
     protocol: TCP
@@ -84,13 +115,20 @@ metadata:
   labels:
     app: user-service
     tier: backend
+    protocol: json-rpc
+    version: v2.0
+    rpc-endpoint: "/rpc/users"
+  annotations:
+    service.kubernetes.io/description: "User management RPC service"
+    service.kubernetes.io/protocol: "json-rpc"
+    service.kubernetes.io/rpc-endpoint: "/rpc/users"
 spec:
   type: ClusterIP
   ports:
-  - port: 8004
+  - port: 80
     targetPort: 8004
     protocol: TCP
-    name: http
+    name: rpc-http
   selector:
     app: user-service
 
@@ -102,13 +140,20 @@ metadata:
   labels:
     app: order-service
     tier: backend
+    protocol: json-rpc
+    version: v2.0
+    rpc-endpoint: "/rpc/order"
+  annotations:
+    service.kubernetes.io/description: "Order management RPC service"
+    service.kubernetes.io/protocol: "json-rpc"
+    service.kubernetes.io/rpc-endpoint: "/rpc/order"
 spec:
   type: ClusterIP
   ports:
-  - port: 8005
+  - port: 80
     targetPort: 8005
     protocol: TCP
-    name: http
+    name: rpc-http
   selector:
     app: order-service
 
@@ -120,13 +165,20 @@ metadata:
   labels:
     app: notification-service
     tier: backend
+    protocol: json-rpc
+    version: v2.0
+    rpc-endpoint: "/rpc/notification"
+  annotations:
+    service.kubernetes.io/description: "Notification delivery RPC service"
+    service.kubernetes.io/protocol: "json-rpc"
+    service.kubernetes.io/rpc-endpoint: "/rpc/notification"
 spec:
   type: ClusterIP
   ports:
-  - port: 8006
+  - port: 80
     targetPort: 8006
     protocol: TCP
-    name: http
+    name: rpc-http
   selector:
     app: notification-service
 
@@ -138,13 +190,20 @@ metadata:
   labels:
     app: payment-service
     tier: backend
+    protocol: json-rpc
+    version: v2.0
+    rpc-endpoint: "/rpc/payment"
+  annotations:
+    service.kubernetes.io/description: "Payment processing RPC service"
+    service.kubernetes.io/protocol: "json-rpc"
+    service.kubernetes.io/rpc-endpoint: "/rpc/payment"
 spec:
   type: ClusterIP
   ports:
-  - port: 8007
+  - port: 80
     targetPort: 8007
     protocol: TCP
-    name: http
+    name: rpc-http
   selector:
     app: payment-service
 
@@ -156,13 +215,20 @@ metadata:
   labels:
     app: analytics-service
     tier: backend
+    protocol: json-rpc
+    version: v2.0
+    rpc-endpoint: "/rpc/analytics"
+  annotations:
+    service.kubernetes.io/description: "Data analytics RPC service"
+    service.kubernetes.io/protocol: "json-rpc"
+    service.kubernetes.io/rpc-endpoint: "/rpc/analytics"
 spec:
   type: ClusterIP
   ports:
-  - port: 8008
+  - port: 80
     targetPort: 8008
     protocol: TCP
-    name: http
+    name: rpc-http
   selector:
     app: analytics-service
 
@@ -174,13 +240,20 @@ metadata:
   labels:
     app: vin-ocr-service
     tier: backend
+    protocol: json-rpc
+    version: v2.0
+    rpc-endpoint: "/rpc/vin-ocr"
+  annotations:
+    service.kubernetes.io/description: "VIN OCR processing RPC service"
+    service.kubernetes.io/protocol: "json-rpc"
+    service.kubernetes.io/rpc-endpoint: "/rpc/vin-ocr"
 spec:
   type: ClusterIP
   ports:
-  - port: 8009
+  - port: 80
     targetPort: 8009
     protocol: TCP
-    name: http
+    name: rpc-http
   selector:
     app: vin-ocr-service
 
