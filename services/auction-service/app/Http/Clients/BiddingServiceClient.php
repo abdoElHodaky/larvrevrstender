@@ -227,4 +227,36 @@ class BiddingServiceClient extends BaseServiceClient
             return false;
         }
     }
+
+    /**
+     * Initialize auction in bidding service for saga workflow.
+     * Called by InitializeBiddingActivity in AuctionCreationSaga.
+     */
+    public function initializeAuction(array $auctionData): array
+    {
+        try {
+            $response = $this->post('/auctions/initialize', $auctionData);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return [
+                'success' => false,
+                'message' => 'Failed to initialize auction in bidding service',
+                'status_code' => $response->status()
+            ];
+        } catch (\Exception $e) {
+            \Log::error('Failed to initialize auction in bidding service', [
+                'auction_data' => $auctionData,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'message' => 'Exception occurred during auction initialization'
+            ];
+        }
+    }
 }
