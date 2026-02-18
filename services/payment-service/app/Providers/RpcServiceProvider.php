@@ -3,88 +3,119 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Sajya\Server\ServerServiceProvider;
+use Shared\Procedures\ProcedureEngine;
+use App\RPC\Procedures\PaymentProcedure;
+use App\Services\PaymentService;
+use App\Services\ReservationService;
 
+/**
+ * RPC Service Provider for Payment Service
+ * 
+ * Registers RPC procedures with the ProcedureEngine for handling
+ * incoming RPC calls from other services.
+ */
 class RpcServiceProvider extends ServiceProvider
 {
     /**
-     * Register services.
+     * Register RPC procedures
+     *
+     * @return void
      */
     public function register(): void
     {
-        // Register Sajya RPC Server
-        $this->app->register(ServerServiceProvider::class);
+        // Register procedure classes in the container
+        $this->app->singleton(PaymentProcedure::class, function ($app) {
+            return new PaymentProcedure(
+                $app->make(PaymentService::class),
+                $app->make(ReservationService::class)
+            );
+        });
     }
-
+    
     /**
-     * Bootstrap services.
+     * Bootstrap RPC procedures
+     *
+     * @return void
      */
     public function boot(): void
     {
-        // Load RPC routes
-        $this->loadRoutesFrom(base_path('routes/rpc.php'));
-
-        // Register RPC middleware
-        $this->registerRpcMiddleware();
-
-        // Register RPC clients for other services
-        $this->registerRpcClients();
-    }
-
-    /**
-     * Register RPC middleware
-     */
-    private function registerRpcMiddleware(): void
-    {
-        $router = $this->app['router'];
-
-        $router->aliasMiddleware('rpc.correlation', \App\Http\Middleware\RpcCorrelationMiddleware::class);
-        $router->aliasMiddleware('rpc.performance', \App\Http\Middleware\RpcPerformanceMiddleware::class);
-        $router->aliasMiddleware('rpc.logging', \App\Http\Middleware\RpcLoggingMiddleware::class);
-    }
-
-    /**
-     * Register RPC clients for inter-service communication
-     */
-    private function registerRpcClients(): void
-    {
-        // Auth Service RPC Client
-        $this->app->singleton('AuthRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.auth.url'))
-                    ->withToken(config('rpc.services.auth.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'shared-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
+        $procedureEngine = $this->app->make(ProcedureEngine::class);
+        
+        // Register payment-related procedures
+        $paymentProcedure = $this->app->make(PaymentProcedure::class);
+        $procedureEngine->register('payment.reserveFunds', [$paymentProcedure, 'reserveFunds']);
+        $procedureEngine->register('payment.releaseFunds', [$paymentProcedure, 'releaseFunds']);
+        $procedureEngine->register('payment.captureFunds', [$paymentProcedure, 'captureFunds']);
+        $procedureEngine->register('payment.processPayment', [$paymentProcedure, 'processPayment']);
+        $procedureEngine->register('payment.issueRefund', [$paymentProcedure, 'issueRefund']);
+        $procedureEngine->register('payment.getStatus', [$paymentProcedure, 'getStatus']);
+        $procedureEngine->register('payment.getReservationStatus', [$paymentProcedure, 'getReservationStatus']);
+        $procedureEngine->register('payment.getUserPaymentMethods', [$paymentProcedure, 'getUserPaymentMethods']);
+        $procedureEngine->register('payment.calculateFees', [$paymentProcedure, 'calculateFees']);
+        
+        // Register system procedures for health checks and monitoring
+        $procedureEngine->register('health.check', function () {
+            return [
+                'success' => true,
+                'service' => 'payment-service',
+                'status' => 'healthy',
+                'timestamp' => now()->toISOString(),
+                'version' => config('app.version', '1.0.0'),
+            ];
         });
-
-        // User Service RPC Client
-        $this->app->singleton('UserRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.user.url'))
-                    ->withToken(config('rpc.services.user.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'shared-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
+        
+        $procedureEngine->register('system.info', function () {
+            return [
+                'success' => true,
+                'service' => 'payment-service',
+                'description' => 'Handles payment processing, fund reservations, and financial operations',
+                'version' => config('app.version', '1.0.0'),
+                'environment' => config('app.env'),
+                'procedures' => [
+                    'payment.reserveFunds',
+                    'payment.releaseFunds',
+                    'payment.captureFunds',
+                    'payment.processPayment',
+                    'payment.issueRefund',
+                    'payment.getStatus',
+                    'payment.getReservationStatus',
+                    'payment.getUserPaymentMethods',
+                    'payment.calculateFees',
+                    'health.check',
+                    'system.info',
+                    'system.metrics',
+                    'system.ping',
+                ],
+            ];
         });
-
-        // Notification Service RPC Client
-        $this->app->singleton('NotificationRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.notification.url'))
-                    ->withToken(config('rpc.services.notification.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'shared-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
+        
+        $procedureEngine->register('system.metrics', function () {
+            // Get basic metrics - in production this would include more detailed metrics
+            return [
+                'success' => true,
+                'service' => 'payment-service',
+                'metrics' => [
+                    'total_payments' => \App\Models\Payment::count(),
+                    'successful_payments' => \App\Models\Payment::where('status', 'completed')->count(),
+                    'pending_payments' => \App\Models\Payment::where('status', 'pending')->count(),
+                    'failed_payments' => \App\Models\Payment::where('status', 'failed')->count(),
+                    'total_reservations' => \App\Models\Reservation::count(),
+                    'active_reservations' => \App\Models\Reservation::where('status', 'active')->count(),
+                    'memory_usage' => memory_get_usage(true),
+                    'memory_peak' => memory_get_peak_usage(true),
+                ],
+                'timestamp' => now()->toISOString(),
+            ];
+        });
+        
+        $procedureEngine->register('system.ping', function () {
+            return [
+                'success' => true,
+                'service' => 'payment-service',
+                'message' => 'pong',
+                'timestamp' => now()->toISOString(),
+            ];
         });
     }
 }
+

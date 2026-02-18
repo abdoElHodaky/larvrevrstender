@@ -2,525 +2,437 @@
 
 namespace App\RPC\Procedures;
 
-use App\RPC\BaseProcedure;
+use Shared\Procedures\BaseProcedure;
+use App\Models\Notification;
 use App\Services\NotificationService;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\RateLimiter;
-use Sajya\Server\Exceptions\RuntimeException;
+use App\Services\EmailService;
+use App\Services\SmsService;
+use App\Services\PushNotificationService;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Exception;
 
+/**
+ * RPC Procedures for Notification Operations
+ * 
+ * Handles all notification-related RPC calls from other services.
+ */
 class NotificationProcedure extends BaseProcedure
 {
+    protected NotificationService $notificationService;
+    protected EmailService $emailService;
+    protected SmsService $smsService;
+    protected PushNotificationService $pushService;
+    
     public function __construct(
-        private NotificationService $notificationService
-    ) {}
-
+        NotificationService $notificationService,
+        EmailService $emailService,
+        SmsService $smsService,
+        PushNotificationService $pushService
+    ) {
+        $this->notificationService = $notificationService;
+        $this->emailService = $emailService;
+        $this->smsService = $smsService;
+        $this->pushService = $pushService;
+    }
+    
     /**
-     * Send notification
+     * Send email notification
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
      */
-    public function send(array $params): array
+    public function sendEmail(array $params): array
     {
-        $this->validate($params, [
-            'user_id' => 'required|integer|min:1',
-            'type' => 'required|string|in:email,sms,push,in_app',
-            'title' => 'required|string|max:255',
-            'message' => 'required|string|max:1000',
-            'data' => 'sometimes|array',
-            'scheduled_at' => 'sometimes|date|after:now',
-            'priority' => 'sometimes|string|in:low,normal,high,urgent',
-        ]);
-
-        return $this->executeWithLogging('Notification@send', $this->sanitizeForLogging($params), function () use ($params) {
-            // Rate limiting for notifications
-            $key = 'notification_send:'.$params['user_id'];
-            if (RateLimiter::tooManyAttempts($key, 50)) {
-                throw new RuntimeException(
-                    'Too many notification attempts. Please try again later.',
-                    -32007,
-                    ['retry_after' => RateLimiter::availableIn($key)]
-                );
+        try {
+            $validator = Validator::make($params, [
+                'to' => 'required|email',
+                'subject' => 'required|string|max:255',
+                'body' => 'required|string',
+                'template' => 'string|max:100',
+                'template_data' => 'array',
+                'from' => 'email',
+                'reply_to' => 'email',
+                'attachments' => 'array',
+                'priority' => 'string|in:low,normal,high',
+                'metadata' => 'array',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
             }
-
-            try {
-                $notification = $this->notificationService->sendNotification([
-                    'user_id' => $params['user_id'],
-                    'type' => $params['type'],
-                    'title' => $params['title'],
-                    'message' => $params['message'],
-                    'data' => $params['data'] ?? [],
-                    'scheduled_at' => $params['scheduled_at'] ?? null,
-                    'priority' => $params['priority'] ?? 'normal',
+            
+            $result = $this->emailService->sendEmail($params);
+            
+            if ($result['success']) {
+                return $this->successResponse([
+                    'notification_id' => $result['notification_id'],
+                    'message' => 'Email sent successfully',
+                    'delivery_status' => $result['delivery_status'] ?? 'sent',
                 ]);
-
-                // Clear rate limiting on successful send
-                RateLimiter::clear($key);
-
-                return [
-                    'success' => true,
-                    'notification' => $notification,
-                    'sent_at' => now()->toISOString(),
-                ];
-
-            } catch (\Exception $e) {
-                // Increment rate limiting on failed send
-                RateLimiter::hit($key, 60); // 1 minute
-
-                throw new RuntimeException(
-                    'Notification send failed: '.$e->getMessage(),
-                    -32001,
-                    ['user_id' => $params['user_id'], 'type' => $params['type']]
-                );
+            } else {
+                return $this->errorResponse($result['message'], $result['errors'] ?? [], $result['code'] ?? 400);
             }
-        });
+            
+        } catch (Exception $e) {
+            Log::error('NotificationProcedure::sendEmail failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to send email', ['error' => $e->getMessage()], 500);
+        }
     }
-
+    
     /**
-     * Send bulk notifications
+     * Send SMS notification
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
      */
-    public function sendBulk(array $params): array
+    public function sendSms(array $params): array
     {
-        $this->validate($params, [
-            'user_ids' => 'required|array|min:1|max:1000',
-            'user_ids.*' => 'integer|min:1',
-            'type' => 'required|string|in:email,sms,push,in_app',
-            'title' => 'required|string|max:255',
-            'message' => 'required|string|max:1000',
-            'data' => 'sometimes|array',
-            'scheduled_at' => 'sometimes|date|after:now',
-            'priority' => 'sometimes|string|in:low,normal,high,urgent',
-        ]);
-
-        return $this->executeWithLogging('Notification@sendBulk', $this->sanitizeForLogging($params), function () use ($params) {
-            // Rate limiting for bulk notifications
-            $key = 'notification_bulk:'.request()->ip();
-            if (RateLimiter::tooManyAttempts($key, 5)) {
-                throw new RuntimeException(
-                    'Too many bulk notification attempts. Please try again later.',
-                    -32007,
-                    ['retry_after' => RateLimiter::availableIn($key)]
-                );
+        try {
+            $validator = Validator::make($params, [
+                'to' => 'required|string|max:20',
+                'message' => 'required|string|max:1600',
+                'template' => 'string|max:100',
+                'template_data' => 'array',
+                'priority' => 'string|in:low,normal,high',
+                'metadata' => 'array',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
             }
-
-            try {
-                $result = $this->notificationService->sendBulkNotifications([
-                    'user_ids' => $params['user_ids'],
-                    'type' => $params['type'],
-                    'title' => $params['title'],
-                    'message' => $params['message'],
-                    'data' => $params['data'] ?? [],
-                    'scheduled_at' => $params['scheduled_at'] ?? null,
-                    'priority' => $params['priority'] ?? 'normal',
+            
+            $result = $this->smsService->sendSms($params);
+            
+            if ($result['success']) {
+                return $this->successResponse([
+                    'notification_id' => $result['notification_id'],
+                    'message' => 'SMS sent successfully',
+                    'delivery_status' => $result['delivery_status'] ?? 'sent',
                 ]);
-
-                // Clear rate limiting on successful send
-                RateLimiter::clear($key);
-
-                return [
-                    'success' => true,
-                    'batch_id' => $result['batch_id'],
-                    'total_recipients' => count($params['user_ids']),
-                    'queued_count' => $result['queued_count'],
-                    'failed_count' => $result['failed_count'],
-                    'sent_at' => now()->toISOString(),
-                ];
-
-            } catch (\Exception $e) {
-                // Increment rate limiting on failed send
-                RateLimiter::hit($key, 300); // 5 minutes
-
-                throw new RuntimeException(
-                    'Bulk notification send failed: '.$e->getMessage(),
-                    -32002,
-                    ['recipients_count' => count($params['user_ids'])]
-                );
+            } else {
+                return $this->errorResponse($result['message'], $result['errors'] ?? [], $result['code'] ?? 400);
             }
-        });
+            
+        } catch (Exception $e) {
+            Log::error('NotificationProcedure::sendSms failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to send SMS', ['error' => $e->getMessage()], 500);
+        }
     }
-
+    
     /**
-     * Get user notifications
+     * Send push notification
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
      */
-    public function getUserNotifications(array $params): array
+    public function sendPushNotification(array $params): array
     {
-        $this->validate($params, [
-            'user_id' => 'required|integer|min:1',
-            'type' => 'sometimes|string|in:email,sms,push,in_app',
-            'read' => 'sometimes|boolean',
-            'page' => 'sometimes|integer|min:1',
-            'per_page' => 'sometimes|integer|min:1|max:100',
-        ]);
-
-        return $this->executeWithLogging('Notification@getUserNotifications', $params, function () use ($params) {
-            try {
-                $results = $this->notificationService->getUserNotifications([
-                    'user_id' => $params['user_id'],
-                    'type' => $params['type'] ?? null,
-                    'read' => $params['read'] ?? null,
-                    'page' => $params['page'] ?? 1,
-                    'per_page' => $params['per_page'] ?? 20,
+        try {
+            $validator = Validator::make($params, [
+                'user_id' => 'required|integer|min:1',
+                'title' => 'required|string|max:255',
+                'body' => 'required|string|max:1000',
+                'data' => 'array',
+                'icon' => 'string|max:255',
+                'image' => 'string|max:255',
+                'click_action' => 'string|max:255',
+                'priority' => 'string|in:low,normal,high',
+                'metadata' => 'array',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
+            }
+            
+            $result = $this->pushService->sendPushNotification($params);
+            
+            if ($result['success']) {
+                return $this->successResponse([
+                    'notification_id' => $result['notification_id'],
+                    'message' => 'Push notification sent successfully',
+                    'delivery_status' => $result['delivery_status'] ?? 'sent',
                 ]);
-
-                return [
-                    'success' => true,
-                    'notifications' => $results['data'],
-                    'pagination' => $results['pagination'],
-                    'unread_count' => $results['unread_count'],
-                    'retrieved_at' => now()->toISOString(),
-                ];
-
-            } catch (\Exception $e) {
-                throw new RuntimeException(
-                    'Failed to retrieve user notifications: '.$e->getMessage(),
-                    -32003,
-                    ['user_id' => $params['user_id']]
-                );
+            } else {
+                return $this->errorResponse($result['message'], $result['errors'] ?? [], $result['code'] ?? 400);
             }
-        });
+            
+        } catch (Exception $e) {
+            Log::error('NotificationProcedure::sendPushNotification failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to send push notification', ['error' => $e->getMessage()], 500);
+        }
     }
-
+    
     /**
-     * Mark notification as read
+     * Send multi-channel notification
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
      */
-    public function markAsRead(array $params): array
+    public function sendMultiChannel(array $params): array
     {
-        $this->validate($params, [
-            'notification_id' => 'required|integer|min:1',
-            'user_id' => 'required|integer|min:1',
-        ]);
-
-        return $this->executeWithLogging('Notification@markAsRead', $params, function () use ($params) {
-            try {
-                $result = $this->notificationService->markAsRead(
-                    $params['notification_id'],
-                    $params['user_id']
-                );
-
-                return [
-                    'success' => true,
-                    'notification_id' => $params['notification_id'],
-                    'read' => $result['read'],
-                    'read_at' => $result['read_at'],
-                    'marked_at' => now()->toISOString(),
-                ];
-
-            } catch (\Exception $e) {
-                throw new RuntimeException(
-                    'Failed to mark notification as read: '.$e->getMessage(),
-                    -32004,
-                    ['notification_id' => $params['notification_id']]
-                );
+        try {
+            $validator = Validator::make($params, [
+                'user_id' => 'required|integer|min:1',
+                'channels' => 'required|array|min:1',
+                'channels.*' => 'string|in:email,sms,push,whatsapp,telegram',
+                'message_data' => 'required|array',
+                'priority' => 'string|in:low,normal,high',
+                'metadata' => 'array',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
             }
-        });
-    }
-
-    /**
-     * Mark all notifications as read
-     */
-    public function markAllAsRead(array $params): array
-    {
-        $this->validate($params, [
-            'user_id' => 'required|integer|min:1',
-            'type' => 'sometimes|string|in:email,sms,push,in_app',
-        ]);
-
-        return $this->executeWithLogging('Notification@markAllAsRead', $params, function () use ($params) {
-            try {
-                $result = $this->notificationService->markAllAsRead(
-                    $params['user_id'],
-                    $params['type'] ?? null
-                );
-
-                return [
-                    'success' => true,
-                    'user_id' => $params['user_id'],
-                    'marked_count' => $result['marked_count'],
-                    'marked_at' => now()->toISOString(),
-                ];
-
-            } catch (\Exception $e) {
-                throw new RuntimeException(
-                    'Failed to mark all notifications as read: '.$e->getMessage(),
-                    -32005,
-                    ['user_id' => $params['user_id']]
-                );
-            }
-        });
-    }
-
-    /**
-     * Delete notification
-     */
-    public function delete(array $params): array
-    {
-        $this->validate($params, [
-            'notification_id' => 'required|integer|min:1',
-            'user_id' => 'required|integer|min:1',
-        ]);
-
-        return $this->executeWithLogging('Notification@delete', $params, function () use ($params) {
-            try {
-                $result = $this->notificationService->deleteNotification(
-                    $params['notification_id'],
-                    $params['user_id']
-                );
-
-                return [
-                    'success' => true,
-                    'notification_id' => $params['notification_id'],
-                    'deleted' => $result['deleted'],
-                    'deleted_at' => now()->toISOString(),
-                ];
-
-            } catch (\Exception $e) {
-                throw new RuntimeException(
-                    'Failed to delete notification: '.$e->getMessage(),
-                    -32006,
-                    ['notification_id' => $params['notification_id']]
-                );
-            }
-        });
-    }
-
-    /**
-     * Get notification preferences
-     */
-    public function getPreferences(array $params): array
-    {
-        $this->validate($params, [
-            'user_id' => 'required|integer|min:1',
-        ]);
-
-        return $this->executeWithLogging('Notification@getPreferences', $params, function () use ($params) {
-            // Check cache first
-            $cacheKey = 'notification_preferences:'.$params['user_id'];
-            $cached = Cache::get($cacheKey);
-
-            if ($cached !== null) {
-                return $cached;
-            }
-
-            try {
-                $preferences = $this->notificationService->getUserPreferences($params['user_id']);
-
-                $result = [
-                    'success' => true,
-                    'user_id' => $params['user_id'],
-                    'preferences' => $preferences,
-                    'retrieved_at' => now()->toISOString(),
-                ];
-
-                // Cache for 30 minutes
-                Cache::put($cacheKey, $result, 1800);
-
-                return $result;
-
-            } catch (\Exception $e) {
-                throw new RuntimeException(
-                    'Failed to retrieve notification preferences: '.$e->getMessage(),
-                    -32007,
-                    ['user_id' => $params['user_id']]
-                );
-            }
-        });
-    }
-
-    /**
-     * Update notification preferences
-     */
-    public function updatePreferences(array $params): array
-    {
-        $this->validate($params, [
-            'user_id' => 'required|integer|min:1',
-            'preferences' => 'required|array',
-            'preferences.email' => 'sometimes|array',
-            'preferences.sms' => 'sometimes|array',
-            'preferences.push' => 'sometimes|array',
-            'preferences.in_app' => 'sometimes|array',
-        ]);
-
-        return $this->executeWithLogging('Notification@updatePreferences', $params, function () use ($params) {
-            try {
-                $preferences = $this->notificationService->updateUserPreferences(
-                    $params['user_id'],
-                    $params['preferences']
-                );
-
-                // Clear cache
-                Cache::forget('notification_preferences:'.$params['user_id']);
-
-                return [
-                    'success' => true,
-                    'user_id' => $params['user_id'],
-                    'preferences' => $preferences,
-                    'updated_at' => now()->toISOString(),
-                ];
-
-            } catch (\Exception $e) {
-                throw new RuntimeException(
-                    'Failed to update notification preferences: '.$e->getMessage(),
-                    -32008,
-                    ['user_id' => $params['user_id']]
-                );
-            }
-        });
-    }
-
-    /**
-     * Get notification templates
-     */
-    public function getTemplates(array $params): array
-    {
-        $this->validate($params, [
-            'type' => 'sometimes|string|in:email,sms,push,in_app',
-            'category' => 'sometimes|string|max:100',
-            'active_only' => 'sometimes|boolean',
-        ]);
-
-        return $this->executeWithLogging('Notification@getTemplates', $params, function () use ($params) {
-            // Check cache first
-            $cacheKey = 'notification_templates:'.
-                       ($params['type'] ?? 'all').':'.
-                       ($params['category'] ?? 'all').':'.
-                       ($params['active_only'] ?? true ? 'active' : 'all');
-            $cached = Cache::get($cacheKey);
-
-            if ($cached !== null) {
-                return $cached;
-            }
-
-            try {
-                $templates = $this->notificationService->getTemplates([
-                    'type' => $params['type'] ?? null,
-                    'category' => $params['category'] ?? null,
-                    'active_only' => $params['active_only'] ?? true,
+            
+            $result = $this->notificationService->sendMultiChannel($params);
+            
+            if ($result['success']) {
+                return $this->successResponse([
+                    'notification_ids' => $result['notification_ids'],
+                    'message' => 'Multi-channel notification sent successfully',
+                    'delivery_results' => $result['delivery_results'] ?? [],
                 ]);
-
-                $result = [
-                    'success' => true,
-                    'templates' => $templates,
-                    'retrieved_at' => now()->toISOString(),
-                ];
-
-                // Cache for 1 hour
-                Cache::put($cacheKey, $result, 3600);
-
-                return $result;
-
-            } catch (\Exception $e) {
-                throw new RuntimeException(
-                    'Failed to retrieve notification templates: '.$e->getMessage(),
-                    -32009,
-                    ['type' => $params['type'] ?? null]
-                );
+            } else {
+                return $this->errorResponse($result['message'], $result['errors'] ?? [], $result['code'] ?? 400);
             }
-        });
+            
+        } catch (Exception $e) {
+            Log::error('NotificationProcedure::sendMultiChannel failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to send multi-channel notification', ['error' => $e->getMessage()], 500);
+        }
     }
-
+    
     /**
-     * Send template-based notification
+     * Send bid confirmation notification
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
      */
-    public function sendFromTemplate(array $params): array
+    public function sendBidConfirmation(array $params): array
     {
-        $this->validate($params, [
-            'user_id' => 'required|integer|min:1',
-            'template_id' => 'required|integer|min:1',
-            'variables' => 'sometimes|array',
-            'scheduled_at' => 'sometimes|date|after:now',
-            'priority' => 'sometimes|string|in:low,normal,high,urgent',
-        ]);
-
-        return $this->executeWithLogging('Notification@sendFromTemplate', $this->sanitizeForLogging($params), function () use ($params) {
-            // Rate limiting for template notifications
-            $key = 'notification_template:'.$params['user_id'];
-            if (RateLimiter::tooManyAttempts($key, 30)) {
-                throw new RuntimeException(
-                    'Too many template notification attempts. Please try again later.',
-                    -32007,
-                    ['retry_after' => RateLimiter::availableIn($key)]
-                );
+        try {
+            $validator = Validator::make($params, [
+                'user_id' => 'required|integer|min:1',
+                'auction_id' => 'required|integer|min:1',
+                'bid_id' => 'required|integer|min:1',
+                'bid_amount' => 'required|numeric|min:0',
+                'auction_title' => 'required|string|max:255',
+                'channels' => 'array',
+                'channels.*' => 'string|in:email,sms,push',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
             }
-
-            try {
-                $notification = $this->notificationService->sendFromTemplate([
-                    'user_id' => $params['user_id'],
-                    'template_id' => $params['template_id'],
-                    'variables' => $params['variables'] ?? [],
-                    'scheduled_at' => $params['scheduled_at'] ?? null,
-                    'priority' => $params['priority'] ?? 'normal',
+            
+            $result = $this->notificationService->sendBidConfirmation($params);
+            
+            if ($result['success']) {
+                return $this->successResponse([
+                    'notification_ids' => $result['notification_ids'],
+                    'message' => 'Bid confirmation sent successfully',
                 ]);
-
-                // Clear rate limiting on successful send
-                RateLimiter::clear($key);
-
-                return [
-                    'success' => true,
-                    'notification' => $notification,
-                    'template_id' => $params['template_id'],
-                    'sent_at' => now()->toISOString(),
-                ];
-
-            } catch (\Exception $e) {
-                // Increment rate limiting on failed send
-                RateLimiter::hit($key, 60); // 1 minute
-
-                throw new RuntimeException(
-                    'Template notification send failed: '.$e->getMessage(),
-                    -32010,
-                    ['template_id' => $params['template_id'], 'user_id' => $params['user_id']]
-                );
+            } else {
+                return $this->errorResponse($result['message'], $result['errors'] ?? [], $result['code'] ?? 400);
             }
-        });
+            
+        } catch (Exception $e) {
+            Log::error('NotificationProcedure::sendBidConfirmation failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to send bid confirmation', ['error' => $e->getMessage()], 500);
+        }
     }
-
+    
     /**
-     * Get notification statistics
+     * Send outbid notification
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
      */
-    public function getStatistics(array $params): array
+    public function sendOutbidNotification(array $params): array
     {
-        $this->validate($params, [
-            'period' => 'sometimes|string|in:today,week,month,quarter,year',
-            'type' => 'sometimes|string|in:email,sms,push,in_app',
-            'user_id' => 'sometimes|integer|min:1',
-        ]);
-
-        return $this->executeWithLogging('Notification@getStatistics', $params, function () use ($params) {
-            $period = $params['period'] ?? 'month';
-            $type = $params['type'] ?? null;
-            $userId = $params['user_id'] ?? null;
-
-            // Check cache first
-            $cacheKey = 'notification_stats:'.$period.':'.($type ?? 'all').':'.($userId ?? 'all');
-            $cached = Cache::get($cacheKey);
-
-            if ($cached !== null) {
-                return $cached;
+        try {
+            $validator = Validator::make($params, [
+                'user_id' => 'required|integer|min:1',
+                'auction_id' => 'required|integer|min:1',
+                'previous_bid_amount' => 'required|numeric|min:0',
+                'new_highest_amount' => 'required|numeric|min:0',
+                'auction_title' => 'required|string|max:255',
+                'auction_ends_at' => 'required|date',
+                'channels' => 'array',
+                'channels.*' => 'string|in:email,sms,push',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
             }
-
-            try {
-                $statistics = $this->notificationService->getNotificationStatistics($period, $type, $userId);
-
-                $result = [
-                    'success' => true,
-                    'statistics' => $statistics,
-                    'period' => $period,
-                    'filters' => [
-                        'type' => $type,
-                        'user_id' => $userId,
-                    ],
-                    'generated_at' => now()->toISOString(),
-                ];
-
-                // Cache for 30 minutes
-                Cache::put($cacheKey, $result, 1800);
-
-                return $result;
-
-            } catch (\Exception $e) {
-                throw new RuntimeException(
-                    'Failed to retrieve notification statistics: '.$e->getMessage(),
-                    -32011,
-                    ['period' => $period]
-                );
+            
+            $result = $this->notificationService->sendOutbidNotification($params);
+            
+            if ($result['success']) {
+                return $this->successResponse([
+                    'notification_ids' => $result['notification_ids'],
+                    'message' => 'Outbid notification sent successfully',
+                ]);
+            } else {
+                return $this->errorResponse($result['message'], $result['errors'] ?? [], $result['code'] ?? 400);
             }
-        });
+            
+        } catch (Exception $e) {
+            Log::error('NotificationProcedure::sendOutbidNotification failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to send outbid notification', ['error' => $e->getMessage()], 500);
+        }
+    }
+    
+    /**
+     * Send auction won notification
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
+     */
+    public function sendAuctionWonNotification(array $params): array
+    {
+        try {
+            $validator = Validator::make($params, [
+                'user_id' => 'required|integer|min:1',
+                'auction_id' => 'required|integer|min:1',
+                'winning_amount' => 'required|numeric|min:0',
+                'auction_title' => 'required|string|max:255',
+                'payment_deadline' => 'date',
+                'channels' => 'array',
+                'channels.*' => 'string|in:email,sms,push',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
+            }
+            
+            $result = $this->notificationService->sendAuctionWonNotification($params);
+            
+            if ($result['success']) {
+                return $this->successResponse([
+                    'notification_ids' => $result['notification_ids'],
+                    'message' => 'Auction won notification sent successfully',
+                ]);
+            } else {
+                return $this->errorResponse($result['message'], $result['errors'] ?? [], $result['code'] ?? 400);
+            }
+            
+        } catch (Exception $e) {
+            Log::error('NotificationProcedure::sendAuctionWonNotification failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to send auction won notification', ['error' => $e->getMessage()], 500);
+        }
+    }
+    
+    /**
+     * Send payment reminder
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
+     */
+    public function sendPaymentReminder(array $params): array
+    {
+        try {
+            $validator = Validator::make($params, [
+                'user_id' => 'required|integer|min:1',
+                'auction_id' => 'required|integer|min:1',
+                'amount_due' => 'required|numeric|min:0',
+                'payment_deadline' => 'required|date',
+                'auction_title' => 'required|string|max:255',
+                'reminder_type' => 'string|in:first,second,final',
+                'channels' => 'array',
+                'channels.*' => 'string|in:email,sms,push',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
+            }
+            
+            $result = $this->notificationService->sendPaymentReminder($params);
+            
+            if ($result['success']) {
+                return $this->successResponse([
+                    'notification_ids' => $result['notification_ids'],
+                    'message' => 'Payment reminder sent successfully',
+                ]);
+            } else {
+                return $this->errorResponse($result['message'], $result['errors'] ?? [], $result['code'] ?? 400);
+            }
+            
+        } catch (Exception $e) {
+            Log::error('NotificationProcedure::sendPaymentReminder failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to send payment reminder', ['error' => $e->getMessage()], 500);
+        }
+    }
+    
+    /**
+     * Get notification status
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
+     */
+    public function getStatus(array $params): array
+    {
+        try {
+            $validator = Validator::make($params, [
+                'notification_id' => 'required|string|max:255',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
+            }
+            
+            $notification = Notification::where('notification_id', $params['notification_id'])->first();
+            if (!$notification) {
+                return $this->errorResponse('Notification not found', ['notification_id' => $params['notification_id']], 404);
+            }
+            
+            return $this->successResponse([
+                'notification' => $notification->toArray(),
+                'status' => $notification->status,
+                'notification_id' => $params['notification_id'],
+            ]);
+            
+        } catch (Exception $e) {
+            Log::error('NotificationProcedure::getStatus failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to get notification status', ['error' => $e->getMessage()], 500);
+        }
     }
 }
+
