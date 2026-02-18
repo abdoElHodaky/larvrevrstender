@@ -50,67 +50,39 @@ class RpcServiceProvider extends ServiceProvider
     {
         // User Service RPC Client
         $this->app->singleton('UserRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.user.url'))
-                    ->withToken(config('rpc.services.user.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'analytics-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
+            return new \App\RPC\Clients\UserServiceRpcClient();
         });
 
-        // Order Service RPC Client
-        $this->app->singleton('OrderRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.order.url'))
-                    ->withToken(config('rpc.services.order.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'analytics-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
-        });
-
-        // Payment Service RPC Client
-        $this->app->singleton('PaymentRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.payment.url'))
-                    ->withToken(config('rpc.services.payment.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'analytics-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
-        });
-
-        // Auction Service RPC Client
+        // Auction Service RPC Client  
         $this->app->singleton('AuctionRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.auction.url'))
-                    ->withToken(config('rpc.services.auction.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'analytics-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
+            return new \App\RPC\Clients\AuctionServiceRpcClient();
         });
 
         // Bidding Service RPC Client
         $this->app->singleton('BiddingRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.bidding.url'))
-                    ->withToken(config('rpc.services.bidding.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'analytics-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
+            return new \App\RPC\Clients\BiddingServiceRpcClient();
+        });
+
+        // Payment Service RPC Client
+        $this->app->singleton('PaymentRpc', function () {
+            return new \App\RPC\Clients\PaymentServiceRpcClient();
+        });
+
+        // Register RPC clients with interface bindings for dependency injection
+        $this->app->bind(\App\RPC\Clients\UserServiceRpcClient::class, function () {
+            return app('UserRpc');
+        });
+
+        $this->app->bind(\App\RPC\Clients\AuctionServiceRpcClient::class, function () {
+            return app('AuctionRpc');
+        });
+
+        $this->app->bind(\App\RPC\Clients\BiddingServiceRpcClient::class, function () {
+            return app('BiddingRpc');
+        });
+
+        $this->app->bind(\App\RPC\Clients\PaymentServiceRpcClient::class, function () {
+            return app('PaymentRpc');
         });
     }
 }

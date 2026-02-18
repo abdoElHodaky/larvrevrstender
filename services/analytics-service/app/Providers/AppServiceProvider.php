@@ -23,6 +23,25 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(FileUploadService::class, function ($app) {
             return new FileUploadService('analytics-service');
         });
+
+        // Register RPC client compatibility bindings
+        $this->registerRpcClientBindings();
+    }
+
+    /**
+     * Register RPC client bindings to replace HTTP clients
+     */
+    private function registerRpcClientBindings(): void
+    {
+        // Replace AuthServiceClient with RPC-based implementation
+        $this->app->bind(\App\Http\Clients\AuthServiceClient::class, function ($app) {
+            return new \App\Http\Clients\RpcAuthServiceClient();
+        });
+
+        // Replace DataCollectionClient with RPC-based implementation  
+        $this->app->bind(\App\Http\Clients\DataCollectionClient::class, function ($app) {
+            return new \App\Http\Clients\RpcDataCollectionClient();
+        });
     }
 
     /**
