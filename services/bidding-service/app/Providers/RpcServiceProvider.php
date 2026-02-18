@@ -158,6 +158,19 @@ class RpcServiceProvider extends ServiceProvider
             );
         });
 
+        // Bidding Service RPC Client (for internal calls)
+        $this->app->singleton('BiddingRpc', function () {
+            return new \Sajya\Client\Client(
+                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.bidding.url'))
+                    ->withToken(config('rpc.services.bidding.token'))
+                    ->withHeaders([
+                        'X-Service-Name' => 'bidding-service',
+                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
+                    ])
+                    ->timeout(config('rpc.client.timeout', 5))
+            );
+        });
+
         // Register RPC Adapters (compatibility layer)
         $this->registerRpcAdapters();
     }
@@ -175,5 +188,8 @@ class RpcServiceProvider extends ServiceProvider
 
         // Notification Service Adapter
         $this->app->singleton(\App\RPC\Adapters\NotificationServiceAdapter::class);
+
+        // Bidding Service Adapter (for internal calls)
+        $this->app->singleton(\App\RPC\Adapters\BiddingServiceAdapter::class);
     }
 }
