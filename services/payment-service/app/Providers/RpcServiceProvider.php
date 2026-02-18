@@ -39,6 +39,9 @@ class RpcServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register RPC clients for inter-service communication
+        $this->registerRpcClients();
+        
         $procedureEngine = $this->app->make(ProcedureEngine::class);
         
         // Register payment-related procedures
@@ -117,5 +120,29 @@ class RpcServiceProvider extends ServiceProvider
             ];
         });
     }
-}
 
+    /**
+     * Register RPC clients for inter-service communication
+     */
+    private function registerRpcClients(): void
+    {
+        // Auction Service RPC Client
+        $this->app->singleton('AuctionRpc', function () {
+            return new \App\RPC\Clients\AuctionServiceRpcClient();
+        });
+
+        // Notification Service RPC Client
+        $this->app->singleton('NotificationRpc', function () {
+            return new \App\RPC\Clients\NotificationServiceRpcClient();
+        });
+
+        // Register RPC clients with interface bindings for dependency injection
+        $this->app->bind(\App\RPC\Clients\AuctionServiceRpcClient::class, function () {
+            return app('AuctionRpc');
+        });
+
+        $this->app->bind(\App\RPC\Clients\NotificationServiceRpcClient::class, function () {
+            return app('NotificationRpc');
+        });
+    }
+}

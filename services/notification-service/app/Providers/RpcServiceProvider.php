@@ -43,6 +43,9 @@ class RpcServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register RPC clients for inter-service communication
+        $this->registerRpcClients();
+        
         $procedureEngine = $this->app->make(ProcedureEngine::class);
         
         // Register notification-related procedures
@@ -122,5 +125,20 @@ class RpcServiceProvider extends ServiceProvider
             ];
         });
     }
-}
 
+    /**
+     * Register RPC clients for inter-service communication
+     */
+    private function registerRpcClients(): void
+    {
+        // User Service RPC Client
+        $this->app->singleton('UserRpc', function () {
+            return new \App\RPC\Clients\UserServiceRpcClient();
+        });
+
+        // Register RPC clients with interface bindings for dependency injection
+        $this->app->bind(\App\RPC\Clients\UserServiceRpcClient::class, function () {
+            return app('UserRpc');
+        });
+    }
+}
