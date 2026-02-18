@@ -5,9 +5,9 @@ namespace App\Services;
 use App\Models\Auction;
 use App\Models\Bid;
 use App\Models\BidAttachment;
-use App\Http\Clients\AuthServiceClient;
-use App\Http\Clients\UserServiceClient;
-use App\Http\Clients\NotificationServiceClient;
+use App\RPC\Adapters\AuthServiceAdapter;
+use App\RPC\Adapters\UserServiceAdapter;
+use App\RPC\Adapters\NotificationServiceAdapter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
@@ -15,14 +15,14 @@ use Carbon\Carbon;
 
 class BiddingService
 {
-    private AuthServiceClient $authService;
-    private UserServiceClient $userService;
-    private NotificationServiceClient $notificationService;
+    private AuthServiceAdapter $authService;
+    private UserServiceAdapter $userService;
+    private NotificationServiceAdapter $notificationService;
 
     public function __construct(
-        AuthServiceClient $authService,
-        UserServiceClient $userService,
-        NotificationServiceClient $notificationService
+        AuthServiceAdapter $authService,
+        UserServiceAdapter $userService,
+        NotificationServiceAdapter $notificationService
     ) {
         $this->authService = $authService;
         $this->userService = $userService;

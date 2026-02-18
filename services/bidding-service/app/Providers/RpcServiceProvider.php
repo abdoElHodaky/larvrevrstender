@@ -48,6 +48,19 @@ class RpcServiceProvider extends ServiceProvider
      */
     private function registerRpcClients(): void
     {
+        // Auth Service RPC Client
+        $this->app->singleton('AuthRpc', function () {
+            return new \Sajya\Client\Client(
+                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.auth.url'))
+                    ->withToken(config('rpc.services.auth.token'))
+                    ->withHeaders([
+                        'X-Service-Name' => 'bidding-service',
+                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
+                    ])
+                    ->timeout(config('rpc.client.timeout', 5))
+            );
+        });
+
         // Auction Service RPC Client
         $this->app->singleton('AuctionRpc', function () {
             return new \Sajya\Client\Client(
@@ -99,5 +112,23 @@ class RpcServiceProvider extends ServiceProvider
                     ->timeout(config('rpc.client.timeout', 5))
             );
         });
+
+        // Register RPC Adapters (compatibility layer)
+        $this->registerRpcAdapters();
+    }
+
+    /**
+     * Register RPC adapters for seamless HTTP-to-RPC migration
+     */
+    private function registerRpcAdapters(): void
+    {
+        // Auth Service Adapter
+        $this->app->singleton(\App\RPC\Adapters\AuthServiceAdapter::class);
+
+        // User Service Adapter
+        $this->app->singleton(\App\RPC\Adapters\UserServiceAdapter::class);
+
+        // Notification Service Adapter
+        $this->app->singleton(\App\RPC\Adapters\NotificationServiceAdapter::class);
     }
 }
