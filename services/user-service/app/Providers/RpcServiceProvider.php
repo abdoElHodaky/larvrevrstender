@@ -29,6 +29,9 @@ class RpcServiceProvider extends ServiceProvider
 
         // Register RPC clients for other services
         $this->registerRpcClients();
+        
+        // Register RPC adapters
+        $this->registerRpcAdapters();
     }
 
     /**
@@ -86,5 +89,13 @@ class RpcServiceProvider extends ServiceProvider
                     ->timeout(config('rpc.client.timeout', 5))
             );
         });
+    }
+
+    /**
+     * Register RPC adapters as singletons
+     */
+    private function registerRpcAdapters(): void
+    {
+        $this->app->singleton(\App\RPC\Adapters\AuthServiceAdapter::class);
     }
 }

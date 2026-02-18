@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Clients\AuthServiceClient;
+use App\RPC\Adapters\AuthServiceAdapter;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -12,9 +12,9 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    protected AuthServiceClient $authService;
+    protected AuthServiceAdapter $authService;
 
-    public function __construct(AuthServiceClient $authService)
+    public function __construct(AuthServiceAdapter $authService)
     {
         $this->authService = $authService;
     }
