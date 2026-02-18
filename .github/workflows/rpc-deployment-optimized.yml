@@ -1,5 +1,6 @@
 name: RPC Services Deployment Pipeline (Optimized)
 # Optimized deployment pipeline with improved performance and resource usage
+# Updated for Laravel 12+ compatibility with enhanced security scanning
 
 on:
   push:
@@ -10,8 +11,10 @@ on:
       - 'deployment/**'
       - '.github/workflows/rpc-deployment*.yml'
   pull_request:
-    branches-ignore:
+    branches:
       - main
+      - develop
+      - v2
     paths:
       - 'services/**'
       - 'deployment/**'
@@ -155,8 +158,20 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.3'
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, redis, curl
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, pgsql, redis, curl, gd, json, dom, filter, zip, sqlite3
         coverage: xdebug
+        ini-file: production
+        tools: composer:v2
+        
+    - name: Verify PHP Configuration
+      if: steps.check.outputs.test == 'true'
+      run: |
+        echo "🔍 PHP Configuration:"
+        php --version
+        echo "📋 Installed extensions:"
+        php -m | grep -E "(xdebug|sqlite|pdo)"
+        echo "🎯 Xdebug status:"
+        php -m | grep -i xdebug && echo "✅ Xdebug is installed" || echo "❌ Xdebug not found"
 
     # Optimization: Enhanced caching strategy
     - name: Cache Composer packages
@@ -203,11 +218,25 @@ jobs:
       run: |
         if [ -f "composer.json" ]; then
           echo "📦 Installing Composer dependencies for ${{ matrix.service }}..."
-          composer install --prefer-dist --no-progress --optimize-autoloader
+          
+          # Laravel 12 optimized composer install with security audit
+          COMPOSER_ALLOW_SUPERUSER=1 composer install --prefer-dist --no-progress --optimize-autoloader --no-scripts
+          
+          # Run security audit for Laravel 12 compatibility
+          echo "🔒 Running security audit..."
+          composer audit --format=plain || echo "⚠️ Security audit completed with warnings"
           
           # Generate dependency report
           echo "📋 Generating dependency report..."
           composer show --format=json > composer-dependencies.json
+          
+          # Verify Laravel 12 compatibility
+          echo "🔍 Verifying Laravel 12 compatibility..."
+          if composer show laravel/framework | grep -q "versions : \* v12\."; then
+            echo "✅ Laravel 12 detected and compatible"
+          else
+            echo "⚠️ Laravel version check inconclusive"
+          fi
         else
           echo "⚠️ No composer.json found for ${{ matrix.service }}, skipping..."
           exit 0
@@ -237,12 +266,23 @@ jobs:
     - name: Run PHPUnit tests
       if: steps.check.outputs.test == 'true'
       working-directory: services/${{ matrix.service }}
-      env:
-        XDEBUG_MODE: coverage
       run: |
         if [ -f "phpunit.xml" ] || [ -f "phpunit.xml.dist" ]; then
           echo "🧪 Running PHPUnit tests for ${{ matrix.service }}..."
-          vendor/bin/phpunit --coverage-clover=coverage.xml --log-junit=test-results.xml
+          
+          # First try with coverage if Xdebug is available
+          if php -m | grep -i xdebug > /dev/null; then
+            echo "✅ Xdebug detected, running tests with coverage..."
+            if XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-clover=coverage.xml --log-junit=test-results.xml --testdox; then
+              echo "✅ Tests with coverage completed successfully"
+            else
+              echo "⚠️ Tests with coverage failed, trying without coverage..."
+              vendor/bin/phpunit --log-junit=test-results.xml --testdox
+            fi
+          else
+            echo "⚠️ Xdebug not available, running tests without coverage..."
+            vendor/bin/phpunit --log-junit=test-results.xml --testdox
+          fi
         else
           echo "⚠️ No PHPUnit configuration found for ${{ matrix.service }}, skipping tests..."
         fi

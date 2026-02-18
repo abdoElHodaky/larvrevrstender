@@ -1,0 +1,29 @@
+apiVersion: v2
+name: reverse-tender
+description: A Helm chart for Reverse Tender Platform with Blue-Green Deployment
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+keywords:
+  - reverse-tender
+  - microservices
+  - blue-green
+  - saga-pattern
+home: https://github.com/abdoElHodaky/larvrevrstender
+sources:
+  - https://github.com/abdoElHodaky/larvrevrstender
+maintainers:
+  - name: Reverse Tender Team
+    email: team@reversetender.com
+annotations:
+  category: Application
+  licenses: MIT
+dependencies:
+  - name: postgresql
+    version: "12.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: "17.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

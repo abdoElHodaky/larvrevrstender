@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Events\BidPlaced;
-use App\Http\Clients\AuthServiceClient;
-use App\Http\Clients\BiddingServiceClient;
+use App\RPC\Adapters\AuthServiceAdapter;
+use App\RPC\Adapters\BiddingServiceAdapter;
 use App\Models\Auction;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -12,10 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 class BiddingController extends Controller
 {
-    protected BiddingServiceClient $biddingService;
-    protected AuthServiceClient $authService;
+    protected BiddingServiceAdapter $biddingService;
+    protected AuthServiceAdapter $authService;
 
-    public function __construct(BiddingServiceClient $biddingService, AuthServiceClient $authService)
+    public function __construct(BiddingServiceAdapter $biddingService, AuthServiceAdapter $authService)
     {
         $this->biddingService = $biddingService;
         $this->authService = $authService;

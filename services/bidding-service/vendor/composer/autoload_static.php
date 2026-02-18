@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit8d0fb870e55c4c570d56dc330128d5ee
+class ComposerStaticInit90bedb2a12f1d1f8b1c2a493a00fecb1
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
@@ -733,6 +733,9 @@ class ComposerStaticInit8d0fb870e55c4c570d56dc330128d5ee
         'App\\Http\\Controllers\\Controller' => __DIR__ . '/../..' . '/app/Http/Controllers/Controller.php',
         'App\\Http\\Controllers\\HealthController' => __DIR__ . '/../..' . '/app/Http/Controllers/HealthController.php',
         'App\\Http\\Middleware\\EncryptCookies' => __DIR__ . '/../..' . '/app/Http/Middleware/EncryptCookies.php',
+        'App\\Http\\Middleware\\RpcCorrelationMiddleware' => __DIR__ . '/../..' . '/app/Http/Middleware/RpcCorrelationMiddleware.php',
+        'App\\Http\\Middleware\\RpcLoggingMiddleware' => __DIR__ . '/../..' . '/app/Http/Middleware/RpcLoggingMiddleware.php',
+        'App\\Http\\Middleware\\RpcPerformanceMiddleware' => __DIR__ . '/../..' . '/app/Http/Middleware/RpcPerformanceMiddleware.php',
         'App\\Http\\Middleware\\ServiceAuthentication' => __DIR__ . '/../..' . '/app/Http/Middleware/ServiceAuthentication.php',
         'App\\Http\\Middleware\\TrimStrings' => __DIR__ . '/../..' . '/app/Http/Middleware/TrimStrings.php',
         'App\\Http\\Middleware\\TrustProxies' => __DIR__ . '/../..' . '/app/Http/Middleware/TrustProxies.php',
@@ -744,6 +747,10 @@ class ComposerStaticInit8d0fb870e55c4c570d56dc330128d5ee
         'App\\Models\\ProductImage' => __DIR__ . '/../..' . '/app/Models/ProductImage.php',
         'App\\Procedures\\BiddingProcedure' => __DIR__ . '/../..' . '/app/Procedures/BiddingProcedure.php',
         'App\\Providers\\AppServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AppServiceProvider.php',
+        'App\\Providers\\RpcServiceProvider' => __DIR__ . '/../..' . '/app/Providers/RpcServiceProvider.php',
+        'App\\RPC\\Adapters\\AuthServiceAdapter' => __DIR__ . '/../..' . '/app/RPC/Adapters/AuthServiceAdapter.php',
+        'App\\RPC\\Adapters\\NotificationServiceAdapter' => __DIR__ . '/../..' . '/app/RPC/Adapters/NotificationServiceAdapter.php',
+        'App\\RPC\\Adapters\\UserServiceAdapter' => __DIR__ . '/../..' . '/app/RPC/Adapters/UserServiceAdapter.php',
         'App\\RPC\\BaseProcedure' => __DIR__ . '/../..' . '/app/RPC/BaseProcedure.php',
         'App\\RPC\\Handlers\\BiddingRpcHandler' => __DIR__ . '/../..' . '/app/RPC/Handlers/BiddingRpcHandler.php',
         'App\\RPC\\Procedures\\BiddingProcedure' => __DIR__ . '/../..' . '/app/RPC/Procedures/BiddingProcedure.php',
@@ -2867,6 +2874,7 @@ class ComposerStaticInit8d0fb870e55c4c570d56dc330128d5ee
         'Illuminate\\Filesystem\\FilesystemServiceProvider' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Filesystem/FilesystemServiceProvider.php',
         'Illuminate\\Filesystem\\LocalFilesystemAdapter' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Filesystem/LocalFilesystemAdapter.php',
         'Illuminate\\Filesystem\\LockableFile' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Filesystem/LockableFile.php',
+        'Illuminate\\Filesystem\\ReceiveFile' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Filesystem/ReceiveFile.php',
         'Illuminate\\Filesystem\\ServeFile' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Filesystem/ServeFile.php',
         'Illuminate\\Foundation\\AliasLoader' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Foundation/AliasLoader.php',
         'Illuminate\\Foundation\\Application' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Foundation/Application.php',
@@ -4943,12 +4951,8 @@ class ComposerStaticInit8d0fb870e55c4c570d56dc330128d5ee
         'PHPUnit\\Event\\Code\\ClassMethod' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/ClassMethod.php',
         'PHPUnit\\Event\\Code\\ComparisonFailure' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/ComparisonFailure.php',
         'PHPUnit\\Event\\Code\\ComparisonFailureBuilder' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/ComparisonFailureBuilder.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\DirectTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/DirectTrigger.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\IndirectTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/IndirectTrigger.php',
+        'PHPUnit\\Event\\Code\\IssueTrigger\\Code' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/Code.php',
         'PHPUnit\\Event\\Code\\IssueTrigger\\IssueTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/IssueTrigger.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\SelfTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/SelfTrigger.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\TestTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/TestTrigger.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\UnknownTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/UnknownTrigger.php',
         'PHPUnit\\Event\\Code\\NoTestCaseObjectOnCallStackException' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Exception/NoTestCaseObjectOnCallStackException.php',
         'PHPUnit\\Event\\Code\\Phpt' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Phpt.php',
         'PHPUnit\\Event\\Code\\Test' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Test.php',
@@ -7556,9 +7560,12 @@ class ComposerStaticInit8d0fb870e55c4c570d56dc330128d5ee
         'Shared\\Core\\ProcedureEngine' => __DIR__ . '/../..' . '/../shared/src/Core/ProcedureEngine.php',
         'Shared\\Core\\RestHandler' => __DIR__ . '/../..' . '/../shared/src/Core/RestHandler.php',
         'Shared\\Core\\RpcHandler' => __DIR__ . '/../..' . '/../shared/src/Core/RpcHandler.php',
+        'Shared\\Idempotency\\IdempotencyException' => __DIR__ . '/../..' . '/../shared/src/Idempotency/IdempotencyException.php',
+        'Shared\\Idempotency\\IdempotencyManager' => __DIR__ . '/../..' . '/../shared/src/Idempotency/IdempotencyManager.php',
         'Shared\\Jobs\\BaseQueueJob' => __DIR__ . '/../..' . '/../shared/src/Jobs/BaseQueueJob.php',
         'Shared\\Middleware\\FuseCircuitBreakerMiddleware' => __DIR__ . '/../..' . '/../shared/src/Middleware/FuseCircuitBreakerMiddleware.php',
         'Shared\\Procedures\\CrossServiceProcedure' => __DIR__ . '/../..' . '/../shared/src/Procedures/CrossServiceProcedure.php',
+        'Shared\\Procedures\\Macro\\WorkflowProcedure' => __DIR__ . '/../..' . '/../shared/src/Procedures/Macro/WorkflowProcedure.php',
         'Shared\\Procedures\\Micro\\AuctionLifecycleProcedure' => __DIR__ . '/../..' . '/../shared/src/Procedures/Micro/AuctionLifecycleProcedure.php',
         'Shared\\Procedures\\Micro\\BiddingLifecycleProcedure' => __DIR__ . '/../..' . '/../shared/src/Procedures/Micro/BiddingLifecycleProcedure.php',
         'Shared\\Procedures\\Micro\\CacheManagementProcedure' => __DIR__ . '/../..' . '/../shared/src/Procedures/Micro/CacheManagementProcedure.php',
@@ -9004,10 +9011,9 @@ class ComposerStaticInit8d0fb870e55c4c570d56dc330128d5ee
         'Termwind\\ValueObjects\\Node' => __DIR__ . '/..' . '/nunomaduro/termwind/src/ValueObjects/Node.php',
         'Termwind\\ValueObjects\\Style' => __DIR__ . '/..' . '/nunomaduro/termwind/src/ValueObjects/Style.php',
         'Termwind\\ValueObjects\\Styles' => __DIR__ . '/..' . '/nunomaduro/termwind/src/ValueObjects/Styles.php',
-<<<<<<< HEAD
-=======
+        'Tests\\CreatesApplication' => __DIR__ . '/../..' . '/tests/CreatesApplication.php',
+        'Tests\\TestCase' => __DIR__ . '/../..' . '/tests/TestCase.php',
         'Tests\\Unit\\ExampleTest' => __DIR__ . '/../..' . '/tests/Unit/ExampleTest.php',
->>>>>>> origin/codegen-bot/update-kubernetes-gateway-api-configs
         'TheSeer\\Tokenizer\\Exception' => __DIR__ . '/..' . '/theseer/tokenizer/src/Exception.php',
         'TheSeer\\Tokenizer\\NamespaceUri' => __DIR__ . '/..' . '/theseer/tokenizer/src/NamespaceUri.php',
         'TheSeer\\Tokenizer\\NamespaceUriException' => __DIR__ . '/..' . '/theseer/tokenizer/src/NamespaceUriException.php',
@@ -9117,9 +9123,9 @@ class ComposerStaticInit8d0fb870e55c4c570d56dc330128d5ee
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit8d0fb870e55c4c570d56dc330128d5ee::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit8d0fb870e55c4c570d56dc330128d5ee::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit8d0fb870e55c4c570d56dc330128d5ee::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit90bedb2a12f1d1f8b1c2a493a00fecb1::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit90bedb2a12f1d1f8b1c2a493a00fecb1::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInit90bedb2a12f1d1f8b1c2a493a00fecb1::$classMap;
 
         }, null, ClassLoader::class);
     }

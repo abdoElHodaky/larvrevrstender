@@ -1,0 +1,112 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "reverse-tender.fullname" . }}-ingress
+  labels:
+    {{- include "reverse-tender.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if and .Values.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
+            pathType: {{ .pathType }}
+            {{- end }}
+            backend:
+              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
+              service:
+                name: {{ include "reverse-tender.fullname" $ }}-main
+                port:
+                  number: {{ $.Values.service.port }}
+              {{- else }}
+              serviceName: {{ include "reverse-tender.fullname" $ }}-main
+              servicePort: {{ $.Values.service.port }}
+              {{- end }}
+          {{- end }}
+    {{- end }}
+{{- end }}
+
+{{- if .Values.blueGreenIngress.enabled }}
+---
+# Blue Environment Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "reverse-tender.fullname" . }}-blue-ingress
+  labels:
+    {{- include "reverse-tender.labels" . | nindent 4 }}
+    environment: blue
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Environment "blue" always;
+spec:
+  {{- if and .Values.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.blueGreenIngress.blue.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "reverse-tender.fullname" . }}-gateway-blue
+                port:
+                  number: 8000
+
+---
+# Green Environment Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "reverse-tender.fullname" . }}-green-ingress
+  labels:
+    {{- include "reverse-tender.labels" . | nindent 4 }}
+    environment: green
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Environment "green" always;
+spec:
+  {{- if and .Values.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.blueGreenIngress.green.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "reverse-tender.fullname" . }}-gateway-green
+                port:
+                  number: 8000
+{{- end }}

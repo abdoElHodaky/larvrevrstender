@@ -1,0 +1,441 @@
+# Default values for reverse-tender with Blue-Green Deployment
+# This is a YAML-formatted file.
+
+# Global configuration
+global:
+  imageRegistry: ghcr.io
+  imagePullSecrets: []
+  storageClass: ""
+
+# Blue-Green Deployment Configuration
+blueGreen:
+  enabled: true
+  # Current active environment (blue or green)
+  activeEnvironment: blue
+  # Traffic switching strategy
+  trafficSwitching:
+    # Percentage of traffic to route to new environment during canary
+    canaryPercentage: 10
+    # Time to wait before full cutover (seconds)
+    stabilizationTime: 300
+
+# Application Configuration
+app:
+  name: reverse-tender
+  version: "2.0.0"
+
+# Environment Configuration (blue or green)
+environment: blue
+
+# Image Configuration
+image:
+  registry: ghcr.io
+  repository: abdoelhodaky/larvrevrstender
+  tag: "latest"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# Service Configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+  annotations: {}
+
+# Ingress Configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: reversetender.com
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: www.reversetender.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: reversetender-tls
+      hosts:
+        - reversetender.com
+        - www.reversetender.com
+
+# Blue-Green Specific Ingress
+blueGreenIngress:
+  enabled: true
+  blue:
+    host: blue.reversetender.com
+  green:
+    host: green.reversetender.com
+
+# Deployment Configuration
+deployment:
+  replicaCount: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+
+# Pod Configuration
+pod:
+  annotations: {}
+  labels: {}
+  securityContext:
+    fsGroup: 2000
+  
+# Container Configuration
+container:
+  securityContext:
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+
+# Resource Configuration
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+# Autoscaling Configuration
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Health Checks
+healthChecks:
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Network Policy
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      ports:
+      - protocol: TCP
+        port: 8000
+
+# Microservices Configuration
+microservices:
+  # Gateway Service
+  gateway:
+    enabled: true
+    replicaCount: 2
+    image:
+      repository: abdoelhodaky/larvrevrstender-gateway-service
+    service:
+      port: 8000
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  # Auth Service
+  auth:
+    enabled: true
+    replicaCount: 2
+    image:
+      repository: abdoelhodaky/larvrevrstender-auth-service
+    service:
+      port: 8001
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  # Auction Service (Saga Pattern)
+  auction:
+    enabled: true
+    replicaCount: 3
+    image:
+      repository: abdoelhodaky/larvrevrstender-auction-service
+    service:
+      port: 8002
+    resources:
+      requests:
+        cpu: 150m
+        memory: 256Mi
+      limits:
+        cpu: 300m
+        memory: 512Mi
+
+  # Payment Service (Saga Pattern)
+  payment:
+    enabled: true
+    replicaCount: 3
+    image:
+      repository: abdoelhodaky/larvrevrstender-payment-service
+    service:
+      port: 8003
+    resources:
+      requests:
+        cpu: 150m
+        memory: 256Mi
+      limits:
+        cpu: 300m
+        memory: 512Mi
+
+  # Order Service (Saga Pattern)
+  order:
+    enabled: true
+    replicaCount: 3
+    image:
+      repository: abdoelhodaky/larvrevrstender-order-service
+    service:
+      port: 8004
+    resources:
+      requests:
+        cpu: 150m
+        memory: 256Mi
+      limits:
+        cpu: 300m
+        memory: 512Mi
+
+  # Bidding Service (Saga Pattern)
+  bidding:
+    enabled: true
+    replicaCount: 3
+    image:
+      repository: abdoelhodaky/larvrevrstender-bidding-service
+    service:
+      port: 8005
+    resources:
+      requests:
+        cpu: 150m
+        memory: 256Mi
+      limits:
+        cpu: 300m
+        memory: 512Mi
+
+  # User Service
+  user:
+    enabled: true
+    replicaCount: 2
+    image:
+      repository: abdoelhodaky/larvrevrstender-user-service
+    service:
+      port: 8006
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  # Analytics Service
+  analytics:
+    enabled: true
+    replicaCount: 2
+    image:
+      repository: abdoelhodaky/larvrevrstender-analytics-service
+    service:
+      port: 8007
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  # Notification Service
+  notification:
+    enabled: true
+    replicaCount: 2
+    image:
+      repository: abdoelhodaky/larvrevrstender-notification-service
+    service:
+      port: 8008
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  # VIN OCR Service
+  vinOcr:
+    enabled: true
+    replicaCount: 2
+    image:
+      repository: abdoelhodaky/larvrevrstender-vin-ocr-service
+    service:
+      port: 8009
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+
+# Database Configuration
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "changeme"
+    username: "reversetender"
+    password: "changeme"
+    database: "reversetender"
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# Redis Configuration
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "changeme"
+  master:
+    persistence:
+      enabled: true
+      size: 8Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+# Configuration Maps
+configMaps:
+  app:
+    APP_NAME: "Reverse Tender Platform"
+    APP_ENV: "production"
+    APP_DEBUG: "false"
+    APP_URL: "https://reversetender.com"
+    
+    # Database Configuration
+    DB_CONNECTION: "pgsql"
+    DB_HOST: "reverse-tender-postgresql"
+    DB_PORT: "5432"
+    DB_DATABASE: "reversetender"
+    
+    # Redis Configuration
+    REDIS_HOST: "reverse-tender-redis-master"
+    REDIS_PORT: "6379"
+    
+    # Cache Configuration
+    CACHE_DRIVER: "redis"
+    SESSION_DRIVER: "redis"
+    QUEUE_CONNECTION: "redis"
+    
+    # Saga Configuration
+    SAGA_ENABLED: "true"
+    SAGA_TIMEOUT: "300"
+    SAGA_RETRY_ATTEMPTS: "3"
+    
+    # Idempotency Configuration
+    IDEMPOTENCY_ENABLED: "true"
+    IDEMPOTENCY_TTL: "3600"
+    
+    # RPC Configuration
+    RPC_PROTOCOL_VERSION: "2.0"
+    RPC_TIMEOUT: "30"
+    RPC_RETRY_ATTEMPTS: "3"
+
+# Secrets (use external secret management in production)
+secrets:
+  app:
+    DB_USERNAME: "reversetender"
+    DB_PASSWORD: "changeme"
+    REDIS_PASSWORD: "changeme"
+    JWT_SECRET: "changeme-jwt-secret"
+    APP_KEY: "base64:changeme-app-key"
+
+# Monitoring Configuration
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+  prometheusRule:
+    enabled: true
+
+# Logging Configuration
+logging:
+  enabled: true
+  level: "info"
+  driver: "stack"
+
+# Node Selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - reverse-tender
+        topologyKey: kubernetes.io/hostname
