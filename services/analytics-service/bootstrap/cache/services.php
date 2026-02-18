@@ -39,6 +39,7 @@
     35 => 'Spatie\\Analytics\\AnalyticsServiceProvider',
     36 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
     37 => 'App\\Providers\\AppServiceProvider',
+    38 => 'App\\Providers\\RpcServiceProvider',
   ),
   'eager' => 
   array (
@@ -65,6 +66,7 @@
     20 => 'Spatie\\Analytics\\AnalyticsServiceProvider',
     21 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
     22 => 'App\\Providers\\AppServiceProvider',
+    23 => 'App\\Providers\\RpcServiceProvider',
   ),
   'deferred' => 
   array (
