@@ -1,7 +1,6 @@
 <?php
 
 use App\RPC\Procedures\VinOcrProcedure;
-use Sajya\Server\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,6 +13,9 @@ use Sajya\Server\Route;
 |
 */
 
-Route::rpc('/', [
-    VinOcrProcedure::class,
-])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging']);
+// Check if Sajya Server is available before registering routes
+if (class_exists('Sajya\Server\Route')) {
+    \Sajya\Server\Route::rpc('/', [
+        VinOcrProcedure::class,
+    ])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging']);
+}

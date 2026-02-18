@@ -2,7 +2,6 @@
 
 use App\RPC\Procedures\KycProcedure;
 use App\RPC\Procedures\UserProcedure;
-use Sajya\Server\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,7 +14,10 @@ use Sajya\Server\Route;
 |
 */
 
-Route::rpc('/', [
-    UserProcedure::class,
-    KycProcedure::class,
-])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging']);
+// Check if Sajya Server is available before registering routes
+if (class_exists('Sajya\Server\Route')) {
+    \Sajya\Server\Route::rpc('/', [
+        UserProcedure::class,
+        KycProcedure::class,
+    ])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging']);
+}
