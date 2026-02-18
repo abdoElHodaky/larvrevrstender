@@ -1,33 +1,47 @@
 <?php
 
 /**
- * Filesystem Configuration for User Service
+ * Filesystem Configuration for Bidding Service
  *
  * This configuration imports the shared filesystem configuration
  * and can be extended with service-specific overrides if needed.
  */
 
 // Import shared filesystem configuration
-$sharedConfig = require_once __DIR__.'/../../shared/config/filesystems.php';
+$sharedConfigPath = __DIR__.'/../../shared/config/filesystems.php';
+$sharedConfig = [];
+
+if (file_exists($sharedConfigPath)) {
+    $sharedConfig = require $sharedConfigPath;
+}
+
+// Fallback to default Laravel filesystem config if shared config is not available
+if (!is_array($sharedConfig)) {
+    $sharedConfig = [
+        'default' => env('FILESYSTEM_DISK', 'local'),
+        'disks' => [
+            'local' => [
+                'driver' => 'local',
+                'root' => storage_path('app'),
+                'throw' => false,
+            ],
+            'public' => [
+                'driver' => 'local',
+                'root' => storage_path('app/public'),
+                'url' => env('APP_URL').'/storage',
+                'visibility' => 'public',
+                'throw' => false,
+            ],
+        ],
+        'links' => [
+            public_path('storage') => storage_path('app/public'),
+        ],
+    ];
+}
 
 // Service-specific overrides (if any)
 $serviceOverrides = [
-    // Add any user-service specific filesystem configurations here
-    // Example for user avatars and documents:
-    // 'disks' => [
-    //     'user-avatars' => [
-    //         'driver' => 's3',
-    //         'key' => env('AWS_ACCESS_KEY_ID'),
-    //         'secret' => env('AWS_SECRET_ACCESS_KEY'),
-    //         'region' => env('AWS_DEFAULT_REGION'),
-    //         'bucket' => env('AWS_BUCKET'),
-    //         'url' => env('AWS_URL'),
-    //         'endpoint' => env('AWS_ENDPOINT'),
-    //         'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-    //         'throw' => false,
-    //         'root' => 'user-service/avatars',
-    //     ]
-    // ]
+    // Add any bidding-service specific filesystem configurations here
 ];
 
 // Merge shared config with service-specific overrides
