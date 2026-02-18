@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\AuctionCreated;
-use App\Http\Clients\AuthServiceClient;
+use App\RPC\Adapters\AuthServiceAdapter;
 use App\Models\Auction;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -11,9 +11,9 @@ use Illuminate\Validation\ValidationException;
 
 class AuctionController extends Controller
 {
-    protected AuthServiceClient $authService;
+    protected AuthServiceAdapter $authService;
 
-    public function __construct(AuthServiceClient $authService)
+    public function __construct(AuthServiceAdapter $authService)
     {
         $this->authService = $authService;
     }
