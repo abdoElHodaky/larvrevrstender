@@ -3,7 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\AuctionCreated;
-use App\Http\Clients\NotificationServiceClient;
+use App\RPC\Adapters\NotificationServiceAdapter;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
@@ -11,12 +11,12 @@ class SendAuctionCreatedNotification implements ShouldQueue
 {
     use InteractsWithQueue;
 
-    protected NotificationServiceClient $notificationService;
+    protected NotificationServiceAdapter $notificationService;
 
     /**
      * Create the event listener.
      */
-    public function __construct(NotificationServiceClient $notificationService)
+    public function __construct(NotificationServiceAdapter $notificationService)
     {
         $this->notificationService = $notificationService;
     }
