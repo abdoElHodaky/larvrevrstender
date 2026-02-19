@@ -254,7 +254,7 @@ class AuthProcedure extends BaseProcedure
                 'user_id' => 'required|integer',
             ]);
 
-            // Call user-service RPC to get user information via adapter
+            // Call user-service RPC via adapter to get user information
             $userData = $this->userAdapter->getUser($params['user_id']);
 
             if (!$userData) {

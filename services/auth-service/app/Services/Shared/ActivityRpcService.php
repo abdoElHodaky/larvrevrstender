@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Shared service for calling activity RPC procedures from other services via RPC adapters
+ * Shared service for calling activity RPC procedures from other services
  * This can be used by auth-service, gateway-service, etc. to access activity functionality
  */
 class ActivityRpcService
@@ -25,7 +25,7 @@ class ActivityRpcService
     private function makeRpcCall(string $method, array $params = []): array
     {
         try {
-            // Map activity methods to adapter methods
+            // Route activity methods to appropriate adapter methods
             switch ($method) {
                 case 'activity.logActivity':
                 case 'activity.bulkLogActivities':

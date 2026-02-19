@@ -37,5 +37,9 @@ return [
             'url' => env('RPC_NOTIFICATION_SERVICE_URL', env('NOTIFICATION_SERVICE_URL', 'http://notification-service:8080') . '/rpc'),
             'token' => env('RPC_NOTIFICATION_SERVICE_TOKEN', ''),
         ],
+        'order' => [
+            'url' => env('RPC_ORDER_SERVICE_URL', env('ORDER_SERVICE_URL', 'http://order-service:8080') . '/rpc'),
+            'token' => env('RPC_ORDER_SERVICE_TOKEN', ''),
+        ],
     ],
 ];

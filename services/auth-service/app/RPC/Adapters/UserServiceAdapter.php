@@ -3,139 +3,252 @@
 namespace App\RPC\Adapters;
 
 use Illuminate\Support\Facades\Log;
+use Sajya\Client\Client;
 use Exception;
 
 /**
- * UserServiceAdapter for Auth Service
+ * User Service RPC Adapter for Auth Service
  * 
- * Provides HTTP-like interface for RPC calls to the user service.
- * Auth service needs user operations for authentication and user management.
+ * Provides semantic methods for interacting with user-service via RPC.
+ * Used by auth procedures and services to maintain user data consistency.
  */
 class UserServiceAdapter
 {
-    private $userRpc;
+    private Client $userRpc;
+    private string $correlationId;
 
     public function __construct()
     {
         $this->userRpc = app('UserRpc');
+        $this->correlationId = uniqid('auth-user-', true);
     }
 
     /**
      * Get user by ID
+     *
+     * @param int $userId User ID to retrieve
+     * @return array|null User data or null on failure
      */
     public function getUser(int $userId): ?array
     {
         $startTime = microtime(true);
-        $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
         
         try {
-            $this->logRpcCall('getUser', ['user_id' => $userId], $correlationId);
-            
-            $response = $this->userRpc->call('user.getUser', [
-                'user_id' => $userId
+            $params = [
+                'user_id' => $userId,
+                'correlation_id' => $this->correlationId,
+                'requested_by' => 'auth-service',
+                'timestamp' => now()->toISOString()
+            ];
+
+            Log::info('UserServiceAdapter: Getting user by ID', [
+                'user_id' => $userId,
+                'correlation_id' => $this->correlationId
             ]);
+
+            $response = $this->userRpc->call('user.getById', $params);
+
+            $duration = microtime(true) - $startTime;
             
-            $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcCall('getUser', ['duration_ms' => $duration], $correlationId, 'success');
-            
-            if (isset($response['success']) && $response['success']) {
-                return $response['data'] ?? null;
+            if ($response && isset($response['success']) && $response['success']) {
+                Log::info('UserServiceAdapter: User retrieved successfully', [
+                    'user_id' => $userId,
+                    'duration_ms' => round($duration * 1000, 2),
+                    'correlation_id' => $this->correlationId
+                ]);
+
+                return $response['data'] ?? $response;
             }
-            
+
+            Log::warning('UserServiceAdapter: User retrieval failed', [
+                'user_id' => $userId,
+                'response' => $response,
+                'duration_ms' => round($duration * 1000, 2),
+                'correlation_id' => $this->correlationId
+            ]);
+
             return null;
+
         } catch (Exception $e) {
-            $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcError('getUser', $e, $correlationId, $duration);
+            $duration = microtime(true) - $startTime;
+            
+            Log::error('UserServiceAdapter: User retrieval error', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+                'duration_ms' => round($duration * 1000, 2),
+                'correlation_id' => $this->correlationId
+            ]);
+
             return null;
         }
     }
 
     /**
-     * Create user activity
+     * Create activity log entry
+     *
+     * @param array $activityData Activity data to log
+     * @return array|null Activity creation result or null on failure
      */
     public function createActivity(array $activityData): ?array
     {
         $startTime = microtime(true);
-        $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
         
         try {
-            $this->logRpcCall('createActivity', ['activity_data' => $activityData], $correlationId);
-            
-            $response = $this->userRpc->call('user.createActivity', [
-                'activity_data' => $activityData
+            $params = array_merge($activityData, [
+                'correlation_id' => $this->correlationId,
+                'created_by' => 'auth-service',
+                'timestamp' => now()->toISOString()
             ]);
+
+            Log::info('UserServiceAdapter: Creating activity', [
+                'activity_type' => $activityData['type'] ?? 'unknown',
+                'user_id' => $activityData['user_id'] ?? null,
+                'correlation_id' => $this->correlationId
+            ]);
+
+            $response = $this->userRpc->call('user.createActivity', $params);
+
+            $duration = microtime(true) - $startTime;
             
-            $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcCall('createActivity', ['duration_ms' => $duration], $correlationId, 'success');
-            
-            if (isset($response['success']) && $response['success']) {
-                return $response['data'] ?? null;
+            if ($response && isset($response['success']) && $response['success']) {
+                Log::info('UserServiceAdapter: Activity created successfully', [
+                    'activity_id' => $response['data']['id'] ?? null,
+                    'duration_ms' => round($duration * 1000, 2),
+                    'correlation_id' => $this->correlationId
+                ]);
+
+                return $response['data'] ?? $response;
             }
-            
+
+            Log::warning('UserServiceAdapter: Activity creation failed', [
+                'activity_data' => $activityData,
+                'response' => $response,
+                'duration_ms' => round($duration * 1000, 2),
+                'correlation_id' => $this->correlationId
+            ]);
+
             return null;
+
         } catch (Exception $e) {
-            $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcError('createActivity', $e, $correlationId, $duration);
+            $duration = microtime(true) - $startTime;
+            
+            Log::error('UserServiceAdapter: Activity creation error', [
+                'activity_data' => $activityData,
+                'error' => $e->getMessage(),
+                'duration_ms' => round($duration * 1000, 2),
+                'correlation_id' => $this->correlationId
+            ]);
+
             return null;
         }
     }
 
     /**
-     * Get user activities
+     * Get user activities with filtering
+     *
+     * @param int $userId User ID to get activities for
+     * @param array $filters Optional filters for activities
+     * @return array|null Activities data or null on failure
      */
     public function getUserActivities(int $userId, array $filters = []): ?array
     {
         $startTime = microtime(true);
-        $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
         
         try {
-            $params = array_merge(['user_id' => $userId], $filters);
-            $this->logRpcCall('getUserActivities', $params, $correlationId);
-            
+            $params = array_merge($filters, [
+                'user_id' => $userId,
+                'correlation_id' => $this->correlationId,
+                'requested_by' => 'auth-service',
+                'timestamp' => now()->toISOString()
+            ]);
+
+            Log::info('UserServiceAdapter: Getting user activities', [
+                'user_id' => $userId,
+                'filters' => $filters,
+                'correlation_id' => $this->correlationId
+            ]);
+
             $response = $this->userRpc->call('user.getUserActivities', $params);
+
+            $duration = microtime(true) - $startTime;
             
-            $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcCall('getUserActivities', ['duration_ms' => $duration], $correlationId, 'success');
-            
-            if (isset($response['success']) && $response['success']) {
-                return $response['data'] ?? null;
+            if ($response && isset($response['success']) && $response['success']) {
+                Log::info('UserServiceAdapter: Activities retrieved successfully', [
+                    'user_id' => $userId,
+                    'activity_count' => count($response['data']['activities'] ?? []),
+                    'duration_ms' => round($duration * 1000, 2),
+                    'correlation_id' => $this->correlationId
+                ]);
+
+                return $response['data'] ?? $response;
             }
-            
+
+            Log::warning('UserServiceAdapter: Activities retrieval failed', [
+                'user_id' => $userId,
+                'filters' => $filters,
+                'response' => $response,
+                'duration_ms' => round($duration * 1000, 2),
+                'correlation_id' => $this->correlationId
+            ]);
+
             return null;
+
         } catch (Exception $e) {
-            $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcError('getUserActivities', $e, $correlationId, $duration);
+            $duration = microtime(true) - $startTime;
+            
+            Log::error('UserServiceAdapter: Activities retrieval error', [
+                'user_id' => $userId,
+                'filters' => $filters,
+                'error' => $e->getMessage(),
+                'duration_ms' => round($duration * 1000, 2),
+                'correlation_id' => $this->correlationId
+            ]);
+
             return null;
         }
     }
 
     /**
-     * Log RPC call for debugging and monitoring
+     * Check user service health
+     *
+     * @return array|null Service health status or null on failure
      */
-    private function logRpcCall(string $method, array $params, string $correlationId, string $status = 'start'): void
+    public function getServiceInfo(): ?array
     {
-        Log::info("Auth UserService RPC Call", [
-            'method' => $method,
-            'params' => $params,
-            'correlation_id' => $correlationId,
-            'status' => $status,
-            'service' => 'user-service',
-            'caller' => 'auth-service'
-        ]);
-    }
+        $startTime = microtime(true);
+        
+        try {
+            $params = [
+                'correlation_id' => $this->correlationId,
+                'requested_by' => 'auth-service',
+                'timestamp' => now()->toISOString()
+            ];
 
-    /**
-     * Log RPC error for debugging and monitoring
-     */
-    private function logRpcError(string $method, Exception $e, string $correlationId, float $duration): void
-    {
-        Log::error("Auth UserService RPC Error", [
-            'method' => $method,
-            'error' => $e->getMessage(),
-            'correlation_id' => $correlationId,
-            'duration_ms' => $duration,
-            'service' => 'user-service',
-            'caller' => 'auth-service'
-        ]);
+            $response = $this->userRpc->call('user.getServiceInfo', $params);
+
+            $duration = microtime(true) - $startTime;
+            
+            if ($response) {
+                Log::info('UserServiceAdapter: Service info retrieved', [
+                    'duration_ms' => round($duration * 1000, 2),
+                    'correlation_id' => $this->correlationId
+                ]);
+
+                return $response;
+            }
+
+            return null;
+
+        } catch (Exception $e) {
+            $duration = microtime(true) - $startTime;
+            
+            Log::error('UserServiceAdapter: Service info error', [
+                'error' => $e->getMessage(),
+                'duration_ms' => round($duration * 1000, 2),
+                'correlation_id' => $this->correlationId
+            ]);
+
+            return null;
+        }
     }
 }

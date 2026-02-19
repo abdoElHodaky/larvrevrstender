@@ -45,6 +45,15 @@ class AuthServiceAdapter
     }
 
     /**
+     * Validate JWT token and return user data.
+     * Alias for validateToken to maintain compatibility with HTTP client interface.
+     */
+    public function validateJwtToken(string $token): ?array
+    {
+        return $this->validateToken($token);
+    }
+
+    /**
      * Check if user has auction permissions.
      */
     public function hasAuctionPermission(int $userId, string $permission): bool
@@ -63,6 +72,62 @@ class AuthServiceAdapter
             return $response['success'] ?? false && $response['data']['has_permission'] ?? false;
         } catch (\Exception $e) {
             $this->logRpcError('hasAuctionPermission', compact('userId', 'permission'), $e);
+            return false;
+        }
+    }
+
+    /**
+     * Check if user has permission.
+     * Alias for hasAuctionPermission to maintain compatibility with HTTP client interface.
+     */
+    public function hasPermission(int $userId, string $permission): bool
+    {
+        return $this->hasAuctionPermission($userId, $permission);
+    }
+
+    /**
+     * Check if user has any of the specified roles.
+     */
+    public function hasRole(int $userId, array $roles): bool
+    {
+        try {
+            $startTime = microtime(true);
+            
+            $response = $this->authRpcClient->call('auth.checkRole', [
+                'user_id' => $userId,
+                'roles' => $roles
+            ]);
+
+            $duration = microtime(true) - $startTime;
+            $this->logRpcCall('hasRole', compact('userId', 'roles'), $response, $duration);
+
+            return $response['success'] ?? false && $response['data']['has_role'] ?? false;
+        } catch (\Exception $e) {
+            $this->logRpcError('hasRole', compact('userId', 'roles'), $e);
+            return false;
+        }
+    }
+
+    /**
+     * Check if user can access auction for specified action.
+     */
+    public function canAccessAuction(int $userId, int $auctionId, string $action): bool
+    {
+        try {
+            $startTime = microtime(true);
+            
+            $response = $this->authRpcClient->call('auth.canAccessAuction', [
+                'user_id' => $userId,
+                'auction_id' => $auctionId,
+                'action' => $action
+            ]);
+
+            $duration = microtime(true) - $startTime;
+            $this->logRpcCall('canAccessAuction', compact('userId', 'auctionId', 'action'), $response, $duration);
+
+            return $response['success'] ?? false && $response['data']['can_access'] ?? false;
+        } catch (\Exception $e) {
+            $this->logRpcError('canAccessAuction', compact('userId', 'auctionId', 'action'), $e);
             return false;
         }
     }
