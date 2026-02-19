@@ -5,22 +5,22 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\Contracts\NotificationServiceInterface;
-use Illuminate\Support\Facades\Http;
+use App\RPC\Adapters\NotificationServiceAdapter;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Notification Service
  *
  * Handles communication with the notification service
- * for sending order-related notifications
+ * for sending order-related notifications via RPC
  */
 class NotificationService implements NotificationServiceInterface
 {
-    protected string $notificationServiceUrl;
+    protected NotificationServiceAdapter $notificationAdapter;
 
-    public function __construct(string $notificationServiceUrl)
+    public function __construct(NotificationServiceAdapter $notificationAdapter)
     {
-        $this->notificationServiceUrl = $notificationServiceUrl;
+        $this->notificationAdapter = $notificationAdapter;
     }
 
     /**
@@ -28,18 +28,19 @@ class NotificationService implements NotificationServiceInterface
      */
     public function sendOrderCreatedNotification(Order $order): void
     {
-        $this->sendNotification([
-            'type' => 'order_created',
-            'user_id' => $order->customer_id,
-            'title' => 'Order Created Successfully',
-            'message' => "Your order #{$order->order_number} has been created successfully.",
-            'data' => [
-                'order_id' => $order->id,
+        try {
+            $this->notificationAdapter->sendOrderCreatedNotification([
+                'id' => $order->id,
+                'customer_id' => $order->customer_id,
                 'order_number' => $order->order_number,
                 'status' => $order->status,
-            ],
-            'channels' => ['push', 'email'],
-        ]);
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send order created notification via RPC', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -47,22 +48,23 @@ class NotificationService implements NotificationServiceInterface
      */
     public function sendOrderPublishedNotification(Order $order): void
     {
-        // Notify customer
-        $this->sendNotification([
-            'type' => 'order_published',
-            'user_id' => $order->customer_id,
-            'title' => 'Order Published',
-            'message' => "Your order #{$order->order_number} is now live and merchants can start bidding.",
-            'data' => [
-                'order_id' => $order->id,
+        try {
+            // Notify customer
+            $this->notificationAdapter->sendOrderPublishedNotification([
+                'id' => $order->id,
+                'customer_id' => $order->customer_id,
                 'order_number' => $order->order_number,
-                'deadline' => $order->deadline?->toISOString(),
-            ],
-            'channels' => ['push', 'email'],
-        ]);
+                'status' => $order->status,
+            ]);
 
-        // Notify relevant merchants
-        $this->notifyRelevantMerchants($order, 'new_order_available');
+            // Notify relevant merchants
+            $this->notifyRelevantMerchants($order, 'new_order_available');
+        } catch (\Exception $e) {
+            Log::error('Failed to send order published notification via RPC', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -127,23 +129,20 @@ class NotificationService implements NotificationServiceInterface
     }
 
     /**
-     * Send notification via HTTP to notification service
+     * Send notification via RPC to notification service
      */
     protected function sendNotification(array $data): void
     {
         try {
-            $response = Http::timeout(10)
-                ->post("{$this->notificationServiceUrl}/api/notifications", $data);
-
-            if (! $response->successful()) {
-                Log::warning('Failed to send notification', [
+            $result = $this->notificationAdapter->sendNotification($data);
+            
+            if (!$result) {
+                Log::warning('Failed to send notification via RPC', [
                     'data' => $data,
-                    'response' => $response->body(),
-                    'status' => $response->status(),
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Notification service error', [
+            Log::error('Notification service RPC error', [
                 'data' => $data,
                 'error' => $e->getMessage(),
             ]);
@@ -156,32 +155,31 @@ class NotificationService implements NotificationServiceInterface
     protected function notifyRelevantMerchants(Order $order, string $type): void
     {
         try {
-            $response = Http::timeout(10)
-                ->post("{$this->notificationServiceUrl}/api/notifications/merchants", [
-                    'type' => $type,
-                    'order_id' => $order->id,
-                    'order_data' => [
-                        'id' => $order->id,
-                        'title' => $order->title,
-                        'description' => $order->description,
-                        'budget_max' => $order->budget_max,
-                        'deadline' => $order->deadline?->toISOString(),
-                        'urgent' => $order->urgent,
-                    ],
-                    'filters' => [
-                        'service_areas' => $order->delivery_location,
-                        'specializations' => $order->part_details,
-                    ],
-                ]);
+            $result = $this->notificationAdapter->sendNotification([
+                'type' => $type,
+                'order_id' => $order->id,
+                'order_data' => [
+                    'id' => $order->id,
+                    'title' => $order->title,
+                    'description' => $order->description,
+                    'budget_max' => $order->budget_max,
+                    'deadline' => $order->deadline?->toISOString(),
+                    'urgent' => $order->urgent,
+                ],
+                'filters' => [
+                    'service_areas' => $order->delivery_location,
+                    'specializations' => $order->part_details,
+                ],
+                'target' => 'merchants',
+            ]);
 
-            if (! $response->successful()) {
-                Log::warning('Failed to notify merchants', [
+            if (!$result) {
+                Log::warning('Failed to notify merchants via RPC', [
                     'order_id' => $order->id,
-                    'response' => $response->body(),
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Merchant notification error', [
+            Log::error('Merchant notification RPC error', [
                 'order_id' => $order->id,
                 'error' => $e->getMessage(),
             ]);

@@ -94,5 +94,6 @@ class RpcServiceProvider extends ServiceProvider
     private function registerRpcAdapters(): void
     {
         $this->app->singleton(\App\RPC\Adapters\AuthServiceAdapter::class);
+        $this->app->singleton(\App\RPC\Adapters\NotificationServiceAdapter::class);
     }
 }
