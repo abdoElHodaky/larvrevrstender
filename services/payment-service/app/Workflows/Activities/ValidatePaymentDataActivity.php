@@ -13,16 +13,13 @@ use Illuminate\Support\Facades\Log;
  */
 class ValidatePaymentDataActivity extends BaseRpcActivity
 {
-    private \App\RPC\Adapters\OrderServiceAdapter $orderAdapter;
-
-    public function __construct(
-        int $index,
-        string $now,
-        \Workflow\Models\StoredWorkflow $storedWorkflow,
-        ...$arguments
-    ) {
-        parent::__construct($index, $now, $storedWorkflow, ...$arguments);
-        $this->orderAdapter = app(\App\RPC\Adapters\OrderServiceAdapter::class);
+    /**
+     * Get the order service adapter instance
+     * Using service locator pattern to avoid serialization issues
+     */
+    private function getOrderAdapter(): \App\RPC\Adapters\OrderServiceAdapter
+    {
+        return app(\App\RPC\Adapters\OrderServiceAdapter::class);
     }
     /**
      * Execute the payment data validation activity
@@ -158,7 +155,7 @@ class ValidatePaymentDataActivity extends BaseRpcActivity
     {
         try {
             // Call order service via adapter to validate order
-            $orderData = $this->orderAdapter->getOrderById($orderId, $customerId);
+            $orderData = $this->getOrderAdapter()->getOrderById($orderId, $customerId);
 
             if (!$orderData) {
                 return ['success' => false, 'error' => 'Order not found or access denied'];
