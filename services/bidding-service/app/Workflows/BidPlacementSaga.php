@@ -54,7 +54,7 @@ class BidPlacementSaga extends Workflow
      */
     public function execute(array $bidData): array
     {
-        $sagaId = $this->getWorkflowId();
+        $sagaId = $this->uniqueId();
         
         Log::info("BidPlacementSaga started", [
             'saga_id' => $sagaId,
