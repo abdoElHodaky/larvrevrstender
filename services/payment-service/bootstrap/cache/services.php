@@ -40,6 +40,7 @@
     36 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
     37 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
     38 => 'App\\Providers\\AppServiceProvider',
+    39 => 'App\\Providers\\RpcServiceProvider',
   ),
   'eager' => 
   array (
@@ -67,6 +68,7 @@
     21 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
     22 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
     23 => 'App\\Providers\\AppServiceProvider',
+    24 => 'App\\Providers\\RpcServiceProvider',
   ),
   'deferred' => 
   array (
