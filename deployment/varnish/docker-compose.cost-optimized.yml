@@ -1,0 +1,161 @@
+version: '3.8'
+
+# Cost-Optimized Varnish Configuration
+# Designed for maximum performance per dollar spent
+
+services:
+  varnish-cost:
+    image: varnish:7.4
+    container_name: varnish-cost-optimized
+    ports:
+      - "80:80"
+      - "6081:6081"
+    volumes:
+      - ./cost-optimized.vcl:/etc/varnish/default.vcl:ro
+      - varnish_storage:/var/lib/varnish
+    environment:
+      - VARNISH_SIZE=1G  # Optimized for smaller instances
+      - VARNISH_HTTP_PORT=80
+      - VARNISH_ADMIN_PORT=6081
+    command: >
+      varnishd -F
+      -f /etc/varnish/default.vcl
+      -s malloc,1G
+      -a :80
+      -T :6081
+      -p default_ttl=900
+      -p default_grace=7200
+      -p thread_pools=2
+      -p thread_pool_min=50
+      -p thread_pool_max=200
+      -p workspace_backend=128k
+      -p workspace_client=128k
+      -p http_max_hdr=64
+      -p feature=+esi_ignore_https
+    depends_on:
+      - gateway-service
+      - auth-service
+      - user-service
+      - auction-service
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 60s  # Less frequent health checks
+      timeout: 10s
+      retries: 2
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # Lightweight monitoring (cost-optimized)
+  varnish-exporter-cost:
+    image: prom/varnish-exporter:latest
+    container_name: varnish-exporter-cost
+    ports:
+      - "9131:9131"
+    command:
+      - '--varnish.instance=varnish-cost:6081'
+      - '--web.listen-address=0.0.0.0:9131'
+      - '--web.telemetry-path=/metrics'
+    depends_on:
+      - varnish-cost
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.1'
+
+  # Cost-optimized cache warmer (runs less frequently)
+  varnish-cache-warmer-cost:
+    image: alpine/curl:latest
+    container_name: varnish-warmer-cost
+    command: >
+      sh -c "
+      echo 'Starting cost-optimized cache warmer...';
+      sleep 180;
+      while true; do
+        echo 'Warming cache at $(date)';
+        curl -s http://varnish-cost:80/api/auctions > /dev/null;
+        curl -s http://varnish-cost:80/api/categories > /dev/null;
+        sleep 600;  # Every 10 minutes instead of 5
+      done"
+    depends_on:
+      - varnish-cost
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "2m"
+        max-file: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+          cpus: '0.05'
+
+volumes:
+  varnish_storage:
+    driver: local
+
+networks:
+  reverse-tender-network:
+    external: true
+
+# Cost optimization configurations
+x-cost-optimization:
+  # Resource allocation (minimal but effective)
+  memory_limit: "1.5G"
+  cpu_limit: "1.0"
+  
+  # Recommended instance sizes by provider
+  digitalocean:
+    instance: "s-1vcpu-2gb"  # $12/month
+    cost_per_month: 12
+    
+  linode:
+    instance: "g6-standard-1"  # $10/month
+    cost_per_month: 10
+    
+  vultr:
+    instance: "vc2-1c-2gb"  # $6/month
+    cost_per_month: 6
+    
+  hetzner:
+    instance: "cx21"  # €4.90/month (~$5.50)
+    cost_per_month: 5.50
+  
+  # Caching strategy for cost optimization
+  cache_strategy:
+    aggressive_caching: true
+    longer_ttl: true
+    serve_stale_on_error: true
+    compress_all_text: true
+  
+  # Monitoring (lightweight)
+  monitoring:
+    health_check_interval: 60s
+    log_retention: "2 days"
+    metrics_retention: "7 days"
