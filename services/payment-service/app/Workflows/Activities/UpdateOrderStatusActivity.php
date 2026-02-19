@@ -14,6 +14,14 @@ use Illuminate\Support\Facades\Log;
 class UpdateOrderStatusActivity extends BaseRpcActivity
 {
     /**
+     * Get the order service adapter instance
+     * Using service locator pattern to avoid serialization issues
+     */
+    private function getOrderAdapter(): \App\RPC\Adapters\OrderServiceAdapter
+    {
+        return app(\App\RPC\Adapters\OrderServiceAdapter::class);
+    }
+    /**
      * Execute the order status update activity
      *
      * @param array $data Payment data from confirmation step
@@ -42,29 +50,23 @@ class UpdateOrderStatusActivity extends BaseRpcActivity
             // Determine new order status based on payment status
             $newOrderStatus = $this->determineOrderStatus($data['status'], $data['payment_method'] ?? null);
 
-            // Prepare order update data
-            $orderUpdateData = [
-                'order_id' => $data['order_id'],
-                'status' => $newOrderStatus,
+            // Prepare payment context data for adapter
+            $paymentData = [
                 'payment_id' => $data['payment_id'],
                 'payment_reference' => $data['payment_reference'],
-                'payment_amount' => $data['amount'],
-                'payment_currency' => $data['currency'] ?? 'USD',
+                'amount' => $data['amount'],
+                'currency' => $data['currency'] ?? 'USD',
                 'payment_method' => $data['payment_method'] ?? null,
-                'payment_confirmed_at' => $data['confirmed_at'] ?? now()->toISOString(),
-                'updated_by' => 'payment_saga',
-                'saga_id' => $this->getSagaId(),
-                'update_reason' => 'payment_completed'
+                'confirmed_at' => $data['confirmed_at'] ?? now()->toISOString(),
+                'saga_id' => $this->getSagaId()
             ];
 
-            // Call order service to update order status
-            $result = $this->callRpc('order-service', 'updateStatus', $orderUpdateData);
+            // Call order service via adapter to update order status
+            $orderData = $this->getOrderAdapter()->updateOrderStatus($data['order_id'], $newOrderStatus, $paymentData);
 
-            if (!$result['success']) {
-                throw new Exception('Order status update failed: ' . ($result['error'] ?? 'Unknown error'));
+            if (!$orderData) {
+                throw new Exception('Order status update failed: No response from order service');
             }
-
-            $orderData = $result['data'] ?? [];
 
             Log::info("UpdateOrderStatusActivity completed successfully", [
                 'saga_id' => $this->getSagaId(),

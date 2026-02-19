@@ -25,7 +25,7 @@ class ActivityRpcService
     private function makeRpcCall(string $method, array $params = []): array
     {
         try {
-            // Map activity methods to adapter methods
+            // Route activity methods to appropriate adapter methods
             switch ($method) {
                 case 'activity.logActivity':
                 case 'activity.bulkLogActivities':

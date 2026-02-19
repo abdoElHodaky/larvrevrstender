@@ -86,6 +86,22 @@ class RpcServiceProvider extends ServiceProvider
                     ->timeout(config('rpc.client.timeout', 5))
             );
         });
+
+        // Order Service RPC Client
+        $this->app->singleton('OrderRpc', function () {
+            return new \Sajya\Client\Client(
+                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.order.url'))
+                    ->withToken(config('rpc.services.order.token'))
+                    ->withHeaders([
+                        'X-Service-Name' => 'payment-service',
+                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
+                    ])
+                    ->timeout(config('rpc.client.timeout', 5))
+            );
+        });
+
+        // Register RPC adapters
+        $this->registerRpcAdapters();
     }
 
     /**
@@ -94,5 +110,8 @@ class RpcServiceProvider extends ServiceProvider
     private function registerRpcAdapters(): void
     {
         $this->app->singleton(\App\RPC\Adapters\AuthServiceAdapter::class);
+        $this->app->singleton(\App\RPC\Adapters\UserServiceAdapter::class);
+        $this->app->singleton(\App\RPC\Adapters\NotificationServiceAdapter::class);
+        $this->app->singleton(\App\RPC\Adapters\OrderServiceAdapter::class);
     }
 }

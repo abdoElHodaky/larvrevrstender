@@ -6,10 +6,10 @@ use Illuminate\Support\Facades\Log;
 use Exception;
 
 /**
- * UserServiceAdapter for Order Service
+ * UserServiceAdapter for Payment Service
  * 
  * Provides HTTP-like interface for RPC calls to the user service.
- * Order service needs user information for order processing and validation.
+ * Payment service needs user billing information for payment processing.
  */
 class UserServiceAdapter
 {
@@ -51,22 +51,22 @@ class UserServiceAdapter
     }
 
     /**
-     * Get user by email
+     * Get user billing information for payment processing
      */
-    public function getUserByEmail(string $email): ?array
+    public function getUserBillingInfo(int $userId): ?array
     {
         $startTime = microtime(true);
         $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
         
         try {
-            $this->logRpcCall('getUserByEmail', ['email' => $email], $correlationId);
+            $this->logRpcCall('getUserBillingInfo', ['user_id' => $userId], $correlationId);
             
-            $response = $this->userRpc->call('user.getUserByEmail', [
-                'email' => $email
+            $response = $this->userRpc->call('user.getUserBillingInfo', [
+                'user_id' => $userId
             ]);
             
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcCall('getUserByEmail', ['duration_ms' => $duration], $correlationId, 'success');
+            $this->logRpcCall('getUserBillingInfo', ['duration_ms' => $duration], $correlationId, 'success');
             
             if (isset($response['success']) && $response['success']) {
                 return $response['data'] ?? null;
@@ -75,7 +75,37 @@ class UserServiceAdapter
             return null;
         } catch (Exception $e) {
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcError('getUserByEmail', $e, $correlationId, $duration);
+            $this->logRpcError('getUserBillingInfo', $e, $correlationId, $duration);
+            return null;
+        }
+    }
+
+    /**
+     * Get user payment methods
+     */
+    public function getUserPaymentMethods(int $userId): ?array
+    {
+        $startTime = microtime(true);
+        $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
+        
+        try {
+            $this->logRpcCall('getUserPaymentMethods', ['user_id' => $userId], $correlationId);
+            
+            $response = $this->userRpc->call('user.getUserPaymentMethods', [
+                'user_id' => $userId
+            ]);
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcCall('getUserPaymentMethods', ['duration_ms' => $duration], $correlationId, 'success');
+            
+            if (isset($response['success']) && $response['success']) {
+                return $response['data'] ?? null;
+            }
+            
+            return null;
+        } catch (Exception $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcError('getUserPaymentMethods', $e, $correlationId, $duration);
             return null;
         }
     }
@@ -107,22 +137,23 @@ class UserServiceAdapter
     }
 
     /**
-     * Get user permissions
+     * Update user billing information
      */
-    public function getUserPermissions(int $userId): ?array
+    public function updateUserBillingInfo(int $userId, array $billingData): ?array
     {
         $startTime = microtime(true);
         $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
         
         try {
-            $this->logRpcCall('getUserPermissions', ['user_id' => $userId], $correlationId);
+            $this->logRpcCall('updateUserBillingInfo', ['user_id' => $userId], $correlationId);
             
-            $response = $this->userRpc->call('user.getUserPermissions', [
-                'user_id' => $userId
+            $response = $this->userRpc->call('user.updateUserBillingInfo', [
+                'user_id' => $userId,
+                'billing_data' => $billingData
             ]);
             
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcCall('getUserPermissions', ['duration_ms' => $duration], $correlationId, 'success');
+            $this->logRpcCall('updateUserBillingInfo', ['duration_ms' => $duration], $correlationId, 'success');
             
             if (isset($response['success']) && $response['success']) {
                 return $response['data'] ?? null;
@@ -131,28 +162,28 @@ class UserServiceAdapter
             return null;
         } catch (Exception $e) {
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcError('getUserPermissions', $e, $correlationId, $duration);
+            $this->logRpcError('updateUserBillingInfo', $e, $correlationId, $duration);
             return null;
         }
     }
 
     /**
-     * Get user billing information for order processing
+     * Get user by email
      */
-    public function getUserBillingInfo(int $userId): ?array
+    public function getUserByEmail(string $email): ?array
     {
         $startTime = microtime(true);
         $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
         
         try {
-            $this->logRpcCall('getUserBillingInfo', ['user_id' => $userId], $correlationId);
+            $this->logRpcCall('getUserByEmail', ['email' => $email], $correlationId);
             
-            $response = $this->userRpc->call('user.getUserBillingInfo', [
-                'user_id' => $userId
+            $response = $this->userRpc->call('user.getUserByEmail', [
+                'email' => $email
             ]);
             
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcCall('getUserBillingInfo', ['duration_ms' => $duration], $correlationId, 'success');
+            $this->logRpcCall('getUserByEmail', ['duration_ms' => $duration], $correlationId, 'success');
             
             if (isset($response['success']) && $response['success']) {
                 return $response['data'] ?? null;
@@ -161,7 +192,7 @@ class UserServiceAdapter
             return null;
         } catch (Exception $e) {
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcError('getUserBillingInfo', $e, $correlationId, $duration);
+            $this->logRpcError('getUserByEmail', $e, $correlationId, $duration);
             return null;
         }
     }
@@ -182,7 +213,7 @@ class UserServiceAdapter
         } catch (Exception $e) {
             Log::warning('Failed to get UserService info', [
                 'error' => $e->getMessage(),
-                'service' => 'order-service'
+                'service' => 'payment-service'
             ]);
             return null;
         }
@@ -196,7 +227,7 @@ class UserServiceAdapter
         Log::info("RPC Call: user.{$method} ({$status})", [
             'method' => "user.{$method}",
             'correlation_id' => $correlationId,
-            'service' => 'order-service',
+            'service' => 'payment-service',
             'status' => $status,
             'context' => $context
         ]);
@@ -210,7 +241,7 @@ class UserServiceAdapter
         Log::error("RPC Error: user.{$method}", [
             'method' => "user.{$method}",
             'correlation_id' => $correlationId,
-            'service' => 'order-service',
+            'service' => 'payment-service',
             'error' => $e->getMessage(),
             'duration_ms' => $duration,
             'trace' => $e->getTraceAsString()

@@ -7,10 +7,10 @@ use Sajya\Client\Client;
 use Exception;
 
 /**
- * User Service RPC Adapter for Auth Service
+ * User Service RPC Adapter for Analytics Service
  * 
  * Provides semantic methods for interacting with user-service via RPC.
- * Used by auth procedures and services to maintain user data consistency.
+ * Used by analytics service to collect user data and activity metrics.
  */
 class UserServiceAdapter
 {
@@ -20,11 +20,11 @@ class UserServiceAdapter
     public function __construct()
     {
         $this->userRpc = app('UserRpc');
-        $this->correlationId = uniqid('auth-user-', true);
+        $this->correlationId = uniqid('analytics-user-', true);
     }
 
     /**
-     * Get user by ID
+     * Get user by ID for analytics
      *
      * @param int $userId User ID to retrieve
      * @return array|null User data or null on failure
@@ -37,11 +37,11 @@ class UserServiceAdapter
             $params = [
                 'user_id' => $userId,
                 'correlation_id' => $this->correlationId,
-                'requested_by' => 'auth-service',
+                'requested_by' => 'analytics-service',
                 'timestamp' => now()->toISOString()
             ];
 
-            Log::info('UserServiceAdapter: Getting user by ID', [
+            Log::info('UserServiceAdapter: Getting user for analytics', [
                 'user_id' => $userId,
                 'correlation_id' => $this->correlationId
             ]);
@@ -51,7 +51,7 @@ class UserServiceAdapter
             $duration = microtime(true) - $startTime;
             
             if ($response && isset($response['success']) && $response['success']) {
-                Log::info('UserServiceAdapter: User retrieved successfully', [
+                Log::info('UserServiceAdapter: User data retrieved for analytics', [
                     'user_id' => $userId,
                     'duration_ms' => round($duration * 1000, 2),
                     'correlation_id' => $this->correlationId
@@ -60,7 +60,7 @@ class UserServiceAdapter
                 return $response['data'] ?? $response;
             }
 
-            Log::warning('UserServiceAdapter: User retrieval failed', [
+            Log::warning('UserServiceAdapter: User data retrieval failed', [
                 'user_id' => $userId,
                 'response' => $response,
                 'duration_ms' => round($duration * 1000, 2),
@@ -72,7 +72,7 @@ class UserServiceAdapter
         } catch (Exception $e) {
             $duration = microtime(true) - $startTime;
             
-            Log::error('UserServiceAdapter: User retrieval error', [
+            Log::error('UserServiceAdapter: User data retrieval error', [
                 'user_id' => $userId,
                 'error' => $e->getMessage(),
                 'duration_ms' => round($duration * 1000, 2),
@@ -84,67 +84,7 @@ class UserServiceAdapter
     }
 
     /**
-     * Create activity log entry
-     *
-     * @param array $activityData Activity data to log
-     * @return array|null Activity creation result or null on failure
-     */
-    public function createActivity(array $activityData): ?array
-    {
-        $startTime = microtime(true);
-        
-        try {
-            $params = array_merge($activityData, [
-                'correlation_id' => $this->correlationId,
-                'created_by' => 'auth-service',
-                'timestamp' => now()->toISOString()
-            ]);
-
-            Log::info('UserServiceAdapter: Creating activity', [
-                'activity_type' => $activityData['type'] ?? 'unknown',
-                'user_id' => $activityData['user_id'] ?? null,
-                'correlation_id' => $this->correlationId
-            ]);
-
-            $response = $this->userRpc->call('user.createActivity', $params);
-
-            $duration = microtime(true) - $startTime;
-            
-            if ($response && isset($response['success']) && $response['success']) {
-                Log::info('UserServiceAdapter: Activity created successfully', [
-                    'activity_id' => $response['data']['id'] ?? null,
-                    'duration_ms' => round($duration * 1000, 2),
-                    'correlation_id' => $this->correlationId
-                ]);
-
-                return $response['data'] ?? $response;
-            }
-
-            Log::warning('UserServiceAdapter: Activity creation failed', [
-                'activity_data' => $activityData,
-                'response' => $response,
-                'duration_ms' => round($duration * 1000, 2),
-                'correlation_id' => $this->correlationId
-            ]);
-
-            return null;
-
-        } catch (Exception $e) {
-            $duration = microtime(true) - $startTime;
-            
-            Log::error('UserServiceAdapter: Activity creation error', [
-                'activity_data' => $activityData,
-                'error' => $e->getMessage(),
-                'duration_ms' => round($duration * 1000, 2),
-                'correlation_id' => $this->correlationId
-            ]);
-
-            return null;
-        }
-    }
-
-    /**
-     * Get user activities with filtering
+     * Get user activities for analytics
      *
      * @param int $userId User ID to get activities for
      * @param array $filters Optional filters for activities
@@ -158,11 +98,11 @@ class UserServiceAdapter
             $params = array_merge($filters, [
                 'user_id' => $userId,
                 'correlation_id' => $this->correlationId,
-                'requested_by' => 'auth-service',
+                'requested_by' => 'analytics-service',
                 'timestamp' => now()->toISOString()
             ]);
 
-            Log::info('UserServiceAdapter: Getting user activities', [
+            Log::info('UserServiceAdapter: Getting user activities for analytics', [
                 'user_id' => $userId,
                 'filters' => $filters,
                 'correlation_id' => $this->correlationId
@@ -173,7 +113,7 @@ class UserServiceAdapter
             $duration = microtime(true) - $startTime;
             
             if ($response && isset($response['success']) && $response['success']) {
-                Log::info('UserServiceAdapter: Activities retrieved successfully', [
+                Log::info('UserServiceAdapter: User activities retrieved for analytics', [
                     'user_id' => $userId,
                     'activity_count' => count($response['data']['activities'] ?? []),
                     'duration_ms' => round($duration * 1000, 2),
@@ -183,7 +123,7 @@ class UserServiceAdapter
                 return $response['data'] ?? $response;
             }
 
-            Log::warning('UserServiceAdapter: Activities retrieval failed', [
+            Log::warning('UserServiceAdapter: User activities retrieval failed', [
                 'user_id' => $userId,
                 'filters' => $filters,
                 'response' => $response,
@@ -196,9 +136,75 @@ class UserServiceAdapter
         } catch (Exception $e) {
             $duration = microtime(true) - $startTime;
             
-            Log::error('UserServiceAdapter: Activities retrieval error', [
+            Log::error('UserServiceAdapter: User activities retrieval error', [
                 'user_id' => $userId,
                 'filters' => $filters,
+                'error' => $e->getMessage(),
+                'duration_ms' => round($duration * 1000, 2),
+                'correlation_id' => $this->correlationId
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Get user metrics for analytics
+     *
+     * @param array $userIds Array of user IDs to get metrics for
+     * @param array $metrics Array of metric types to retrieve
+     * @return array|null User metrics data or null on failure
+     */
+    public function getUserMetrics(array $userIds, array $metrics = []): ?array
+    {
+        $startTime = microtime(true);
+        
+        try {
+            $params = [
+                'user_ids' => $userIds,
+                'metrics' => $metrics,
+                'correlation_id' => $this->correlationId,
+                'requested_by' => 'analytics-service',
+                'timestamp' => now()->toISOString()
+            ];
+
+            Log::info('UserServiceAdapter: Getting user metrics for analytics', [
+                'user_count' => count($userIds),
+                'metrics' => $metrics,
+                'correlation_id' => $this->correlationId
+            ]);
+
+            $response = $this->userRpc->call('user.getUserMetrics', $params);
+
+            $duration = microtime(true) - $startTime;
+            
+            if ($response && isset($response['success']) && $response['success']) {
+                Log::info('UserServiceAdapter: User metrics retrieved for analytics', [
+                    'user_count' => count($userIds),
+                    'metrics_count' => count($response['data'] ?? []),
+                    'duration_ms' => round($duration * 1000, 2),
+                    'correlation_id' => $this->correlationId
+                ]);
+
+                return $response['data'] ?? $response;
+            }
+
+            Log::warning('UserServiceAdapter: User metrics retrieval failed', [
+                'user_ids' => $userIds,
+                'metrics' => $metrics,
+                'response' => $response,
+                'duration_ms' => round($duration * 1000, 2),
+                'correlation_id' => $this->correlationId
+            ]);
+
+            return null;
+
+        } catch (Exception $e) {
+            $duration = microtime(true) - $startTime;
+            
+            Log::error('UserServiceAdapter: User metrics retrieval error', [
+                'user_ids' => $userIds,
+                'metrics' => $metrics,
                 'error' => $e->getMessage(),
                 'duration_ms' => round($duration * 1000, 2),
                 'correlation_id' => $this->correlationId
@@ -220,7 +226,7 @@ class UserServiceAdapter
         try {
             $params = [
                 'correlation_id' => $this->correlationId,
-                'requested_by' => 'auth-service',
+                'requested_by' => 'analytics-service',
                 'timestamp' => now()->toISOString()
             ];
 

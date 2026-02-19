@@ -6,10 +6,10 @@ use Illuminate\Support\Facades\Log;
 use Exception;
 
 /**
- * NotificationServiceAdapter for Order Service
+ * NotificationServiceAdapter for Payment Service
  * 
  * Provides HTTP-like interface for RPC calls to the notification service.
- * Order service needs to send notifications for order status changes.
+ * Payment service needs to send notifications for payment status changes.
  */
 class NotificationServiceAdapter
 {
@@ -21,121 +21,175 @@ class NotificationServiceAdapter
     }
 
     /**
-     * Send order notification to user
+     * Send payment notification to user
      */
-    public function sendOrderNotification(int $userId, string $type, array $data): bool
+    public function sendPaymentNotification(int $userId, string $type, array $data): bool
     {
         $startTime = microtime(true);
         $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
         
         try {
-            $this->logRpcCall('sendOrderNotification', ['user_id' => $userId, 'type' => $type], $correlationId);
+            $this->logRpcCall('sendPaymentNotification', ['user_id' => $userId, 'type' => $type], $correlationId);
             
             $response = $this->notificationRpc->call('notification.sendNotification', [
                 'user_id' => $userId,
                 'type' => $type,
                 'data' => $data,
-                'category' => 'order'
+                'category' => 'payment'
             ]);
             
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcCall('sendOrderNotification', ['duration_ms' => $duration], $correlationId, 'success');
+            $this->logRpcCall('sendPaymentNotification', ['duration_ms' => $duration], $correlationId, 'success');
             
             return isset($response['success']) && $response['success'];
         } catch (Exception $e) {
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcError('sendOrderNotification', $e, $correlationId, $duration);
+            $this->logRpcError('sendPaymentNotification', $e, $correlationId, $duration);
             return false;
         }
     }
 
     /**
-     * Send order status update notification
+     * Send payment success notification
      */
-    public function sendOrderStatusUpdate(int $userId, int $orderId, string $status, array $details = []): bool
+    public function sendPaymentSuccess(int $userId, array $paymentData): bool
     {
         $startTime = microtime(true);
         $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
         
         try {
-            $this->logRpcCall('sendOrderStatusUpdate', ['user_id' => $userId, 'order_id' => $orderId, 'status' => $status], $correlationId);
+            $this->logRpcCall('sendPaymentSuccess', ['user_id' => $userId, 'payment_id' => $paymentData['id'] ?? 'N/A'], $correlationId);
             
             $response = $this->notificationRpc->call('notification.sendNotification', [
                 'user_id' => $userId,
-                'type' => 'order_status_update',
-                'data' => [
-                    'order_id' => $orderId,
-                    'status' => $status,
-                    'details' => $details
-                ],
-                'category' => 'order'
+                'type' => 'payment_success',
+                'data' => $paymentData,
+                'category' => 'payment'
             ]);
             
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcCall('sendOrderStatusUpdate', ['duration_ms' => $duration], $correlationId, 'success');
+            $this->logRpcCall('sendPaymentSuccess', ['duration_ms' => $duration], $correlationId, 'success');
             
             return isset($response['success']) && $response['success'];
         } catch (Exception $e) {
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcError('sendOrderStatusUpdate', $e, $correlationId, $duration);
+            $this->logRpcError('sendPaymentSuccess', $e, $correlationId, $duration);
             return false;
         }
     }
 
     /**
-     * Send order confirmation notification
+     * Send payment failure notification
      */
-    public function sendOrderConfirmation(int $userId, array $orderData): bool
+    public function sendPaymentFailure(int $userId, array $paymentData, string $reason): bool
     {
         $startTime = microtime(true);
         $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
         
         try {
-            $this->logRpcCall('sendOrderConfirmation', ['user_id' => $userId, 'order_id' => $orderData['id'] ?? 'N/A'], $correlationId);
+            $this->logRpcCall('sendPaymentFailure', ['user_id' => $userId, 'payment_id' => $paymentData['id'] ?? 'N/A', 'reason' => $reason], $correlationId);
             
             $response = $this->notificationRpc->call('notification.sendNotification', [
                 'user_id' => $userId,
-                'type' => 'order_confirmation',
-                'data' => $orderData,
-                'category' => 'order'
+                'type' => 'payment_failure',
+                'data' => array_merge($paymentData, ['failure_reason' => $reason]),
+                'category' => 'payment'
             ]);
             
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcCall('sendOrderConfirmation', ['duration_ms' => $duration], $correlationId, 'success');
+            $this->logRpcCall('sendPaymentFailure', ['duration_ms' => $duration], $correlationId, 'success');
             
             return isset($response['success']) && $response['success'];
         } catch (Exception $e) {
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcError('sendOrderConfirmation', $e, $correlationId, $duration);
+            $this->logRpcError('sendPaymentFailure', $e, $correlationId, $duration);
             return false;
         }
     }
 
     /**
-     * Send bulk notifications to multiple users
+     * Send refund notification
      */
-    public function sendBulkOrderNotification(array $userIds, string $type, array $data): bool
+    public function sendRefundNotification(int $userId, array $refundData): bool
     {
         $startTime = microtime(true);
         $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
         
         try {
-            $this->logRpcCall('sendBulkOrderNotification', ['user_count' => count($userIds), 'type' => $type], $correlationId);
+            $this->logRpcCall('sendRefundNotification', ['user_id' => $userId, 'refund_id' => $refundData['id'] ?? 'N/A'], $correlationId);
+            
+            $response = $this->notificationRpc->call('notification.sendNotification', [
+                'user_id' => $userId,
+                'type' => 'payment_refund',
+                'data' => $refundData,
+                'category' => 'payment'
+            ]);
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcCall('sendRefundNotification', ['duration_ms' => $duration], $correlationId, 'success');
+            
+            return isset($response['success']) && $response['success'];
+        } catch (Exception $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcError('sendRefundNotification', $e, $correlationId, $duration);
+            return false;
+        }
+    }
+
+    /**
+     * Send payment method update notification
+     */
+    public function sendPaymentMethodUpdate(int $userId, array $methodData): bool
+    {
+        $startTime = microtime(true);
+        $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
+        
+        try {
+            $this->logRpcCall('sendPaymentMethodUpdate', ['user_id' => $userId], $correlationId);
+            
+            $response = $this->notificationRpc->call('notification.sendNotification', [
+                'user_id' => $userId,
+                'type' => 'payment_method_update',
+                'data' => $methodData,
+                'category' => 'payment'
+            ]);
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcCall('sendPaymentMethodUpdate', ['duration_ms' => $duration], $correlationId, 'success');
+            
+            return isset($response['success']) && $response['success'];
+        } catch (Exception $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcError('sendPaymentMethodUpdate', $e, $correlationId, $duration);
+            return false;
+        }
+    }
+
+    /**
+     * Send bulk payment notifications
+     */
+    public function sendBulkPaymentNotification(array $userIds, string $type, array $data): bool
+    {
+        $startTime = microtime(true);
+        $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
+        
+        try {
+            $this->logRpcCall('sendBulkPaymentNotification', ['user_count' => count($userIds), 'type' => $type], $correlationId);
             
             $response = $this->notificationRpc->call('notification.sendBulkNotification', [
                 'user_ids' => $userIds,
                 'type' => $type,
                 'data' => $data,
-                'category' => 'order'
+                'category' => 'payment'
             ]);
             
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcCall('sendBulkOrderNotification', ['duration_ms' => $duration], $correlationId, 'success');
+            $this->logRpcCall('sendBulkPaymentNotification', ['duration_ms' => $duration], $correlationId, 'success');
             
             return isset($response['success']) && $response['success'];
         } catch (Exception $e) {
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcError('sendBulkOrderNotification', $e, $correlationId, $duration);
+            $this->logRpcError('sendBulkPaymentNotification', $e, $correlationId, $duration);
             return false;
         }
     }
@@ -171,38 +225,6 @@ class NotificationServiceAdapter
     }
 
     /**
-     * Get notification history for user
-     */
-    public function getNotificationHistory(int $userId, int $limit = 50): ?array
-    {
-        $startTime = microtime(true);
-        $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
-        
-        try {
-            $this->logRpcCall('getNotificationHistory', ['user_id' => $userId, 'limit' => $limit], $correlationId);
-            
-            $response = $this->notificationRpc->call('notification.getNotificationHistory', [
-                'user_id' => $userId,
-                'limit' => $limit,
-                'category' => 'order'
-            ]);
-            
-            $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcCall('getNotificationHistory', ['duration_ms' => $duration], $correlationId, 'success');
-            
-            if (isset($response['success']) && $response['success']) {
-                return $response['data'] ?? null;
-            }
-            
-            return null;
-        } catch (Exception $e) {
-            $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcError('getNotificationHistory', $e, $correlationId, $duration);
-            return null;
-        }
-    }
-
-    /**
      * Get service health status
      */
     public function getServiceInfo(): ?array
@@ -218,7 +240,7 @@ class NotificationServiceAdapter
         } catch (Exception $e) {
             Log::warning('Failed to get NotificationService info', [
                 'error' => $e->getMessage(),
-                'service' => 'order-service'
+                'service' => 'payment-service'
             ]);
             return null;
         }
@@ -232,7 +254,7 @@ class NotificationServiceAdapter
         Log::info("RPC Call: notification.{$method} ({$status})", [
             'method' => "notification.{$method}",
             'correlation_id' => $correlationId,
-            'service' => 'order-service',
+            'service' => 'payment-service',
             'status' => $status,
             'context' => $context
         ]);
@@ -246,7 +268,7 @@ class NotificationServiceAdapter
         Log::error("RPC Error: notification.{$method}", [
             'method' => "notification.{$method}",
             'correlation_id' => $correlationId,
-            'service' => 'order-service',
+            'service' => 'payment-service',
             'error' => $e->getMessage(),
             'duration_ms' => $duration,
             'trace' => $e->getTraceAsString()

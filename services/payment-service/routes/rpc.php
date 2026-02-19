@@ -1,7 +1,6 @@
 <?php
 
 use App\RPC\Procedures\PaymentProcedure;
-use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,6 +13,9 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::rpc('/', [
-    PaymentProcedure::class,
-])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging']);
+// Check if Sajya Server is available before registering routes
+if (class_exists('Sajya\Server\Route')) {
+    \Sajya\Server\Route::rpc('/', [
+        PaymentProcedure::class,
+    ])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging']);
+}

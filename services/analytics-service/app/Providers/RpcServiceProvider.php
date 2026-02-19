@@ -29,6 +29,9 @@ class RpcServiceProvider extends ServiceProvider
 
         // Register RPC clients for other services
         $this->registerRpcClients();
+
+        // Register RPC adapters
+        $this->registerRpcAdapters();
     }
 
     /**
@@ -111,6 +114,37 @@ class RpcServiceProvider extends ServiceProvider
                     ])
                     ->timeout(config('rpc.client.timeout', 5))
             );
+        });
+    }
+
+    /**
+     * Register RPC adapters for analytics service
+     */
+    private function registerRpcAdapters(): void
+    {
+        // User Service Adapter
+        $this->app->singleton(\App\RPC\Adapters\UserServiceAdapter::class, function () {
+            return new \App\RPC\Adapters\UserServiceAdapter();
+        });
+
+        // Order Service Adapter
+        $this->app->singleton(\App\RPC\Adapters\OrderServiceAdapter::class, function () {
+            return new \App\RPC\Adapters\OrderServiceAdapter();
+        });
+
+        // Payment Service Adapter
+        $this->app->singleton(\App\RPC\Adapters\PaymentServiceAdapter::class, function () {
+            return new \App\RPC\Adapters\PaymentServiceAdapter();
+        });
+
+        // Auction Service Adapter
+        $this->app->singleton(\App\RPC\Adapters\AuctionServiceAdapter::class, function () {
+            return new \App\RPC\Adapters\AuctionServiceAdapter();
+        });
+
+        // Bidding Service Adapter
+        $this->app->singleton(\App\RPC\Adapters\BiddingServiceAdapter::class, function () {
+            return new \App\RPC\Adapters\BiddingServiceAdapter();
         });
     }
 }
