@@ -1,7 +1,7 @@
 version: '3.8'
 
 # Multi-Tier Caching Architecture
-# Varnish → Upstash Redis → Local Redis → MongoDB Atlas
+# Varnish → Upstash Redis → MongoDB Atlas
 
 services:
   # Laravel Application
@@ -20,10 +20,10 @@ services:
       - MONGODB_DSN=${MONGODB_DSN}
       - MONGODB_DATABASE=${MONGODB_DATABASE}
       
-      # Redis connections
-      - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - REDIS_PORT=6379
+      # Redis connections (using Upstash)
+      - REDIS_HOST=${UPSTASH_REDIS_HOST}
+      - REDIS_PASSWORD=${UPSTASH_REDIS_PASSWORD}
+      - REDIS_PORT=${UPSTASH_REDIS_PORT}
       
       # Upstash Redis
       - UPSTASH_REDIS_URL=${UPSTASH_REDIS_URL}
@@ -37,7 +37,6 @@ services:
       - VARNISH_PORT=6081
     depends_on:
       - mysql
-      - redis
       - varnish
     networks:
       - multi-tier-network
@@ -91,37 +90,28 @@ services:
         max-size: "50m"
         max-file: "3"
 
-  # Local Redis (Primary for jobs/queues/sessions)
-  redis:
+  # Upstash Redis Connection Test Service
+  upstash-test:
     image: redis:7-alpine
-    container_name: redis-primary
+    container_name: upstash-connection-test
     command: >
-      redis-server
-      --appendonly yes
-      --requirepass ${REDIS_PASSWORD}
-      --maxmemory 1gb
-      --maxmemory-policy allkeys-lru
-      --save 900 1
-      --save 300 10
-      --save 60 10000
-    volumes:
-      - redis_data:/data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
-    ports:
-      - "6379:6379"
+      sh -c "
+      echo 'Testing Upstash Redis connection...';
+      redis-cli -h ${UPSTASH_REDIS_HOST} -p ${UPSTASH_REDIS_PORT} -a ${UPSTASH_REDIS_PASSWORD} --tls ping;
+      echo 'Upstash Redis connection test completed';
+      sleep infinity"
+    environment:
+      - UPSTASH_REDIS_HOST=${UPSTASH_REDIS_HOST}
+      - UPSTASH_REDIS_PORT=${UPSTASH_REDIS_PORT}
+      - UPSTASH_REDIS_PASSWORD=${UPSTASH_REDIS_PASSWORD}
     networks:
       - multi-tier-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"
-        max-file: "2"
+        max-size: "5m"
+        max-file: "1"
 
   # MySQL Database
   mysql:
@@ -158,12 +148,12 @@ services:
     command: php artisan queue:work multi_tier --queue=high --sleep=1 --tries=3 --max-time=3600 --memory=512
     environment:
       - QUEUE_CONNECTION=multi_tier
-      - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_HOST=${UPSTASH_REDIS_HOST}
+      - REDIS_PASSWORD=${UPSTASH_REDIS_PASSWORD}
+      - REDIS_PORT=${UPSTASH_REDIS_PORT}
       - MONGODB_DSN=${MONGODB_DSN}
       - UPSTASH_REDIS_URL=${UPSTASH_REDIS_URL}
     depends_on:
-      - redis
       - mysql
       - app
     networks:
@@ -183,12 +173,12 @@ services:
     command: php artisan queue:work multi_tier --queue=default --sleep=3 --tries=3 --max-time=3600 --memory=512
     environment:
       - QUEUE_CONNECTION=multi_tier
-      - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_HOST=${UPSTASH_REDIS_HOST}
+      - REDIS_PASSWORD=${UPSTASH_REDIS_PASSWORD}
+      - REDIS_PORT=${UPSTASH_REDIS_PORT}
       - MONGODB_DSN=${MONGODB_DSN}
       - UPSTASH_REDIS_URL=${UPSTASH_REDIS_URL}
     depends_on:
-      - redis
       - mysql
       - app
     networks:
@@ -208,12 +198,12 @@ services:
     command: php artisan queue:work multi_tier --queue=low --sleep=5 --tries=2 --max-time=3600 --memory=256
     environment:
       - QUEUE_CONNECTION=multi_tier
-      - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_HOST=${UPSTASH_REDIS_HOST}
+      - REDIS_PASSWORD=${UPSTASH_REDIS_PASSWORD}
+      - REDIS_PORT=${UPSTASH_REDIS_PORT}
       - MONGODB_DSN=${MONGODB_DSN}
       - UPSTASH_REDIS_URL=${UPSTASH_REDIS_URL}
     depends_on:
-      - redis
       - mysql
       - app
     networks:
@@ -283,17 +273,18 @@ services:
         max-size: "10m"
         max-file: "2"
 
-  # Redis Exporter for monitoring
-  redis-exporter:
+  # Upstash Redis Exporter for monitoring
+  upstash-redis-exporter:
     image: oliver006/redis_exporter:latest
-    container_name: redis-exporter
+    container_name: upstash-redis-exporter
     environment:
-      - REDIS_ADDR=redis://redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_ADDR=rediss://${UPSTASH_REDIS_HOST}:${UPSTASH_REDIS_PORT}
+      - REDIS_PASSWORD=${UPSTASH_REDIS_PASSWORD}
+      - REDIS_EXPORTER_TLS_CLIENT_KEY_FILE=""
+      - REDIS_EXPORTER_TLS_CLIENT_CERT_FILE=""
+      - REDIS_EXPORTER_SKIP_TLS_VERIFICATION=true
     ports:
       - "9121:9121"
-    depends_on:
-      - redis
     networks:
       - multi-tier-network
     restart: unless-stopped
@@ -351,8 +342,8 @@ services:
         echo 'Health check at $(date)';
         # Check Varnish
         curl -f http://varnish:80/health || echo 'Varnish unhealthy';
-        # Check Redis
-        redis-cli -h redis -p 6379 -a ${REDIS_PASSWORD} ping || echo 'Redis unhealthy';
+        # Check Upstash Redis
+        redis-cli -h ${UPSTASH_REDIS_HOST} -p ${UPSTASH_REDIS_PORT} -a ${UPSTASH_REDIS_PASSWORD} --tls ping || echo 'Upstash Redis unhealthy';
         # Check MySQL
         mysqladmin ping -h mysql -u ${DB_USERNAME} -p${DB_PASSWORD} || echo 'MySQL unhealthy';
         # Check Application
@@ -361,7 +352,6 @@ services:
       done"
     depends_on:
       - varnish
-      - redis
       - mysql
       - app
     networks:
@@ -375,8 +365,6 @@ services:
 
 volumes:
   varnish_storage:
-    driver: local
-  redis_data:
     driver: local
   mysql_data:
     driver: local
@@ -394,8 +382,8 @@ networks:
 x-multi-tier-config:
   architecture:
     caching: "Varnish (L1) → Upstash Redis (L2) → Application"
-    jobs_queues: "Local Redis (Primary) → MongoDB Atlas (Fallback)"
-    sessions: "Local Redis (Primary) → MongoDB Atlas (Fallback)"
+    jobs_queues: "Upstash Redis (Primary) → MongoDB Atlas (Fallback)"
+    sessions: "Upstash Redis (Primary) → MongoDB Atlas (Fallback)"
   
   performance_targets:
     cache_hit_ratio: "95%+"
@@ -404,14 +392,14 @@ x-multi-tier-config:
     concurrent_sessions: "50,000+"
   
   cost_optimization:
-    upstash_redis: "Pay-per-request pricing"
-    mongodb_atlas: "Serverless pricing"
-    local_redis: "Single instance for multiple purposes"
-    varnish: "In-memory caching layer"
+    upstash_redis: "Pay-per-request pricing for all Redis operations"
+    mongodb_atlas: "Serverless pricing for fallback storage"
+    varnish: "In-memory caching layer (self-hosted)"
+    infrastructure: "Reduced complexity with managed services"
   
   monitoring:
     prometheus: "Metrics collection"
-    redis_exporter: "Redis metrics"
-    varnish_exporter: "Varnish metrics"
+    upstash_redis_exporter: "Upstash Redis metrics"
+    varnish_exporter: "Varnish cache metrics"
     fluent_bit: "Log aggregation"
-    healthcheck: "Service health monitoring"
+    healthcheck: "Multi-service health monitoring"

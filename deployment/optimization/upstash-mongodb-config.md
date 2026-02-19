@@ -11,7 +11,7 @@ Varnish (L1) → Upstash Redis (L2) → Application
 
 ### **Jobs/Queues/Sessions Tier:**
 ```
-Local Redis (Primary) → MongoDB Atlas (Fallback) → Application
+Upstash Redis (Primary) → MongoDB Atlas (Fallback) → Application
 ```
 
 ---
@@ -38,17 +38,17 @@ DB_PASSWORD=secure-password
 MONGODB_DSN="mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/reverse_tender?retryWrites=true&w=majority"
 MONGODB_DATABASE=reverse_tender
 
-# Local Redis (Primary)
-REDIS_HOST=127.0.0.1
-REDIS_PASSWORD=YOUR_LOCAL_REDIS_PASSWORD
-REDIS_PORT=6379
-REDIS_DB=0
-
-# Upstash Redis (Fallback for caching)
+# Upstash Redis (Primary for all Redis operations)
 UPSTASH_REDIS_URL="rediss://default:YOUR_UPSTASH_PASSWORD@YOUR_REGION-redis.upstash.io:6380"
 UPSTASH_REDIS_HOST=YOUR_REGION-redis.upstash.io
 UPSTASH_REDIS_PASSWORD=YOUR_UPSTASH_PASSWORD
 UPSTASH_REDIS_PORT=6380
+
+# Redis Configuration (using Upstash)
+REDIS_HOST=YOUR_REGION-redis.upstash.io
+REDIS_PASSWORD=YOUR_UPSTASH_PASSWORD
+REDIS_PORT=6380
+REDIS_DB=0
 
 # Cache Configuration
 CACHE_DRIVER=multi_tier
@@ -122,20 +122,25 @@ return [
             'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
         ],
 
-        // Local Redis (Primary)
+        // Upstash Redis (Primary)
         'default' => [
-            'url' => env('REDIS_URL'),
-            'host' => env('REDIS_HOST', '127.0.0.1'),
-            'password' => env('REDIS_PASSWORD'),
-            'port' => env('REDIS_PORT', '6379'),
+            'url' => env('UPSTASH_REDIS_URL'),
+            'host' => env('REDIS_HOST', env('UPSTASH_REDIS_HOST')),
+            'password' => env('REDIS_PASSWORD', env('UPSTASH_REDIS_PASSWORD')),
+            'port' => env('REDIS_PORT', env('UPSTASH_REDIS_PORT', 6380)),
             'database' => env('REDIS_DB', '0'),
             'read_write_timeout' => 60,
-            'context' => [
-                'auth' => [env('REDIS_PASSWORD'), env('REDIS_USERNAME', 'default')],
+            'options' => [
+                'stream' => [
+                    'ssl' => [
+                        'verify_peer' => true,
+                        'verify_peer_name' => true,
+                    ],
+                ],
             ],
         ],
 
-        // Upstash Redis (Fallback)
+        // Upstash Redis (Alternative connection)
         'upstash' => [
             'url' => env('UPSTASH_REDIS_URL'),
             'host' => env('UPSTASH_REDIS_HOST'),
@@ -153,21 +158,37 @@ return [
             ],
         ],
 
-        // Cache-specific Redis connections
+        // Cache-specific Redis connections (using Upstash)
         'cache' => [
-            'url' => env('REDIS_URL'),
-            'host' => env('REDIS_HOST', '127.0.0.1'),
-            'password' => env('REDIS_PASSWORD'),
-            'port' => env('REDIS_PORT', '6379'),
+            'url' => env('UPSTASH_REDIS_URL'),
+            'host' => env('REDIS_HOST', env('UPSTASH_REDIS_HOST')),
+            'password' => env('REDIS_PASSWORD', env('UPSTASH_REDIS_PASSWORD')),
+            'port' => env('REDIS_PORT', env('UPSTASH_REDIS_PORT', 6380)),
             'database' => env('REDIS_CACHE_DB', '1'),
+            'options' => [
+                'stream' => [
+                    'ssl' => [
+                        'verify_peer' => true,
+                        'verify_peer_name' => true,
+                    ],
+                ],
+            ],
         ],
 
         'session' => [
-            'url' => env('REDIS_URL'),
-            'host' => env('REDIS_HOST', '127.0.0.1'),
-            'password' => env('REDIS_PASSWORD'),
-            'port' => env('REDIS_PORT', '6379'),
+            'url' => env('UPSTASH_REDIS_URL'),
+            'host' => env('REDIS_HOST', env('UPSTASH_REDIS_HOST')),
+            'password' => env('REDIS_PASSWORD', env('UPSTASH_REDIS_PASSWORD')),
+            'port' => env('REDIS_PORT', env('UPSTASH_REDIS_PORT', 6380)),
             'database' => env('REDIS_SESSION_DB', '2'),
+            'options' => [
+                'stream' => [
+                    'ssl' => [
+                        'verify_peer' => true,
+                        'verify_peer_name' => true,
+                    ],
+                ],
+            ],
         ],
     ],
 ];
@@ -193,7 +214,7 @@ return [
 
         'redis' => [
             'driver' => 'redis',
-            'connection' => 'cache',
+            'connection' => 'default',  # Now points to Upstash
             'lock_connection' => 'default',
         ],
 
@@ -232,7 +253,7 @@ return [
     'connections' => [
         'multi_tier' => [
             'driver' => 'multi_tier',
-            'primary' => 'redis',
+            'primary' => 'upstash',  # Use Upstash as primary
             'fallback' => 'mongodb',
             'retry_after' => 90,
             'block_for' => null,
@@ -241,7 +262,7 @@ return [
 
         'redis' => [
             'driver' => 'redis',
-            'connection' => 'default',
+            'connection' => 'default',  # Points to Upstash
             'queue' => env('REDIS_QUEUE', 'default'),
             'retry_after' => 90,
             'block_for' => null,
@@ -269,7 +290,7 @@ return [
         // Priority queues
         'high_priority' => [
             'driver' => 'multi_tier',
-            'primary' => 'redis',
+            'primary' => 'upstash',  # Use Upstash as primary
             'fallback' => 'mongodb',
             'queue' => 'high',
             'retry_after' => 30,
@@ -277,7 +298,7 @@ return [
 
         'low_priority' => [
             'driver' => 'multi_tier',
-            'primary' => 'redis',
+            'primary' => 'upstash',  # Use Upstash as primary
             'fallback' => 'mongodb',
             'queue' => 'low',
             'retry_after' => 300,
@@ -316,7 +337,7 @@ return [
 
     // Multi-tier session configuration
     'multi_tier' => [
-        'primary' => 'redis',
+        'primary' => 'upstash',  # Use Upstash as primary
         'fallback' => 'mongodb',
         'sync_interval' => 300, // 5 minutes
         'fallback_threshold' => 3, // Switch to fallback after 3 failures
