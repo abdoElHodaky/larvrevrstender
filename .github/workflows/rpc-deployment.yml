@@ -11,8 +11,10 @@ on:
       - 'deployment/**'
       - '.github/workflows/rpc-deployment.yml'
   pull_request:
-    branches-ignore:
+    branches:
       - main
+      - develop
+      - v2
     paths:
       - 'services/**'
       - 'deployment/**'
@@ -54,9 +56,18 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.3'
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, redis, curl
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, pgsql, redis, curl, zip, gd, json, dom, filter, sqlite3
         coverage: xdebug
         ini-file: production
+        
+    - name: Verify PHP Configuration
+      run: |
+        echo "🔍 PHP Configuration:"
+        php --version
+        echo "📋 Installed extensions:"
+        php -m | grep -E "(xdebug|sqlite|pdo)"
+        echo "🎯 Xdebug status:"
+        php -m | grep -i xdebug && echo "✅ Xdebug is installed" || echo "❌ Xdebug not found"
 
     - name: Cache Composer packages
       id: composer-cache
@@ -84,6 +95,10 @@ jobs:
           echo "DB_DATABASE=/tmp/${{ matrix.service }}_test.sqlite" >> .env
           echo "REDIS_CLIENT=predis" >> .env
           echo "✅ Test environment configurations applied"
+          
+          # Create the SQLite test database file
+          touch "/tmp/${{ matrix.service }}_test.sqlite"
+          echo "✅ Test database file created"
         fi
 
     - name: Check and Install Composer Dependencies
@@ -270,16 +285,34 @@ jobs:
         
         # Run tests using Laravel's test command if artisan exists, otherwise use PHPUnit directly
         if [ -f "artisan" ]; then
-          # Try with coverage first, if it fails due to no coverage driver, try without coverage
-          if ! php artisan test --coverage-clover coverage.xml 2>/dev/null; then
-            echo "⚠️ Coverage generation failed, running tests without coverage..."
-            php artisan test
+          echo "🧪 Running Laravel tests for ${{ matrix.service }}..."
+          # First try with coverage if Xdebug is available
+          if php -m | grep -i xdebug > /dev/null; then
+            echo "✅ Xdebug detected, running tests with coverage..."
+            if php artisan test --coverage-clover coverage.xml --log-junit test-results.xml; then
+              echo "✅ Tests with coverage completed successfully"
+            else
+              echo "⚠️ Tests with coverage failed, trying without coverage..."
+              php artisan test --log-junit test-results.xml
+            fi
+          else
+            echo "⚠️ Xdebug not available, running tests without coverage..."
+            php artisan test --log-junit test-results.xml
           fi
         else
-          # Try with coverage first, if it fails due to no coverage driver, try without coverage
-          if ! ./vendor/bin/phpunit --coverage-clover coverage.xml 2>/dev/null; then
-            echo "⚠️ Coverage generation failed, running tests without coverage..."
-            ./vendor/bin/phpunit
+          echo "🧪 Running PHPUnit tests for ${{ matrix.service }}..."
+          # First try with coverage if Xdebug is available
+          if php -m | grep -i xdebug > /dev/null; then
+            echo "✅ Xdebug detected, running tests with coverage..."
+            if XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-clover=coverage.xml --log-junit=test-results.xml --testdox; then
+              echo "✅ Tests with coverage completed successfully"
+            else
+              echo "⚠️ Tests with coverage failed, trying without coverage..."
+              ./vendor/bin/phpunit --log-junit=test-results.xml --testdox
+            fi
+          else
+            echo "⚠️ Xdebug not available, running tests without coverage..."
+            ./vendor/bin/phpunit --log-junit=test-results.xml --testdox
           fi
         fi
 
@@ -884,9 +917,15 @@ jobs:
 
     - name: Configure kubectl
       run: |
-        echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
-        export KUBECONFIG=$(pwd)/kubeconfig
-        echo "KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
+        if [ -n "${{ secrets.KUBE_CONFIG_STAGING }}" ]; then
+          echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+          export KUBECONFIG=$(pwd)/kubeconfig
+          echo "KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
+          echo "✅ Staging kubectl configured"
+        else
+          echo "⚠️ KUBE_CONFIG_STAGING secret not available - skipping kubectl configuration"
+          echo "KUBECONFIG_AVAILABLE=false" >> $GITHUB_ENV
+        fi
 
     - name: Deploy to staging
       run: |
@@ -926,9 +965,15 @@ jobs:
 
     - name: Configure kubectl
       run: |
-        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
-        export KUBECONFIG=$(pwd)/kubeconfig
-        echo "KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
+        if [ -n "${{ secrets.KUBE_CONFIG_PRODUCTION }}" ]; then
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+          export KUBECONFIG=$(pwd)/kubeconfig
+          echo "KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
+          echo "✅ Production kubectl configured"
+        else
+          echo "⚠️ KUBE_CONFIG_PRODUCTION secret not available - skipping kubectl configuration"
+          echo "KUBECONFIG_AVAILABLE=false" >> $GITHUB_ENV
+        fi
 
     - name: Deploy to production
       run: |

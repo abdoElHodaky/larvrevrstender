@@ -3,49 +3,43 @@
 namespace App\Services;
 
 use App\Services\Contracts\VehicleServiceInterface;
-use Illuminate\Support\Facades\Http;
+use App\RPC\Adapters\UserServiceAdapter;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Vehicle Service
  *
- * Handles communication with the user service for vehicle-related operations
+ * Handles communication with the user service for vehicle-related operations via RPC
  */
 class VehicleService implements VehicleServiceInterface
 {
-    protected string $userServiceUrl;
+    protected UserServiceAdapter $userAdapter;
 
-    public function __construct(string $userServiceUrl)
+    public function __construct(UserServiceAdapter $userAdapter)
     {
-        $this->userServiceUrl = $userServiceUrl;
+        $this->userAdapter = $userAdapter;
     }
 
     /**
-     * Validate vehicle ownership
+     * Validate vehicle ownership via RPC
      */
     public function validateVehicleOwnership(int $vehicleId, int $customerId): bool
     {
         try {
-            $response = Http::timeout(10)
-                ->get("{$this->userServiceUrl}/api/internal/vehicles/{$vehicleId}/owner", [
-                    'customer_id' => $customerId,
-                ]);
+            $result = $this->userAdapter->validateVehicleOwnership($vehicleId, $customerId);
 
-            if ($response->successful()) {
-                $data = $response->json();
-
-                return $data['is_owner'] ?? false;
+            if ($result) {
+                return $result['is_owner'] ?? false;
             }
 
-            Log::warning('Failed to validate vehicle ownership', [
+            Log::warning('Failed to validate vehicle ownership via RPC', [
                 'vehicle_id' => $vehicleId,
                 'customer_id' => $customerId,
-                'response' => $response->body(),
             ]);
 
             return false;
         } catch (\Exception $e) {
-            Log::error('Vehicle service error', [
+            Log::error('Vehicle service RPC error', [
                 'vehicle_id' => $vehicleId,
                 'customer_id' => $customerId,
                 'error' => $e->getMessage(),
@@ -56,21 +50,20 @@ class VehicleService implements VehicleServiceInterface
     }
 
     /**
-     * Get vehicle details
+     * Get vehicle details via RPC
      */
     public function getVehicleDetails(int $vehicleId): ?array
     {
         try {
-            $response = Http::timeout(10)
-                ->get("{$this->userServiceUrl}/api/internal/vehicles/{$vehicleId}");
+            $result = $this->userAdapter->getVehicleDetails($vehicleId);
 
-            if ($response->successful()) {
-                return $response->json();
+            if ($result) {
+                return $result;
             }
 
             return null;
         } catch (\Exception $e) {
-            Log::error('Failed to get vehicle details', [
+            Log::error('Failed to get vehicle details via RPC', [
                 'vehicle_id' => $vehicleId,
                 'error' => $e->getMessage(),
             ]);
@@ -80,21 +73,20 @@ class VehicleService implements VehicleServiceInterface
     }
 
     /**
-     * Get vehicles by customer
+     * Get vehicles by customer via RPC
      */
     public function getCustomerVehicles(int $customerId): array
     {
         try {
-            $response = Http::timeout(10)
-                ->get("{$this->userServiceUrl}/api/internal/customers/{$customerId}/vehicles");
+            $result = $this->userAdapter->getCustomerVehicles($customerId);
 
-            if ($response->successful()) {
-                return $response->json()['vehicles'] ?? [];
+            if ($result) {
+                return $result['vehicles'] ?? [];
             }
 
             return [];
         } catch (\Exception $e) {
-            Log::error('Failed to get customer vehicles', [
+            Log::error('Failed to get customer vehicles via RPC', [
                 'customer_id' => $customerId,
                 'error' => $e->getMessage(),
             ]);
@@ -117,21 +109,20 @@ class VehicleService implements VehicleServiceInterface
     }
 
     /**
-     * Get vehicle specifications by VIN
+     * Get vehicle specifications by VIN via RPC
      */
     public function getVehicleSpecsByVin(string $vin): ?array
     {
         try {
-            $response = Http::timeout(15)
-                ->get("{$this->userServiceUrl}/api/internal/vehicles/vin/{$vin}/specs");
+            $result = $this->userAdapter->getVehicleSpecsByVin($vin);
 
-            if ($response->successful()) {
-                return $response->json();
+            if ($result) {
+                return $result;
             }
 
             return null;
         } catch (\Exception $e) {
-            Log::error('Failed to get vehicle specs by VIN', [
+            Log::error('Failed to get vehicle specs by VIN via RPC', [
                 'vin' => $vin,
                 'error' => $e->getMessage(),
             ]);

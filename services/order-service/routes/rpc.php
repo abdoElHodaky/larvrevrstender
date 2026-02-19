@@ -1,7 +1,7 @@
 <?php
 
 use App\RPC\Procedures\OrderProcedure;
-use Sajya\Server\Route;
+use Illuminate\Support\Facades\Route;
 
 // use App\RPC\Procedures\EnhancedOrderProcedure;
 

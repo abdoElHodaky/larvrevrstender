@@ -3,7 +3,7 @@
         'name' => 'reversetender/notification-service',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '19fa2ebae79308403abfb56b29b272d5d5c07ec3',
+        'reference' => 'abfc63b998d46bc27fa62d7685face26aa4e3ef8',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -925,7 +925,7 @@
         'reversetender/notification-service' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '19fa2ebae79308403abfb56b29b272d5d5c07ec3',
+            'reference' => 'abfc63b998d46bc27fa62d7685face26aa4e3ef8',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

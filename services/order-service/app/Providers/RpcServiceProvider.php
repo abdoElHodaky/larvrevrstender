@@ -87,4 +87,15 @@ class RpcServiceProvider extends ServiceProvider
             );
         });
     }
+
+    /**
+     * Register RPC adapters as singletons
+     */
+    private function registerRpcAdapters(): void
+    {
+        $this->app->singleton(\App\RPC\Adapters\AuthServiceAdapter::class);
+        $this->app->singleton(\App\RPC\Adapters\NotificationServiceAdapter::class);
+        $this->app->singleton(\App\RPC\Adapters\AnalyticsServiceAdapter::class);
+        $this->app->singleton(\App\RPC\Adapters\UserServiceAdapter::class);
+    }
 }

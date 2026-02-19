@@ -3,5 +3,6 @@
 return [
     App\Providers\AppServiceProvider::class,
     App\Providers\EventServiceProvider::class,
+    App\Providers\RpcServiceProvider::class,
     App\Providers\TelescopeServiceProvider::class,
 ];

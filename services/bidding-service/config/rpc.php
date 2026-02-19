@@ -25,6 +25,10 @@ return [
     |
     */
     'services' => [
+        'auth' => [
+            'url' => env('RPC_AUTH_SERVICE_URL', env('AUTH_SERVICE_URL', 'http://auth-service:8080') . '/rpc'),
+            'token' => env('RPC_AUTH_SERVICE_TOKEN', ''),
+        ],
         'auction' => [
             'url' => env('RPC_AUCTION_SERVICE_URL', env('AUCTION_SERVICE_URL', 'http://auction-service:8080') . '/rpc'),
             'token' => env('RPC_AUCTION_SERVICE_TOKEN', ''),

@@ -55,10 +55,15 @@ class NotificationFactory
      */
     public function email(?string $template = null): EmailNotificationBuilder
     {
-        return new EmailNotificationBuilder($this->templateManager)
-            ->setService($this->defaultService)
-            ->setLanguage($this->defaultLanguage)
-            ->when($template, fn($builder) => $builder->withTemplate($template));
+        $builder = new EmailNotificationBuilder($this->templateManager);
+        $builder->setService($this->defaultService);
+        $builder->setLanguage($this->defaultLanguage);
+        
+        if ($template) {
+            $builder->withTemplate($template);
+        }
+        
+        return $builder;
     }
     
     /**
@@ -69,10 +74,15 @@ class NotificationFactory
      */
     public function sms(?string $template = null): SmsNotificationBuilder
     {
-        return new SmsNotificationBuilder($this->templateManager)
-            ->setService($this->defaultService)
-            ->setLanguage($this->defaultLanguage)
-            ->when($template, fn($builder) => $builder->withTemplate($template));
+        $builder = new SmsNotificationBuilder($this->templateManager);
+        $builder->setService($this->defaultService);
+        $builder->setLanguage($this->defaultLanguage);
+        
+        if ($template) {
+            $builder->withTemplate($template);
+        }
+        
+        return $builder;
     }
     
     /**
@@ -83,10 +93,15 @@ class NotificationFactory
      */
     public function whatsapp(?string $template = null): WhatsAppNotificationBuilder
     {
-        return new WhatsAppNotificationBuilder($this->templateManager)
-            ->setService($this->defaultService)
-            ->setLanguage($this->defaultLanguage)
-            ->when($template, fn($builder) => $builder->withTemplate($template));
+        $builder = new WhatsAppNotificationBuilder($this->templateManager);
+        $builder->setService($this->defaultService);
+        $builder->setLanguage($this->defaultLanguage);
+        
+        if ($template) {
+            $builder->withTemplate($template);
+        }
+        
+        return $builder;
     }
     
     /**
@@ -97,10 +112,15 @@ class NotificationFactory
      */
     public function telegram(?string $template = null): TelegramNotificationBuilder
     {
-        return new TelegramNotificationBuilder($this->templateManager)
-            ->setService($this->defaultService)
-            ->setLanguage($this->defaultLanguage)
-            ->when($template, fn($builder) => $builder->withTemplate($template));
+        $builder = new TelegramNotificationBuilder($this->templateManager);
+        $builder->setService($this->defaultService);
+        $builder->setLanguage($this->defaultLanguage);
+        
+        if ($template) {
+            $builder->withTemplate($template);
+        }
+        
+        return $builder;
     }
     
     /**
@@ -111,10 +131,15 @@ class NotificationFactory
      */
     public function push(?string $template = null): PushNotificationBuilder
     {
-        return new PushNotificationBuilder($this->templateManager)
-            ->setService($this->defaultService)
-            ->setLanguage($this->defaultLanguage)
-            ->when($template, fn($builder) => $builder->withTemplate($template));
+        $builder = new PushNotificationBuilder($this->templateManager);
+        $builder->setService($this->defaultService);
+        $builder->setLanguage($this->defaultLanguage);
+        
+        if ($template) {
+            $builder->withTemplate($template);
+        }
+        
+        return $builder;
     }
     
     /**
@@ -126,10 +151,15 @@ class NotificationFactory
      */
     public function multiChannel(array $channels, ?string $template = null): MultiChannelNotificationBuilder
     {
-        return new MultiChannelNotificationBuilder($this->templateManager, $channels)
-            ->setService($this->defaultService)
-            ->setLanguage($this->defaultLanguage)
-            ->when($template, fn($builder) => $builder->withTemplate($template));
+        $builder = new MultiChannelNotificationBuilder($this->templateManager, $channels);
+        $builder->setService($this->defaultService);
+        $builder->setLanguage($this->defaultLanguage);
+        
+        if ($template) {
+            $builder->withTemplate($template);
+        }
+        
+        return $builder;
     }
     
     /**
@@ -141,10 +171,15 @@ class NotificationFactory
      */
     public function bulk(string $channel, ?string $template = null): BulkNotificationBuilder
     {
-        return new BulkNotificationBuilder($this->templateManager, $channel)
-            ->setService($this->defaultService)
-            ->setLanguage($this->defaultLanguage)
-            ->when($template, fn($builder) => $builder->withTemplate($template));
+        $builder = new BulkNotificationBuilder($this->templateManager, $channel);
+        $builder->setService($this->defaultService);
+        $builder->setLanguage($this->defaultLanguage);
+        
+        if ($template) {
+            $builder->withTemplate($template);
+        }
+        
+        return $builder;
     }
     
     /**
@@ -156,10 +191,15 @@ class NotificationFactory
      */
     public function scheduled(string $channel, ?string $template = null): ScheduledNotificationBuilder
     {
-        return new ScheduledNotificationBuilder($this->templateManager, $channel)
-            ->setService($this->defaultService)
-            ->setLanguage($this->defaultLanguage)
-            ->when($template, fn($builder) => $builder->withTemplate($template));
+        $builder = new ScheduledNotificationBuilder($this->templateManager, $channel);
+        $builder->setService($this->defaultService);
+        $builder->setLanguage($this->defaultLanguage);
+        
+        if ($template) {
+            $builder->withTemplate($template);
+        }
+        
+        return $builder;
     }
     
     /**

@@ -2,7 +2,7 @@
 
 namespace App\Activities;
 
-use App\Http\Clients\BiddingServiceClient;
+use App\RPC\Adapters\BiddingServiceAdapter;
 use App\Models\Auction;
 use Workflow\ActivityInterface;
 use Illuminate\Support\Facades\Log;
@@ -15,11 +15,11 @@ use Illuminate\Support\Facades\Log;
  */
 class DetermineWinnerActivity implements ActivityInterface
 {
-    private BiddingServiceClient $biddingClient;
+    private BiddingServiceAdapter $biddingClient;
 
     public function __construct()
     {
-        $this->biddingClient = app(BiddingServiceClient::class);
+        $this->biddingClient = app(BiddingServiceAdapter::class);
     }
 
     /**
@@ -118,4 +118,3 @@ class DetermineWinnerActivity implements ActivityInterface
         }
     }
 }
-

@@ -6,8 +6,8 @@ use App\Events\AuctionCreated;
 use App\Events\AuctionStarted;
 use App\Events\BidPlaced;
 use App\Events\AuctionCompleted;
-use App\Http\Clients\NotificationServiceClient;
-use App\Http\Clients\AuthServiceClient;
+use App\RPC\Adapters\NotificationServiceAdapter;
+use App\RPC\Adapters\AuthServiceAdapter;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
@@ -15,13 +15,13 @@ class SendAuctionNotifications implements ShouldQueue
 {
     use InteractsWithQueue;
 
-    protected NotificationServiceClient $notificationService;
-    protected AuthServiceClient $authService;
+    protected NotificationServiceAdapter $notificationService;
+    protected AuthServiceAdapter $authService;
 
     /**
      * Create the event listener.
      */
-    public function __construct(NotificationServiceClient $notificationService, AuthServiceClient $authService)
+    public function __construct(NotificationServiceAdapter $notificationService, AuthServiceAdapter $authService)
     {
         $this->notificationService = $notificationService;
         $this->authService = $authService;

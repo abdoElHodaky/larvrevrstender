@@ -2,7 +2,7 @@
 
 use App\RPC\Procedures\KycProcedure;
 use App\RPC\Procedures\UserProcedure;
-use Sajya\Server\Route;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------

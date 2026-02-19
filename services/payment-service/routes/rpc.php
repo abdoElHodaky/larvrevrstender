@@ -1,7 +1,7 @@
 <?php
 
 use App\RPC\Procedures\PaymentProcedure;
-use Sajya\Server\Route;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
