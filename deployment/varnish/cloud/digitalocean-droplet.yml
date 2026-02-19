@@ -1,0 +1,161 @@
+# DigitalOcean Droplet Varnish Configuration
+# Optimized for DigitalOcean's infrastructure and networking
+
+version: '3.8'
+
+services:
+  varnish:
+    image: varnish:7.4
+    container_name: varnish-cache-do
+    ports:
+      - "80:80"
+      - "6081:6081"
+    volumes:
+      - ../varnish.vcl:/etc/varnish/default.vcl:ro
+      - varnish_storage:/var/lib/varnish
+    environment:
+      # Optimized for DigitalOcean droplets
+      - VARNISH_SIZE=512M  # Adjust based on droplet size
+      - VARNISH_HTTP_PORT=80
+      - VARNISH_ADMIN_PORT=6081
+      # DigitalOcean specific optimizations
+      - VARNISH_THREAD_POOLS=4
+      - VARNISH_THREAD_POOL_MIN=100
+      - VARNISH_THREAD_POOL_MAX=1000
+    command: >
+      varnishd -F
+      -f /etc/varnish/default.vcl
+      -s malloc,512M
+      -a :80
+      -T :6081
+      -p default_ttl=300
+      -p default_grace=3600
+      -p feature=+esi_ignore_https
+      -p vcc_allow_inline_c=on
+      -p thread_pools=4
+      -p thread_pool_min=100
+      -p thread_pool_max=1000
+      -p workspace_backend=128k
+      -p workspace_client=128k
+    depends_on:
+      - gateway-service
+      - auth-service
+      - user-service
+      - auction-service
+      - bidding-service
+      - order-service
+      - payment-service
+      - notification-service
+      - analytics-service
+      - vin-ocr-service
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # DigitalOcean monitoring integration
+  varnish-exporter:
+    image: prom/varnish-exporter:latest
+    container_name: varnish-exporter-do
+    ports:
+      - "9131:9131"
+    command:
+      - '--varnish.instance=varnish:6081'
+      - '--web.listen-address=0.0.0.0:9131'
+      - '--web.telemetry-path=/metrics'
+    depends_on:
+      - varnish
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # Optional: DigitalOcean Spaces integration for static assets
+  nginx-static:
+    image: nginx:alpine
+    container_name: nginx-static-do
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx-static.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+volumes:
+  varnish_storage:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/varnish/storage
+
+networks:
+  reverse-tender-network:
+    external: true
+
+# DigitalOcean specific configurations
+x-digitalocean-config:
+  droplet_size: "s-2vcpu-2gb"  # Minimum recommended
+  region: "nyc3"  # Choose based on your users
+  monitoring: true
+  backups: true
+  ipv6: true
+  vpc_uuid: null  # Set if using VPC
+  
+  # Firewall rules
+  firewall_rules:
+    - type: "inbound"
+      protocol: "tcp"
+      ports: "80"
+      sources:
+        addresses: ["0.0.0.0/0", "::/0"]
+    - type: "inbound"
+      protocol: "tcp"
+      ports: "6081"
+      sources:
+        addresses: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+    - type: "inbound"
+      protocol: "tcp"
+      ports: "9131"
+      sources:
+        addresses: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+
+  # Load balancer configuration (for multiple instances)
+  load_balancer:
+    name: "varnish-lb"
+    algorithm: "round_robin"
+    health_check:
+      protocol: "http"
+      port: 80
+      path: "/health"
+      check_interval_seconds: 10
+      response_timeout_seconds: 5
+      unhealthy_threshold: 3
+      healthy_threshold: 2
+
+  # Volume configuration
+  volumes:
+    varnish_storage:
+      size_gigabytes: 10
+      type: "ext4"
+      mount_point: "/opt/varnish/storage"

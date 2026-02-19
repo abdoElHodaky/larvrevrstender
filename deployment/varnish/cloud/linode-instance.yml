@@ -1,0 +1,241 @@
+# Linode Instance Varnish Configuration
+# Optimized for Linode's infrastructure and networking
+
+version: '3.8'
+
+services:
+  varnish:
+    image: varnish:7.4
+    container_name: varnish-cache-linode
+    ports:
+      - "80:80"
+      - "6081:6081"
+    volumes:
+      - ../varnish.vcl:/etc/varnish/default.vcl:ro
+      - varnish_storage:/var/lib/varnish
+    environment:
+      # Optimized for Linode instances
+      - VARNISH_SIZE=1G  # Linode typically has good memory allocation
+      - VARNISH_HTTP_PORT=80
+      - VARNISH_ADMIN_PORT=6081
+      # Linode specific optimizations
+      - VARNISH_THREAD_POOLS=2
+      - VARNISH_THREAD_POOL_MIN=50
+      - VARNISH_THREAD_POOL_MAX=500
+    command: >
+      varnishd -F
+      -f /etc/varnish/default.vcl
+      -s malloc,1G
+      -a :80
+      -T :6081
+      -p default_ttl=300
+      -p default_grace=3600
+      -p feature=+esi_ignore_https
+      -p vcc_allow_inline_c=on
+      -p thread_pools=2
+      -p thread_pool_min=50
+      -p thread_pool_max=500
+      -p workspace_backend=256k
+      -p workspace_client=256k
+      -p http_max_hdr=128
+      -p http_req_hdr_len=16384
+    depends_on:
+      - gateway-service
+      - auth-service
+      - user-service
+      - auction-service
+      - bidding-service
+      - order-service
+      - payment-service
+      - notification-service
+      - analytics-service
+      - vin-ocr-service
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Linode monitoring integration (Longview compatible)
+  varnish-exporter:
+    image: prom/varnish-exporter:latest
+    container_name: varnish-exporter-linode
+    ports:
+      - "9131:9131"
+    command:
+      - '--varnish.instance=varnish:6081'
+      - '--web.listen-address=0.0.0.0:9131'
+      - '--web.telemetry-path=/metrics'
+      - '--varnish.timeout=5s'
+    depends_on:
+      - varnish
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # Optional: Linode Object Storage integration for static assets
+  nginx-static:
+    image: nginx:alpine
+    container_name: nginx-static-linode
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx-static-linode.conf:/etc/nginx/nginx.conf:ro
+    environment:
+      - LINODE_OBJECT_STORAGE_ENDPOINT=us-east-1.linodeobjects.com
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # Linode Longview agent (optional)
+  longview:
+    image: linode/longview:latest
+    container_name: longview-agent
+    privileged: true
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc:/host/etc:ro
+    environment:
+      - LONGVIEW_KEY=${LONGVIEW_API_KEY}
+    network_mode: host
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+volumes:
+  varnish_storage:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/varnish/storage
+
+networks:
+  reverse-tender-network:
+    external: true
+
+# Linode specific configurations
+x-linode-config:
+  instance_type: "g6-standard-2"  # 2 CPU, 4GB RAM - good starting point
+  region: "us-east"  # Choose based on your users
+  image: "linode/ubuntu22.04"
+  root_pass: null  # Use SSH keys instead
+  authorized_keys: []  # Add your SSH public keys
+  stackscript_id: null  # Optional StackScript for automated setup
+  
+  # Linode Cloud Firewall rules
+  firewall_rules:
+    inbound:
+      - label: "HTTP"
+        action: "ACCEPT"
+        protocol: "TCP"
+        ports: "80"
+        addresses:
+          ipv4: ["0.0.0.0/0"]
+          ipv6: ["::/0"]
+      - label: "Varnish Admin"
+        action: "ACCEPT"
+        protocol: "TCP"
+        ports: "6081"
+        addresses:
+          ipv4: ["192.168.0.0/16", "10.0.0.0/8", "172.16.0.0/12"]
+      - label: "Prometheus Metrics"
+        action: "ACCEPT"
+        protocol: "TCP"
+        ports: "9131"
+        addresses:
+          ipv4: ["192.168.0.0/16", "10.0.0.0/8", "172.16.0.0/12"]
+      - label: "SSH"
+        action: "ACCEPT"
+        protocol: "TCP"
+        ports: "22"
+        addresses:
+          ipv4: ["0.0.0.0/0"]
+          ipv6: ["::/0"]
+    outbound:
+      - label: "All Outbound"
+        action: "ACCEPT"
+        protocol: "TCP"
+        ports: "1-65535"
+        addresses:
+          ipv4: ["0.0.0.0/0"]
+          ipv6: ["::/0"]
+
+  # NodeBalancer configuration (Linode's load balancer)
+  nodebalancer:
+    label: "varnish-nodebalancer"
+    region: "us-east"
+    configs:
+      - port: 80
+        protocol: "http"
+        algorithm: "roundrobin"
+        stickiness: "none"
+        check: "http"
+        check_path: "/health"
+        check_interval: 10
+        check_timeout: 5
+        check_attempts: 3
+        check_passive: true
+
+  # Block Storage configuration
+  volumes:
+    varnish_cache:
+      label: "varnish-cache-volume"
+      size: 20  # GB
+      region: "us-east"
+      filesystem_path: "/opt/varnish/storage"
+
+  # Backup configuration
+  backups:
+    enabled: true
+    schedule:
+      type: "snapshot"
+      day: "Sunday"
+      window: "W2"  # 2:00-4:00 UTC
+
+  # Linode Managed services integration
+  managed:
+    enabled: false  # Set to true if using Linode Managed
+    services:
+      - service_type: "url"
+        label: "Varnish Health Check"
+        address: "http://your-domain.com/health"
+        timeout: 10
+        body: ""
+        consultation_group: "default"
+        notes: "Varnish cache health endpoint"
+
+  # Longview monitoring
+  longview:
+    enabled: true
+    plan: "longview-3"  # Choose appropriate plan
+    
+  # Object Storage integration
+  object_storage:
+    cluster: "us-east-1"
+    bucket_name: "reverse-tender-static"
+    access_key: "${LINODE_OBJECT_STORAGE_ACCESS_KEY}"
+    secret_key: "${LINODE_OBJECT_STORAGE_SECRET_KEY}"
