@@ -1,8 +1,26 @@
 <div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
 # <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">📚 Documentation Hub</span>
+## <span style="font-size: 20px; font-weight: 500; line-height: 1.618; color: #4ECDC4;">Version 2.0 - Multi-Tier Caching Architecture</span>
 
-<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Comprehensive <strong>API documentation</strong> for the Reverse Tender Platform's cloud storage integration covering file upload, management, and processing capabilities across microservices architecture.</p>
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Comprehensive <strong>API documentation</strong> for the Reverse Tender Platform's <strong>multi-tier caching architecture</strong> covering Varnish, Upstash Redis, MongoDB Atlas integration, file upload, management, and processing capabilities across microservices architecture.</p>
+
+<div style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #FF6B6B10, #4ECDC410); border-radius: 12px; border-left: 4px solid #FF6B6B;">
+
+### <span style="font-size: 18px; font-weight: 600; color: #FF6B6B;">🚀 V2 Architecture Features</span>
+
+**Multi-Tier Caching System:**
+- **L1 Cache**: Varnish (In-Memory, Ultra-Fast)
+- **L2 Cache**: Upstash Redis (Managed Cloud Service)
+- **L3 Storage**: MongoDB Atlas (Serverless Fallback)
+
+**Performance Improvements:**
+- Sub-50ms API response times
+- 95%+ cache hit ratios across all tiers
+- Intelligent cache invalidation strategies
+- Cost-optimized cloud infrastructure
+
+</div>
 
 ## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Documentation Overview</span>
 

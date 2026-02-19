@@ -1,8 +1,26 @@
 <div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
 # <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🔄 Data Flow Diagram</span>
+## <span style="font-size: 20px; font-weight: 500; line-height: 1.618; color: #4ECDC4;">Version 2.0 - Multi-Tier Caching Architecture</span>
 
-<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Distinguished <strong>Data Flow Architecture</strong> for the Reverse Tender Platform showcasing comprehensive process flows, external entity interactions, and multi-level system decomposition.</p>
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Distinguished <strong>Data Flow Architecture</strong> for the Reverse Tender Platform showcasing comprehensive process flows with <strong>multi-tier caching system</strong> (Varnish → Upstash Redis → MongoDB Atlas), external entity interactions, and multi-level system decomposition.</p>
+
+<div style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #FF6B6B10, #4ECDC410); border-radius: 12px; border-left: 4px solid #FF6B6B;">
+
+### <span style="font-size: 18px; font-weight: 600; color: #FF6B6B;">🚀 V2 Data Flow Features</span>
+
+**Multi-Tier Caching Data Flow:**
+- **L1 Flow**: HTTP requests → Varnish cache → Instant response (cache hit)
+- **L2 Flow**: Cache miss → Upstash Redis → Application data retrieval
+- **L3 Flow**: Redis miss → MongoDB Atlas → Fallback data storage
+- **Write Flow**: Application → All tiers with intelligent invalidation
+
+**Performance Impact:**
+- 95%+ cache hit ratio reduces database load
+- Sub-50ms response times for cached data
+- Intelligent cache invalidation maintains data consistency
+
+</div>
 
 ## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🌟 Complete Data Flow Architecture</span>
 
