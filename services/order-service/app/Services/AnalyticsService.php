@@ -5,22 +5,22 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\Contracts\AnalyticsServiceInterface;
-use Illuminate\Support\Facades\Http;
+use App\RPC\Adapters\AnalyticsServiceAdapter;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Analytics Service
  *
  * Handles communication with the analytics service
- * for event tracking and metrics collection
+ * for event tracking and metrics collection via RPC
  */
 class AnalyticsService implements AnalyticsServiceInterface
 {
-    protected string $analyticsServiceUrl;
+    protected AnalyticsServiceAdapter $analyticsAdapter;
 
-    public function __construct(string $analyticsServiceUrl)
+    public function __construct(AnalyticsServiceAdapter $analyticsAdapter)
     {
-        $this->analyticsServiceUrl = $analyticsServiceUrl;
+        $this->analyticsAdapter = $analyticsAdapter;
     }
 
     /**
@@ -69,26 +69,24 @@ class AnalyticsService implements AnalyticsServiceInterface
     }
 
     /**
-     * Get order analytics
+     * Get order analytics via RPC
      */
     public function getOrderAnalytics(array $filters = []): array
     {
         try {
-            $response = Http::timeout(15)
-                ->get("{$this->analyticsServiceUrl}/api/analytics/orders", $filters);
+            $result = $this->analyticsAdapter->getOrderAnalytics($filters);
 
-            if ($response->successful()) {
-                return $response->json();
+            if ($result) {
+                return $result;
             }
 
-            Log::warning('Failed to get order analytics', [
+            Log::warning('Failed to get order analytics via RPC', [
                 'filters' => $filters,
-                'response' => $response->body(),
             ]);
 
             return [];
         } catch (\Exception $e) {
-            Log::error('Order analytics error', [
+            Log::error('Order analytics RPC error', [
                 'filters' => $filters,
                 'error' => $e->getMessage(),
             ]);
@@ -98,22 +96,20 @@ class AnalyticsService implements AnalyticsServiceInterface
     }
 
     /**
-     * Get user behavior analytics
+     * Get user behavior analytics via RPC
      */
     public function getUserBehaviorAnalytics(int $userId, array $dateRange = []): array
     {
         try {
-            $params = array_merge(['user_id' => $userId], $dateRange);
-            $response = Http::timeout(15)
-                ->get("{$this->analyticsServiceUrl}/api/analytics/users/behavior", $params);
+            $result = $this->analyticsAdapter->getUserBehaviorAnalytics($userId, $dateRange);
 
-            if ($response->successful()) {
-                return $response->json();
+            if ($result) {
+                return $result;
             }
 
             return [];
         } catch (\Exception $e) {
-            Log::error('User behavior analytics error', [
+            Log::error('User behavior analytics RPC error', [
                 'user_id' => $userId,
                 'error' => $e->getMessage(),
             ]);
@@ -123,26 +119,20 @@ class AnalyticsService implements AnalyticsServiceInterface
     }
 
     /**
-     * Get business metrics
+     * Get business metrics via RPC
      */
     public function getBusinessMetrics(array $metrics, array $dateRange = []): array
     {
         try {
-            $params = [
-                'metrics' => $metrics,
-                'date_range' => $dateRange,
-            ];
+            $result = $this->analyticsAdapter->getBusinessMetrics($metrics, $dateRange);
 
-            $response = Http::timeout(15)
-                ->post("{$this->analyticsServiceUrl}/api/analytics/metrics", $params);
-
-            if ($response->successful()) {
-                return $response->json();
+            if ($result) {
+                return $result;
             }
 
             return [];
         } catch (\Exception $e) {
-            Log::error('Business metrics error', [
+            Log::error('Business metrics RPC error', [
                 'metrics' => $metrics,
                 'error' => $e->getMessage(),
             ]);
@@ -152,21 +142,20 @@ class AnalyticsService implements AnalyticsServiceInterface
     }
 
     /**
-     * Generate analytics report
+     * Generate analytics report via RPC
      */
     public function generateReport(string $reportType, array $parameters = []): array
     {
         try {
-            $response = Http::timeout(30)
-                ->post("{$this->analyticsServiceUrl}/api/analytics/reports/{$reportType}", $parameters);
+            $result = $this->analyticsAdapter->generateReport($reportType, $parameters);
 
-            if ($response->successful()) {
-                return $response->json();
+            if ($result) {
+                return $result;
             }
 
             return ['error' => 'Failed to generate report'];
         } catch (\Exception $e) {
-            Log::error('Report generation error', [
+            Log::error('Report generation RPC error', [
                 'report_type' => $reportType,
                 'parameters' => $parameters,
                 'error' => $e->getMessage(),
@@ -177,22 +166,20 @@ class AnalyticsService implements AnalyticsServiceInterface
     }
 
     /**
-     * Send event to analytics service
+     * Send event to analytics service via RPC
      */
     protected function sendEvent(array $eventData): void
     {
         try {
-            $response = Http::timeout(5)
-                ->post("{$this->analyticsServiceUrl}/api/events", $eventData);
+            $result = $this->analyticsAdapter->trackEvent($eventData);
 
-            if (! $response->successful()) {
-                Log::warning('Failed to send analytics event', [
+            if (!$result) {
+                Log::warning('Failed to send analytics event via RPC', [
                     'event_data' => $eventData,
-                    'response' => $response->body(),
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Analytics event error', [
+            Log::error('Analytics event RPC error', [
                 'event_data' => $eventData,
                 'error' => $e->getMessage(),
             ]);
@@ -200,22 +187,20 @@ class AnalyticsService implements AnalyticsServiceInterface
     }
 
     /**
-     * Send metric to analytics service
+     * Send metric to analytics service via RPC
      */
     protected function sendMetric(array $metricData): void
     {
         try {
-            $response = Http::timeout(5)
-                ->post("{$this->analyticsServiceUrl}/api/metrics", $metricData);
+            $result = $this->analyticsAdapter->sendMetric($metricData);
 
-            if (! $response->successful()) {
-                Log::warning('Failed to send analytics metric', [
+            if (!$result) {
+                Log::warning('Failed to send analytics metric via RPC', [
                     'metric_data' => $metricData,
-                    'response' => $response->body(),
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Analytics metric error', [
+            Log::error('Analytics metric RPC error', [
                 'metric_data' => $metricData,
                 'error' => $e->getMessage(),
             ]);
