@@ -138,13 +138,7 @@ class Auction extends Model
         }
     }
 
-    /**
-     * Get the product images for the auction.
-     */
-    public function productImages(): HasMany
-    {
-        return $this->hasMany(ProductImage::class);
-    }
+
 
     /**
      * Check if the auction is active.
