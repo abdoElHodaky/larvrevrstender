@@ -347,10 +347,10 @@ class BiddingProcedure extends BaseProcedure
      */
     private function createBiddingController(): BiddingController
     {
-        $biddingServiceClient = app(BiddingServiceAdapter::class);
-        $authServiceClient = app(AuthServiceAdapter::class);
+        $biddingServiceAdapter = app(BiddingServiceAdapter::class);
+        $authServiceAdapter = app(AuthServiceAdapter::class);
         
-        return new BiddingController($biddingServiceClient, $authServiceClient);
+        return new BiddingController($biddingServiceAdapter, $authServiceAdapter);
     }
 
     /**
@@ -358,8 +358,8 @@ class BiddingProcedure extends BaseProcedure
      */
     private function createAuctionController(): AuctionController
     {
-        $authServiceClient = app(AuthServiceAdapter::class);
+        $authServiceAdapter = app(AuthServiceAdapter::class);
         
-        return new AuctionController($authServiceClient);
+        return new AuctionController($authServiceAdapter);
     }
 }
