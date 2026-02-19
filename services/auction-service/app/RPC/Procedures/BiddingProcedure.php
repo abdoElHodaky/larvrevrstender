@@ -4,8 +4,8 @@ namespace App\RPC\Procedures;
 
 use App\Http\Controllers\AuctionController;
 use App\Http\Controllers\BiddingController;
-use App\Http\Clients\AuthServiceClient;
-use App\Http\Clients\BiddingServiceClient;
+use App\RPC\Adapters\AuthServiceAdapter;
+use App\RPC\Adapters\BiddingServiceAdapter;
 use App\RPC\BaseProcedure;
 use Illuminate\Http\Request;
 
@@ -347,8 +347,8 @@ class BiddingProcedure extends BaseProcedure
      */
     private function createBiddingController(): BiddingController
     {
-        $biddingServiceClient = app(BiddingServiceClient::class);
-        $authServiceClient = app(AuthServiceClient::class);
+        $biddingServiceClient = app(BiddingServiceAdapter::class);
+        $authServiceClient = app(AuthServiceAdapter::class);
         
         return new BiddingController($biddingServiceClient, $authServiceClient);
     }
@@ -358,7 +358,7 @@ class BiddingProcedure extends BaseProcedure
      */
     private function createAuctionController(): AuctionController
     {
-        $authServiceClient = app(AuthServiceClient::class);
+        $authServiceClient = app(AuthServiceAdapter::class);
         
         return new AuctionController($authServiceClient);
     }
