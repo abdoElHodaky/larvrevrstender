@@ -35,19 +35,19 @@ DB_USERNAME=app_user
 DB_PASSWORD=secure-password
 
 # MongoDB Atlas Configuration
-MONGODB_DSN="mongodb+srv://username:password@cluster.mongodb.net/reverse_tender?retryWrites=true&w=majority"
+MONGODB_DSN="mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/reverse_tender?retryWrites=true&w=majority"
 MONGODB_DATABASE=reverse_tender
 
 # Local Redis (Primary)
 REDIS_HOST=127.0.0.1
-REDIS_PASSWORD=local-redis-password
+REDIS_PASSWORD=YOUR_LOCAL_REDIS_PASSWORD
 REDIS_PORT=6379
 REDIS_DB=0
 
 # Upstash Redis (Fallback for caching)
-UPSTASH_REDIS_URL="rediss://default:password@region-redis.upstash.io:6380"
-UPSTASH_REDIS_HOST=region-redis.upstash.io
-UPSTASH_REDIS_PASSWORD=upstash-password
+UPSTASH_REDIS_URL="rediss://default:YOUR_UPSTASH_PASSWORD@YOUR_REGION-redis.upstash.io:6380"
+UPSTASH_REDIS_HOST=YOUR_REGION-redis.upstash.io
+UPSTASH_REDIS_PASSWORD=YOUR_UPSTASH_PASSWORD
 UPSTASH_REDIS_PORT=6380
 
 # Cache Configuration
