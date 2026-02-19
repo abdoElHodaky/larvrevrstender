@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Http\Clients\AuthServiceClient;
+use App\RPC\Adapters\AuthServiceAdapter;
 use App\Models\Auction;
 use Closure;
 use Illuminate\Http\Request;
@@ -10,9 +10,9 @@ use Illuminate\Http\JsonResponse;
 
 class ValidateAuctionOwnership
 {
-    protected AuthServiceClient $authService;
+    protected AuthServiceAdapter $authService;
 
-    public function __construct(AuthServiceClient $authService)
+    public function __construct(AuthServiceAdapter $authService)
     {
         $this->authService = $authService;
     }
