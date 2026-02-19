@@ -1,0 +1,163 @@
+# GCP GKE Gateway API Configuration for Reverse Tender Platform
+# Optimized for Google Cloud Platform with GKE Gateway controller
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: reverse-tender-gke-gateway-class
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/cloud-provider: "gcp"
+  annotations:
+    gateway.networking.k8s.io/bundle-version: "v2.0.0"
+    gateway.networking.k8s.io/description: "GKE-optimized GatewayClass for JSON-RPC/tRPC microservices on Google Cloud"
+spec:
+  # Use GKE Gateway controller for optimal GCP integration
+  controllerName: gke.io/gateway-controller
+  
+  # GCP-specific parameters for GKE Gateway
+  parametersRef:
+    group: networking.gke.io
+    kind: GCPGatewayPolicy
+    name: reverse-tender-gcp-policy
+    namespace: reverse-tender
+  
+  description: "GKE-optimized Gateway Class for Reverse Tender Platform - supports JSON-RPC/tRPC patterns with Google Cloud Load Balancer integration"
+
+---
+# GCP-specific Gateway Policy for optimal performance
+apiVersion: networking.gke.io/v1
+kind: GCPGatewayPolicy
+metadata:
+  name: reverse-tender-gcp-policy
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/cloud-provider: "gcp"
+spec:
+  # Load balancer configuration for GCP
+  default:
+    # Use External Global HTTP(S) Load Balancer for optimal performance
+    loadBalancerType: EXTERNAL_MANAGED
+    
+    # SSL policy for enhanced security
+    sslPolicy: "reverse-tender-ssl-policy"
+    
+    # Backend configuration for RPC optimization
+    backendConfig:
+      # Connection draining for graceful shutdowns
+      connectionDraining:
+        drainingTimeoutSec: 60
+      
+      # Session affinity for RPC sessions
+      sessionAffinity:
+        affinityType: "CLIENT_IP"
+        affinityCookieTtlSec: 3600
+      
+      # Health check configuration
+      healthCheck:
+        checkIntervalSec: 30
+        timeoutSec: 5
+        healthyThreshold: 2
+        unhealthyThreshold: 3
+        type: HTTP
+        requestPath: "/health"
+        port: 80
+      
+      # Timeout configuration for RPC calls
+      timeoutSec: 30
+      
+      # Enable Cloud CDN for static content
+      cdn:
+        enabled: true
+        cachePolicy:
+          includeHost: true
+          includeProtocol: true
+          includeQueryString: false
+    
+    # Security configuration
+    securityPolicy: "reverse-tender-security-policy"
+
+---
+# SSL Policy for enhanced security
+apiVersion: networking.gke.io/v1
+kind: GCPSSLPolicy
+metadata:
+  name: reverse-tender-ssl-policy
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "gcp"
+spec:
+  # Modern SSL configuration
+  minTlsVersion: TLS_1_2
+  profile: MODERN
+  
+  # Custom cipher suites for RPC optimization
+  customFeatures:
+    - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+    - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+    - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+    - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+
+---
+# Security Policy for Cloud Armor integration
+apiVersion: networking.gke.io/v1
+kind: GCPSecurityPolicy
+metadata:
+  name: reverse-tender-security-policy
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "gcp"
+spec:
+  # Rate limiting for RPC endpoints
+  rateLimitOptions:
+    rateLimitThreshold:
+      count: 1000
+      intervalSec: 60
+    banThreshold:
+      count: 10000
+      intervalSec: 600
+    banDurationSec: 300
+  
+  # DDoS protection
+  adaptiveProtection:
+    layer7DdosDefenseConfig:
+      enable: true
+      ruleVisibility: STANDARD
+  
+  # Custom rules for RPC protection
+  rules:
+    - priority: 1000
+      match:
+        versionedExpr: SRC_IPS_V1
+        config:
+          srcIpRanges:
+            - "127.0.0.1/32"  # Block localhost (example)
+      action: "deny-403"
+      description: "Block suspicious IPs"
+    
+    - priority: 2000
+      match:
+        expr:
+          expression: 'request.headers["user-agent"].contains("bot")'
+      action: "deny-403"
+      description: "Block known bots"
+    
+    - priority: 9999
+      match:
+        versionedExpr: SRC_IPS_V1
+        config:
+          srcIpRanges:
+            - "*"
+      action: "allow"
+      description: "Allow all other traffic"
+

@@ -1,9 +1,0 @@
-<?php
-
-declare(strict_types=1);
-
-namespace Workflow;
-
-final class ContinuedWorkflow
-{
-}

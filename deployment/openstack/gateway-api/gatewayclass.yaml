@@ -1,0 +1,291 @@
+# OpenStack Gateway API Configuration for Reverse Tender Platform
+# Optimized for OpenStack Octavia Load Balancer with NGINX Gateway Fabric
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: reverse-tender-openstack-gateway-class
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/cloud-provider: "openstack"
+  annotations:
+    gateway.networking.k8s.io/bundle-version: "v2.0.0"
+    gateway.networking.k8s.io/description: "OpenStack-optimized GatewayClass for JSON-RPC/tRPC microservices with Octavia Load Balancer"
+spec:
+  # Use NGINX Gateway Fabric for OpenStack
+  controllerName: nginx.org/nginx-gateway-fabric
+  
+  # OpenStack-specific parameters
+  parametersRef:
+    group: gateway.nginx.org
+    kind: NginxGateway
+    name: reverse-tender-openstack-config
+    namespace: reverse-tender
+  
+  description: "OpenStack-optimized Gateway Class for Reverse Tender Platform - supports JSON-RPC/tRPC patterns with Octavia Load Balancer integration"
+
+---
+# NGINX Gateway Configuration for OpenStack
+apiVersion: gateway.nginx.org/v1alpha1
+kind: NginxGateway
+metadata:
+  name: reverse-tender-openstack-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/cloud-provider: "openstack"
+spec:
+  # NGINX configuration optimized for OpenStack Octavia
+  nginx:
+    # Worker processes configuration
+    workerProcesses: "auto"
+    workerConnections: 1024
+    
+    # Logging configuration
+    logging:
+      level: "info"
+      format: |
+        '$remote_addr - $remote_user [$time_local] "$request" '
+        '$status $body_bytes_sent "$http_referer" '
+        '"$http_user_agent" "$http_x_forwarded_for" '
+        'rt=$request_time uct="$upstream_connect_time" '
+        'uht="$upstream_header_time" urt="$upstream_response_time" '
+        'octavia="$http_x_forwarded_proto"'
+    
+    # Performance optimizations for Octavia Load Balancer
+    config:
+      # Connection settings
+      keepalive_timeout: "65s"
+      keepalive_requests: 100
+      
+      # Buffer settings for RPC
+      client_body_buffer_size: "128k"
+      client_max_body_size: "10m"
+      client_header_buffer_size: "1k"
+      large_client_header_buffers: "4 4k"
+      
+      # Proxy settings optimized for Octavia
+      proxy_connect_timeout: "60s"
+      proxy_send_timeout: "60s"
+      proxy_read_timeout: "60s"
+      proxy_buffer_size: "4k"
+      proxy_buffers: "8 4k"
+      proxy_busy_buffers_size: "8k"
+      
+      # Real IP configuration for Octavia Load Balancer
+      set_real_ip_from: "10.0.0.0/8"        # OpenStack private network
+      set_real_ip_from_2: "172.16.0.0/12"   # Private network range
+      set_real_ip_from_3: "192.168.0.0/16"  # Private network range
+      real_ip_header: "X-Forwarded-For"
+      real_ip_recursive: "on"
+      
+      # Gzip compression
+      gzip: "on"
+      gzip_vary: "on"
+      gzip_min_length: 1000
+      gzip_proxied: "any"
+      gzip_comp_level: 6
+      gzip_types: |
+        text/plain
+        text/css
+        text/xml
+        text/javascript
+        application/json
+        application/javascript
+        application/xml+rss
+        application/atom+xml
+        image/svg+xml
+      
+      # Rate limiting for RPC endpoints
+      limit_req_zone: '$binary_remote_addr zone=rpc_limit:10m rate=100r/s'
+      limit_req_zone_admin: '$binary_remote_addr zone=admin_limit:10m rate=10r/s'
+      
+      # Connection limiting
+      limit_conn_zone: '$binary_remote_addr zone=conn_limit_per_ip:10m'
+      limit_conn: 'conn_limit_per_ip 20'
+      
+      # OpenStack-specific headers
+      proxy_set_header_host: '$host'
+      proxy_set_header_x_real_ip: '$remote_addr'
+      proxy_set_header_x_forwarded_for: '$proxy_add_x_forwarded_for'
+      proxy_set_header_x_forwarded_proto: '$scheme'
+      proxy_set_header_x_openstack_request_id: '$request_id'
+
+---
+# OpenStack Octavia Load Balancer Service Configuration
+apiVersion: v1
+kind: Service
+metadata:
+  name: reverse-tender-openstack-lb-service
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "openstack"
+  annotations:
+    # OpenStack Load Balancer configuration
+    service.beta.kubernetes.io/openstack-internal-load-balancer: "false"
+    loadbalancer.openstack.org/class: "amphora"
+    loadbalancer.openstack.org/load-balancer-id: "${OPENSTACK_LB_ID}"
+    loadbalancer.openstack.org/member-subnet-id: "${OPENSTACK_SUBNET_ID}"
+    loadbalancer.openstack.org/network-id: "${OPENSTACK_NETWORK_ID}"
+    
+    # Health monitor configuration
+    loadbalancer.openstack.org/health-monitor-delay: "10"
+    loadbalancer.openstack.org/health-monitor-timeout: "5"
+    loadbalancer.openstack.org/health-monitor-max-retries: "3"
+    loadbalancer.openstack.org/health-monitor-url-path: "/health"
+    
+    # Session persistence
+    loadbalancer.openstack.org/session-persistence-type: "HTTP_COOKIE"
+    loadbalancer.openstack.org/session-persistence-cookie-name: "openstack-lb-session"
+    
+    # SSL/TLS configuration
+    loadbalancer.openstack.org/default-tls-container-ref: "${BARBICAN_CONTAINER_REF}"
+    loadbalancer.openstack.org/tls-ciphers: "ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS"
+    loadbalancer.openstack.org/tls-protocols: "TLSv1.2,TLSv1.3"
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+    - name: https
+      port: 443
+      targetPort: 8443
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: nginx-gateway
+
+---
+# OpenStack Neutron Security Group Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reverse-tender-openstack-security-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "openstack"
+data:
+  security-group-rules.yaml: |
+    # OpenStack Neutron Security Group Rules for Reverse Tender Platform
+    security_group_rules:
+      # Allow HTTP traffic
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 80
+        port_range_max: 80
+        remote_ip_prefix: "0.0.0.0/0"
+        description: "Allow HTTP traffic"
+      
+      # Allow HTTPS traffic
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 443
+        port_range_max: 443
+        remote_ip_prefix: "0.0.0.0/0"
+        description: "Allow HTTPS traffic"
+      
+      # Allow SSH (restrict to admin IPs in production)
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 22
+        port_range_max: 22
+        remote_ip_prefix: "0.0.0.0/0"  # Restrict this in production
+        description: "Allow SSH access"
+      
+      # Allow Kubernetes API server
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 6443
+        port_range_max: 6443
+        remote_ip_prefix: "10.0.0.0/8"  # Kubernetes cluster CIDR
+        description: "Allow Kubernetes API server"
+      
+      # Allow kubelet API
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 10250
+        port_range_max: 10250
+        remote_ip_prefix: "10.0.0.0/8"
+        description: "Allow kubelet API"
+      
+      # Allow NodePort services
+      - direction: ingress
+        protocol: tcp
+        port_range_min: 30000
+        port_range_max: 32767
+        remote_ip_prefix: "10.0.0.0/8"
+        description: "Allow NodePort services"
+      
+      # Allow all outbound traffic
+      - direction: egress
+        protocol: tcp
+        port_range_min: 1
+        port_range_max: 65535
+        remote_ip_prefix: "0.0.0.0/0"
+        description: "Allow all outbound TCP traffic"
+      
+      - direction: egress
+        protocol: udp
+        port_range_min: 1
+        port_range_max: 65535
+        remote_ip_prefix: "0.0.0.0/0"
+        description: "Allow all outbound UDP traffic"
+      
+      - direction: egress
+        protocol: icmp
+        remote_ip_prefix: "0.0.0.0/0"
+        description: "Allow all outbound ICMP traffic"
+
+---
+# OpenStack Barbican Certificate Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reverse-tender-openstack-barbican-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "openstack"
+data:
+  barbican-certificates.yaml: |
+    # OpenStack Barbican Certificate Management for Reverse Tender Platform
+    certificates:
+      - name: "api-reversetender-com"
+        description: "SSL certificate for api.reversetender.com"
+        domains:
+          - "api.reversetender.com"
+        secret_name: "api-tls-secret"
+        container_ref: "${BARBICAN_API_CONTAINER_REF}"
+      
+      - name: "app-reversetender-com"
+        description: "SSL certificate for app.reversetender.com"
+        domains:
+          - "app.reversetender.com"
+        secret_name: "app-tls-secret"
+        container_ref: "${BARBICAN_APP_CONTAINER_REF}"
+      
+      - name: "admin-reversetender-com"
+        description: "SSL certificate for admin.reversetender.com"
+        domains:
+          - "admin.reversetender.com"
+        secret_name: "admin-tls-secret"
+        container_ref: "${BARBICAN_ADMIN_CONTAINER_REF}"
+      
+      - name: "ws-reversetender-com"
+        description: "SSL certificate for ws.reversetender.com"
+        domains:
+          - "ws.reversetender.com"
+        secret_name: "ws-tls-secret"
+        container_ref: "${BARBICAN_WS_CONTAINER_REF}"
+

@@ -304,3 +304,28 @@ variable "additional_tags" {
   type        = map(string)
   default     = {}
 }
+
+# Multi-cloud integration variables
+variable "enable_blue_green_deployment" {
+  description = "Enable blue-green deployment with Helm"
+  type        = bool
+  default     = true
+}
+
+variable "domain_name" {
+  description = "Domain name for the application"
+  type        = string
+  default     = "reversetender.com"
+}
+
+variable "azure_client_id" {
+  description = "Azure Service Principal Client ID"
+  type        = string
+  sensitive   = true
+}
+
+variable "azure_client_secret" {
+  description = "Azure Service Principal Client Secret"
+  type        = string
+  sensitive   = true
+}

@@ -9,7 +9,7 @@ use Exception;
  * NotificationServiceAdapter for Order Service
  * 
  * Provides HTTP-like interface for RPC calls to the notification service.
- * Order service needs notification operations for sending order-related notifications.
+ * Order service needs to send notifications for order status changes.
  */
 class NotificationServiceAdapter
 {
@@ -21,22 +21,142 @@ class NotificationServiceAdapter
     }
 
     /**
-     * Send notification
+     * Send order notification to user
      */
-    public function sendNotification(array $notificationData): ?array
+    public function sendOrderNotification(int $userId, string $type, array $data): bool
     {
         $startTime = microtime(true);
         $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
         
         try {
-            $this->logRpcCall('sendNotification', ['notification_data' => $notificationData], $correlationId);
+            $this->logRpcCall('sendOrderNotification', ['user_id' => $userId, 'type' => $type], $correlationId);
             
             $response = $this->notificationRpc->call('notification.sendNotification', [
-                'notification_data' => $notificationData
+                'user_id' => $userId,
+                'type' => $type,
+                'data' => $data,
+                'category' => 'order'
             ]);
             
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcCall('sendNotification', ['duration_ms' => $duration], $correlationId, 'success');
+            $this->logRpcCall('sendOrderNotification', ['duration_ms' => $duration], $correlationId, 'success');
+            
+            return isset($response['success']) && $response['success'];
+        } catch (Exception $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcError('sendOrderNotification', $e, $correlationId, $duration);
+            return false;
+        }
+    }
+
+    /**
+     * Send order status update notification
+     */
+    public function sendOrderStatusUpdate(int $userId, int $orderId, string $status, array $details = []): bool
+    {
+        $startTime = microtime(true);
+        $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
+        
+        try {
+            $this->logRpcCall('sendOrderStatusUpdate', ['user_id' => $userId, 'order_id' => $orderId, 'status' => $status], $correlationId);
+            
+            $response = $this->notificationRpc->call('notification.sendNotification', [
+                'user_id' => $userId,
+                'type' => 'order_status_update',
+                'data' => [
+                    'order_id' => $orderId,
+                    'status' => $status,
+                    'details' => $details
+                ],
+                'category' => 'order'
+            ]);
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcCall('sendOrderStatusUpdate', ['duration_ms' => $duration], $correlationId, 'success');
+            
+            return isset($response['success']) && $response['success'];
+        } catch (Exception $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcError('sendOrderStatusUpdate', $e, $correlationId, $duration);
+            return false;
+        }
+    }
+
+    /**
+     * Send order confirmation notification
+     */
+    public function sendOrderConfirmation(int $userId, array $orderData): bool
+    {
+        $startTime = microtime(true);
+        $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
+        
+        try {
+            $this->logRpcCall('sendOrderConfirmation', ['user_id' => $userId, 'order_id' => $orderData['id'] ?? 'N/A'], $correlationId);
+            
+            $response = $this->notificationRpc->call('notification.sendNotification', [
+                'user_id' => $userId,
+                'type' => 'order_confirmation',
+                'data' => $orderData,
+                'category' => 'order'
+            ]);
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcCall('sendOrderConfirmation', ['duration_ms' => $duration], $correlationId, 'success');
+            
+            return isset($response['success']) && $response['success'];
+        } catch (Exception $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcError('sendOrderConfirmation', $e, $correlationId, $duration);
+            return false;
+        }
+    }
+
+    /**
+     * Send bulk notifications to multiple users
+     */
+    public function sendBulkOrderNotification(array $userIds, string $type, array $data): bool
+    {
+        $startTime = microtime(true);
+        $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
+        
+        try {
+            $this->logRpcCall('sendBulkOrderNotification', ['user_count' => count($userIds), 'type' => $type], $correlationId);
+            
+            $response = $this->notificationRpc->call('notification.sendBulkNotification', [
+                'user_ids' => $userIds,
+                'type' => $type,
+                'data' => $data,
+                'category' => 'order'
+            ]);
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcCall('sendBulkOrderNotification', ['duration_ms' => $duration], $correlationId, 'success');
+            
+            return isset($response['success']) && $response['success'];
+        } catch (Exception $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcError('sendBulkOrderNotification', $e, $correlationId, $duration);
+            return false;
+        }
+    }
+
+    /**
+     * Get notification preferences for user
+     */
+    public function getNotificationPreferences(int $userId): ?array
+    {
+        $startTime = microtime(true);
+        $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
+        
+        try {
+            $this->logRpcCall('getNotificationPreferences', ['user_id' => $userId], $correlationId);
+            
+            $response = $this->notificationRpc->call('notification.getNotificationPreferences', [
+                'user_id' => $userId
+            ]);
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcCall('getNotificationPreferences', ['duration_ms' => $duration], $correlationId, 'success');
             
             if (isset($response['success']) && $response['success']) {
                 return $response['data'] ?? null;
@@ -45,104 +165,76 @@ class NotificationServiceAdapter
             return null;
         } catch (Exception $e) {
             $duration = round((microtime(true) - $startTime) * 1000, 2);
-            $this->logRpcError('sendNotification', $e, $correlationId, $duration);
+            $this->logRpcError('getNotificationPreferences', $e, $correlationId, $duration);
             return null;
         }
     }
 
     /**
-     * Send order created notification
+     * Get notification history for user
      */
-    public function sendOrderCreatedNotification(array $orderData): ?array
+    public function getNotificationHistory(int $userId, int $limit = 50): ?array
     {
-        return $this->sendNotification([
-            'type' => 'order_created',
-            'user_id' => $orderData['customer_id'],
-            'title' => 'Order Created Successfully',
-            'message' => "Your order #{$orderData['order_number']} has been created successfully.",
-            'data' => [
-                'order_id' => $orderData['id'],
-                'order_number' => $orderData['order_number'],
-                'status' => $orderData['status'],
-            ],
-            'channels' => ['push', 'email'],
-        ]);
+        $startTime = microtime(true);
+        $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
+        
+        try {
+            $this->logRpcCall('getNotificationHistory', ['user_id' => $userId, 'limit' => $limit], $correlationId);
+            
+            $response = $this->notificationRpc->call('notification.getNotificationHistory', [
+                'user_id' => $userId,
+                'limit' => $limit,
+                'category' => 'order'
+            ]);
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcCall('getNotificationHistory', ['duration_ms' => $duration], $correlationId, 'success');
+            
+            if (isset($response['success']) && $response['success']) {
+                return $response['data'] ?? null;
+            }
+            
+            return null;
+        } catch (Exception $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            $this->logRpcError('getNotificationHistory', $e, $correlationId, $duration);
+            return null;
+        }
     }
 
     /**
-     * Send order published notification
+     * Get service health status
      */
-    public function sendOrderPublishedNotification(array $orderData): ?array
+    public function getServiceInfo(): ?array
     {
-        return $this->sendNotification([
-            'type' => 'order_published',
-            'user_id' => $orderData['customer_id'],
-            'title' => 'Order Published',
-            'message' => "Your order #{$orderData['order_number']} has been published and is now available for bidding.",
-            'data' => [
-                'order_id' => $orderData['id'],
-                'order_number' => $orderData['order_number'],
-                'status' => $orderData['status'],
-            ],
-            'channels' => ['push', 'email'],
-        ]);
-    }
-
-    /**
-     * Send order status update notification
-     */
-    public function sendOrderStatusUpdateNotification(array $orderData, string $type): ?array
-    {
-        $messages = [
-            'order_completed' => [
-                'title' => 'Order Completed',
-                'message' => "Your order #{$orderData['order_number']} has been completed successfully!",
-            ],
-            'order_cancelled' => [
-                'title' => 'Order Cancelled',
-                'message' => "Your order #{$orderData['order_number']} has been cancelled.",
-            ],
-            'bid_accepted' => [
-                'title' => 'Bid Accepted',
-                'message' => "Your bid on order #{$orderData['order_number']} has been accepted!",
-            ],
-            'bid_rejected' => [
-                'title' => 'Bid Not Selected',
-                'message' => "Your bid on order #{$orderData['order_number']} was not selected.",
-            ],
-        ];
-
-        $messageData = $messages[$type] ?? [
-            'title' => 'Order Update',
-            'message' => "Order #{$orderData['order_number']} has been updated.",
-        ];
-
-        return $this->sendNotification([
-            'type' => $type,
-            'user_id' => $orderData['customer_id'],
-            'title' => $messageData['title'],
-            'message' => $messageData['message'],
-            'data' => [
-                'order_id' => $orderData['id'],
-                'order_number' => $orderData['order_number'],
-                'status' => $orderData['status'],
-            ],
-            'channels' => ['push', 'email'],
-        ]);
+        try {
+            $response = $this->notificationRpc->call('notification.getServiceInfo');
+            
+            if (isset($response['success']) && $response['success']) {
+                return $response['data'] ?? null;
+            }
+            
+            return null;
+        } catch (Exception $e) {
+            Log::warning('Failed to get NotificationService info', [
+                'error' => $e->getMessage(),
+                'service' => 'order-service'
+            ]);
+            return null;
+        }
     }
 
     /**
      * Log RPC call for debugging and monitoring
      */
-    private function logRpcCall(string $method, array $params, string $correlationId, string $status = 'start'): void
+    private function logRpcCall(string $method, array $context, string $correlationId, string $status = 'start'): void
     {
-        Log::info("Order NotificationService RPC Call", [
-            'method' => $method,
-            'params' => $params,
+        Log::info("RPC Call: notification.{$method} ({$status})", [
+            'method' => "notification.{$method}",
             'correlation_id' => $correlationId,
+            'service' => 'order-service',
             'status' => $status,
-            'service' => 'notification-service',
-            'caller' => 'order-service'
+            'context' => $context
         ]);
     }
 
@@ -151,13 +243,13 @@ class NotificationServiceAdapter
      */
     private function logRpcError(string $method, Exception $e, string $correlationId, float $duration): void
     {
-        Log::error("Order NotificationService RPC Error", [
-            'method' => $method,
-            'error' => $e->getMessage(),
+        Log::error("RPC Error: notification.{$method}", [
+            'method' => "notification.{$method}",
             'correlation_id' => $correlationId,
+            'service' => 'order-service',
+            'error' => $e->getMessage(),
             'duration_ms' => $duration,
-            'service' => 'notification-service',
-            'caller' => 'order-service'
+            'trace' => $e->getTraceAsString()
         ]);
     }
 }

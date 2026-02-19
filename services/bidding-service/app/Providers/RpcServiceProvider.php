@@ -3,44 +3,141 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Sajya\Server\ServerServiceProvider;
+use Shared\Procedures\ProcedureEngine;
+use App\RPC\Procedures\BidProcedure;
+use App\RPC\Procedures\AuctionProcedure;
+use App\Services\BidService;
+use App\Services\AuctionService;
 
+/**
+ * RPC Service Provider for Bidding Service
+ * 
+ * Registers RPC procedures with the ProcedureEngine for handling
+ * incoming RPC calls from other services.
+ */
 class RpcServiceProvider extends ServiceProvider
 {
     /**
-     * Register services.
+     * Register RPC procedures
+     *
+     * @return void
      */
     public function register(): void
     {
-        // Register Sajya RPC Server
-        $this->app->register(ServerServiceProvider::class);
+        // Register procedure classes in the container
+        $this->app->singleton(BidProcedure::class, function ($app) {
+            return new BidProcedure(
+                $app->make(BidService::class),
+                $app->make(AuctionService::class)
+            );
+        });
+        
+        $this->app->singleton(AuctionProcedure::class, function ($app) {
+            return new AuctionProcedure(
+                $app->make(AuctionService::class),
+                $app->make(BidService::class)
+            );
+        });
     }
-
+    
     /**
-     * Bootstrap services.
+     * Bootstrap RPC procedures
+     *
+     * @return void
      */
     public function boot(): void
     {
-        // Load RPC routes
-        $this->loadRoutesFrom(base_path('routes/rpc.php'));
-
-        // Register RPC middleware
-        $this->registerRpcMiddleware();
-
-        // Register RPC clients for other services
+        // Register RPC clients for inter-service communication
         $this->registerRpcClients();
-    }
-
-    /**
-     * Register RPC middleware
-     */
-    private function registerRpcMiddleware(): void
-    {
-        $router = $this->app['router'];
-
-        $router->aliasMiddleware('rpc.correlation', \App\Http\Middleware\RpcCorrelationMiddleware::class);
-        $router->aliasMiddleware('rpc.performance', \App\Http\Middleware\RpcPerformanceMiddleware::class);
-        $router->aliasMiddleware('rpc.logging', \App\Http\Middleware\RpcLoggingMiddleware::class);
+        
+        $procedureEngine = $this->app->make(ProcedureEngine::class);
+        
+        // Register bid-related procedures
+        $bidProcedure = $this->app->make(BidProcedure::class);
+        $procedureEngine->register('bid.getByAuction', [$bidProcedure, 'getByAuction']);
+        $procedureEngine->register('bid.getHighest', [$bidProcedure, 'getHighest']);
+        $procedureEngine->register('bid.place', [$bidProcedure, 'place']);
+        $procedureEngine->register('bid.updateStatus', [$bidProcedure, 'updateStatus']);
+        $procedureEngine->register('bid.cancel', [$bidProcedure, 'cancel']);
+        $procedureEngine->register('bid.getHistory', [$bidProcedure, 'getHistory']);
+        $procedureEngine->register('bid.checkActive', [$bidProcedure, 'checkActive']);
+        $procedureEngine->register('bid.getStatistics', [$bidProcedure, 'getStatistics']);
+        
+        // Register auction-related procedures (from bidding perspective)
+        $auctionProcedure = $this->app->make(AuctionProcedure::class);
+        $procedureEngine->register('auction.initialize', [$auctionProcedure, 'initialize']);
+        $procedureEngine->register('auction.updateHighestBid', [$auctionProcedure, 'updateHighestBid']);
+        $procedureEngine->register('auction.validateBidEligibility', [$auctionProcedure, 'validateBidEligibility']);
+        $procedureEngine->register('auction.getStatus', [$auctionProcedure, 'getStatus']);
+        $procedureEngine->register('auction.close', [$auctionProcedure, 'close']);
+        $procedureEngine->register('auction.isActive', [$auctionProcedure, 'isActive']);
+        
+        // Register system procedures for health checks and monitoring
+        $procedureEngine->register('health.check', function () {
+            return [
+                'success' => true,
+                'service' => 'bidding-service',
+                'status' => 'healthy',
+                'timestamp' => now()->toISOString(),
+                'version' => config('app.version', '1.0.0'),
+            ];
+        });
+        
+        $procedureEngine->register('system.info', function () {
+            return [
+                'success' => true,
+                'service' => 'bidding-service',
+                'description' => 'Handles auction bidding operations and bid management',
+                'version' => config('app.version', '1.0.0'),
+                'environment' => config('app.env'),
+                'procedures' => [
+                    'bid.getByAuction',
+                    'bid.getHighest',
+                    'bid.place',
+                    'bid.updateStatus',
+                    'bid.cancel',
+                    'bid.getHistory',
+                    'bid.checkActive',
+                    'bid.getStatistics',
+                    'auction.initialize',
+                    'auction.updateHighestBid',
+                    'auction.validateBidEligibility',
+                    'auction.getStatus',
+                    'auction.close',
+                    'auction.isActive',
+                    'health.check',
+                    'system.info',
+                    'system.metrics',
+                    'system.ping',
+                ],
+            ];
+        });
+        
+        $procedureEngine->register('system.metrics', function () {
+            // Get basic metrics - in production this would include more detailed metrics
+            return [
+                'success' => true,
+                'service' => 'bidding-service',
+                'metrics' => [
+                    'total_bids' => \App\Models\Bid::count(),
+                    'active_bids' => \App\Models\Bid::where('status', 'active')->count(),
+                    'total_auctions' => \App\Models\Auction::count(),
+                    'active_auctions' => \App\Models\Auction::where('status', 'active')->count(),
+                    'memory_usage' => memory_get_usage(true),
+                    'memory_peak' => memory_get_peak_usage(true),
+                ],
+                'timestamp' => now()->toISOString(),
+            ];
+        });
+        
+        $procedureEngine->register('system.ping', function () {
+            return [
+                'success' => true,
+                'service' => 'bidding-service',
+                'message' => 'pong',
+                'timestamp' => now()->toISOString(),
+            ];
+        });
     }
 
     /**
@@ -48,148 +145,23 @@ class RpcServiceProvider extends ServiceProvider
      */
     private function registerRpcClients(): void
     {
-        // Auth Service RPC Client
-        $this->app->singleton('AuthRpc', function () {
-            // Skip RPC client registration in testing environment
-            if (app()->environment('testing')) {
-                return new class {
-                    public function call($method, $params) {
-                        return ['success' => true, 'data' => ['user_id' => 1, 'permissions' => ['bidding']]];
-                    }
-                };
-            }
-            
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.auth.url'))
-                    ->withToken(config('rpc.services.auth.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'bidding-service',
-                        'X-Correlation-ID' => request() ? request()->header('X-Correlation-ID', uniqid('rpc_', true)) : uniqid('rpc_', true),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
-        });
-
         // Auction Service RPC Client
         $this->app->singleton('AuctionRpc', function () {
-            // Skip RPC client registration in testing environment
-            if (app()->environment('testing')) {
-                return new class {
-                    public function call($method, $params) {
-                        return ['success' => true, 'data' => ['auction_id' => 1, 'status' => 'active']];
-                    }
-                };
-            }
-            
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.auction.url'))
-                    ->withToken(config('rpc.services.auction.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'bidding-service',
-                        'X-Correlation-ID' => request() ? request()->header('X-Correlation-ID', uniqid('rpc_', true)) : uniqid('rpc_', true),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
-        });
-
-        // User Service RPC Client
-        $this->app->singleton('UserRpc', function () {
-            // Skip RPC client registration in testing environment
-            if (app()->environment('testing')) {
-                return new class {
-                    public function call($method, $params) {
-                        return ['success' => true, 'data' => ['user_id' => $params['user_id'] ?? 1, 'balance' => 10000]];
-                    }
-                };
-            }
-            
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.user.url'))
-                    ->withToken(config('rpc.services.user.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'bidding-service',
-                        'X-Correlation-ID' => request() ? request()->header('X-Correlation-ID', uniqid('rpc_', true)) : uniqid('rpc_', true),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
-        });
-
-        // Payment Service RPC Client
-        $this->app->singleton('PaymentRpc', function () {
-            // Skip RPC client registration in testing environment
-            if (app()->environment('testing')) {
-                return new class {
-                    public function call($method, $params) {
-                        return ['success' => true, 'data' => ['payment_id' => uniqid(), 'status' => 'completed']];
-                    }
-                };
-            }
-            
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.payment.url'))
-                    ->withToken(config('rpc.services.payment.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'bidding-service',
-                        'X-Correlation-ID' => request() ? request()->header('X-Correlation-ID', uniqid('rpc_', true)) : uniqid('rpc_', true),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
+            return new \App\RPC\Clients\AuctionServiceRpcClient();
         });
 
         // Notification Service RPC Client
         $this->app->singleton('NotificationRpc', function () {
-            // Skip RPC client registration in testing environment
-            if (app()->environment('testing')) {
-                return new class {
-                    public function call($method, $params) {
-                        return ['success' => true, 'data' => ['notification_id' => uniqid(), 'status' => 'sent']];
-                    }
-                };
-            }
-            
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.notification.url'))
-                    ->withToken(config('rpc.services.notification.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'bidding-service',
-                        'X-Correlation-ID' => request() ? request()->header('X-Correlation-ID', uniqid('rpc_', true)) : uniqid('rpc_', true),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
+            return new \App\RPC\Clients\NotificationServiceRpcClient();
         });
 
-        // Bidding Service RPC Client (for internal calls)
-        $this->app->singleton('BiddingRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.bidding.url'))
-                    ->withToken(config('rpc.services.bidding.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'bidding-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
+        // Register RPC clients with interface bindings for dependency injection
+        $this->app->bind(\App\RPC\Clients\AuctionServiceRpcClient::class, function () {
+            return app('AuctionRpc');
         });
 
-        // Register RPC Adapters (compatibility layer)
-        $this->registerRpcAdapters();
-    }
-
-    /**
-     * Register RPC adapters for seamless HTTP-to-RPC migration
-     */
-    private function registerRpcAdapters(): void
-    {
-        // Auth Service Adapter
-        $this->app->singleton(\App\RPC\Adapters\AuthServiceAdapter::class);
-
-        // User Service Adapter
-        $this->app->singleton(\App\RPC\Adapters\UserServiceAdapter::class);
-
-        // Notification Service Adapter
-        $this->app->singleton(\App\RPC\Adapters\NotificationServiceAdapter::class);
-
-        // Bidding Service Adapter (for internal calls)
-        $this->app->singleton(\App\RPC\Adapters\BiddingServiceAdapter::class);
+        $this->app->bind(\App\RPC\Clients\NotificationServiceRpcClient::class, function () {
+            return app('NotificationRpc');
+        });
     }
 }

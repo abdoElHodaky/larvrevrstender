@@ -1,0 +1,288 @@
+# GCP GKE Gateway Configuration for Reverse Tender Platform
+# Optimized for Google Cloud Platform with Global HTTP(S) Load Balancer
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: reverse-tender-gke-gateway
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/cloud-provider: "gcp"
+  annotations:
+    # GCP-specific annotations for optimal performance
+    networking.gke.io/load-balancer-type: "EXTERNAL_MANAGED"
+    networking.gke.io/load-balancer-ip-addresses: "reverse-tender-global-ip"
+    cloud.google.com/neg: '{"ingress": true}'
+    cloud.google.com/backend-config: '{"default": "reverse-tender-backend-config"}'
+    
+    # SSL certificate management
+    networking.gke.io/managed-certificates: "reverse-tender-ssl-cert"
+    
+    # Description
+    gateway.networking.k8s.io/description: "GKE-optimized gateway for JSON-RPC/tRPC microservices with Global Load Balancer"
+spec:
+  # Reference to the GKE-optimized GatewayClass
+  gatewayClassName: reverse-tender-gke-gateway-class
+  
+  # GCP-optimized listeners configuration
+  listeners:
+    # Primary HTTPS listener - optimized for RPC API traffic with Global LB
+    - name: https-rpc-api
+      hostname: "api.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        # GCP-optimized TLS configuration
+        options:
+          # Use GCP SSL Policy for enhanced security
+          networking.gke.io/ssl-policy: "reverse-tender-ssl-policy"
+          # Enable HTTP/2 for better RPC performance
+          networking.gke.io/http2-enabled: "true"
+          # Connection timeout for RPC sessions
+          networking.gke.io/connection-idle-timeout: "300s"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # Frontend application HTTPS listener - optimized for web traffic
+    - name: https-app
+      hostname: "app.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: app-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          networking.gke.io/ssl-policy: "reverse-tender-ssl-policy"
+          networking.gke.io/http2-enabled: "true"
+          networking.gke.io/connection-idle-timeout: "60s"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # Admin panel HTTPS listener - with enhanced security
+    - name: https-admin
+      hostname: "admin.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: admin-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          networking.gke.io/ssl-policy: "reverse-tender-ssl-policy"
+          networking.gke.io/http2-enabled: "true"
+          networking.gke.io/connection-idle-timeout: "60s"
+          # Enhanced security for admin interface
+          networking.gke.io/security-policy: "reverse-tender-admin-security-policy"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # WebSocket HTTPS listener - optimized for real-time bidding
+    - name: https-websocket
+      hostname: "ws.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: ws-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          networking.gke.io/ssl-policy: "reverse-tender-ssl-policy"
+          # WebSocket-specific optimizations for GCP
+          networking.gke.io/websocket-enabled: "true"
+          networking.gke.io/connection-idle-timeout: "300s"
+          # Disable HTTP/2 for WebSocket compatibility
+          networking.gke.io/http2-enabled: "false"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # HTTP listener for redirects - security best practice
+    - name: http-redirect
+      hostname: "*.reversetender.com"
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+  # GCP-specific addresses configuration
+  addresses:
+    - type: NamedAddress
+      value: reverse-tender-global-ip
+
+---
+# Backend Configuration for GCP optimization
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: reverse-tender-backend-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "gcp"
+spec:
+  # Connection draining for graceful shutdowns
+  connectionDraining:
+    drainingTimeoutSec: 60
+  
+  # Session affinity for RPC sessions
+  sessionAffinity:
+    affinityType: "CLIENT_IP"
+    affinityCookieTtlSec: 3600
+  
+  # Health check configuration optimized for RPC services
+  healthCheck:
+    checkIntervalSec: 30
+    timeoutSec: 5
+    healthyThreshold: 2
+    unhealthyThreshold: 3
+    type: HTTP
+    requestPath: "/health"
+    port: 80
+  
+  # Timeout configuration for RPC calls
+  timeoutSec: 30
+  
+  # Enable Cloud CDN for static content
+  cdn:
+    enabled: true
+    cachePolicy:
+      includeHost: true
+      includeProtocol: true
+      includeQueryString: false
+      # Cache static assets for 1 hour
+      defaultTtl: 3600
+      # Maximum cache time of 24 hours
+      maxTtl: 86400
+    # Negative caching for error responses
+    negativeCaching: true
+    negativeCachingPolicy:
+      - code: 404
+        ttl: 300
+      - code: 500
+        ttl: 60
+
+---
+# Managed SSL Certificate for automatic certificate management
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: reverse-tender-ssl-cert
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "gcp"
+spec:
+  domains:
+    - api.reversetender.com
+    - app.reversetender.com
+    - admin.reversetender.com
+    - ws.reversetender.com
+
+---
+# Enhanced Security Policy for Admin Interface
+apiVersion: networking.gke.io/v1
+kind: GCPSecurityPolicy
+metadata:
+  name: reverse-tender-admin-security-policy
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "gcp"
+spec:
+  # Stricter rate limiting for admin interface
+  rateLimitOptions:
+    rateLimitThreshold:
+      count: 100
+      intervalSec: 60
+    banThreshold:
+      count: 500
+      intervalSec: 600
+    banDurationSec: 600
+  
+  # Enhanced DDoS protection
+  adaptiveProtection:
+    layer7DdosDefenseConfig:
+      enable: true
+      ruleVisibility: PREMIUM
+  
+  # Admin-specific security rules
+  rules:
+    # Block access from known bad IP ranges
+    - priority: 500
+      match:
+        versionedExpr: SRC_IPS_V1
+        config:
+          srcIpRanges:
+            - "10.0.0.0/8"    # Block private networks (adjust as needed)
+            - "172.16.0.0/12" # Block private networks (adjust as needed)
+            - "192.168.0.0/16" # Block private networks (adjust as needed)
+      action: "deny-403"
+      description: "Block private network access to admin"
+    
+    # Allow only specific geographic regions (example)
+    - priority: 1000
+      match:
+        expr:
+          expression: 'origin.region_code != "US" && origin.region_code != "CA" && origin.region_code != "GB"'
+      action: "deny-403"
+      description: "Restrict admin access to specific regions"
+    
+    # Rate limit admin login attempts
+    - priority: 2000
+      match:
+        expr:
+          expression: 'request.url_map.path.matches("/admin/login")'
+      rateLimitOptions:
+        rateLimitThreshold:
+          count: 5
+          intervalSec: 300
+        banThreshold:
+          count: 10
+          intervalSec: 600
+        banDurationSec: 1800
+      action: "rate-based-ban"
+      description: "Rate limit admin login attempts"
+    
+    # Default allow rule
+    - priority: 9999
+      match:
+        versionedExpr: SRC_IPS_V1
+        config:
+          srcIpRanges:
+            - "*"
+      action: "allow"
+      description: "Allow all other admin traffic"
+

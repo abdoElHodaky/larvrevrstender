@@ -1,0 +1,306 @@
+# Azure-specific Helm values for Reverse Tender Platform
+# Optimized for Azure Kubernetes Service (AKS) with Application Gateway Ingress Controller
+
+# Global Azure-specific settings
+global:
+  imageRegistry: "reversetender.azurecr.io"
+  imagePullPolicy: IfNotPresent
+  storageClass: "managed-premium"
+  cloudProvider: "azure"
+  region: "eastus"
+
+# Blue-Green deployment configuration for Azure
+blueGreen:
+  enabled: true
+  activeEnvironment: "blue"  # blue or green
+  trafficSwitching:
+    strategy: "azure-application-gateway"  # Azure-specific strategy
+    canaryPercentage: 10
+    stabilizationTime: 300  # 5 minutes
+  healthChecks:
+    enabled: true
+    path: "/octane/health"
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# Azure Application Gateway Ingress Controller configuration
+ingress:
+  enabled: true
+  className: "azure/application-gateway"
+  annotations:
+    # Azure Application Gateway specific annotations
+    kubernetes.io/ingress.class: "azure/application-gateway"
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+    appgw.ingress.kubernetes.io/connection-draining: "true"
+    appgw.ingress.kubernetes.io/connection-draining-timeout: "30"
+    appgw.ingress.kubernetes.io/cookie-based-affinity: "Enabled"
+    appgw.ingress.kubernetes.io/request-timeout: "30"
+    appgw.ingress.kubernetes.io/backend-path-prefix: "/"
+    # Health probe configuration
+    appgw.ingress.kubernetes.io/health-probe-path: "/octane/health"
+    appgw.ingress.kubernetes.io/health-probe-interval: "30"
+    appgw.ingress.kubernetes.io/health-probe-timeout: "5"
+    appgw.ingress.kubernetes.io/health-probe-unhealthy-threshold: "3"
+    # Blue-Green specific annotations
+    appgw.ingress.kubernetes.io/backend-hostname: "api.reversetender.com"
+    # WAF and security
+    appgw.ingress.kubernetes.io/waf-policy-for-path: "/subscriptions/{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/wafpolicy"
+  hosts:
+    - host: api.reversetender.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: gateway-service
+            port: 80
+    - host: app.reversetender.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: gateway-service
+            port: 80
+  tls:
+    - secretName: reversetender-tls
+      hosts:
+        - api.reversetender.com
+        - app.reversetender.com
+
+# Blue-Green specific ingress for environment isolation
+blueGreenIngress:
+  enabled: true
+  blue:
+    host: blue.reversetender.com
+    annotations:
+      appgw.ingress.kubernetes.io/backend-hostname: "blue.reversetender.com"
+  green:
+    host: green.reversetender.com
+    annotations:
+      appgw.ingress.kubernetes.io/backend-hostname: "green.reversetender.com"
+
+# Azure Load Balancer service configuration
+service:
+  type: ClusterIP  # Use ClusterIP with Application Gateway
+  annotations:
+    # Azure-specific service annotations
+    service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+    service.beta.kubernetes.io/azure-load-balancer-mode: "auto"
+    service.beta.kubernetes.io/azure-pip-name: "reversetender-pip"
+    service.beta.kubernetes.io/azure-dns-label-name: "reversetender-api"
+
+# Azure-specific resource configurations
+resources:
+  # Gateway service (higher resources for Azure)
+  gateway-service:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  
+  # Saga pattern services (optimized for Azure)
+  auction-service:
+    requests:
+      memory: "512Mi"
+      cpu: "300m"
+    limits:
+      memory: "1Gi"
+      cpu: "600m"
+  
+  payment-service:
+    requests:
+      memory: "512Mi"
+      cpu: "300m"
+    limits:
+      memory: "1Gi"
+      cpu: "600m"
+  
+  order-service:
+    requests:
+      memory: "512Mi"
+      cpu: "300m"
+    limits:
+      memory: "1Gi"
+      cpu: "600m"
+  
+  bidding-service:
+    requests:
+      memory: "512Mi"
+      cpu: "300m"
+    limits:
+      memory: "1Gi"
+      cpu: "600m"
+
+# Azure-specific autoscaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  # Azure-specific scaling behavior
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+
+# Azure Database configuration (Azure Database for PostgreSQL)
+postgresql:
+  enabled: false  # Use external Azure Database for PostgreSQL
+  external:
+    enabled: true
+    host: "reversetender-postgres.postgres.database.azure.com"
+    port: 5432
+    database: "reversetender"
+    sslMode: "require"
+
+# Azure Redis configuration (Azure Cache for Redis)
+redis:
+  enabled: false  # Use external Azure Cache for Redis
+  external:
+    enabled: true
+    host: "reversetender-redis.redis.cache.windows.net"
+    port: 6380
+    ssl: true
+
+# Azure-specific ConfigMap settings
+configMap:
+  data:
+    # Azure-specific environment variables
+    CLOUD_PROVIDER: "azure"
+    AZURE_REGION: "eastus"
+    AZURE_RESOURCE_GROUP: "rg-reverse-tender-prod"
+    AZURE_SUBSCRIPTION_ID: "${AZURE_SUBSCRIPTION_ID}"
+    
+    # Application Gateway specific
+    INGRESS_CONTROLLER: "azure-application-gateway"
+    LOAD_BALANCER_TYPE: "azure-application-gateway"
+    
+    # Blue-Green specific
+    BLUE_GREEN_ENABLED: "true"
+    BLUE_GREEN_STRATEGY: "azure-application-gateway"
+    HEALTH_CHECK_PATH: "/octane/health"
+    
+    # Performance optimizations for Azure
+    OCTANE_WORKERS: "6"
+    OCTANE_TASK_WORKERS: "8"
+    OCTANE_MAX_REQUESTS: "1000"
+    OCTANE_MEMORY_LIMIT: "1024M"
+    
+    # Azure-specific caching
+    CACHE_DRIVER: "redis"
+    SESSION_DRIVER: "redis"
+    QUEUE_CONNECTION: "redis"
+
+# Azure-specific secrets
+secrets:
+  data:
+    # Azure Key Vault integration
+    AZURE_CLIENT_ID: "${AZURE_CLIENT_ID}"
+    AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET}"
+    AZURE_TENANT_ID: "${AZURE_TENANT_ID}"
+    
+    # Database credentials (from Azure Key Vault)
+    DB_PASSWORD: "${AZURE_POSTGRES_PASSWORD}"
+    REDIS_PASSWORD: "${AZURE_REDIS_PASSWORD}"
+
+# Pod Disruption Budget for Azure
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+  maxUnavailable: 1
+
+# Azure-specific node affinity and tolerations
+nodeSelector:
+  kubernetes.io/os: linux
+  agentpool: system
+
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: agentpool
+              operator: In
+              values:
+                - system
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - reverse-tender
+          topologyKey: kubernetes.io/hostname
+
+# Azure-specific tolerations
+tolerations:
+  - key: "kubernetes.azure.com/scalesetpriority"
+    operator: "Equal"
+    value: "spot"
+    effect: "NoSchedule"
+
+# Azure Monitor integration
+monitoring:
+  enabled: true
+  azureMonitor:
+    enabled: true
+    workspaceId: "${AZURE_LOG_ANALYTICS_WORKSPACE_ID}"
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+  grafana:
+    enabled: true
+
+# Azure-specific security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_BIND_SERVICE
+
+# Azure-specific network policies
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        - namespaceSelector:
+            matchLabels:
+              name: azure-application-gateway
+      ports:
+        - protocol: TCP
+          port: 8000

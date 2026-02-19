@@ -1,0 +1,341 @@
+# DigitalOcean-specific Helm values for Reverse Tender Platform
+# Optimized for DigitalOcean Kubernetes (DOKS) with native Load Balancer
+
+# Global DigitalOcean-specific settings
+global:
+  imageRegistry: "registry.digitalocean.com/reversetender"
+  imagePullPolicy: IfNotPresent
+  storageClass: "do-block-storage"
+  cloudProvider: "digitalocean"
+  region: "nyc3"
+
+# Blue-Green deployment configuration for DigitalOcean
+blueGreen:
+  enabled: true
+  activeEnvironment: "blue"  # blue or green
+  trafficSwitching:
+    strategy: "digitalocean-load-balancer"  # DigitalOcean-specific strategy
+    canaryPercentage: 10
+    stabilizationTime: 300  # 5 minutes
+  healthChecks:
+    enabled: true
+    path: "/octane/health"
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# DigitalOcean Load Balancer with NGINX Ingress Controller
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    # DigitalOcean Load Balancer specific annotations
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    
+    # DigitalOcean-specific load balancer annotations
+    service.beta.kubernetes.io/do-loadbalancer-protocol: "http"
+    service.beta.kubernetes.io/do-loadbalancer-algorithm: "round_robin"
+    service.beta.kubernetes.io/do-loadbalancer-size-slug: "lb-small"
+    service.beta.kubernetes.io/do-loadbalancer-hostname: "api.reversetender.com"
+    service.beta.kubernetes.io/do-loadbalancer-certificate-id: "${DO_CERTIFICATE_ID}"
+    service.beta.kubernetes.io/do-loadbalancer-redirect-http-to-https: "true"
+    service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-path: "/octane/health"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: "http"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-port: "80"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-interval-seconds: "10"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-response-timeout-seconds: "5"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-unhealthy-threshold: "3"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-healthy-threshold: "2"
+    
+    # Rate limiting and CORS
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    
+    # Blue-Green traffic management
+    nginx.ingress.kubernetes.io/canary: "false"
+    nginx.ingress.kubernetes.io/canary-weight: "0"
+    
+  hosts:
+    - host: api.reversetender.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: gateway-service
+            port: 80
+    - host: app.reversetender.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: gateway-service
+            port: 80
+  tls:
+    - secretName: reversetender-tls
+      hosts:
+        - api.reversetender.com
+        - app.reversetender.com
+
+# Blue-Green specific ingress for environment isolation
+blueGreenIngress:
+  enabled: true
+  blue:
+    host: blue.reversetender.com
+    annotations:
+      nginx.ingress.kubernetes.io/canary: "false"
+      service.beta.kubernetes.io/do-loadbalancer-hostname: "blue.reversetender.com"
+  green:
+    host: green.reversetender.com
+    annotations:
+      nginx.ingress.kubernetes.io/canary: "true"
+      nginx.ingress.kubernetes.io/canary-weight: "0"
+      service.beta.kubernetes.io/do-loadbalancer-hostname: "green.reversetender.com"
+
+# DigitalOcean Load Balancer service configuration
+service:
+  type: LoadBalancer  # Use LoadBalancer for DigitalOcean
+  annotations:
+    # DigitalOcean Load Balancer annotations
+    service.beta.kubernetes.io/do-loadbalancer-protocol: "http"
+    service.beta.kubernetes.io/do-loadbalancer-algorithm: "round_robin"
+    service.beta.kubernetes.io/do-loadbalancer-size-slug: "lb-small"
+    service.beta.kubernetes.io/do-loadbalancer-hostname: "api.reversetender.com"
+    service.beta.kubernetes.io/do-loadbalancer-certificate-id: "${DO_CERTIFICATE_ID}"
+    service.beta.kubernetes.io/do-loadbalancer-redirect-http-to-https: "true"
+    service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-path: "/octane/health"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: "http"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-port: "80"
+    service.beta.kubernetes.io/do-loadbalancer-sticky-sessions-type: "cookies"
+    service.beta.kubernetes.io/do-loadbalancer-sticky-sessions-cookie-name: "lb"
+    service.beta.kubernetes.io/do-loadbalancer-sticky-sessions-cookie-ttl: "300"
+
+# DigitalOcean-specific resource configurations
+resources:
+  # Gateway service (optimized for DigitalOcean)
+  gateway-service:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+  
+  # Saga pattern services (balanced for DigitalOcean pricing)
+  auction-service:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  payment-service:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  order-service:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  bidding-service:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# DigitalOcean-specific autoscaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  # DigitalOcean-optimized scaling behavior
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+
+# DigitalOcean Managed Database configuration
+postgresql:
+  enabled: false  # Use DigitalOcean Managed Database
+  external:
+    enabled: true
+    host: "reversetender-postgres-do-user-123456-0.b.db.ondigitalocean.com"
+    port: 25060
+    database: "reversetender"
+    sslMode: "require"
+
+# DigitalOcean Managed Redis configuration
+redis:
+  enabled: false  # Use DigitalOcean Managed Redis
+  external:
+    enabled: true
+    host: "reversetender-redis-do-user-123456-0.b.db.ondigitalocean.com"
+    port: 25061
+    ssl: true
+
+# DigitalOcean-specific ConfigMap settings
+configMap:
+  data:
+    # DigitalOcean-specific environment variables
+    CLOUD_PROVIDER: "digitalocean"
+    DO_REGION: "nyc3"
+    DO_PROJECT_ID: "${DO_PROJECT_ID}"
+    
+    # Load Balancer specific
+    INGRESS_CONTROLLER: "nginx"
+    LOAD_BALANCER_TYPE: "digitalocean-load-balancer"
+    
+    # Blue-Green specific
+    BLUE_GREEN_ENABLED: "true"
+    BLUE_GREEN_STRATEGY: "digitalocean-load-balancer"
+    HEALTH_CHECK_PATH: "/octane/health"
+    
+    # Performance optimizations for DigitalOcean
+    OCTANE_WORKERS: "4"
+    OCTANE_TASK_WORKERS: "6"
+    OCTANE_MAX_REQUESTS: "500"
+    OCTANE_MEMORY_LIMIT: "512M"
+    
+    # DigitalOcean-specific caching
+    CACHE_DRIVER: "redis"
+    SESSION_DRIVER: "redis"
+    QUEUE_CONNECTION: "redis"
+
+# DigitalOcean-specific secrets
+secrets:
+  data:
+    # DigitalOcean API credentials
+    DO_TOKEN: "${DO_TOKEN}"
+    DO_SPACES_KEY: "${DO_SPACES_KEY}"
+    DO_SPACES_SECRET: "${DO_SPACES_SECRET}"
+    
+    # Database credentials (from DigitalOcean Managed Database)
+    DB_PASSWORD: "${DO_POSTGRES_PASSWORD}"
+    REDIS_PASSWORD: "${DO_REDIS_PASSWORD}"
+
+# Pod Disruption Budget for DigitalOcean
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  maxUnavailable: 1
+
+# DigitalOcean-specific node affinity
+nodeSelector:
+  kubernetes.io/os: linux
+
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: doks.digitalocean.com/node-pool
+              operator: In
+              values:
+                - pool-reversetender
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - reverse-tender
+          topologyKey: kubernetes.io/hostname
+
+# DigitalOcean-specific tolerations
+tolerations: []
+
+# DigitalOcean monitoring integration
+monitoring:
+  enabled: true
+  digitaloceanMonitoring:
+    enabled: true
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+  grafana:
+    enabled: true
+
+# DigitalOcean-specific security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_BIND_SERVICE
+
+# DigitalOcean-specific network policies
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8000
+
+# DigitalOcean Spaces (Object Storage) configuration
+storage:
+  spaces:
+    enabled: true
+    endpoint: "nyc3.digitaloceanspaces.com"
+    bucket: "reversetender-assets"
+    region: "nyc3"
+    accessKey: "${DO_SPACES_KEY}"
+    secretKey: "${DO_SPACES_SECRET}"
+
+# DigitalOcean Container Registry configuration
+containerRegistry:
+  enabled: true
+  registry: "registry.digitalocean.com/reversetender"
+  imagePullSecrets:
+    - name: regcred-digitalocean

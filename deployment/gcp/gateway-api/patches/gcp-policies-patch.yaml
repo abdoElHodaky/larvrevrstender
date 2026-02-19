@@ -1,0 +1,236 @@
+# GCP-specific patches for Traffic Policies
+# Optimizes policies for Google Cloud Platform and GKE Gateway
+
+# Backend Configuration for App Service - Web optimization
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: reverse-tender-app-backend-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "gcp"
+spec:
+  # Connection draining for graceful shutdowns
+  connectionDraining:
+    drainingTimeoutSec: 30
+  
+  # Session affinity for web sessions
+  sessionAffinity:
+    affinityType: "GENERATED_COOKIE"
+    affinityCookieTtlSec: 1800
+  
+  # Health check for web application
+  healthCheck:
+    checkIntervalSec: 30
+    timeoutSec: 5
+    healthyThreshold: 2
+    unhealthyThreshold: 3
+    type: HTTP
+    requestPath: "/health"
+    port: 3000
+  
+  # Timeout for web requests
+  timeoutSec: 30
+  
+  # Enable Cloud CDN for static assets
+  cdn:
+    enabled: true
+    cachePolicy:
+      includeHost: true
+      includeProtocol: true
+      includeQueryString: true
+      # Cache static assets for 1 hour
+      defaultTtl: 3600
+      # Maximum cache time of 24 hours
+      maxTtl: 86400
+    # Negative caching for error responses
+    negativeCaching: true
+    negativeCachingPolicy:
+      - code: 404
+        ttl: 300
+      - code: 500
+        ttl: 60
+
+---
+# Backend Configuration for Admin Service - Security-focused
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: reverse-tender-admin-backend-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "gcp"
+spec:
+  # Connection draining for graceful shutdowns
+  connectionDraining:
+    drainingTimeoutSec: 60
+  
+  # Session affinity for admin sessions
+  sessionAffinity:
+    affinityType: "GENERATED_COOKIE"
+    affinityCookieTtlSec: 3600
+  
+  # Health check for admin service
+  healthCheck:
+    checkIntervalSec: 30
+    timeoutSec: 5
+    healthyThreshold: 2
+    unhealthyThreshold: 3
+    type: HTTP
+    requestPath: "/admin/health"
+    port: 8080
+  
+  # Timeout for admin requests
+  timeoutSec: 60
+  
+  # Disable CDN for admin interface (security)
+  cdn:
+    enabled: false
+  
+  # Security policy reference
+  securityPolicy:
+    name: "reverse-tender-admin-security-policy"
+
+---
+# Backend Configuration for WebSocket Service - Real-time optimization
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: reverse-tender-websocket-backend-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "gcp"
+spec:
+  # Connection draining for WebSocket connections
+  connectionDraining:
+    drainingTimeoutSec: 120
+  
+  # Session affinity for WebSocket connections
+  sessionAffinity:
+    affinityType: "CLIENT_IP"
+    affinityCookieTtlSec: 7200
+  
+  # Health check for WebSocket service
+  healthCheck:
+    checkIntervalSec: 30
+    timeoutSec: 5
+    healthyThreshold: 2
+    unhealthyThreshold: 3
+    type: HTTP
+    requestPath: "/ws/health"
+    port: 8080
+  
+  # Extended timeout for WebSocket connections
+  timeoutSec: 300
+  
+  # Disable CDN for WebSocket (not applicable)
+  cdn:
+    enabled: false
+
+---
+# GCP-specific Timeout Policy for RPC services
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: reverse-tender-gcp-timeout-policy
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "gcp"
+spec:
+  host: "*.reverse-tender.svc.cluster.local"
+  trafficPolicy:
+    # Connection pool settings for GCP optimization
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30s
+        keepAlive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 64
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+        consecutiveGatewayErrors: 5
+        interval: 30s
+        baseEjectionTime: 30s
+        maxEjectionPercent: 50
+        minHealthPercent: 30
+    # Load balancer settings
+    loadBalancer:
+      simple: LEAST_CONN
+    # Outlier detection for unhealthy instances
+    outlierDetection:
+      consecutiveGatewayErrors: 5
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+
+---
+# GCP-specific Retry Policy for RPC resilience
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: reverse-tender-gcp-retry-policy
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "gcp"
+spec:
+  hosts:
+    - "api.reversetender.com"
+    - "app.reversetender.com"
+    - "admin.reversetender.com"
+    - "ws.reversetender.com"
+  gateways:
+    - reverse-tender-gke-gateway
+  http:
+    # RPC API routes with retry policy
+    - match:
+        - uri:
+            prefix: "/api/v1/rpc"
+      route:
+        - destination:
+            host: api-gateway-service.reverse-tender.svc.cluster.local
+            port:
+              number: 8000
+      retries:
+        attempts: 3
+        perTryTimeout: 10s
+        retryOn: gateway-error,connect-failure,refused-stream
+        retryRemoteLocalities: true
+      timeout: 30s
+      # Add GCP-specific headers
+      headers:
+        request:
+          add:
+            x-cloud-provider: "gcp"
+            x-load-balancer: "gcp-global-lb"
+    
+    # Default route for other traffic
+    - match:
+        - uri:
+            prefix: "/"
+      route:
+        - destination:
+            host: frontend-service.reverse-tender.svc.cluster.local
+            port:
+              number: 3000
+      timeout: 30s
+      headers:
+        request:
+          add:
+            x-cloud-provider: "gcp"
+
