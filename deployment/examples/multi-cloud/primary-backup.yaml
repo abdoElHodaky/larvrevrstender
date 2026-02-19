@@ -1,0 +1,354 @@
+# Primary-Backup Multi-Cloud Deployment Example
+# GCP as primary, Azure as backup for disaster recovery
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: primary-backup-deployment-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: multi-cloud-config
+    deployment.scenario: "primary-backup"
+data:
+  deployment-config.yaml: |
+    # Primary-Backup Multi-Cloud Configuration
+    scenario: "primary-backup"
+    description: "GCP primary with Azure backup for disaster recovery"
+    
+    # Primary cloud configuration (GCP)
+    primary:
+      provider: "gcp"
+      region: "us-central1"
+      environment: "production"
+      traffic_percentage: 100
+      
+      gateway_config:
+        gateway_class: "reverse-tender-gke-gateway-class"
+        load_balancer_type: "EXTERNAL_MANAGED"
+        ssl_policy: "modern"
+        cdn_enabled: true
+        security_policy: "reverse-tender-security-policy"
+        
+      dns_config:
+        primary_domain: "api.reversetender.com"
+        ttl: 300
+        health_check_enabled: true
+        
+      monitoring:
+        enabled: true
+        alerting: true
+        sla_target: "99.95%"
+        
+      backup_strategy:
+        database_backup: "continuous"
+        config_backup: "daily"
+        cross_region_replication: true
+    
+    # Backup cloud configuration (Azure)
+    backup:
+      provider: "azure"
+      region: "eastus"
+      environment: "production"
+      traffic_percentage: 0  # Standby mode
+      
+      gateway_config:
+        gateway_class: "reverse-tender-azure-gateway-class"
+        application_gateway_sku: "WAF_v2"
+        waf_enabled: true
+        
+      dns_config:
+        backup_domain: "backup-api.reversetender.com"
+        ttl: 60  # Lower TTL for faster failover
+        health_check_enabled: true
+        
+      monitoring:
+        enabled: true
+        alerting: true
+        sla_target: "99.9%"
+        
+      sync_strategy:
+        database_sync: "async_replication"
+        config_sync: "real_time"
+        data_lag_tolerance: "5_minutes"
+    
+    # Failover configuration
+    failover:
+      trigger_conditions:
+        - "primary_health_check_failure"
+        - "primary_sla_breach"
+        - "manual_trigger"
+        
+      automation:
+        enabled: true
+        dns_switch_time: "60_seconds"
+        traffic_ramp_time: "300_seconds"
+        
+      rollback:
+        automatic: false
+        manual_approval_required: true
+        health_check_duration: "600_seconds"
+    
+    # Traffic management
+    traffic_management:
+      load_balancing:
+        algorithm: "weighted_round_robin"
+        health_check_interval: "30_seconds"
+        
+      dns_failover:
+        provider: "cloud_dns"  # or "azure_dns"
+        health_check_path: "/health"
+        failure_threshold: 3
+        
+      circuit_breaker:
+        enabled: true
+        failure_threshold: 5
+        recovery_timeout: "300_seconds"
+
+---
+# Primary GCP Gateway Configuration
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: reverse-tender-primary-gateway
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    deployment.role: "primary"
+    deployment.provider: "gcp"
+  annotations:
+    # GCP-specific annotations
+    networking.gke.io/load-balancer-type: "EXTERNAL_MANAGED"
+    networking.gke.io/load-balancer-ip-addresses: "reverse-tender-primary-ip"
+    cloud.google.com/neg: '{"ingress": true}'
+    
+    # Multi-cloud annotations
+    multi-cloud.reversetender.com/role: "primary"
+    multi-cloud.reversetender.com/backup-provider: "azure"
+    multi-cloud.reversetender.com/failover-enabled: "true"
+spec:
+  gatewayClassName: reverse-tender-gke-gateway-class
+  
+  listeners:
+    - name: https-primary-api
+      hostname: "api.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: primary-api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    - name: https-primary-app
+      hostname: "app.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: primary-app-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+  addresses:
+    - type: NamedAddress
+      value: reverse-tender-primary-ip
+
+---
+# Backup Azure Gateway Configuration (Standby)
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: reverse-tender-backup-gateway
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    deployment.role: "backup"
+    deployment.provider: "azure"
+  annotations:
+    # Azure-specific annotations
+    appgw.ingress.kubernetes.io/backend-path-prefix: "/"
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+    service.beta.kubernetes.io/azure-load-balancer-resource-group: "reverse-tender-backup-rg"
+    
+    # Multi-cloud annotations
+    multi-cloud.reversetender.com/role: "backup"
+    multi-cloud.reversetender.com/primary-provider: "gcp"
+    multi-cloud.reversetender.com/standby-mode: "true"
+spec:
+  gatewayClassName: reverse-tender-azure-gateway-class
+  
+  listeners:
+    - name: https-backup-api
+      hostname: "backup-api.reversetender.com"  # Different hostname for backup
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: backup-api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    - name: https-backup-app
+      hostname: "backup-app.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: backup-app-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+  addresses:
+    - type: IPAddress
+      value: "${AZURE_BACKUP_PUBLIC_IP}"
+
+---
+# Health Check Service for Failover Detection
+apiVersion: v1
+kind: Service
+metadata:
+  name: multi-cloud-health-check
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: health-check
+  annotations:
+    multi-cloud.reversetender.com/primary-endpoint: "https://api.reversetender.com/health"
+    multi-cloud.reversetender.com/backup-endpoint: "https://backup-api.reversetender.com/health"
+spec:
+  selector:
+    app.kubernetes.io/name: health-check-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+
+---
+# Failover Automation CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: multi-cloud-failover-monitor
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: failover-automation
+spec:
+  schedule: "*/1 * * * *"  # Check every minute
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: failover-monitor
+        spec:
+          containers:
+            - name: failover-monitor
+              image: curlimages/curl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # Health check script
+                  PRIMARY_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://api.reversetender.com/health || echo "000")
+                  BACKUP_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://backup-api.reversetender.com/health || echo "000")
+                  
+                  echo "Primary health: $PRIMARY_HEALTH"
+                  echo "Backup health: $BACKUP_HEALTH"
+                  
+                  # Simple failover logic (in production, use more sophisticated monitoring)
+                  if [ "$PRIMARY_HEALTH" != "200" ] && [ "$BACKUP_HEALTH" = "200" ]; then
+                    echo "Primary is down, backup is healthy - triggering failover"
+                    # In production, this would trigger DNS changes or load balancer updates
+                    kubectl annotate gateway reverse-tender-backup-gateway multi-cloud.reversetender.com/active="true" --overwrite
+                    kubectl annotate gateway reverse-tender-primary-gateway multi-cloud.reversetender.com/active="false" --overwrite
+                  elif [ "$PRIMARY_HEALTH" = "200" ] && [ "$BACKUP_HEALTH" = "200" ]; then
+                    echo "Both primary and backup are healthy - ensuring primary is active"
+                    kubectl annotate gateway reverse-tender-primary-gateway multi-cloud.reversetender.com/active="true" --overwrite
+                    kubectl annotate gateway reverse-tender-backup-gateway multi-cloud.reversetender.com/active="false" --overwrite
+                  fi
+              resources:
+                requests:
+                  cpu: "10m"
+                  memory: "16Mi"
+                limits:
+                  cpu: "50m"
+                  memory: "64Mi"
+          restartPolicy: OnFailure
+
+---
+# DNS Configuration for Failover (Example using External DNS)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dns-failover-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: dns-config
+data:
+  dns-records.yaml: |
+    # DNS configuration for primary-backup failover
+    # This would be managed by External DNS or similar tool
+    
+    primary_records:
+      - name: "api.reversetender.com"
+        type: "A"
+        ttl: 300
+        value: "${GCP_LOAD_BALANCER_IP}"
+        health_check: "https://api.reversetender.com/health"
+        
+      - name: "app.reversetender.com"
+        type: "A"
+        ttl: 300
+        value: "${GCP_LOAD_BALANCER_IP}"
+        health_check: "https://app.reversetender.com/health"
+    
+    backup_records:
+      - name: "backup-api.reversetender.com"
+        type: "A"
+        ttl: 60
+        value: "${AZURE_LOAD_BALANCER_IP}"
+        health_check: "https://backup-api.reversetender.com/health"
+        
+      - name: "backup-app.reversetender.com"
+        type: "A"
+        ttl: 60
+        value: "${AZURE_LOAD_BALANCER_IP}"
+        health_check: "https://backup-app.reversetender.com/health"
+    
+    failover_policy:
+      primary_failure_threshold: 3
+      backup_activation_delay: 60  # seconds
+      automatic_failback: false
+      manual_approval_required: true
+

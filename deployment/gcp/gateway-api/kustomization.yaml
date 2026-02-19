@@ -1,0 +1,69 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: reverse-tender-gcp-gateway-api
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+# Base Gateway API configuration
+resources:
+  - ../../../k8s/base/gateway-api/httproutes.yaml
+  - ../../../k8s/base/gateway-api/policies.yaml
+  - gatewayclass.yaml
+  - gateway.yaml
+
+# GCP-specific configurations
+patchesStrategicMerge:
+  - patches/gcp-httproutes-patch.yaml
+  - patches/gcp-policies-patch.yaml
+
+# GCP-specific labels
+commonLabels:
+  app.kubernetes.io/cloud-provider: "gcp"
+  deployment.kubernetes.io/environment: "gcp"
+
+# GCP-specific annotations
+commonAnnotations:
+  cloud.google.com/neg: '{"ingress": true}'
+  networking.gke.io/load-balancer-type: "EXTERNAL_MANAGED"
+
+# Namespace for all resources
+namespace: reverse-tender
+
+# Images (if needed for any init containers or sidecars)
+images: []
+
+# Configuration generators
+configMapGenerator: []
+secretGenerator: []
+
+# Resource transformations
+replicas: []
+
+# Patches for GCP-specific optimizations
+patches:
+  # Patch HTTPRoutes for GCP-specific annotations
+  - target:
+      kind: HTTPRoute
+      name: api-routes
+    patch: |-
+      - op: add
+        path: /metadata/annotations/cloud.google.com~1backend-config
+        value: '{"default": "reverse-tender-backend-config"}'
+      - op: add
+        path: /metadata/annotations/networking.gke.io~1managed-certificates
+        value: "reverse-tender-ssl-cert"
+
+  # Patch Gateway for GCP-specific settings
+  - target:
+      kind: Gateway
+      name: reverse-tender-rpc-gateway
+    patch: |-
+      - op: replace
+        path: /spec/gatewayClassName
+        value: reverse-tender-gke-gateway-class
+      - op: add
+        path: /metadata/annotations/networking.gke.io~1load-balancer-ip-addresses
+        value: "reverse-tender-global-ip"
+

@@ -1,0 +1,246 @@
+# Azure AKS Gateway Configuration for Reverse Tender Platform
+# Optimized for Azure Application Gateway with WAF integration
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: reverse-tender-azure-gateway
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/cloud-provider: "azure"
+  annotations:
+    # Azure-specific annotations for Application Gateway
+    appgw.ingress.kubernetes.io/backend-path-prefix: "/"
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+    appgw.ingress.kubernetes.io/connection-draining: "true"
+    appgw.ingress.kubernetes.io/connection-draining-timeout: "60"
+    appgw.ingress.kubernetes.io/cookie-based-affinity: "Enabled"
+    appgw.ingress.kubernetes.io/request-timeout: "30"
+    
+    # Azure Load Balancer annotations
+    service.beta.kubernetes.io/azure-load-balancer-resource-group: "reverse-tender-rg"
+    service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+    
+    # WAF integration
+    appgw.ingress.kubernetes.io/waf-policy-for-path: "/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/reverse-tender-rg/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/reverse-tender-waf"
+    
+    # Description
+    gateway.networking.k8s.io/description: "Azure AGIC-optimized gateway for JSON-RPC/tRPC microservices with Application Gateway and WAF"
+spec:
+  # Reference to the Azure-optimized GatewayClass
+  gatewayClassName: reverse-tender-azure-gateway-class
+  
+  # Azure-optimized listeners configuration
+  listeners:
+    # Primary HTTPS listener - optimized for RPC API traffic
+    - name: https-rpc-api
+      hostname: "api.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        # Azure-specific TLS configuration
+        options:
+          # SSL certificate from Azure Key Vault
+          appgw.ingress.kubernetes.io/appgw-ssl-certificate: "api-ssl-cert"
+          # Enable HTTP/2 for better RPC performance
+          appgw.ingress.kubernetes.io/backend-protocol: "http"
+          # Connection timeout for RPC sessions
+          appgw.ingress.kubernetes.io/request-timeout: "30"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # Frontend application HTTPS listener
+    - name: https-app
+      hostname: "app.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: app-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          appgw.ingress.kubernetes.io/appgw-ssl-certificate: "app-ssl-cert"
+          appgw.ingress.kubernetes.io/backend-protocol: "http"
+          appgw.ingress.kubernetes.io/request-timeout: "30"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # Admin panel HTTPS listener - with enhanced WAF protection
+    - name: https-admin
+      hostname: "admin.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: admin-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          appgw.ingress.kubernetes.io/appgw-ssl-certificate: "admin-ssl-cert"
+          appgw.ingress.kubernetes.io/backend-protocol: "http"
+          appgw.ingress.kubernetes.io/request-timeout: "60"
+          # Enhanced WAF for admin interface
+          appgw.ingress.kubernetes.io/waf-policy-for-path: "/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/reverse-tender-rg/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/reverse-tender-admin-waf"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # WebSocket HTTPS listener - optimized for real-time bidding
+    - name: https-websocket
+      hostname: "ws.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: ws-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          appgw.ingress.kubernetes.io/appgw-ssl-certificate: "ws-ssl-cert"
+          appgw.ingress.kubernetes.io/backend-protocol: "http"
+          # Extended timeout for WebSocket connections
+          appgw.ingress.kubernetes.io/request-timeout: "300"
+          # WebSocket-specific settings
+          appgw.ingress.kubernetes.io/connection-draining-timeout: "120"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # HTTP listener for redirects
+    - name: http-redirect
+      hostname: "*.reversetender.com"
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+  # Azure-specific addresses configuration
+  addresses:
+    - type: IPAddress
+      value: "${AZURE_PUBLIC_IP}"
+
+---
+# Azure-specific Service for Application Gateway integration
+apiVersion: v1
+kind: Service
+metadata:
+  name: reverse-tender-azure-gateway-service
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "azure"
+  annotations:
+    # Azure Load Balancer configuration
+    service.beta.kubernetes.io/azure-load-balancer-resource-group: "reverse-tender-rg"
+    service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+    service.beta.kubernetes.io/azure-load-balancer-mode: "auto"
+    service.beta.kubernetes.io/azure-pip-name: "reverse-tender-public-ip"
+    service.beta.kubernetes.io/azure-dns-label-name: "reverse-tender-api"
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+    - name: https
+      port: 443
+      targetPort: 8443
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: reverse-tender-gateway
+
+---
+# Azure Key Vault Secret Provider Class for SSL certificates
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: reverse-tender-ssl-secrets
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "azure"
+spec:
+  provider: azure
+  parameters:
+    usePodIdentity: "false"
+    useVMManagedIdentity: "true"
+    userAssignedIdentityID: "${AZURE_CLIENT_ID}"
+    keyvaultName: "reverse-tender-kv"
+    tenantId: "${AZURE_TENANT_ID}"
+    objects: |
+      array:
+        - |
+          objectName: api-ssl-cert
+          objectType: secret
+          objectVersion: ""
+        - |
+          objectName: app-ssl-cert
+          objectType: secret
+          objectVersion: ""
+        - |
+          objectName: admin-ssl-cert
+          objectType: secret
+          objectVersion: ""
+        - |
+          objectName: ws-ssl-cert
+          objectType: secret
+          objectVersion: ""
+  secretObjects:
+    - secretName: api-tls-secret
+      type: kubernetes.io/tls
+      data:
+        - objectName: api-ssl-cert
+          key: tls.crt
+        - objectName: api-ssl-cert-key
+          key: tls.key
+    - secretName: app-tls-secret
+      type: kubernetes.io/tls
+      data:
+        - objectName: app-ssl-cert
+          key: tls.crt
+        - objectName: app-ssl-cert-key
+          key: tls.key
+    - secretName: admin-tls-secret
+      type: kubernetes.io/tls
+      data:
+        - objectName: admin-ssl-cert
+          key: tls.crt
+        - objectName: admin-ssl-cert-key
+          key: tls.key
+    - secretName: ws-tls-secret
+      type: kubernetes.io/tls
+      data:
+        - objectName: ws-ssl-cert
+          key: tls.crt
+        - objectName: ws-ssl-cert-key
+          key: tls.key
+

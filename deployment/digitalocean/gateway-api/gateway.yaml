@@ -1,0 +1,138 @@
+# DigitalOcean DOKS Gateway Configuration for Reverse Tender Platform
+# Optimized for DigitalOcean Load Balancer with NGINX Gateway Fabric
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: reverse-tender-do-gateway
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/cloud-provider: "digitalocean"
+  annotations:
+    # DigitalOcean Load Balancer annotations
+    service.beta.kubernetes.io/do-loadbalancer-protocol: "http"
+    service.beta.kubernetes.io/do-loadbalancer-algorithm: "round_robin"
+    service.beta.kubernetes.io/do-loadbalancer-size-slug: "lb-medium"
+    service.beta.kubernetes.io/do-loadbalancer-certificate-id: "${DO_CERTIFICATE_ID}"
+    service.beta.kubernetes.io/do-loadbalancer-redirect-http-to-https: "true"
+    service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
+    
+    # Health check configuration
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: "http"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-path: "/health"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-check-interval-seconds: "10"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-response-timeout-seconds: "5"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-unhealthy-threshold: "3"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-healthy-threshold: "2"
+    
+    # Sticky sessions for RPC
+    service.beta.kubernetes.io/do-loadbalancer-sticky-sessions-type: "cookies"
+    service.beta.kubernetes.io/do-loadbalancer-sticky-sessions-cookie-name: "do-lb-session"
+    service.beta.kubernetes.io/do-loadbalancer-sticky-sessions-cookie-ttl: "3600"
+    
+    # Description
+    gateway.networking.k8s.io/description: "DigitalOcean DOKS-optimized gateway for JSON-RPC/tRPC microservices with DO Load Balancer"
+spec:
+  # Reference to the DigitalOcean-optimized GatewayClass
+  gatewayClassName: reverse-tender-do-gateway-class
+  
+  # DigitalOcean-optimized listeners configuration
+  listeners:
+    # Primary HTTPS listener - optimized for RPC API traffic
+    - name: https-rpc-api
+      hostname: "api.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        # DigitalOcean-specific TLS configuration
+        options:
+          # SSL certificate from DigitalOcean
+          service.beta.kubernetes.io/do-loadbalancer-certificate-id: "${DO_API_CERTIFICATE_ID}"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # Frontend application HTTPS listener
+    - name: https-app
+      hostname: "app.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: app-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          service.beta.kubernetes.io/do-loadbalancer-certificate-id: "${DO_APP_CERTIFICATE_ID}"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # Admin panel HTTPS listener
+    - name: https-admin
+      hostname: "admin.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: admin-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          service.beta.kubernetes.io/do-loadbalancer-certificate-id: "${DO_ADMIN_CERTIFICATE_ID}"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # WebSocket HTTPS listener - optimized for real-time bidding
+    - name: https-websocket
+      hostname: "ws.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: ws-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          service.beta.kubernetes.io/do-loadbalancer-certificate-id: "${DO_WS_CERTIFICATE_ID}"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # HTTP listener for redirects
+    - name: http-redirect
+      hostname: "*.reversetender.com"
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+  # DigitalOcean-specific addresses configuration
+  addresses:
+    - type: IPAddress
+      value: "${DO_LOAD_BALANCER_IP}"
+

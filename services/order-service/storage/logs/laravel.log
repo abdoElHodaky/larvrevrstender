@@ -582,3 +582,33 @@
 #29 /tmp/abdoElHodaky/larvrevrstender/services/order-service/artisan(51): Illuminate\\Foundation\\Console\\Kernel->terminate()
 #30 {main}
 "} 
+[2026-02-19 13:15:58] local.ERROR: Class "Redis" not found {"exception":"[object] (Error(code: 0): Class \"Redis\" not found at /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Redis/Connectors/PhpRedisConnector.php:80)
+[stacktrace]
+#0 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Redis/Connectors/PhpRedisConnector.php(34): Illuminate\\Redis\\Connectors\\PhpRedisConnector->createClient()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Redis/Connectors/PhpRedisConnector.php(39): Illuminate\\Redis\\Connectors\\PhpRedisConnector->Illuminate\\Redis\\Connectors\\{closure}()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Redis/RedisManager.php(111): Illuminate\\Redis\\Connectors\\PhpRedisConnector->connect()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Redis/RedisManager.php(92): Illuminate\\Redis\\RedisManager->resolve()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Cache/RedisStore.php(368): Illuminate\\Redis\\RedisManager->connection()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Cache/RedisStore.php(71): Illuminate\\Cache\\RedisStore->connection()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Cache/Repository.php(123): Illuminate\\Cache\\RedisStore->get()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Cache/CacheManager.php(532): Illuminate\\Cache\\Repository->get()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/telescope/src/Watchers/DumpWatcher.php(47): Illuminate\\Cache\\CacheManager->__call()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/telescope/src/RegistersWatchers.php(48): Laravel\\Telescope\\Watchers\\DumpWatcher->register()
+#10 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/telescope/src/Telescope.php(138): Laravel\\Telescope\\Telescope::registerWatchers()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/telescope/src/TelescopeServiceProvider.php(35): Laravel\\Telescope\\Telescope::start()
+#12 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Laravel\\Telescope\\TelescopeServiceProvider->boot()
+#13 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#14 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(96): Illuminate\\Container\\Util::unwrapIfClosure()
+#15 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#16 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(799): Illuminate\\Container\\BoundMethod::call()
+#17 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1151): Illuminate\\Container\\Container->call()
+#18 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1132): Illuminate\\Foundation\\Application->bootProvider()
+#19 [internal function]: Illuminate\\Foundation\\Application->Illuminate\\Foundation\\{closure}()
+#20 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1131): array_walk()
+#21 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/BootProviders.php(17): Illuminate\\Foundation\\Application->boot()
+#22 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(342): Illuminate\\Foundation\\Bootstrap\\BootProviders->bootstrap()
+#23 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(494): Illuminate\\Foundation\\Application->bootstrapWith()
+#24 /tmp/abdoElHodaky/larvrevrstender/services/order-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(196): Illuminate\\Foundation\\Console\\Kernel->bootstrap()
+#25 /tmp/abdoElHodaky/larvrevrstender/services/order-service/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
+#26 {main}
+"} 

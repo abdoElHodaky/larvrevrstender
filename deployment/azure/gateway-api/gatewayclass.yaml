@@ -1,0 +1,176 @@
+# Azure AKS Gateway API Configuration for Reverse Tender Platform
+# Optimized for Azure Application Gateway Ingress Controller (AGIC)
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: reverse-tender-azure-gateway-class
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/cloud-provider: "azure"
+  annotations:
+    gateway.networking.k8s.io/bundle-version: "v2.0.0"
+    gateway.networking.k8s.io/description: "Azure AGIC-optimized GatewayClass for JSON-RPC/tRPC microservices on Azure AKS"
+spec:
+  # Use Azure Application Gateway Ingress Controller
+  controllerName: azure/application-gateway
+  
+  # Azure-specific parameters for Application Gateway
+  parametersRef:
+    group: appgw.ingress.azure.io
+    kind: AzureApplicationGatewayConfig
+    name: reverse-tender-azure-config
+    namespace: reverse-tender
+  
+  description: "Azure AGIC-optimized Gateway Class for Reverse Tender Platform - supports JSON-RPC/tRPC patterns with Azure Application Gateway integration"
+
+---
+# Azure Application Gateway Configuration
+apiVersion: appgw.ingress.azure.io/v1beta1
+kind: AzureApplicationGatewayConfig
+metadata:
+  name: reverse-tender-azure-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/cloud-provider: "azure"
+spec:
+  # Application Gateway resource configuration
+  applicationGateway:
+    # Reference to existing Application Gateway
+    name: "reverse-tender-appgw"
+    resourceGroup: "reverse-tender-rg"
+    subscriptionId: "${AZURE_SUBSCRIPTION_ID}"
+  
+  # SSL certificate configuration
+  sslCertificates:
+    - name: "api-ssl-cert"
+      keyVaultSecretId: "${AZURE_KEYVAULT_URI}/secrets/api-ssl-cert"
+    - name: "app-ssl-cert"
+      keyVaultSecretId: "${AZURE_KEYVAULT_URI}/secrets/app-ssl-cert"
+    - name: "admin-ssl-cert"
+      keyVaultSecretId: "${AZURE_KEYVAULT_URI}/secrets/admin-ssl-cert"
+    - name: "ws-ssl-cert"
+      keyVaultSecretId: "${AZURE_KEYVAULT_URI}/secrets/ws-ssl-cert"
+  
+  # Backend pool configuration
+  backendPools:
+    - name: "rpc-backend-pool"
+      backendAddresses:
+        - fqdn: "api-gateway-service.reverse-tender.svc.cluster.local"
+    - name: "app-backend-pool"
+      backendAddresses:
+        - fqdn: "frontend-service.reverse-tender.svc.cluster.local"
+    - name: "admin-backend-pool"
+      backendAddresses:
+        - fqdn: "admin-service.reverse-tender.svc.cluster.local"
+    - name: "websocket-backend-pool"
+      backendAddresses:
+        - fqdn: "websocket-service.reverse-tender.svc.cluster.local"
+  
+  # HTTP settings for different service types
+  backendHttpSettings:
+    - name: "rpc-http-settings"
+      port: 8000
+      protocol: "Http"
+      cookieBasedAffinity: "Enabled"
+      requestTimeout: 30
+      connectionDraining:
+        enabled: true
+        drainTimeoutInSec: 60
+      healthProbe:
+        enabled: true
+        path: "/health"
+        interval: 30
+        timeout: 5
+        unhealthyThreshold: 3
+    
+    - name: "app-http-settings"
+      port: 3000
+      protocol: "Http"
+      cookieBasedAffinity: "Enabled"
+      requestTimeout: 30
+      connectionDraining:
+        enabled: true
+        drainTimeoutInSec: 30
+      healthProbe:
+        enabled: true
+        path: "/health"
+        interval: 30
+        timeout: 5
+        unhealthyThreshold: 3
+    
+    - name: "admin-http-settings"
+      port: 8080
+      protocol: "Http"
+      cookieBasedAffinity: "Enabled"
+      requestTimeout: 60
+      connectionDraining:
+        enabled: true
+        drainTimeoutInSec: 60
+      healthProbe:
+        enabled: true
+        path: "/admin/health"
+        interval: 30
+        timeout: 5
+        unhealthyThreshold: 3
+    
+    - name: "websocket-http-settings"
+      port: 8080
+      protocol: "Http"
+      cookieBasedAffinity: "Enabled"
+      requestTimeout: 300
+      connectionDraining:
+        enabled: true
+        drainTimeoutInSec: 120
+      healthProbe:
+        enabled: true
+        path: "/ws/health"
+        interval: 30
+        timeout: 5
+        unhealthyThreshold: 3
+  
+  # Web Application Firewall configuration
+  webApplicationFirewall:
+    enabled: true
+    firewallMode: "Prevention"
+    ruleSetType: "OWASP"
+    ruleSetVersion: "3.2"
+    # Custom rules for RPC protection
+    customRules:
+      - name: "RateLimitRule"
+        priority: 100
+        ruleType: "RateLimitRule"
+        rateLimitThreshold: 1000
+        rateLimitDuration: 60
+        action: "Block"
+        matchConditions:
+          - matchVariables:
+              - variableName: "RequestUri"
+            operator: "Contains"
+            matchValues:
+              - "/api/v1/rpc"
+      
+      - name: "AdminAccessRule"
+        priority: 200
+        ruleType: "MatchRule"
+        action: "Block"
+        matchConditions:
+          - matchVariables:
+              - variableName: "RequestUri"
+            operator: "BeginsWith"
+            matchValues:
+              - "/admin"
+          - matchVariables:
+              - variableName: "RemoteAddr"
+            operator: "IPMatch"
+            matchValues:
+              - "10.0.0.0/8"
+              - "172.16.0.0/12"
+              - "192.168.0.0/16"
+
