@@ -4,7 +4,7 @@ namespace App\RPC\Procedures;
 
 use App\Http\Controllers\AuthController;
 use App\Services\Shared\ActivityRpcService;
-use Illuminate\Support\Facades\Http;
+use App\RPC\Adapters\UserServiceAdapter;
 use App\RPC\BaseProcedure;
 use App\RPC\Procedures\Micro\SessionAnalyticsProcedure;
 use App\RPC\Procedures\Micro\SessionManagementProcedure;
@@ -18,7 +18,8 @@ class AuthProcedure extends BaseProcedure
     use SessionAnalyticsProcedure, SessionManagementProcedure, SessionSecurityProcedure, SessionValidationProcedure;
 
     public function __construct(
-        private ActivityRpcService $activityRpcService
+        private ActivityRpcService $activityRpcService,
+        private UserServiceAdapter $userAdapter
     ) {}
 
     /**
@@ -253,25 +254,19 @@ class AuthProcedure extends BaseProcedure
                 'user_id' => 'required|integer',
             ]);
 
-            // Call user-service RPC to get user information
-            $userServiceUrl = config('services.user_service.url', 'http://user-service:8000');
-            $response = Http::timeout(30)->post($userServiceUrl . '/rpc', [
-                'jsonrpc' => '2.0',
-                'method' => 'user.getUser',
-                'params' => ['user_id' => $params['user_id']],
-                'id' => uniqid()
-            ]);
+            // Call user-service RPC via adapter to get user information
+            $userData = $this->userAdapter->getUser($params['user_id']);
 
-            if (!$response->successful()) {
-                throw new \Exception("Failed to get user from user-service: " . $response->status());
+            if (!$userData) {
+                throw new \Exception("Failed to get user from user-service");
             }
 
-            $data = $response->json();
-            if (isset($data['error'])) {
-                throw new \Exception("User service error: " . $data['error']['message']);
+            // Check if user data contains error
+            if (isset($userData['error'])) {
+                throw new \Exception("User service error: " . $userData['error']['message']);
             }
 
-            $result = $data['result'] ?? [];
+            $result = $userData;
 
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
 

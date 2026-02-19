@@ -2,7 +2,7 @@
 
 namespace App\Services\Shared;
 
-use Illuminate\Support\Facades\Http;
+use App\RPC\Adapters\UserServiceAdapter;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 
@@ -12,42 +12,48 @@ use Illuminate\Support\Facades\Cache;
  */
 class ActivityRpcService
 {
-    private string $userServiceUrl;
-    private int $timeout;
+    private UserServiceAdapter $userAdapter;
 
-    public function __construct()
+    public function __construct(UserServiceAdapter $userAdapter)
     {
-        $this->userServiceUrl = config('services.user_service.url', 'http://user-service:8000');
-        $this->timeout = config('services.user_service.timeout', 30);
+        $this->userAdapter = $userAdapter;
     }
 
     /**
-     * Make RPC call to user-service activity procedures
+     * Make RPC call to user-service activity procedures via adapter
      */
     private function makeRpcCall(string $method, array $params = []): array
     {
         try {
-            $response = Http::timeout($this->timeout)
-                ->post($this->userServiceUrl . '/rpc', [
-                    'jsonrpc' => '2.0',
-                    'method' => $method,
-                    'params' => $params,
-                    'id' => uniqid()
-                ]);
-
-            if (!$response->successful()) {
-                throw new \Exception("RPC call failed with status: " . $response->status());
+            // Route activity methods to appropriate adapter methods
+            switch ($method) {
+                case 'activity.logActivity':
+                case 'activity.bulkLogActivities':
+                    $result = $this->userAdapter->createActivity($params);
+                    break;
+                case 'activity.getUserActivities':
+                case 'activity.getUserActivityStats':
+                case 'activity.getActivity':
+                case 'activity.getSubjectActivities':
+                    $result = $this->userAdapter->getUserActivities($params['user_id'] ?? 0, $params);
+                    break;
+                default:
+                    // For unmapped methods, try generic activity creation
+                    $result = $this->userAdapter->createActivity($params);
+                    break;
             }
 
-            $data = $response->json();
-
-            if (isset($data['error'])) {
-                throw new \Exception("RPC error: " . $data['error']['message']);
+            if ($result) {
+                return $result;
             }
 
-            return $data['result'] ?? [];
+            return [
+                'success' => false,
+                'error' => 'RPC call failed',
+                'message' => 'No result from adapter'
+            ];
         } catch (\Exception $e) {
-            Log::error('Activity RPC call failed', [
+            Log::error('Activity RPC call failed via adapter', [
                 'method' => $method,
                 'params' => $params,
                 'error' => $e->getMessage()
