@@ -1,28 +1,48 @@
 <div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
-# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🚀 Installation Guide</span>
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🚀 V2 Installation Guide</span>
+## <span style="font-size: 20px; font-weight: 500; line-height: 1.618; color: #4ECDC4;">Version 2.0 - Multi-Tier Caching Architecture</span>
 
-<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Complete setup guide for the <strong>Reverse Tender Platform</strong> on local development environments and production servers with Docker orchestration.</p>
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Complete setup guide for the <strong>Reverse Tender Platform V2</strong> with <strong>multi-tier caching architecture</strong> on local development environments and production servers with Docker orchestration and cloud service integration.</p>
+
+<div style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #FF6B6B10, #4ECDC410); border-radius: 12px; border-left: 4px solid #FF6B6B;">
+
+### <span style="font-size: 18px; font-weight: 600; color: #FF6B6B;">🚀 V2 Installation Features</span>
+
+**Multi-Tier Caching Setup:**
+- **Varnish Cache**: Automated HTTP cache server installation
+- **Upstash Redis**: Cloud Redis service configuration with TLS
+- **MongoDB Atlas**: Serverless database setup with connection strings
+- **Cache Integration**: Intelligent cache layer orchestration
+
+**Installation Benefits:**
+- One-command setup includes all three caching tiers
+- Automated cloud service provisioning
+- Environment-specific configuration templates
+- Built-in health checks and monitoring
+
+</div>
 
 ## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">⚡ Quick Installation</span>
 
 <!-- 62% MAJOR CONCEPTS: Essential Installation Steps -->
 <div style="margin-bottom: 3rem;">
 
-### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🎯 One-Command Setup</span>
-<p style="font-size: 16px; line-height: 1.618;"><strong>Docker-Based Deployment:</strong> Complete platform installation with automated service orchestration, database setup, and dependency management.</p>
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🎯 Multi-Tier Caching Setup</span>
+<p style="font-size: 16px; line-height: 1.618;"><strong>V2 Docker-Based Deployment:</strong> Complete platform installation with multi-tier caching, automated service orchestration, cloud service integration, and dependency management.</p>
 
 ```bash
-# Complete installation in one command
+# V2 Complete installation with multi-tier caching
 git clone https://github.com/abdoElHodaky/larvrevrstender.git
-cd larvrevrstender && docker-compose up -d
+cd larvrevrstender && git checkout v2
+docker-compose -f docker-compose.yml -f docker-compose.v2-caching.yml up -d
 ```
 
-### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🐳 Docker Orchestration</span>
-<p style="font-size: 16px; line-height: 1.618;"><strong>Microservices Container Management:</strong> 8 independent services with Redis, PostgreSQL, and RabbitMQ infrastructure automatically configured.</p>
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🐳 Enhanced Docker Orchestration</span>
+<p style="font-size: 16px; line-height: 1.618;"><strong>Multi-Tier Container Management:</strong> 8 independent services with Varnish, Upstash Redis, MongoDB Atlas, PostgreSQL, and monitoring infrastructure automatically configured.</p>
 
-### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🔧 Environment Auto-Configuration</span>
-<p style="font-size: 16px; line-height: 1.618;"><strong>Smart Defaults:</strong> Pre-configured environment files with optimal settings for development and production deployment scenarios.</p>
+### <span style="font-size: 20px; font-weight: 600; line-height: 1.618;">🔧 Cloud-Native Auto-Configuration</span>
+<p style="font-size: 16px; line-height: 1.618;"><strong>Intelligent Defaults:</strong> Pre-configured environment files with multi-tier caching settings, cloud service credentials, and optimal configurations for development and production deployment scenarios.</p>
 
 </div>
 
