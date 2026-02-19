@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  varnish:
+    image: varnish:7.4
+    container_name: varnish-cache
+    ports:
+      - "80:80"
+      - "6081:6081"  # Varnish admin interface
+    volumes:
+      - ./varnish.vcl:/etc/varnish/default.vcl:ro
+      - varnish_storage:/var/lib/varnish
+    environment:
+      - VARNISH_SIZE=256M
+      - VARNISH_HTTP_PORT=80
+      - VARNISH_ADMIN_PORT=6081
+    command: >
+      varnishd -F
+      -f /etc/varnish/default.vcl
+      -s malloc,256M
+      -a :80
+      -T :6081
+      -p default_ttl=300
+      -p default_grace=3600
+      -p feature=+esi_ignore_https
+      -p vcc_allow_inline_c=on
+    depends_on:
+      - gateway-service
+      - auth-service
+      - user-service
+      - auction-service
+      - bidding-service
+      - order-service
+      - payment-service
+      - notification-service
+      - analytics-service
+      - vin-ocr-service
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "varnishadm", "-T", "localhost:6081", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  varnish-exporter:
+    image: prom/varnish-exporter:latest
+    container_name: varnish-exporter
+    ports:
+      - "9131:9131"
+    command:
+      - '--varnish.instance=varnish:6081'
+      - '--web.listen-address=0.0.0.0:9131'
+    depends_on:
+      - varnish
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+
+volumes:
+  varnish_storage:
+    driver: local
+
+networks:
+  reverse-tender-network:
+    external: true

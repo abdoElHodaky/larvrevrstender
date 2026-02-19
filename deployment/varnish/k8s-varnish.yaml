@@ -1,0 +1,341 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: varnish-config
+  namespace: reverse-tender
+data:
+  default.vcl: |
+    vcl 4.1;
+
+    import directors;
+    import std;
+
+    # Backend definitions for all services
+    backend gateway_service {
+        .host = "gateway-service.reverse-tender.svc.cluster.local";
+        .port = "8080";
+        .probe = {
+            .url = "/health";
+            .timeout = 5s;
+            .interval = 10s;
+            .window = 5;
+            .threshold = 3;
+        }
+    }
+
+    backend auth_service {
+        .host = "auth-service.reverse-tender.svc.cluster.local";
+        .port = "8080";
+        .probe = {
+            .url = "/health";
+            .timeout = 5s;
+            .interval = 10s;
+            .window = 5;
+            .threshold = 3;
+        }
+    }
+
+    backend user_service {
+        .host = "user-service.reverse-tender.svc.cluster.local";
+        .port = "8080";
+        .probe = {
+            .url = "/health";
+            .timeout = 5s;
+            .interval = 10s;
+            .window = 5;
+            .threshold = 3;
+        }
+    }
+
+    backend auction_service {
+        .host = "auction-service.reverse-tender.svc.cluster.local";
+        .port = "8080";
+        .probe = {
+            .url = "/health";
+            .timeout = 5s;
+            .interval = 10s;
+            .window = 5;
+            .threshold = 3;
+        }
+    }
+
+    backend bidding_service {
+        .host = "bidding-service.reverse-tender.svc.cluster.local";
+        .port = "8080";
+        .probe = {
+            .url = "/health";
+            .timeout = 5s;
+            .interval = 10s;
+            .window = 5;
+            .threshold = 3;
+        }
+    }
+
+    backend order_service {
+        .host = "order-service.reverse-tender.svc.cluster.local";
+        .port = "8080";
+        .probe = {
+            .url = "/health";
+            .timeout = 5s;
+            .interval = 10s;
+            .window = 5;
+            .threshold = 3;
+        }
+    }
+
+    backend payment_service {
+        .host = "payment-service.reverse-tender.svc.cluster.local";
+        .port = "8080";
+        .probe = {
+            .url = "/health";
+            .timeout = 5s;
+            .interval = 10s;
+            .window = 5;
+            .threshold = 3;
+        }
+    }
+
+    backend notification_service {
+        .host = "notification-service.reverse-tender.svc.cluster.local";
+        .port = "8080";
+        .probe = {
+            .url = "/health";
+            .timeout = 5s;
+            .interval = 10s;
+            .window = 5;
+            .threshold = 3;
+        }
+    }
+
+    backend analytics_service {
+        .host = "analytics-service.reverse-tender.svc.cluster.local";
+        .port = "8080";
+        .probe = {
+            .url = "/health";
+            .timeout = 5s;
+            .interval = 10s;
+            .window = 5;
+            .threshold = 3;
+        }
+    }
+
+    backend vin_ocr_service {
+        .host = "vin-ocr-service.reverse-tender.svc.cluster.local";
+        .port = "8080";
+        .probe = {
+            .url = "/health";
+            .timeout = 5s;
+            .interval = 10s;
+            .window = 5;
+            .threshold = 3;
+        }
+    }
+
+    # Load balancer for gateway service
+    sub vcl_init {
+        new gateway_director = directors.round_robin();
+        gateway_director.add_backend(gateway_service);
+    }
+
+    # Access Control Lists
+    acl purge {
+        "localhost";
+        "127.0.0.1";
+        "::1";
+        "10.0.0.0"/8;
+        "172.16.0.0"/12;
+        "192.168.0.0"/16;
+    }
+
+    sub vcl_recv {
+        # Remove port from host header
+        set req.http.Host = regsub(req.http.Host, ":[0-9]+", "");
+        
+        # Handle purge requests
+        if (req.method == "PURGE") {
+            if (!client.ip ~ purge) {
+                return (synth(405, "Not allowed"));
+            }
+            return (purge);
+        }
+        
+        # Route requests based on URL path
+        if (req.url ~ "^/api/auth/") {
+            set req.backend_hint = auth_service;
+        } else if (req.url ~ "^/api/users/") {
+            set req.backend_hint = user_service;
+        } else if (req.url ~ "^/api/auctions/") {
+            set req.backend_hint = auction_service;
+        } else if (req.url ~ "^/api/bids/") {
+            set req.backend_hint = bidding_service;
+        } else if (req.url ~ "^/api/orders/") {
+            set req.backend_hint = order_service;
+        } else if (req.url ~ "^/api/payments/") {
+            set req.backend_hint = payment_service;
+        } else if (req.url ~ "^/api/notifications/") {
+            set req.backend_hint = notification_service;
+        } else if (req.url ~ "^/api/analytics/") {
+            set req.backend_hint = analytics_service;
+        } else if (req.url ~ "^/api/vin-ocr/") {
+            set req.backend_hint = vin_ocr_service;
+        } else {
+            set req.backend_hint = gateway_director.backend();
+        }
+        
+        # Don't cache POST, PUT, DELETE, PATCH requests
+        if (req.method != "GET" && req.method != "HEAD") {
+            return (pass);
+        }
+        
+        # Don't cache requests with authorization headers
+        if (req.http.Authorization) {
+            return (pass);
+        }
+        
+        return (hash);
+    }
+
+    sub vcl_backend_response {
+        # Set cache TTL based on content type
+        if (beresp.http.Content-Type ~ "application/json") {
+            set beresp.ttl = 2m;
+        } else if (beresp.http.Content-Type ~ "(css|js)") {
+            set beresp.ttl = 1h;
+        } else if (beresp.http.Content-Type ~ "(png|gif|jp(e)?g|ico)") {
+            set beresp.ttl = 24h;
+        }
+        
+        return (deliver);
+    }
+
+    sub vcl_deliver {
+        if (obj.hits > 0) {
+            set resp.http.X-Cache = "HIT";
+        } else {
+            set resp.http.X-Cache = "MISS";
+        }
+        
+        return (deliver);
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: varnish
+  namespace: reverse-tender
+  labels:
+    app: varnish
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: varnish
+  template:
+    metadata:
+      labels:
+        app: varnish
+    spec:
+      containers:
+      - name: varnish
+        image: varnish:7.4
+        ports:
+        - containerPort: 80
+          name: http
+        - containerPort: 6081
+          name: admin
+        volumeMounts:
+        - name: varnish-config
+          mountPath: /etc/varnish/default.vcl
+          subPath: default.vcl
+        env:
+        - name: VARNISH_SIZE
+          value: "256M"
+        command:
+        - varnishd
+        - -F
+        - -f
+        - /etc/varnish/default.vcl
+        - -s
+        - malloc,256M
+        - -a
+        - :80
+        - -T
+        - :6081
+        - -p
+        - default_ttl=300
+        - -p
+        - default_grace=3600
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: varnish-config
+        configMap:
+          name: varnish-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: varnish
+  namespace: reverse-tender
+  labels:
+    app: varnish
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  - port: 6081
+    targetPort: 6081
+    protocol: TCP
+    name: admin
+  selector:
+    app: varnish
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: varnish-ingress
+  namespace: reverse-tender
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - api.reverse-tender.com
+    secretName: varnish-tls
+  rules:
+  - host: api.reverse-tender.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: varnish
+            port:
+              number: 80
