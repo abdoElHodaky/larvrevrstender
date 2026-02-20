@@ -49,7 +49,15 @@
 - **Circuit breaker protection** for external calls
 - **Key Features**: Stripe integration, webhook security, fault tolerance
 
-### **5. 📡 [Complete API Architecture](./api-architecture.md)**
+### 5. 🚀 [CI/CD Pipeline Architecture](./cicd-pipeline-architecture.md)
+- **Enterprise-grade continuous integration** with GitHub Actions
+- **Multi-stage Docker build optimization** (4-iteration evolution)
+- **Comprehensive testing pipeline** (11/11 services, 100% success rate)
+- **Blue-green deployment strategy** with zero-downtime updates
+- **Security scanning and quality gates** (TruffleHog, vulnerability assessment)
+- **Key Features**: Automated deployment, rollback capability, monitoring integration
+
+### **6. 📡 [Complete API Architecture](./api-architecture.md)**
 - **80+ API endpoints** across all service categories
 - **REST and RPC protocol support**
 - **Workflow orchestration APIs**
