@@ -119,7 +119,7 @@ jobs:
           fi
         fi
         
-        # If no specific services changed, test all services
+        # If no specific services changed, test all services (excluding shared as it's a library)
         if [ -z "$CHANGED_SERVICES" ]; then
           CHANGED_SERVICES="auth-service,user-service,analytics-service,order-service,payment-service,bidding-service,notification-service,vin-ocr-service,gateway-service,auction-service"
           echo "🔄 No specific changes detected, testing all services"
