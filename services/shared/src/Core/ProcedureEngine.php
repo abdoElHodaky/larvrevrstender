@@ -58,6 +58,33 @@ class ProcedureEngine
     }
 
     /**
+     * Register a callable procedure for execution
+     * 
+     * This method provides compatibility with the legacy registration pattern
+     * used by services that register callable arrays.
+     *
+     * @param string $name
+     * @param callable $callable
+     * @param string $type 'micro' or 'macro'
+     * @param array $metadata
+     * @return void
+     */
+    public function register(string $name, callable $callable, string $type = 'micro', array $metadata = []): void
+    {
+        $this->registeredProcedures[$name] = [
+            'callable' => $callable,
+            'type' => $type,
+            'metadata' => $metadata,
+            'registered_at' => now()->toISOString()
+        ];
+
+        Log::info('Callable procedure registered', [
+            'name' => $name,
+            'type' => $type
+        ]);
+    }
+
+    /**
      * Execute a procedure with comprehensive error handling
      *
      * @param string $procedureName
@@ -78,19 +105,31 @@ class ProcedureEngine
             }
 
             $procedureInfo = $this->registeredProcedures[$procedureName];
-            $procedureClass = $procedureInfo['class'];
+            
+            // Handle both class-based and callable-based procedures
+            if (isset($procedureInfo['callable'])) {
+                // Callable-based procedure (legacy pattern)
+                $callable = $procedureInfo['callable'];
+                if (!is_callable($callable)) {
+                    throw new Exception("Registered callable for '{$procedureName}' is not callable");
+                }
+                $procedure = $callable;
+            } else {
+                // Class-based procedure (new pattern)
+                $procedureClass = $procedureInfo['class'];
 
-            // Validate procedure class exists
-            if (!class_exists($procedureClass)) {
-                throw new Exception("Procedure class '{$procedureClass}' not found");
-            }
+                // Validate procedure class exists
+                if (!class_exists($procedureClass)) {
+                    throw new Exception("Procedure class '{$procedureClass}' not found");
+                }
 
-            // Create procedure instance
-            $procedure = new $procedureClass();
+                // Create procedure instance
+                $procedure = new $procedureClass();
 
-            // Validate method exists
-            if (!method_exists($procedure, $method)) {
-                throw new Exception("Method '{$method}' not found in procedure '{$procedureName}'");
+                // Validate method exists
+                if (!method_exists($procedure, $method)) {
+                    throw new Exception("Method '{$method}' not found in procedure '{$procedureName}'");
+                }
             }
 
             // Execute middleware (authentication, authorization, rate limiting)
@@ -186,7 +225,14 @@ class ProcedureEngine
 
         while ($attempts < $maxAttempts) {
             try {
-                return $procedure->$method($params, $context);
+                // Handle both callable and class-based procedures
+                if (is_callable($procedure)) {
+                    // For callable procedures, call directly
+                    return call_user_func($procedure, $params, $context);
+                } else {
+                    // For class-based procedures, call the method
+                    return $procedure->$method($params, $context);
+                }
             } catch (Exception $e) {
                 $attempts++;
                 

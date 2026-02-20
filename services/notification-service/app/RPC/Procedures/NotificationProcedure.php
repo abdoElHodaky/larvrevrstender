@@ -2,7 +2,7 @@
 
 namespace App\RPC\Procedures;
 
-use Shared\Procedures\BaseProcedure;
+use Shared\Core\BaseProcedure;
 use App\Models\Notification;
 use App\Services\NotificationService;
 use App\Services\EmailService;
@@ -435,4 +435,3 @@ class NotificationProcedure extends BaseProcedure
         }
     }
 }
-
