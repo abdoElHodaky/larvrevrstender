@@ -61,7 +61,8 @@ class ProcedureEngine
      * Register a callable procedure for execution
      * 
      * This method provides compatibility with the legacy registration pattern
-     * used by services that register callable arrays.
+     * used by services that register callable arrays. Supports both object methods
+     * and direct callable objects.
      *
      * @param string $name
      * @param callable $callable
