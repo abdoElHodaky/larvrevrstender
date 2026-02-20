@@ -10,10 +10,19 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
     libzip-dev \
     libpq-dev \
     libicu-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    libonig-dev \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
+
+# Configure GD extension with JPEG and FreeType support
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 
 # Install PHP extensions needed for building/dependencies
 RUN docker-php-ext-install -j$(nproc) \
@@ -24,7 +33,10 @@ RUN docker-php-ext-install -j$(nproc) \
     gd \
     zip \
     intl \
-    exif
+    exif \
+    xml \
+    curl \
+    mbstring
 
 WORKDIR /var/www/html
 
@@ -56,7 +68,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     libpq-dev \
     libicu-dev \
+    libxml2 \
+    libcurl4 \
+    libpng16-16 \
+    libjpeg62-turbo \
+    libfreetype6 \
+    libzip4 \
+    libonig5 \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/* && apt-get clean
+
+# Configure GD extension for runtime
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 
 # Re-install extensions (or copy from builder if compatible)
 RUN docker-php-ext-install -j$(nproc) \
@@ -64,8 +87,13 @@ RUN docker-php-ext-install -j$(nproc) \
     pdo_pgsql \
     pcntl \
     bcmath \
+    gd \
+    zip \
     intl \
     exif \
+    xml \
+    curl \
+    mbstring \
     && docker-php-ext-enable opcache
 
 # Install Redis (skip if already installed)
@@ -90,4 +118,3 @@ USER www-data
 CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8009"]
 
 EXPOSE 8009
-

@@ -4,6 +4,29 @@
 # Build stage - Install dependencies and optimize
 FROM serversideup/php:8.3-frankenphp AS builder
 
+USER root
+
+# Install build dependencies for PHP extensions
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    unzip \
+    libzip-dev \
+    libpq-dev \
+    libicu-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    libonig-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install required PHP extensions
+RUN docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    pdo_pgsql \
+    zip \
+    intl \
+    xml \
+    curl \
+    mbstring
+
 # Set working directory
 WORKDIR /var/www/html
 
@@ -27,6 +50,31 @@ RUN composer dump-autoload --optimize --classmap-authoritative
 
 # Production stage - Minimal runtime image
 FROM serversideup/php:8.3-frankenphp AS production
+
+USER root
+
+# Install runtime dependencies for PHP extensions
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    libicu-dev \
+    libxml2 \
+    libcurl4 \
+    libonig5 \
+    libzip4 \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* && apt-get clean
+
+# Install required PHP extensions for runtime
+RUN docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    pdo_pgsql \
+    zip \
+    intl \
+    xml \
+    curl \
+    mbstring \
+    && docker-php-ext-enable opcache
 
 # Set labels for container metadata
 LABEL maintainer="Reverse Tender Team <dev@reversetender.com>"

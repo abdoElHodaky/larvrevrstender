@@ -10,6 +10,8 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
     libzip-dev \
     libpq-dev \
     libicu-dev \
@@ -18,7 +20,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     libonig-dev \
     libsodium-dev \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
+
+# Configure GD extension with JPEG and FreeType support
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 
 # Install PHP extensions needed for payment processing
 RUN docker-php-ext-install -j$(nproc) \
@@ -89,9 +95,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4 \
     libssl3 \
     libsodium23 \
+    libpng16-16 \
+    libjpeg62-turbo \
+    libfreetype6 \
+    libzip4 \
+    libonig5 \
     curl \
     ca-certificates \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/* && apt-get clean
+
+# Configure GD extension for runtime
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 
 # Re-install PHP extensions for payment processing
 RUN docker-php-ext-install -j$(nproc) \
@@ -99,6 +114,8 @@ RUN docker-php-ext-install -j$(nproc) \
     pdo_pgsql \
     pcntl \
     bcmath \
+    gd \
+    zip \
     intl \
     exif \
     xml \
