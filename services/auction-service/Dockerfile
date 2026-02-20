@@ -70,23 +70,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4 \
     && rm -rf /var/lib/apt/lists/* && apt-get clean
 
-# Configure GD extension for runtime
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg
-
-# Re-install extensions (or copy from builder if compatible)
-RUN docker-php-ext-install -j$(nproc) \
-    pdo_mysql \
-    pdo_pgsql \
-    pcntl \
-    bcmath \
-    gd \
-    zip \
-    intl \
-    exif \
-    xml \
-    curl \
-    mbstring \
-    && docker-php-ext-enable opcache
+# PHP extensions are already compiled and available from build stage
+# Just enable opcache and redis for runtime
+RUN docker-php-ext-enable opcache
 
 # Install Redis (skip if already installed)
 RUN (pecl install redis || echo "Redis already installed") && docker-php-ext-enable redis
