@@ -6,9 +6,6 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'App\\Http\\Clients\\AuthServiceClient' => $baseDir . '/app/Http/Clients/AuthServiceClient.php',
-    'App\\Http\\Clients\\BaseServiceClient' => $baseDir . '/app/Http/Clients/BaseServiceClient.php',
-    'App\\Http\\Clients\\UserServiceClient' => $baseDir . '/app/Http/Clients/UserServiceClient.php',
     'App\\Http\\Controllers\\Controller' => $baseDir . '/app/Http/Controllers/Controller.php',
     'App\\Http\\Controllers\\HealthController' => $baseDir . '/app/Http/Controllers/HealthController.php',
     'App\\Http\\Controllers\\NotificationController' => $baseDir . '/app/Http/Controllers/NotificationController.php',
