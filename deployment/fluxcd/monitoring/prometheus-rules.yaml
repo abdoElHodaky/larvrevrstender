@@ -1,0 +1,147 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: flux-system-rules
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: flux-system-rules
+    app.kubernetes.io/part-of: flux
+spec:
+  groups:
+  - name: flux-system.rules
+    interval: 30s
+    rules:
+    - alert: FluxReconciliationFailure
+      expr: increase(gotk_reconcile_condition{type="Ready",status="False"}[10m]) > 0
+      for: 2m
+      labels:
+        severity: warning
+        component: flux
+      annotations:
+        summary: "Flux reconciliation failure"
+        description: "{{ $labels.kind }}/{{ $labels.name }} reconciliation has been failing for more than 2 minutes."
+    
+    - alert: FluxSuspendedResource
+      expr: gotk_suspend_status == 1
+      for: 5m
+      labels:
+        severity: warning
+        component: flux
+      annotations:
+        summary: "Flux resource suspended"
+        description: "{{ $labels.kind }}/{{ $labels.name }} has been suspended for more than 5 minutes."
+    
+    - alert: FluxSourceNotReady
+      expr: gotk_reconcile_condition{type="Ready",status="False",kind=~"GitRepository|HelmRepository|Bucket"} == 1
+      for: 5m
+      labels:
+        severity: critical
+        component: flux
+      annotations:
+        summary: "Flux source not ready"
+        description: "{{ $labels.kind }}/{{ $labels.name }} source has not been ready for more than 5 minutes."
+
+  - name: blue-green-deployment.rules
+    interval: 30s
+    rules:
+    - record: blue_green:deployment_success_rate
+      expr: |
+        (
+          sum(rate(gotk_reconcile_condition{type="Ready",status="True"}[5m])) by (namespace, name)
+          /
+          sum(rate(gotk_reconcile_condition{type="Ready"}[5m])) by (namespace, name)
+        ) * 100
+    
+    - record: blue_green:environment_health_score
+      expr: |
+        (
+          sum(service_discovery_healthy) by (environment_color)
+          /
+          sum(total_services) by (environment_color)
+        ) * 100
+    
+    - record: blue_green:active_environment
+      expr: |
+        max(blue_environment_config{ENVIRONMENT_STATUS="active"}) by (environment_color)
+    
+    - record: blue_green:traffic_distribution
+      expr: |
+        sum(rate(http_requests_total[5m])) by (environment_color)
+    
+    - alert: BlueGreenDeploymentStuck
+      expr: |
+        (
+          time() - on() kube_configmap_info{configmap="blue-green-config"}
+        ) > 1800
+      for: 5m
+      labels:
+        severity: warning
+        component: blue-green
+      annotations:
+        summary: "Blue-green deployment stuck"
+        description: "Blue-green deployment has been in progress for more than 30 minutes."
+    
+    - alert: BlueGreenEnvironmentUnhealthy
+      expr: blue_green:environment_health_score < 80
+      for: 2m
+      labels:
+        severity: critical
+        component: blue-green
+      annotations:
+        summary: "Blue-green environment unhealthy"
+        description: "{{ $labels.environment_color }} environment health score is {{ $value }}%, below 80% threshold."
+    
+    - alert: BlueGreenTrafficImbalance
+      expr: |
+        abs(
+          sum(blue_green:traffic_distribution{environment_color="blue"}) -
+          sum(blue_green:traffic_distribution{environment_color="green"})
+        ) > 0.1 and
+        (
+          sum(blue_green:traffic_distribution{environment_color="blue"}) > 0 and
+          sum(blue_green:traffic_distribution{environment_color="green"}) > 0
+        )
+      for: 10m
+      labels:
+        severity: warning
+        component: blue-green
+      annotations:
+        summary: "Blue-green traffic imbalance detected"
+        description: "Traffic is being split between blue and green environments unexpectedly."
+
+  - name: service-discovery.rules
+    interval: 30s
+    rules:
+    - record: service_discovery:response_time_p95
+      expr: |
+        histogram_quantile(0.95, 
+          sum(rate(service_discovery_response_time_bucket[5m])) by (service_name, environment_color, le)
+        )
+    
+    - record: service_discovery:error_rate
+      expr: |
+        (
+          sum(rate(service_discovery_errors_total[5m])) by (service_name, environment_color)
+          /
+          sum(rate(service_discovery_requests_total[5m])) by (service_name, environment_color)
+        ) * 100
+    
+    - alert: ServiceDiscoveryHighErrorRate
+      expr: service_discovery:error_rate > 5
+      for: 2m
+      labels:
+        severity: warning
+        component: service-discovery
+      annotations:
+        summary: "High service discovery error rate"
+        description: "Service {{ $labels.service_name }} in {{ $labels.environment_color }} environment has {{ $value }}% error rate."
+    
+    - alert: ServiceDiscoveryHighLatency
+      expr: service_discovery:response_time_p95 > 5000
+      for: 5m
+      labels:
+        severity: warning
+        component: service-discovery
+      annotations:
+        summary: "High service discovery latency"
+        description: "Service {{ $labels.service_name }} in {{ $labels.environment_color }} environment has {{ $value }}ms P95 response time."

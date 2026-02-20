@@ -1,0 +1,87 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: flux-system
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: flux-system
+    app.kubernetes.io/part-of: flux
+spec:
+  selector:
+    matchLabels:
+      app: source-controller
+  endpoints:
+  - port: http-prom
+    interval: 15s
+    path: /metrics
+    scheme: http
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kustomize-controller
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: kustomize-controller
+    app.kubernetes.io/part-of: flux
+spec:
+  selector:
+    matchLabels:
+      app: kustomize-controller
+  endpoints:
+  - port: http-prom
+    interval: 15s
+    path: /metrics
+    scheme: http
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: helm-controller
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: helm-controller
+    app.kubernetes.io/part-of: flux
+spec:
+  selector:
+    matchLabels:
+      app: helm-controller
+  endpoints:
+  - port: http-prom
+    interval: 15s
+    path: /metrics
+    scheme: http
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: reverse-tender-services
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender-services
+    app.kubernetes.io/part-of: reverse-tender-platform
+    blue-green.deployment/monitoring: "true"
+spec:
+  selector:
+    matchLabels:
+      tier: backend
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+    scheme: http
+    metricRelabelings:
+    - sourceLabels: [__meta_kubernetes_pod_label_blue_green_deployment_environment]
+      targetLabel: environment_color
+    - sourceLabels: [__meta_kubernetes_service_name]
+      targetLabel: service_name
+  - port: http
+    interval: 30s
+    path: /octane/metrics
+    scheme: http
+    metricRelabelings:
+    - sourceLabels: [__meta_kubernetes_pod_label_blue_green_deployment_environment]
+      targetLabel: environment_color
+    - sourceLabels: [__meta_kubernetes_service_name]
+      targetLabel: service_name
+      replacement: "${1}_octane"
