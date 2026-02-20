@@ -56,11 +56,8 @@ USER root
 # Install runtime dependencies for PHP extensions
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
-    libicu72 \
     libxml2 \
     libcurl4 \
-    libonig5 \
-    libzip4 \
     curl \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/* && apt-get clean
