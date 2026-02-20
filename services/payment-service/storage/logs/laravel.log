@@ -2412,3 +2412,290 @@
 [2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
 [2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
 [2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 12:20:48] local.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 12:20:48] local.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 12:20:48] local.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 12:20:48] local.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 12:20:48] local.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 12:20:48] local.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 12:20:48] local.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 12:20:48] local.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 12:20:48] local.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 12:20:48] local.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 12:20:48] local.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 12:20:48] local.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 12:20:48] local.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:58] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-02-20 09:20:59] testing.INFO: ValidatePaymentDataActivity started {"saga_id":"workflow-123","order_id":null} 
+[2026-02-20 09:20:59] testing.ERROR: RPC Activity Error {"activity":"App\\Workflows\\Activities\\ValidatePaymentDataActivity","saga_id":"workflow-123","service":null,"method":null,"error":"Required field 'order_id' is missing from activity data","trace":"#0 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/app/Workflows/Activities/ValidatePaymentDataActivity.php(40): App\\Workflows\\Activities\\BaseRpcActivity->validateData()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/tests/Unit/Activities/ValidatePaymentDataActivityTest.php(66): App\\Workflows\\Activities\\ValidatePaymentDataActivity->execute()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests\\Unit\\Activities\\ValidatePaymentDataActivityTest->test_validation_with_missing_required_fields()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit\\Framework\\TestCase->runTest()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit\\Framework\\TestCase->runBare()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit\\Framework\\TestRunner->run()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestCase->run()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit\\Framework\\TestSuite->run()
+#10 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit\\TextUI\\TestRunner->run()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/phpunit(104): PHPUnit\\TextUI\\Application->run()
+#12 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/bin/phpunit(122): include('...')
+#13 {main}"} 
+[2026-02-20 09:20:59] testing.ERROR: ValidatePaymentDataActivity failed {"saga_id":"workflow-123","order_id":null,"error":"Required field 'order_id' is missing from activity data"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-02-20 09:20:59] testing.INFO: ValidatePaymentDataActivity started {"saga_id":"workflow-123","order_id":12345} 
+[2026-02-20 09:20:59] testing.ERROR: RPC Activity Error {"activity":"App\\Workflows\\Activities\\ValidatePaymentDataActivity","saga_id":"workflow-123","service":null,"method":null,"error":"Payment amount must be greater than zero","trace":"#0 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/tests/Unit/Activities/ValidatePaymentDataActivityTest.php(99): App\\Workflows\\Activities\\ValidatePaymentDataActivity->execute()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests\\Unit\\Activities\\ValidatePaymentDataActivityTest->test_validation_with_invalid_amount()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit\\Framework\\TestCase->runTest()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit\\Framework\\TestCase->runBare()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit\\Framework\\TestRunner->run()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestCase->run()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit\\Framework\\TestSuite->run()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit\\TextUI\\TestRunner->run()
+#10 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/phpunit(104): PHPUnit\\TextUI\\Application->run()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/bin/phpunit(122): include('...')
+#12 {main}"} 
+[2026-02-20 09:20:59] testing.ERROR: ValidatePaymentDataActivity failed {"saga_id":"workflow-123","order_id":12345,"error":"Payment amount must be greater than zero"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-02-20 09:20:59] testing.INFO: ValidatePaymentDataActivity started {"saga_id":"workflow-123","order_id":12345} 
+[2026-02-20 09:20:59] testing.ERROR: RPC Activity Error {"activity":"App\\Workflows\\Activities\\ValidatePaymentDataActivity","saga_id":"workflow-123","service":null,"method":null,"error":"Unsupported currency: INVALID","trace":"#0 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/tests/Unit/Activities/ValidatePaymentDataActivityTest.php(132): App\\Workflows\\Activities\\ValidatePaymentDataActivity->execute()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests\\Unit\\Activities\\ValidatePaymentDataActivityTest->test_validation_with_invalid_currency()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit\\Framework\\TestCase->runTest()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit\\Framework\\TestCase->runBare()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit\\Framework\\TestRunner->run()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestCase->run()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit\\Framework\\TestSuite->run()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit\\TextUI\\TestRunner->run()
+#10 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/phpunit(104): PHPUnit\\TextUI\\Application->run()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/bin/phpunit(122): include('...')
+#12 {main}"} 
+[2026-02-20 09:20:59] testing.ERROR: ValidatePaymentDataActivity failed {"saga_id":"workflow-123","order_id":12345,"error":"Unsupported currency: INVALID"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: PaymentProcessingSaga started {"workflow_id":2,"order_id":12345,"customer_id":67890,"amount":100.0,"payment_method":"card"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 09:20:59] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
