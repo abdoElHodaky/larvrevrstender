@@ -66,16 +66,14 @@ USER root
 # Install runtime-only system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
-    libpq-dev \
-    libicu-dev \
+    libicu72 \
     libxml2 \
     libcurl4 \
     libpng16-16 \
-    libjpeg62-turbo \
+    libjpeg-turbo8 \
     libfreetype6 \
     libzip4 \
     libonig5 \
-    pkg-config \
     && rm -rf /var/lib/apt/lists/* && apt-get clean
 
 # Configure GD extension for runtime

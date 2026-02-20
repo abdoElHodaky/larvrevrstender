@@ -89,20 +89,18 @@ USER root
 # Install runtime-only system dependencies for payment processing
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
-    libpq-dev \
-    libicu-dev \
+    libicu72 \
     libxml2 \
     libcurl4 \
     libssl3 \
     libsodium23 \
     libpng16-16 \
-    libjpeg62-turbo \
+    libjpeg-turbo8 \
     libfreetype6 \
     libzip4 \
     libonig5 \
     curl \
     ca-certificates \
-    pkg-config \
     && rm -rf /var/lib/apt/lists/* && apt-get clean
 
 # Configure GD extension for runtime
