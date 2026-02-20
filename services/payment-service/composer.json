@@ -37,7 +37,8 @@
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/",
-            "Shared\\": "../shared/src/"
+            "Shared\\": "../shared/src/",
+            "Workflow\\": "app/Workflow/"
         }
     },
     "autoload-dev": {

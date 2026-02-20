@@ -2309,3 +2309,106 @@
 #25 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
 #26 {main}
 "} 
+[2026-02-20 11:31:28] local.ERROR: Target class [App\Services\ReservationService] does not exist. {"exception":"[object] (Illuminate\\Contracts\\Container\\BindingResolutionException(code: 0): Target class [App\\Services\\ReservationService] does not exist. at /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php:1124)
+[stacktrace]
+#0 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(933): Illuminate\\Container\\Container->build()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1078): Illuminate\\Container\\Container->resolve()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(864): Illuminate\\Foundation\\Application->resolve()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1058): Illuminate\\Container\\Container->make()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/app/Providers/RpcServiceProvider.php(30): Illuminate\\Foundation\\Application->make()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(1115): App\\Providers\\RpcServiceProvider->App\\Providers\\{closure}()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(933): Illuminate\\Container\\Container->build()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1078): Illuminate\\Container\\Container->resolve()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(864): Illuminate\\Foundation\\Application->resolve()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1058): Illuminate\\Container\\Container->make()
+#10 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/app/Providers/RpcServiceProvider.php(48): Illuminate\\Foundation\\Application->make()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): App\\Providers\\RpcServiceProvider->boot()
+#12 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#13 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(96): Illuminate\\Container\\Util::unwrapIfClosure()
+#14 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#15 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(799): Illuminate\\Container\\BoundMethod::call()
+#16 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1151): Illuminate\\Container\\Container->call()
+#17 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1132): Illuminate\\Foundation\\Application->bootProvider()
+#18 [internal function]: Illuminate\\Foundation\\Application->Illuminate\\Foundation\\{closure}()
+#19 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1131): array_walk()
+#20 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/BootProviders.php(17): Illuminate\\Foundation\\Application->boot()
+#21 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(342): Illuminate\\Foundation\\Bootstrap\\BootProviders->bootstrap()
+#22 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(494): Illuminate\\Foundation\\Application->bootstrapWith()
+#23 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(196): Illuminate\\Foundation\\Console\\Kernel->bootstrap()
+#24 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
+#25 {main}
+
+[previous exception] [object] (ReflectionException(code: -1): Class \"App\\Services\\ReservationService\" does not exist at /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php:1122)
+[stacktrace]
+#0 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(1122): ReflectionClass->__construct()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(933): Illuminate\\Container\\Container->build()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1078): Illuminate\\Container\\Container->resolve()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(864): Illuminate\\Foundation\\Application->resolve()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1058): Illuminate\\Container\\Container->make()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/app/Providers/RpcServiceProvider.php(30): Illuminate\\Foundation\\Application->make()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(1115): App\\Providers\\RpcServiceProvider->App\\Providers\\{closure}()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(933): Illuminate\\Container\\Container->build()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1078): Illuminate\\Container\\Container->resolve()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(864): Illuminate\\Foundation\\Application->resolve()
+#10 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1058): Illuminate\\Container\\Container->make()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/app/Providers/RpcServiceProvider.php(48): Illuminate\\Foundation\\Application->make()
+#12 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): App\\Providers\\RpcServiceProvider->boot()
+#13 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#14 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(96): Illuminate\\Container\\Util::unwrapIfClosure()
+#15 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#16 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(799): Illuminate\\Container\\BoundMethod::call()
+#17 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1151): Illuminate\\Container\\Container->call()
+#18 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1132): Illuminate\\Foundation\\Application->bootProvider()
+#19 [internal function]: Illuminate\\Foundation\\Application->Illuminate\\Foundation\\{closure}()
+#20 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1131): array_walk()
+#21 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/BootProviders.php(17): Illuminate\\Foundation\\Application->boot()
+#22 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(342): Illuminate\\Foundation\\Bootstrap\\BootProviders->bootstrap()
+#23 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(494): Illuminate\\Foundation\\Application->bootstrapWith()
+#24 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(196): Illuminate\\Foundation\\Console\\Kernel->bootstrap()
+#25 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
+#26 {main}
+"} 
+[2026-02-20 11:34:15] local.ERROR: Call to undefined method Shared\Core\ProcedureEngine::register() {"exception":"[object] (Error(code: 0): Call to undefined method Shared\\Core\\ProcedureEngine::register() at /tmp/abdoElHodaky/larvrevrstender/services/payment-service/app/Providers/RpcServiceProvider.php:49)
+[stacktrace]
+#0 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): App\\Providers\\RpcServiceProvider->boot()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(96): Illuminate\\Container\\Util::unwrapIfClosure()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(799): Illuminate\\Container\\BoundMethod::call()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1151): Illuminate\\Container\\Container->call()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1132): Illuminate\\Foundation\\Application->bootProvider()
+#7 [internal function]: Illuminate\\Foundation\\Application->Illuminate\\Foundation\\{closure}()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1131): array_walk()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/BootProviders.php(17): Illuminate\\Foundation\\Application->boot()
+#10 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(342): Illuminate\\Foundation\\Bootstrap\\BootProviders->bootstrap()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(494): Illuminate\\Foundation\\Application->bootstrapWith()
+#12 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(196): Illuminate\\Foundation\\Console\\Kernel->bootstrap()
+#13 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
+#14 {main}
+"} 
+[2026-02-20 11:39:30] local.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 11:39:30] local.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 11:39:30] local.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 11:39:30] local.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 11:39:30] local.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 11:39:30] local.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 11:39:30] local.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 11:39:30] local.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 11:39:30] local.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 11:39:30] local.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 11:39:30] local.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 11:39:30] local.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 11:39:30] local.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-02-20 12:12:07] local.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 

@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Shared\Procedures\ProcedureEngine;
+use Shared\Core\ProcedureEngine;
 use App\RPC\Procedures\NotificationProcedure;
 use App\Services\NotificationService;
 use App\Services\EmailService;
