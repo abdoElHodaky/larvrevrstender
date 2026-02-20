@@ -1,0 +1,116 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: blue-environment
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+namespace: reverse-tender
+
+resources:
+- ../../base
+
+commonLabels:
+  blue-green.deployment/environment: blue
+  blue-green.deployment/color: blue
+  app.kubernetes.io/instance: reverse-tender-blue
+
+commonAnnotations:
+  blue-green.deployment/timestamp: "2024-02-20T13:00:00Z"
+  blue-green.deployment/strategy: "blue-green"
+
+configMapGenerator:
+- name: environment-config
+  literals:
+  - ENVIRONMENT_COLOR=blue
+  - ENVIRONMENT_STATUS=active
+  - TRAFFIC_WEIGHT=100
+  - DEPLOYMENT_TIMESTAMP=2024-02-20T13:00:00Z
+
+patches:
+- target:
+    kind: Deployment
+    labelSelector: "tier=gateway"
+  patch: |-
+    - op: add
+      path: /spec/template/metadata/labels/blue-green.deployment~1environment
+      value: blue
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ENVIRONMENT_COLOR
+        valueFrom:
+          configMapKeyRef:
+            name: environment-config
+            key: ENVIRONMENT_COLOR
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ENVIRONMENT_STATUS
+        valueFrom:
+          configMapKeyRef:
+            name: environment-config
+            key: ENVIRONMENT_STATUS
+
+- target:
+    kind: Service
+    labelSelector: "tier=gateway"
+  patch: |-
+    - op: replace
+      path: /metadata/name
+      value: api-gateway-blue
+    - op: add
+      path: /metadata/labels/blue-green.deployment~1environment
+      value: blue
+
+- target:
+    kind: Ingress
+  patch: |-
+    - op: replace
+      path: /spec/rules/0/http/paths/0/backend/service/name
+      value: api-gateway-blue
+
+replicas:
+- name: api-gateway
+  count: 3
+- name: auth-service
+  count: 2
+- name: user-service
+  count: 2
+- name: auction-service
+  count: 2
+- name: bidding-service
+  count: 2
+- name: payment-service
+  count: 3
+- name: order-service
+  count: 2
+- name: notification-service
+  count: 2
+- name: analytics-service
+  count: 2
+- name: vin-ocr-service
+  count: 2
+
+images:
+- name: reversetender/api-gateway
+  newTag: blue-latest
+- name: reversetender/auth-service
+  newTag: blue-latest
+- name: reversetender/user-service
+  newTag: blue-latest
+- name: reversetender/auction-service
+  newTag: blue-latest
+- name: reversetender/bidding-service
+  newTag: blue-latest
+- name: reversetender/payment-service
+  newTag: blue-latest
+- name: reversetender/order-service
+  newTag: blue-latest
+- name: reversetender/notification-service
+  newTag: blue-latest
+- name: reversetender/analytics-service
+  newTag: blue-latest
+- name: reversetender/vin-ocr-service
+  newTag: blue-latest

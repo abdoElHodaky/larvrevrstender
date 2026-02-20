@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blue-green-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: blue-green-config
+    app.kubernetes.io/part-of: reverse-tender-platform
+    blue-green.deployment/config: "true"
+data:
+  ENVIRONMENT_COLOR: "blue"
+  DEPLOYMENT_TIMESTAMP: "2024-02-20T13:00:00Z"
+  PREVIOUS_COLOR: "green"
+  DEPLOYMENT_STRATEGY: "blue-green"
+  HEALTH_CHECK_TIMEOUT: "300"
+  TRAFFIC_SWITCH_TIMEOUT: "60"
+  ROLLBACK_ENABLED: "true"
+  VALIDATION_REQUIRED: "true"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blue-environment-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: blue-environment-config
+    app.kubernetes.io/part-of: reverse-tender-platform
+    blue-green.deployment/environment: "blue"
+data:
+  ENVIRONMENT_COLOR: "blue"
+  ENVIRONMENT_STATUS: "active"
+  TRAFFIC_WEIGHT: "100"
+  LAST_DEPLOYMENT: "2024-02-20T12:00:00Z"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: green-environment-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: green-environment-config
+    app.kubernetes.io/part-of: reverse-tender-platform
+    blue-green.deployment/environment: "green"
+data:
+  ENVIRONMENT_COLOR: "green"
+  ENVIRONMENT_STATUS: "standby"
+  TRAFFIC_WEIGHT: "0"
+  LAST_DEPLOYMENT: "2024-02-19T15:30:00Z"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: blue-green-secrets
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: blue-green-secrets
+    app.kubernetes.io/part-of: reverse-tender-platform
+type: Opaque
+data:
+  # Base64 encoded values - replace with actual secrets
+  DEPLOYMENT_WEBHOOK_SECRET: ZGVwbG95bWVudC13ZWJob29rLXNlY3JldA==
+  ROLLBACK_WEBHOOK_SECRET: cm9sbGJhY2std2ViaG9vay1zZWNyZXQ=
