@@ -99,8 +99,8 @@ ENV PHP_OPCACHE_ENABLE=1 \
     PHP_REALPATH_CACHE_TTL=600
 
 # Configure FrankenPHP for shared service
-ENV FRANKENPHP_CONFIG="worker ./public/worker.php" \
-    SERVER_NAME=":8010"
+ENV SERVER_NAME=":8010" \
+    DOCUMENT_ROOT="/var/www/html/public"
 
 # Expose port for shared service
 EXPOSE 8010
@@ -113,4 +113,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 USER www-data
 
 # Start FrankenPHP server
-CMD ["frankenphp", "run"]
+CMD ["frankenphp", "run", "--config", "Caddyfile"]

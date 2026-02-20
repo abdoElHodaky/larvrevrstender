@@ -141,7 +141,7 @@ jobs:
         elif [ "${{ github.ref }}" = "refs/heads/develop" ]; then
           echo "strategy=staging" >> $GITHUB_OUTPUT
           echo "🎯 Develop branch: Using staging deployment"
-        elif [ "${{ github.ref }}" = "refs/heads/v2" ]; then
+        elif [[ "${{ github.ref }}" == "refs/heads/v2"* ]]; then
           echo "strategy=blue-green" >> $GITHUB_OUTPUT
           echo "🎯 V2 branch: Using blue-green deployment"
         else
