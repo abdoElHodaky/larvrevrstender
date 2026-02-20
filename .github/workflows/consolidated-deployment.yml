@@ -782,6 +782,9 @@ jobs:
     if: always() && (needs.deploy-blue-green.result != 'skipped' || needs.deploy-staging.result != 'skipped')
     
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Collect deployment metrics
       run: |
         echo "📊 Collecting deployment metrics..."
@@ -801,6 +804,17 @@ jobs:
         
         echo "📋 Deployment Summary:"
         cat deployment-summary.json
+
+    - name: Archive deployment artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: deployment-artifacts-${{ github.run_id }}
+        path: |
+          deployment-summary.json
+          deployment/helm/reverse-tender/values-*.yaml
+        retention-days: 30
+        if-no-files-found: warn
 
     - name: Send deployment notification
       if: always()
@@ -896,7 +910,7 @@ jobs:
   cleanup:
     name: 🧹 Cleanup Resources
     runs-on: ubuntu-latest
-    needs: [deploy-blue-green, deploy-staging, rollback-on-failure]
+    needs: [deploy-blue-green, deploy-staging, rollback-on-failure, deployment-monitoring]
     if: always()
     
     steps:
@@ -906,14 +920,3 @@ jobs:
         
         # Clean up any temporary files or resources
         echo "✅ Cleanup completed"
-
-    - name: Archive deployment artifacts
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: deployment-artifacts-${{ github.run_id }}
-        path: |
-          deployment-summary.json
-          values-*.yaml
-        retention-days: 30
-        if-no-files-found: warn
