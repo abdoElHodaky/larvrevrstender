@@ -466,8 +466,8 @@ class ComposerStaticInit23c6ce16959d998345aea54379d78b34
         ),
         'Psr\\Http\\Message\\' => 
         array (
-            0 => __DIR__ . '/..' . '/psr/http-message/src',
-            1 => __DIR__ . '/..' . '/psr/http-factory/src',
+            0 => __DIR__ . '/..' . '/psr/http-factory/src',
+            1 => __DIR__ . '/..' . '/psr/http-message/src',
         ),
         'Psr\\Http\\Client\\' => 
         array (
@@ -511,8 +511,8 @@ class ComposerStaticInit23c6ce16959d998345aea54379d78b34
         ),
         'Nette\\' => 
         array (
-            0 => __DIR__ . '/..' . '/nette/utils/src',
-            1 => __DIR__ . '/..' . '/nette/schema/src',
+            0 => __DIR__ . '/..' . '/nette/schema/src',
+            1 => __DIR__ . '/..' . '/nette/utils/src',
         ),
         'Monolog\\' => 
         array (
@@ -524,8 +524,8 @@ class ComposerStaticInit23c6ce16959d998345aea54379d78b34
         ),
         'League\\Uri\\' => 
         array (
-            0 => __DIR__ . '/..' . '/league/uri-interfaces',
-            1 => __DIR__ . '/..' . '/league/uri',
+            0 => __DIR__ . '/..' . '/league/uri',
+            1 => __DIR__ . '/..' . '/league/uri-interfaces',
         ),
         'League\\MimeTypeDetection\\' => 
         array (
@@ -771,7 +771,12 @@ class ComposerStaticInit23c6ce16959d998345aea54379d78b34
         'App\\Providers\\AppServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AppServiceProvider.php',
         'App\\Providers\\RpcServiceProvider' => __DIR__ . '/../..' . '/app/Providers/RpcServiceProvider.php',
         'App\\RPC\\Adapters\\AuthServiceAdapter' => __DIR__ . '/../..' . '/app/RPC/Adapters/AuthServiceAdapter.php',
+        'App\\RPC\\Adapters\\NotificationServiceAdapter' => __DIR__ . '/../..' . '/app/RPC/Adapters/NotificationServiceAdapter.php',
+        'App\\RPC\\Adapters\\OrderServiceAdapter' => __DIR__ . '/../..' . '/app/RPC/Adapters/OrderServiceAdapter.php',
+        'App\\RPC\\Adapters\\UserServiceAdapter' => __DIR__ . '/../..' . '/app/RPC/Adapters/UserServiceAdapter.php',
         'App\\RPC\\BaseProcedure' => __DIR__ . '/../..' . '/app/RPC/BaseProcedure.php',
+        'App\\RPC\\Clients\\AuctionServiceRpcClient' => __DIR__ . '/../..' . '/app/RPC/Clients/AuctionServiceRpcClient.php',
+        'App\\RPC\\Clients\\NotificationServiceRpcClient' => __DIR__ . '/../..' . '/app/RPC/Clients/NotificationServiceRpcClient.php',
         'App\\RPC\\Procedures\\PaymentProcedure' => __DIR__ . '/../..' . '/app/RPC/Procedures/PaymentProcedure.php',
         'App\\Services\\EscrowService' => __DIR__ . '/../..' . '/app/Services/EscrowService.php',
         'App\\Services\\InvoiceService' => __DIR__ . '/../..' . '/app/Services/InvoiceService.php',
@@ -5178,12 +5183,8 @@ class ComposerStaticInit23c6ce16959d998345aea54379d78b34
         'PHPUnit\\Event\\Code\\ClassMethod' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/ClassMethod.php',
         'PHPUnit\\Event\\Code\\ComparisonFailure' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/ComparisonFailure.php',
         'PHPUnit\\Event\\Code\\ComparisonFailureBuilder' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/ComparisonFailureBuilder.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\DirectTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/DirectTrigger.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\IndirectTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/IndirectTrigger.php',
+        'PHPUnit\\Event\\Code\\IssueTrigger\\Code' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/Code.php',
         'PHPUnit\\Event\\Code\\IssueTrigger\\IssueTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/IssueTrigger.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\SelfTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/SelfTrigger.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\TestTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/TestTrigger.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\UnknownTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/UnknownTrigger.php',
         'PHPUnit\\Event\\Code\\NoTestCaseObjectOnCallStackException' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Exception/NoTestCaseObjectOnCallStackException.php',
         'PHPUnit\\Event\\Code\\Phpt' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Phpt.php',
         'PHPUnit\\Event\\Code\\Test' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Test.php',
@@ -8188,6 +8189,7 @@ class ComposerStaticInit23c6ce16959d998345aea54379d78b34
         'SebastianBergmann\\Type\\UnknownType' => __DIR__ . '/..' . '/sebastian/type/src/type/UnknownType.php',
         'SebastianBergmann\\Type\\VoidType' => __DIR__ . '/..' . '/sebastian/type/src/type/VoidType.php',
         'SebastianBergmann\\Version' => __DIR__ . '/..' . '/sebastian/version/src/Version.php',
+        'Shared\\Clients\\BaseRpcClient' => __DIR__ . '/../..' . '/../shared/src/Clients/BaseRpcClient.php',
         'Shared\\Config\\CrossServiceConfig' => __DIR__ . '/../..' . '/../shared/src/Config/CrossServiceConfig.php',
         'Shared\\Core\\BaseProcedure' => __DIR__ . '/../..' . '/../shared/src/Core/BaseProcedure.php',
         'Shared\\Core\\ProcedureEngine' => __DIR__ . '/../..' . '/../shared/src/Core/ProcedureEngine.php',
@@ -8197,6 +8199,7 @@ class ComposerStaticInit23c6ce16959d998345aea54379d78b34
         'Shared\\Idempotency\\IdempotencyManager' => __DIR__ . '/../..' . '/../shared/src/Idempotency/IdempotencyManager.php',
         'Shared\\Jobs\\BaseQueueJob' => __DIR__ . '/../..' . '/../shared/src/Jobs/BaseQueueJob.php',
         'Shared\\Middleware\\FuseCircuitBreakerMiddleware' => __DIR__ . '/../..' . '/../shared/src/Middleware/FuseCircuitBreakerMiddleware.php',
+        'Shared\\Middleware\\VarnishCacheMiddleware' => __DIR__ . '/../..' . '/../shared/src/Middleware/VarnishCacheMiddleware.php',
         'Shared\\Procedures\\CrossServiceProcedure' => __DIR__ . '/../..' . '/../shared/src/Procedures/CrossServiceProcedure.php',
         'Shared\\Procedures\\Macro\\WorkflowProcedure' => __DIR__ . '/../..' . '/../shared/src/Procedures/Macro/WorkflowProcedure.php',
         'Shared\\Procedures\\Micro\\AuctionLifecycleProcedure' => __DIR__ . '/../..' . '/../shared/src/Procedures/Micro/AuctionLifecycleProcedure.php',
@@ -8211,6 +8214,7 @@ class ComposerStaticInit23c6ce16959d998345aea54379d78b34
         'Shared\\Procedures\\Micro\\ValidationProcedure' => __DIR__ . '/../..' . '/../shared/src/Procedures/Micro/ValidationProcedure.php',
         'Shared\\Procedures\\Micro\\WebPushProcedure' => __DIR__ . '/../..' . '/../shared/src/Procedures/Micro/WebPushProcedure.php',
         'Shared\\Providers\\SharedServiceProvider' => __DIR__ . '/../..' . '/../shared/src/Providers/SharedServiceProvider.php',
+        'Shared\\Providers\\VarnishServiceProvider' => __DIR__ . '/../..' . '/../shared/src/Providers/VarnishServiceProvider.php',
         'Shared\\Services\\FileUploadService' => __DIR__ . '/../..' . '/../shared/src/Services/FileUploadService.php',
         'Shared\\Services\\TemplateManager' => __DIR__ . '/../..' . '/../shared/src/Services/TemplateManager.php',
         'Shared\\Traits\\AuctionNotificationTrait' => __DIR__ . '/../..' . '/../shared/src/Traits/AuctionNotificationTrait.php',

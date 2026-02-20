@@ -2,7 +2,7 @@
 
 namespace App\RPC\Procedures;
 
-use Shared\Procedures\BaseProcedure;
+use Shared\Core\BaseProcedure;
 use App\Models\Bid;
 use App\Models\Auction;
 use App\Services\BidService;
@@ -421,4 +421,3 @@ class BidProcedure extends BaseProcedure
         }
     }
 }
-

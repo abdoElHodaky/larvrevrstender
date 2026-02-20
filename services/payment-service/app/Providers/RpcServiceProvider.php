@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Shared\Procedures\ProcedureEngine;
+use Shared\Core\ProcedureEngine;
 use App\RPC\Procedures\PaymentProcedure;
 use App\Services\PaymentService;
 use App\Services\ReservationService;

@@ -2,7 +2,7 @@
 
 namespace App\RPC\Procedures;
 
-use Shared\Procedures\BaseProcedure;
+use Shared\Core\BaseProcedure;
 use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\Transaction;
@@ -398,4 +398,3 @@ class PaymentProcedure extends BaseProcedure
         }
     }
 }
-

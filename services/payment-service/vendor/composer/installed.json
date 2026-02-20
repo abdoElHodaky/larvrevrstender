@@ -2003,17 +2003,17 @@
         },
         {
             "name": "laravel-workflow/laravel-workflow",
-            "version": "1.0.61",
-            "version_normalized": "1.0.61.0",
+            "version": "1.0.62",
+            "version_normalized": "1.0.62.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/durable-workflow/workflow.git",
-                "reference": "238a64beedfb64866bbaa56eeec4c5762ca6c375"
+                "reference": "a321f300265ee698e1b86056074b7dd538f0ad86"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/durable-workflow/workflow/zipball/238a64beedfb64866bbaa56eeec4c5762ca6c375",
-                "reference": "238a64beedfb64866bbaa56eeec4c5762ca6c375",
+                "url": "https://api.github.com/repos/durable-workflow/workflow/zipball/a321f300265ee698e1b86056074b7dd538f0ad86",
+                "reference": "a321f300265ee698e1b86056074b7dd538f0ad86",
                 "shasum": ""
             },
             "require": {
@@ -2027,7 +2027,7 @@
                 "phpstan/phpstan": "^2.0",
                 "symplify/easy-coding-standard": "^11.0"
             },
-            "time": "2026-02-13T17:26:28+00:00",
+            "time": "2026-02-20T02:06:05+00:00",
             "type": "library",
             "extra": {
                 "laravel": {
@@ -2058,7 +2058,7 @@
             "description": "Durable workflow engine that allows users to write long running persistent distributed workflows (orchestrations) in PHP powered by Laravel queues.",
             "support": {
                 "issues": "https://github.com/durable-workflow/workflow/issues",
-                "source": "https://github.com/durable-workflow/workflow/tree/1.0.61"
+                "source": "https://github.com/durable-workflow/workflow/tree/1.0.62"
             },
             "install-path": "../laravel-workflow/laravel-workflow"
         },
@@ -5040,17 +5040,17 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "11.5.53",
-            "version_normalized": "11.5.53.0",
+            "version": "11.5.55",
+            "version_normalized": "11.5.55.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "a997a653a82845f1240d73ee73a8a4e97e4b0607"
+                "reference": "adc7262fccc12de2b30f12a8aa0b33775d814f00"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/a997a653a82845f1240d73ee73a8a4e97e4b0607",
-                "reference": "a997a653a82845f1240d73ee73a8a4e97e4b0607",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/adc7262fccc12de2b30f12a8aa0b33775d814f00",
+                "reference": "adc7262fccc12de2b30f12a8aa0b33775d814f00",
                 "shasum": ""
             },
             "require": {
@@ -5085,7 +5085,7 @@
             "suggest": {
                 "ext-soap": "To be able to generate mocks based on WSDL files"
             },
-            "time": "2026-02-10T12:28:25+00:00",
+            "time": "2026-02-18T12:37:06+00:00",
             "bin": [
                 "phpunit"
             ],
@@ -5125,7 +5125,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/11.5.53"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/11.5.55"
             },
             "funding": [
                 {
