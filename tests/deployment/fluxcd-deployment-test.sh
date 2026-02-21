@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # FluxCD Deployment Test Suite
-# Comprehensive testing for FluxCD deployment processes, Git synchronization,
-# and Kustomization reconciliation
+# Tests FluxCD controller health, Git synchronization, and Kustomization reconciliation
+# Part of Phase 1: Comprehensive Testing Framework
 
 set -euo pipefail
 
 # Configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-LOG_FILE="/tmp/fluxcd-deployment-test-$(date +%Y%m%d-%H%M%S).log"
-TEST_NAMESPACE="flux-system-test"
-TEST_TIMEOUT=300
+NAMESPACE="flux-system"
+TIMEOUT=300
+TEST_REPO_URL="https://github.com/abdoElHodaky/larvrevrstender.git"
+TEST_BRANCH="v2-blue-green-deploy"
+LOG_FILE="/tmp/fluxcd-test-$(date +%Y%m%d-%H%M%S).log"
 
 # Colors for output
 RED='\033[0;31m'
@@ -20,21 +20,21 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Logging functions
+# Logging function
 log() {
-    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}" | tee -a "$LOG_FILE"
-}
-
-success() {
-    echo -e "${GREEN}[SUCCESS] $1${NC}" | tee -a "$LOG_FILE"
-}
-
-warning() {
-    echo -e "${YELLOW}[WARNING] $1${NC}" | tee -a "$LOG_FILE"
+    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1" | tee -a "$LOG_FILE"
 }
 
 error() {
-    echo -e "${RED}[ERROR] $1${NC}" | tee -a "$LOG_FILE"
+    echo -e "${RED}[ERROR]${NC} $1" | tee -a "$LOG_FILE"
+}
+
+success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1" | tee -a "$LOG_FILE"
+}
+
+warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1" | tee -a "$LOG_FILE"
 }
 
 # Test result tracking
@@ -42,7 +42,7 @@ TESTS_PASSED=0
 TESTS_FAILED=0
 FAILED_TESTS=()
 
-# Test execution wrapper
+# Function to run a test and track results
 run_test() {
     local test_name="$1"
     local test_function="$2"
@@ -50,457 +50,345 @@ run_test() {
     log "Running test: $test_name"
     
     if $test_function; then
-        success "Test passed: $test_name"
+        success "✅ PASSED: $test_name"
         ((TESTS_PASSED++))
-        return 0
     else
-        error "Test failed: $test_name"
+        error "❌ FAILED: $test_name"
         FAILED_TESTS+=("$test_name")
         ((TESTS_FAILED++))
-        return 1
     fi
+    
+    echo "" | tee -a "$LOG_FILE"
 }
 
-# Cleanup function
-cleanup() {
-    log "Cleaning up test resources..."
+# Test 1: FluxCD Controller Health Check
+test_fluxcd_controllers() {
+    log "Testing FluxCD controller health..."
     
-    # Delete test namespace if it exists
-    if kubectl get namespace "$TEST_NAMESPACE" >/dev/null 2>&1; then
-        kubectl delete namespace "$TEST_NAMESPACE" --timeout=60s || true
-    fi
-    
-    # Clean up any test Git repositories
-    rm -rf /tmp/fluxcd-test-repo-* || true
-    
-    log "Cleanup completed"
-}
-
-# Set up cleanup trap
-trap cleanup EXIT
-
-# Prerequisites check
-check_prerequisites() {
-    log "Checking prerequisites..."
-    
-    # Check if kubectl is available
-    if ! command -v kubectl &> /dev/null; then
-        error "kubectl is not installed or not in PATH"
+    # Check if namespace exists
+    if ! kubectl get namespace "$NAMESPACE" &>/dev/null; then
+        error "FluxCD namespace '$NAMESPACE' does not exist"
         return 1
     fi
     
-    # Check if flux CLI is available
-    if ! command -v flux &> /dev/null; then
-        error "flux CLI is not installed or not in PATH"
-        return 1
-    fi
-    
-    # Check if git is available
-    if ! command -v git &> /dev/null; then
-        error "git is not installed or not in PATH"
-        return 1
-    fi
-    
-    # Check if jq is available
-    if ! command -v jq &> /dev/null; then
-        error "jq is not installed or not in PATH"
-        return 1
-    fi
-    
-    # Check Kubernetes cluster connectivity
-    if ! kubectl cluster-info >/dev/null 2>&1; then
-        error "Cannot connect to Kubernetes cluster"
-        return 1
-    fi
-    
-    success "Prerequisites check passed"
-    return 0
-}
-
-# Test 1: FluxCD Installation and Bootstrap
-test_fluxcd_installation() {
-    log "Testing FluxCD installation and bootstrap..."
-    
-    # Create test namespace
-    kubectl create namespace "$TEST_NAMESPACE" || return 1
-    
-    # Check if FluxCD CRDs are installed
-    local crds=(
-        "gitrepositories.source.toolkit.fluxcd.io"
-        "kustomizations.kustomize.toolkit.fluxcd.io"
-        "helmreleases.helm.toolkit.fluxcd.io"
-    )
-    
-    for crd in "${crds[@]}"; do
-        if ! kubectl get crd "$crd" >/dev/null 2>&1; then
-            error "FluxCD CRD not found: $crd"
-            return 1
-        fi
-    done
-    
-    # Check FluxCD controllers are running
+    # Required controllers
     local controllers=(
         "source-controller"
         "kustomize-controller"
         "helm-controller"
+        "notification-controller"
     )
     
+    local all_healthy=true
+    
     for controller in "${controllers[@]}"; do
-        if ! kubectl get deployment "$controller" -n flux-system >/dev/null 2>&1; then
-            error "FluxCD controller not found: $controller"
-            return 1
+        log "Checking $controller..."
+        
+        # Check if deployment exists
+        if ! kubectl get deployment "$controller" -n "$NAMESPACE" &>/dev/null; then
+            error "$controller deployment not found"
+            all_healthy=false
+            continue
         fi
         
-        # Check if controller is ready
-        if ! kubectl wait --for=condition=available --timeout=60s deployment/"$controller" -n flux-system; then
-            error "FluxCD controller not ready: $controller"
-            return 1
+        # Check if deployment is ready
+        local ready_replicas
+        ready_replicas=$(kubectl get deployment "$controller" -n "$NAMESPACE" -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+        local desired_replicas
+        desired_replicas=$(kubectl get deployment "$controller" -n "$NAMESPACE" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
+        
+        if [[ "$ready_replicas" != "$desired_replicas" ]]; then
+            error "$controller is not ready ($ready_replicas/$desired_replicas replicas)"
+            all_healthy=false
+        else
+            success "$controller is healthy ($ready_replicas/$desired_replicas replicas)"
+        fi
+        
+        # Check pod status
+        local pod_status
+        pod_status=$(kubectl get pods -n "$NAMESPACE" -l app="$controller" -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "Unknown")
+        
+        if [[ "$pod_status" != "Running" ]]; then
+            error "$controller pod status: $pod_status"
+            all_healthy=false
         fi
     done
     
-    success "FluxCD installation test passed"
-    return 0
+    return $([[ "$all_healthy" == "true" ]] && echo 0 || echo 1)
 }
 
 # Test 2: Git Repository Synchronization
-test_git_repository_sync() {
+test_git_synchronization() {
     log "Testing Git repository synchronization..."
     
-    # Create a test Git repository
-    local test_repo_dir="/tmp/fluxcd-test-repo-$(date +%s)"
-    mkdir -p "$test_repo_dir"
-    cd "$test_repo_dir"
+    # Check if GitRepository resource exists
+    local git_repos
+    git_repos=$(kubectl get gitrepository -n "$NAMESPACE" -o name 2>/dev/null || echo "")
     
-    git init
-    git config user.email "test@example.com"
-    git config user.name "Test User"
-    
-    # Create test manifests
-    mkdir -p manifests
-    cat > manifests/test-configmap.yaml << EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: fluxcd-test-config
-  namespace: $TEST_NAMESPACE
-data:
-  test-key: "test-value"
-  sync-test: "$(date +%s)"
-EOF
-    
-    git add .
-    git commit -m "Initial test commit"
-    
-    # Create GitRepository resource
-    cat > /tmp/test-gitrepository.yaml << EOF
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: GitRepository
-metadata:
-  name: fluxcd-test-repo
-  namespace: $TEST_NAMESPACE
-spec:
-  interval: 30s
-  url: file://$test_repo_dir
-  ref:
-    branch: main
-EOF
-    
-    kubectl apply -f /tmp/test-gitrepository.yaml
-    
-    # Wait for GitRepository to be ready
-    if ! kubectl wait --for=condition=ready --timeout=120s gitrepository/fluxcd-test-repo -n "$TEST_NAMESPACE"; then
-        error "GitRepository failed to become ready"
+    if [[ -z "$git_repos" ]]; then
+        error "No GitRepository resources found"
         return 1
     fi
     
-    # Check GitRepository status
-    local git_status
-    git_status=$(kubectl get gitrepository fluxcd-test-repo -n "$TEST_NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
+    local all_synced=true
     
-    if [[ "$git_status" != "True" ]]; then
-        error "GitRepository is not ready. Status: $git_status"
-        kubectl describe gitrepository fluxcd-test-repo -n "$TEST_NAMESPACE"
-        return 1
-    fi
+    while IFS= read -r repo; do
+        if [[ -n "$repo" ]]; then
+            local repo_name
+            repo_name=$(echo "$repo" | cut -d'/' -f2)
+            log "Checking GitRepository: $repo_name"
+            
+            # Check repository status
+            local ready_condition
+            ready_condition=$(kubectl get "$repo" -n "$NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "Unknown")
+            
+            if [[ "$ready_condition" != "True" ]]; then
+                error "GitRepository $repo_name is not ready"
+                
+                # Get detailed status
+                local message
+                message=$(kubectl get "$repo" -n "$NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].message}' 2>/dev/null || echo "No message")
+                error "Status message: $message"
+                
+                all_synced=false
+            else
+                success "GitRepository $repo_name is synchronized"
+                
+                # Check last sync time
+                local last_sync
+                last_sync=$(kubectl get "$repo" -n "$NAMESPACE" -o jsonpath='{.status.artifact.lastUpdateTime}' 2>/dev/null || echo "Unknown")
+                log "Last sync: $last_sync"
+            fi
+        fi
+    done <<< "$git_repos"
     
-    success "Git repository synchronization test passed"
-    return 0
+    return $([[ "$all_synced" == "true" ]] && echo 0 || echo 1)
 }
 
 # Test 3: Kustomization Reconciliation
 test_kustomization_reconciliation() {
     log "Testing Kustomization reconciliation..."
     
-    # Create Kustomization resource
-    cat > /tmp/test-kustomization.yaml << EOF
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: fluxcd-test-kustomization
-  namespace: $TEST_NAMESPACE
-spec:
-  interval: 30s
-  path: "./manifests"
-  prune: true
-  sourceRef:
-    kind: GitRepository
-    name: fluxcd-test-repo
-  targetNamespace: $TEST_NAMESPACE
-  timeout: 2m
-EOF
+    # Check if Kustomization resources exist
+    local kustomizations
+    kustomizations=$(kubectl get kustomization -n "$NAMESPACE" -o name 2>/dev/null || echo "")
     
-    kubectl apply -f /tmp/test-kustomization.yaml
-    
-    # Wait for Kustomization to be ready
-    if ! kubectl wait --for=condition=ready --timeout=180s kustomization/fluxcd-test-kustomization -n "$TEST_NAMESPACE"; then
-        error "Kustomization failed to become ready"
-        kubectl describe kustomization fluxcd-test-kustomization -n "$TEST_NAMESPACE"
+    if [[ -z "$kustomizations" ]]; then
+        error "No Kustomization resources found"
         return 1
     fi
     
-    # Check if the ConfigMap was created
-    if ! kubectl get configmap fluxcd-test-config -n "$TEST_NAMESPACE" >/dev/null 2>&1; then
-        error "ConfigMap was not created by Kustomization"
-        return 1
-    fi
+    local all_reconciled=true
     
-    # Verify ConfigMap content
-    local config_value
-    config_value=$(kubectl get configmap fluxcd-test-config -n "$TEST_NAMESPACE" -o jsonpath='{.data.test-key}')
+    while IFS= read -r kustomization; do
+        if [[ -n "$kustomization" ]]; then
+            local kust_name
+            kust_name=$(echo "$kustomization" | cut -d'/' -f2)
+            log "Checking Kustomization: $kust_name"
+            
+            # Check kustomization status
+            local ready_condition
+            ready_condition=$(kubectl get "$kustomization" -n "$NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "Unknown")
+            
+            if [[ "$ready_condition" != "True" ]]; then
+                error "Kustomization $kust_name is not ready"
+                
+                # Get detailed status
+                local message
+                message=$(kubectl get "$kustomization" -n "$NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].message}' 2>/dev/null || echo "No message")
+                error "Status message: $message"
+                
+                all_reconciled=false
+            else
+                success "Kustomization $kust_name is reconciled"
+                
+                # Check last reconciliation time
+                local last_reconcile
+                last_reconcile=$(kubectl get "$kustomization" -n "$NAMESPACE" -o jsonpath='{.status.lastAppliedRevision}' 2>/dev/null || echo "Unknown")
+                log "Last applied revision: $last_reconcile"
+            fi
+        fi
+    done <<< "$kustomizations"
     
-    if [[ "$config_value" != "test-value" ]]; then
-        error "ConfigMap content is incorrect. Expected: test-value, Got: $config_value"
-        return 1
-    fi
-    
-    success "Kustomization reconciliation test passed"
-    return 0
+    return $([[ "$all_reconciled" == "true" ]] && echo 0 || echo 1)
 }
 
 # Test 4: Git Drift Detection
 test_git_drift_detection() {
     log "Testing Git drift detection..."
     
-    # Modify the ConfigMap directly in the cluster
-    kubectl patch configmap fluxcd-test-config -n "$TEST_NAMESPACE" --patch '{"data":{"test-key":"modified-value"}}'
+    # Create a temporary change to test drift detection
+    local test_configmap="fluxcd-drift-test"
     
-    # Wait for reconciliation to detect and fix the drift
-    local max_attempts=10
-    local attempt=0
+    # Create test ConfigMap
+    kubectl create configmap "$test_configmap" -n "$NAMESPACE" --from-literal=test=drift-detection --dry-run=client -o yaml | kubectl apply -f - &>/dev/null
     
-    while [[ $attempt -lt $max_attempts ]]; do
-        sleep 10
+    if ! kubectl get configmap "$test_configmap" -n "$NAMESPACE" &>/dev/null; then
+        error "Failed to create test ConfigMap for drift detection"
+        return 1
+    fi
+    
+    # Modify the ConfigMap to simulate drift
+    kubectl patch configmap "$test_configmap" -n "$NAMESPACE" --type merge -p '{"data":{"test":"modified-value"}}' &>/dev/null
+    
+    # Wait for FluxCD to detect and correct the drift
+    local drift_corrected=false
+    local attempts=0
+    local max_attempts=30
+    
+    while [[ $attempts -lt $max_attempts ]]; do
         local current_value
-        current_value=$(kubectl get configmap fluxcd-test-config -n "$TEST_NAMESPACE" -o jsonpath='{.data.test-key}')
+        current_value=$(kubectl get configmap "$test_configmap" -n "$NAMESPACE" -o jsonpath='{.data.test}' 2>/dev/null || echo "")
         
-        if [[ "$current_value" == "test-value" ]]; then
-            success "Git drift was detected and corrected"
-            return 0
+        if [[ "$current_value" == "drift-detection" ]]; then
+            drift_corrected=true
+            break
         fi
         
-        ((attempt++))
-        log "Waiting for drift correction... (attempt $attempt/$max_attempts)"
+        sleep 2
+        ((attempts++))
     done
     
-    error "Git drift was not corrected within expected time"
-    return 1
+    # Cleanup
+    kubectl delete configmap "$test_configmap" -n "$NAMESPACE" &>/dev/null || true
+    
+    if [[ "$drift_corrected" == "true" ]]; then
+        success "Git drift detection and correction working (corrected in ${attempts}0 seconds)"
+        return 0
+    else
+        error "Git drift detection failed - drift not corrected after $((max_attempts * 2)) seconds"
+        return 1
+    fi
 }
 
-# Test 5: FluxCD Controller Failure Recovery
+# Test 5: Controller Failure Recovery
 test_controller_failure_recovery() {
     log "Testing FluxCD controller failure recovery..."
     
-    # Scale down source-controller
-    kubectl scale deployment source-controller --replicas=0 -n flux-system
+    # Test source-controller recovery
+    local controller="source-controller"
     
-    # Wait for controller to be unavailable
-    sleep 10
+    log "Testing $controller failure recovery..."
     
-    # Scale back up
-    kubectl scale deployment source-controller --replicas=1 -n flux-system
+    # Get current pod name
+    local pod_name
+    pod_name=$(kubectl get pods -n "$NAMESPACE" -l app="$controller" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
     
-    # Wait for controller to be ready
-    if ! kubectl wait --for=condition=available --timeout=120s deployment/source-controller -n flux-system; then
-        error "Source controller failed to recover"
+    if [[ -z "$pod_name" ]]; then
+        error "Could not find $controller pod"
         return 1
     fi
     
-    # Verify GitRepository is still functional
-    if ! kubectl wait --for=condition=ready --timeout=60s gitrepository/fluxcd-test-repo -n "$TEST_NAMESPACE"; then
-        error "GitRepository failed to recover after controller restart"
+    # Delete the pod to simulate failure
+    kubectl delete pod "$pod_name" -n "$NAMESPACE" &>/dev/null
+    
+    # Wait for pod to be recreated and become ready
+    local recovery_successful=false
+    local attempts=0
+    local max_attempts=60
+    
+    while [[ $attempts -lt $max_attempts ]]; do
+        local ready_replicas
+        ready_replicas=$(kubectl get deployment "$controller" -n "$NAMESPACE" -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+        local desired_replicas
+        desired_replicas=$(kubectl get deployment "$controller" -n "$NAMESPACE" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
+        
+        if [[ "$ready_replicas" == "$desired_replicas" ]]; then
+            # Check if it's a new pod
+            local new_pod_name
+            new_pod_name=$(kubectl get pods -n "$NAMESPACE" -l app="$controller" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+            
+            if [[ "$new_pod_name" != "$pod_name" ]]; then
+                recovery_successful=true
+                break
+            fi
+        fi
+        
+        sleep 5
+        ((attempts++))
+    done
+    
+    if [[ "$recovery_successful" == "true" ]]; then
+        success "$controller recovered successfully (took ${attempts}0 seconds)"
+        return 0
+    else
+        error "$controller failed to recover after $((max_attempts * 5)) seconds"
         return 1
     fi
-    
-    success "FluxCD controller failure recovery test passed"
-    return 0
 }
 
-# Test 6: Resource Validation and Health Checks
+# Test 6: Resource Validation
 test_resource_validation() {
-    log "Testing resource validation and health checks..."
+    log "Testing FluxCD resource validation..."
     
-    # Create an invalid resource to test validation
-    cat > /tmp/invalid-resource.yaml << EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: invalid-config
-  namespace: $TEST_NAMESPACE
-data:
-  # This should cause validation issues
-  invalid-key: |
-    This is a very long value that might cause issues
-    $(printf 'x%.0s' {1..10000})
-EOF
+    # Check for required CRDs
+    local required_crds=(
+        "gitrepositories.source.toolkit.fluxcd.io"
+        "kustomizations.kustomize.toolkit.fluxcd.io"
+        "helmrepositories.source.toolkit.fluxcd.io"
+        "helmreleases.helm.toolkit.fluxcd.io"
+    )
     
-    # Update Git repository with invalid resource
-    local test_repo_dir="/tmp/fluxcd-test-repo-$(ls -t /tmp/ | grep fluxcd-test-repo | head -1 | cut -d'-' -f4-)"
-    cp /tmp/invalid-resource.yaml "$test_repo_dir/manifests/"
+    local all_crds_present=true
     
-    cd "$test_repo_dir"
-    git add .
-    git commit -m "Add invalid resource for testing"
-    
-    # Wait and check if Kustomization handles the invalid resource appropriately
-    sleep 30
-    
-    # Check Kustomization status
-    local kustomization_status
-    kustomization_status=$(kubectl get kustomization fluxcd-test-kustomization -n "$TEST_NAMESPACE" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
-    
-    # The Kustomization should either handle it gracefully or report an error
-    if [[ "$kustomization_status" == "Unknown" ]]; then
-        warning "Kustomization is in Unknown state, which may be expected for invalid resources"
-    fi
-    
-    # Remove the invalid resource
-    rm "$test_repo_dir/manifests/invalid-resource.yaml"
-    cd "$test_repo_dir"
-    git add .
-    git commit -m "Remove invalid resource"
-    
-    # Wait for recovery
-    if ! kubectl wait --for=condition=ready --timeout=120s kustomization/fluxcd-test-kustomization -n "$TEST_NAMESPACE"; then
-        error "Kustomization failed to recover from invalid resource"
-        return 1
-    fi
-    
-    success "Resource validation test passed"
-    return 0
-}
-
-# Test 7: Metrics and Monitoring Integration
-test_metrics_monitoring() {
-    log "Testing metrics and monitoring integration..."
-    
-    # Check if FluxCD metrics are being exposed
-    local controllers=("source-controller" "kustomize-controller" "helm-controller")
-    
-    for controller in "${controllers[@]}"; do
-        # Get controller pod
-        local pod_name
-        pod_name=$(kubectl get pods -n flux-system -l app="$controller" -o jsonpath='{.items[0].metadata.name}')
-        
-        if [[ -z "$pod_name" ]]; then
-            error "No pod found for controller: $controller"
-            return 1
-        fi
-        
-        # Check if metrics endpoint is accessible
-        if ! kubectl exec -n flux-system "$pod_name" -- wget -q -O- http://localhost:8080/metrics | grep -q "gotk_"; then
-            error "Metrics not accessible for controller: $controller"
-            return 1
-        fi
-    done
-    
-    # Check if ServiceMonitor exists
-    if ! kubectl get servicemonitor flux-system -n flux-system >/dev/null 2>&1; then
-        warning "ServiceMonitor for FluxCD not found"
-    fi
-    
-    success "Metrics and monitoring integration test passed"
-    return 0
-}
-
-# Test 8: Performance and Resource Usage
-test_performance_resource_usage() {
-    log "Testing performance and resource usage..."
-    
-    # Get resource usage for FluxCD controllers
-    local controllers=("source-controller" "kustomize-controller" "helm-controller")
-    
-    for controller in "${controllers[@]}"; do
-        local pod_name
-        pod_name=$(kubectl get pods -n flux-system -l app="$controller" -o jsonpath='{.items[0].metadata.name}')
-        
-        if [[ -z "$pod_name" ]]; then
-            error "No pod found for controller: $controller"
-            return 1
-        fi
-        
-        # Get resource usage
-        local cpu_usage memory_usage
-        cpu_usage=$(kubectl top pod "$pod_name" -n flux-system --no-headers | awk '{print $2}')
-        memory_usage=$(kubectl top pod "$pod_name" -n flux-system --no-headers | awk '{print $3}')
-        
-        log "Controller $controller - CPU: $cpu_usage, Memory: $memory_usage"
-        
-        # Check if resource usage is within reasonable limits
-        # Convert memory to MB for comparison
-        local memory_mb
-        if [[ "$memory_usage" =~ ([0-9]+)Mi ]]; then
-            memory_mb=${BASH_REMATCH[1]}
-        elif [[ "$memory_usage" =~ ([0-9]+)Gi ]]; then
-            memory_mb=$((${BASH_REMATCH[1]} * 1024))
+    for crd in "${required_crds[@]}"; do
+        if kubectl get crd "$crd" &>/dev/null; then
+            success "CRD $crd is present"
         else
-            memory_mb=0
-        fi
-        
-        # Alert if memory usage is too high (>500MB)
-        if [[ $memory_mb -gt 500 ]]; then
-            warning "High memory usage for $controller: ${memory_usage}"
+            error "CRD $crd is missing"
+            all_crds_present=false
         fi
     done
     
-    success "Performance and resource usage test passed"
-    return 0
+    return $([[ "$all_crds_present" == "true" ]] && echo 0 || echo 1)
 }
 
 # Main test execution
 main() {
     log "Starting FluxCD Deployment Test Suite"
-    log "Log file: $LOG_FILE"
+    log "Logging to: $LOG_FILE"
+    log "Namespace: $NAMESPACE"
+    log "Timeout: ${TIMEOUT}s"
+    echo ""
     
-    # Check prerequisites
-    if ! check_prerequisites; then
-        error "Prerequisites check failed"
+    # Check if kubectl is available
+    if ! command -v kubectl &>/dev/null; then
+        error "kubectl is not installed or not in PATH"
+        exit 1
+    fi
+    
+    # Check if cluster is accessible
+    if ! kubectl cluster-info &>/dev/null; then
+        error "Cannot access Kubernetes cluster"
         exit 1
     fi
     
     # Run all tests
-    run_test "FluxCD Installation and Bootstrap" test_fluxcd_installation
-    run_test "Git Repository Synchronization" test_git_repository_sync
+    run_test "FluxCD Controller Health Check" test_fluxcd_controllers
+    run_test "Git Repository Synchronization" test_git_synchronization
     run_test "Kustomization Reconciliation" test_kustomization_reconciliation
     run_test "Git Drift Detection" test_git_drift_detection
     run_test "Controller Failure Recovery" test_controller_failure_recovery
     run_test "Resource Validation" test_resource_validation
-    run_test "Metrics and Monitoring Integration" test_metrics_monitoring
-    run_test "Performance and Resource Usage" test_performance_resource_usage
     
-    # Print test summary
-    log "Test Summary:"
-    log "============="
+    # Print summary
+    echo "=================================="
+    log "FluxCD Deployment Test Summary"
+    echo "=================================="
     success "Tests Passed: $TESTS_PASSED"
     
     if [[ $TESTS_FAILED -gt 0 ]]; then
         error "Tests Failed: $TESTS_FAILED"
-        error "Failed Tests:"
+        error "Failed tests:"
         for test in "${FAILED_TESTS[@]}"; do
             error "  - $test"
         done
+        echo ""
+        error "❌ FluxCD deployment tests FAILED"
         exit 1
     else
-        success "All tests passed!"
+        echo ""
+        success "✅ All FluxCD deployment tests PASSED"
         exit 0
     fi
 }

@@ -1,40 +1,59 @@
 #!/bin/bash
 
 # Blue-Green Deployment Validation Test Suite
-# Comprehensive testing for blue-green environment switching, health checks,
-# cross-environment connectivity, and service discovery validation
+# Tests environment switching, health checks, and service discovery
+# Part of Phase 1: Comprehensive Testing Framework
 
 set -euo pipefail
 
 # Configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-LOG_FILE="/tmp/blue-green-validation-test-$(date +%Y%m%d-%H%M%S).log"
-TEST_NAMESPACE="reverse-tender-test"
-TEST_TIMEOUT=300
+BLUE_NAMESPACE="reverse-tender-blue"
+GREEN_NAMESPACE="reverse-tender-green"
+TIMEOUT=600
+HEALTH_CHECK_TIMEOUT=120
+LOG_FILE="/tmp/blue-green-test-$(date +%Y%m%d-%H%M%S).log"
+
+# Service configuration
+SERVICES=(
+    "auth-service:8001"
+    "user-service:8002"
+    "analytics-service:8003"
+    "order-service:8004"
+    "bidding-service:8005"
+    "payment-service:8006"
+    "notification-service:8007"
+    "vin-ocr-service:8008"
+    "gateway-service:8009"
+    "auction-service:8010"
+)
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Logging functions
 log() {
-    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}" | tee -a "$LOG_FILE"
-}
-
-success() {
-    echo -e "${GREEN}[SUCCESS] $1${NC}" | tee -a "$LOG_FILE"
-}
-
-warning() {
-    echo -e "${YELLOW}[WARNING] $1${NC}" | tee -a "$LOG_FILE"
+    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1" | tee -a "$LOG_FILE"
 }
 
 error() {
-    echo -e "${RED}[ERROR] $1${NC}" | tee -a "$LOG_FILE"
+    echo -e "${RED}[ERROR]${NC} $1" | tee -a "$LOG_FILE"
+}
+
+success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1" | tee -a "$LOG_FILE"
+}
+
+warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1" | tee -a "$LOG_FILE"
+}
+
+info() {
+    echo -e "${CYAN}[INFO]${NC} $1" | tee -a "$LOG_FILE"
 }
 
 # Test result tracking
@@ -42,7 +61,7 @@ TESTS_PASSED=0
 TESTS_FAILED=0
 FAILED_TESTS=()
 
-# Test execution wrapper
+# Function to run a test and track results
 run_test() {
     local test_name="$1"
     local test_function="$2"
@@ -50,704 +69,407 @@ run_test() {
     log "Running test: $test_name"
     
     if $test_function; then
-        success "Test passed: $test_name"
+        success "✅ PASSED: $test_name"
         ((TESTS_PASSED++))
-        return 0
     else
-        error "Test failed: $test_name"
+        error "❌ FAILED: $test_name"
         FAILED_TESTS+=("$test_name")
         ((TESTS_FAILED++))
-        return 1
     fi
+    
+    echo "" | tee -a "$LOG_FILE"
 }
 
-# Cleanup function
-cleanup() {
-    log "Cleaning up test resources..."
-    
-    # Delete test namespace if it exists
-    if kubectl get namespace "$TEST_NAMESPACE" >/dev/null 2>&1; then
-        kubectl delete namespace "$TEST_NAMESPACE" --timeout=60s || true
-    fi
-    
-    # Clean up any test services
-    kubectl delete service test-blue-service test-green-service -n "$TEST_NAMESPACE" 2>/dev/null || true
-    
-    log "Cleanup completed"
+# Helper function to check if namespace exists
+namespace_exists() {
+    local namespace="$1"
+    kubectl get namespace "$namespace" &>/dev/null
 }
 
-# Set up cleanup trap
-trap cleanup EXIT
-
-# Prerequisites check
-check_prerequisites() {
-    log "Checking prerequisites..."
+# Helper function to wait for pods to be ready
+wait_for_pods_ready() {
+    local namespace="$1"
+    local timeout="$2"
+    local attempts=0
+    local max_attempts=$((timeout / 5))
     
-    # Check if kubectl is available
-    if ! command -v kubectl &> /dev/null; then
-        error "kubectl is not installed or not in PATH"
-        return 1
-    fi
+    log "Waiting for pods in namespace $namespace to be ready..."
     
-    # Check if curl is available
-    if ! command -v curl &> /dev/null; then
-        error "curl is not installed or not in PATH"
-        return 1
-    fi
+    while [[ $attempts -lt $max_attempts ]]; do
+        local not_ready_pods
+        not_ready_pods=$(kubectl get pods -n "$namespace" --field-selector=status.phase!=Running -o name 2>/dev/null | wc -l)
+        
+        if [[ $not_ready_pods -eq 0 ]]; then
+            # Check if all pods are actually ready (not just running)
+            local total_pods
+            total_pods=$(kubectl get pods -n "$namespace" -o name 2>/dev/null | wc -l)
+            local ready_pods
+            ready_pods=$(kubectl get pods -n "$namespace" -o jsonpath='{.items[*].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null | grep -o "True" | wc -l)
+            
+            if [[ $total_pods -eq $ready_pods ]] && [[ $total_pods -gt 0 ]]; then
+                success "All $total_pods pods in $namespace are ready"
+                return 0
+            fi
+        fi
+        
+        sleep 5
+        ((attempts++))
+        
+        if [[ $((attempts % 12)) -eq 0 ]]; then
+            log "Still waiting for pods in $namespace... (${attempts}0s elapsed)"
+        fi
+    done
     
-    # Check if jq is available
-    if ! command -v jq &> /dev/null; then
-        error "jq is not installed or not in PATH"
-        return 1
-    fi
-    
-    # Check Kubernetes cluster connectivity
-    if ! kubectl cluster-info >/dev/null 2>&1; then
-        error "Cannot connect to Kubernetes cluster"
-        return 1
-    fi
-    
-    success "Prerequisites check passed"
-    return 0
+    error "Pods in $namespace did not become ready within ${timeout}s"
+    return 1
 }
 
-# Setup test environment
-setup_test_environment() {
-    log "Setting up test environment..."
+# Test 1: Environment Namespace Validation
+test_environment_namespaces() {
+    log "Testing blue-green environment namespaces..."
     
-    # Create test namespace
-    kubectl create namespace "$TEST_NAMESPACE" || return 1
+    local namespaces_valid=true
     
-    # Create blue-green config for testing
-    cat > /tmp/test-blue-green-config.yaml << EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: blue-green-config
-  namespace: $TEST_NAMESPACE
-data:
-  ENVIRONMENT_COLOR: "blue"
-  DEPLOYMENT_TIMESTAMP: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  PREVIOUS_COLOR: "green"
-  HEALTH_CHECK_TIMEOUT: "30"
-  TRAFFIC_SWITCH_TIMEOUT: "60"
-EOF
-    
-    kubectl apply -f /tmp/test-blue-green-config.yaml
-    
-    success "Test environment setup completed"
-    return 0
-}
-
-# Test 1: Environment Color Configuration
-test_environment_color_configuration() {
-    log "Testing environment color configuration..."
-    
-    # Check if blue-green config exists
-    if ! kubectl get configmap blue-green-config -n "$TEST_NAMESPACE" >/dev/null 2>&1; then
-        error "Blue-green config not found"
-        return 1
-    fi
-    
-    # Get current environment color
-    local current_color
-    current_color=$(kubectl get configmap blue-green-config -n "$TEST_NAMESPACE" -o jsonpath='{.data.ENVIRONMENT_COLOR}')
-    
-    if [[ -z "$current_color" ]]; then
-        error "Environment color not set in config"
-        return 1
-    fi
-    
-    if [[ "$current_color" != "blue" && "$current_color" != "green" ]]; then
-        error "Invalid environment color: $current_color"
-        return 1
-    fi
-    
-    log "Current environment color: $current_color"
-    
-    # Test environment color switching
-    local new_color
-    if [[ "$current_color" == "blue" ]]; then
-        new_color="green"
+    # Check blue namespace
+    if namespace_exists "$BLUE_NAMESPACE"; then
+        success "Blue namespace '$BLUE_NAMESPACE' exists"
     else
-        new_color="blue"
+        error "Blue namespace '$BLUE_NAMESPACE' does not exist"
+        namespaces_valid=false
     fi
     
-    # Update environment color
-    kubectl patch configmap blue-green-config -n "$TEST_NAMESPACE" --patch "{\"data\":{\"ENVIRONMENT_COLOR\":\"$new_color\",\"PREVIOUS_COLOR\":\"$current_color\"}}"
-    
-    # Verify the change
-    local updated_color
-    updated_color=$(kubectl get configmap blue-green-config -n "$TEST_NAMESPACE" -o jsonpath='{.data.ENVIRONMENT_COLOR}')
-    
-    if [[ "$updated_color" != "$new_color" ]]; then
-        error "Environment color was not updated correctly. Expected: $new_color, Got: $updated_color"
-        return 1
+    # Check green namespace
+    if namespace_exists "$GREEN_NAMESPACE"; then
+        success "Green namespace '$GREEN_NAMESPACE' exists"
+    else
+        error "Green namespace '$GREEN_NAMESPACE' does not exist"
+        namespaces_valid=false
     fi
     
-    # Restore original color
-    kubectl patch configmap blue-green-config -n "$TEST_NAMESPACE" --patch "{\"data\":{\"ENVIRONMENT_COLOR\":\"$current_color\",\"PREVIOUS_COLOR\":\"$new_color\"}}"
-    
-    success "Environment color configuration test passed"
-    return 0
+    return $([[ "$namespaces_valid" == "true" ]] && echo 0 || echo 1)
 }
 
-# Test 2: Blue and Green Environment Deployment
-test_blue_green_environment_deployment() {
-    log "Testing blue and green environment deployment..."
+# Test 2: Service Deployment Validation
+test_service_deployments() {
+    log "Testing service deployments in both environments..."
     
-    # Create blue environment deployment
-    cat > /tmp/test-blue-deployment.yaml << EOF
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: test-app-blue
-  namespace: $TEST_NAMESPACE
-  labels:
-    app: test-app
-    environment-color: blue
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: test-app
-      environment-color: blue
-  template:
-    metadata:
-      labels:
-        app: test-app
-        environment-color: blue
-    spec:
-      containers:
-      - name: test-app
-        image: nginx:alpine
-        ports:
-        - containerPort: 80
-        env:
-        - name: ENVIRONMENT_COLOR
-          value: "blue"
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        command: ["/bin/sh"]
-        args:
-        - -c
-        - |
-          echo "Environment: \$ENVIRONMENT_COLOR, Pod: \$POD_NAME" > /usr/share/nginx/html/index.html
-          echo "{\"environment_color\": \"\$ENVIRONMENT_COLOR\", \"pod_name\": \"\$POD_NAME\", \"status\": \"healthy\"}" > /usr/share/nginx/html/health
-          nginx -g 'daemon off;'
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 80
-          initialDelaySeconds: 10
-          periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: test-blue-service
-  namespace: $TEST_NAMESPACE
-  labels:
-    app: test-app
-    environment-color: blue
-spec:
-  selector:
-    app: test-app
-    environment-color: blue
-  ports:
-  - port: 80
-    targetPort: 80
-  type: ClusterIP
-EOF
+    local all_deployments_valid=true
     
-    kubectl apply -f /tmp/test-blue-deployment.yaml
+    for namespace in "$BLUE_NAMESPACE" "$GREEN_NAMESPACE"; do
+        log "Checking deployments in $namespace..."
+        
+        for service_config in "${SERVICES[@]}"; do
+            local service_name
+            service_name=$(echo "$service_config" | cut -d':' -f1)
+            
+            # Check if deployment exists
+            if kubectl get deployment "$service_name" -n "$namespace" &>/dev/null; then
+                # Check deployment status
+                local ready_replicas
+                ready_replicas=$(kubectl get deployment "$service_name" -n "$namespace" -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+                local desired_replicas
+                desired_replicas=$(kubectl get deployment "$service_name" -n "$namespace" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
+                
+                if [[ "$ready_replicas" == "$desired_replicas" ]]; then
+                    success "$service_name deployment in $namespace: $ready_replicas/$desired_replicas ready"
+                else
+                    error "$service_name deployment in $namespace: $ready_replicas/$desired_replicas ready"
+                    all_deployments_valid=false
+                fi
+            else
+                error "$service_name deployment not found in $namespace"
+                all_deployments_valid=false
+            fi
+        done
+    done
     
-    # Create green environment deployment
-    cat > /tmp/test-green-deployment.yaml << EOF
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: test-app-green
-  namespace: $TEST_NAMESPACE
-  labels:
-    app: test-app
-    environment-color: green
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: test-app
-      environment-color: green
-  template:
-    metadata:
-      labels:
-        app: test-app
-        environment-color: green
-    spec:
-      containers:
-      - name: test-app
-        image: nginx:alpine
-        ports:
-        - containerPort: 80
-        env:
-        - name: ENVIRONMENT_COLOR
-          value: "green"
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        command: ["/bin/sh"]
-        args:
-        - -c
-        - |
-          echo "Environment: \$ENVIRONMENT_COLOR, Pod: \$POD_NAME" > /usr/share/nginx/html/index.html
-          echo "{\"environment_color\": \"\$ENVIRONMENT_COLOR\", \"pod_name\": \"\$POD_NAME\", \"status\": \"healthy\"}" > /usr/share/nginx/html/health
-          nginx -g 'daemon off;'
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 80
-          initialDelaySeconds: 10
-          periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: test-green-service
-  namespace: $TEST_NAMESPACE
-  labels:
-    app: test-app
-    environment-color: green
-spec:
-  selector:
-    app: test-app
-    environment-color: green
-  ports:
-  - port: 80
-    targetPort: 80
-  type: ClusterIP
-EOF
-    
-    kubectl apply -f /tmp/test-green-deployment.yaml
-    
-    # Wait for deployments to be ready
-    if ! kubectl wait --for=condition=available --timeout=120s deployment/test-app-blue -n "$TEST_NAMESPACE"; then
-        error "Blue deployment failed to become ready"
-        return 1
-    fi
-    
-    if ! kubectl wait --for=condition=available --timeout=120s deployment/test-app-green -n "$TEST_NAMESPACE"; then
-        error "Green deployment failed to become ready"
-        return 1
-    fi
-    
-    # Verify both environments are running
-    local blue_pods green_pods
-    blue_pods=$(kubectl get pods -n "$TEST_NAMESPACE" -l environment-color=blue --no-headers | wc -l)
-    green_pods=$(kubectl get pods -n "$TEST_NAMESPACE" -l environment-color=green --no-headers | wc -l)
-    
-    if [[ $blue_pods -lt 2 ]]; then
-        error "Blue environment does not have enough pods running. Expected: 2, Got: $blue_pods"
-        return 1
-    fi
-    
-    if [[ $green_pods -lt 2 ]]; then
-        error "Green environment does not have enough pods running. Expected: 2, Got: $green_pods"
-        return 1
-    fi
-    
-    success "Blue and green environment deployment test passed"
-    return 0
+    return $([[ "$all_deployments_valid" == "true" ]] && echo 0 || echo 1)
 }
 
 # Test 3: Health Check Validation
-test_health_check_validation() {
-    log "Testing health check validation..."
+test_health_checks() {
+    log "Testing health checks for all services..."
     
-    # Test blue environment health
-    local blue_pod
-    blue_pod=$(kubectl get pods -n "$TEST_NAMESPACE" -l environment-color=blue -o jsonpath='{.items[0].metadata.name}')
+    local all_health_checks_pass=true
     
-    if [[ -z "$blue_pod" ]]; then
-        error "No blue pods found"
-        return 1
-    fi
+    for namespace in "$BLUE_NAMESPACE" "$GREEN_NAMESPACE"; do
+        log "Testing health checks in $namespace..."
+        
+        for service_config in "${SERVICES[@]}"; do
+            local service_name
+            service_name=$(echo "$service_config" | cut -d':' -f1)
+            local service_port
+            service_port=$(echo "$service_config" | cut -d':' -f2)
+            
+            # Get service endpoint
+            local service_ip
+            service_ip=$(kubectl get service "$service_name" -n "$namespace" -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo "")
+            
+            if [[ -z "$service_ip" ]]; then
+                error "Service $service_name not found in $namespace"
+                all_health_checks_pass=false
+                continue
+            fi
+            
+            # Test health check endpoint
+            local health_check_url="http://$service_ip:$service_port/health"
+            
+            # Use kubectl exec to test from within cluster
+            local test_pod
+            test_pod=$(kubectl get pods -n "$namespace" -l app="$service_name" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+            
+            if [[ -n "$test_pod" ]]; then
+                local health_response
+                health_response=$(kubectl exec "$test_pod" -n "$namespace" -- curl -s -o /dev/null -w "%{http_code}" "$health_check_url" 2>/dev/null || echo "000")
+                
+                if [[ "$health_response" == "200" ]]; then
+                    success "$service_name health check in $namespace: HTTP $health_response"
+                else
+                    error "$service_name health check in $namespace: HTTP $health_response"
+                    all_health_checks_pass=false
+                fi
+            else
+                error "No pods found for $service_name in $namespace"
+                all_health_checks_pass=false
+            fi
+        done
+    done
     
-    # Test health endpoint
-    local blue_health
-    blue_health=$(kubectl exec -n "$TEST_NAMESPACE" "$blue_pod" -- curl -s http://localhost/health)
-    
-    if ! echo "$blue_health" | jq -e '.status == "healthy"' >/dev/null; then
-        error "Blue environment health check failed. Response: $blue_health"
-        return 1
-    fi
-    
-    # Test green environment health
-    local green_pod
-    green_pod=$(kubectl get pods -n "$TEST_NAMESPACE" -l environment-color=green -o jsonpath='{.items[0].metadata.name}')
-    
-    if [[ -z "$green_pod" ]]; then
-        error "No green pods found"
-        return 1
-    fi
-    
-    local green_health
-    green_health=$(kubectl exec -n "$TEST_NAMESPACE" "$green_pod" -- curl -s http://localhost/health)
-    
-    if ! echo "$green_health" | jq -e '.status == "healthy"' >/dev/null; then
-        error "Green environment health check failed. Response: $green_health"
-        return 1
-    fi
-    
-    # Verify environment colors in health responses
-    local blue_color green_color
-    blue_color=$(echo "$blue_health" | jq -r '.environment_color')
-    green_color=$(echo "$green_health" | jq -r '.environment_color')
-    
-    if [[ "$blue_color" != "blue" ]]; then
-        error "Blue environment reporting incorrect color: $blue_color"
-        return 1
-    fi
-    
-    if [[ "$green_color" != "green" ]]; then
-        error "Green environment reporting incorrect color: $green_color"
-        return 1
-    fi
-    
-    success "Health check validation test passed"
-    return 0
+    return $([[ "$all_health_checks_pass" == "true" ]] && echo 0 || echo 1)
 }
 
 # Test 4: Cross-Environment Connectivity
 test_cross_environment_connectivity() {
     log "Testing cross-environment connectivity..."
     
-    # Get pod from blue environment
-    local blue_pod
-    blue_pod=$(kubectl get pods -n "$TEST_NAMESPACE" -l environment-color=blue -o jsonpath='{.items[0].metadata.name}')
+    local connectivity_valid=true
     
-    # Test connectivity from blue to green service
-    local green_service_ip
-    green_service_ip=$(kubectl get service test-green-service -n "$TEST_NAMESPACE" -o jsonpath='{.spec.clusterIP}')
+    # Test connectivity from blue to green
+    log "Testing connectivity from blue to green environment..."
     
-    if [[ -z "$green_service_ip" ]]; then
-        error "Green service IP not found"
+    local blue_test_pod
+    blue_test_pod=$(kubectl get pods -n "$BLUE_NAMESPACE" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+    
+    if [[ -z "$blue_test_pod" ]]; then
+        error "No pods found in blue environment for connectivity test"
         return 1
     fi
     
-    # Test HTTP connectivity
-    if ! kubectl exec -n "$TEST_NAMESPACE" "$blue_pod" -- curl -s --max-time 10 "http://$green_service_ip/health" >/dev/null; then
-        error "Blue environment cannot connect to green service"
-        return 1
+    # Test connection to green gateway service
+    local green_gateway_ip
+    green_gateway_ip=$(kubectl get service gateway-service -n "$GREEN_NAMESPACE" -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo "")
+    
+    if [[ -n "$green_gateway_ip" ]]; then
+        local connectivity_test
+        connectivity_test=$(kubectl exec "$blue_test_pod" -n "$BLUE_NAMESPACE" -- curl -s -o /dev/null -w "%{http_code}" "http://$green_gateway_ip:8009/health" 2>/dev/null || echo "000")
+        
+        if [[ "$connectivity_test" == "200" ]]; then
+            success "Blue to Green connectivity: HTTP $connectivity_test"
+        else
+            error "Blue to Green connectivity failed: HTTP $connectivity_test"
+            connectivity_valid=false
+        fi
+    else
+        error "Green gateway service IP not found"
+        connectivity_valid=false
     fi
     
-    # Test connectivity from green to blue service
-    local green_pod
-    green_pod=$(kubectl get pods -n "$TEST_NAMESPACE" -l environment-color=green -o jsonpath='{.items[0].metadata.name}')
+    # Test connectivity from green to blue
+    log "Testing connectivity from green to blue environment..."
     
-    local blue_service_ip
-    blue_service_ip=$(kubectl get service test-blue-service -n "$TEST_NAMESPACE" -o jsonpath='{.spec.clusterIP}')
+    local green_test_pod
+    green_test_pod=$(kubectl get pods -n "$GREEN_NAMESPACE" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
     
-    if [[ -z "$blue_service_ip" ]]; then
-        error "Blue service IP not found"
-        return 1
+    if [[ -n "$green_test_pod" ]]; then
+        local blue_gateway_ip
+        blue_gateway_ip=$(kubectl get service gateway-service -n "$BLUE_NAMESPACE" -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo "")
+        
+        if [[ -n "$blue_gateway_ip" ]]; then
+            local connectivity_test
+            connectivity_test=$(kubectl exec "$green_test_pod" -n "$GREEN_NAMESPACE" -- curl -s -o /dev/null -w "%{http_code}" "http://$blue_gateway_ip:8009/health" 2>/dev/null || echo "000")
+            
+            if [[ "$connectivity_test" == "200" ]]; then
+                success "Green to Blue connectivity: HTTP $connectivity_test"
+            else
+                error "Green to Blue connectivity failed: HTTP $connectivity_test"
+                connectivity_valid=false
+            fi
+        else
+            error "Blue gateway service IP not found"
+            connectivity_valid=false
+        fi
+    else
+        error "No pods found in green environment for connectivity test"
+        connectivity_valid=false
     fi
     
-    if ! kubectl exec -n "$TEST_NAMESPACE" "$green_pod" -- curl -s --max-time 10 "http://$blue_service_ip/health" >/dev/null; then
-        error "Green environment cannot connect to blue service"
-        return 1
-    fi
-    
-    success "Cross-environment connectivity test passed"
-    return 0
+    return $([[ "$connectivity_valid" == "true" ]] && echo 0 || echo 1)
 }
 
 # Test 5: Service Discovery Validation
-test_service_discovery_validation() {
-    log "Testing service discovery validation..."
+test_service_discovery() {
+    log "Testing service discovery within environments..."
     
-    # Test DNS resolution for services
-    local blue_pod
-    blue_pod=$(kubectl get pods -n "$TEST_NAMESPACE" -l environment-color=blue -o jsonpath='{.items[0].metadata.name}')
+    local service_discovery_valid=true
     
-    # Test DNS resolution for green service
-    if ! kubectl exec -n "$TEST_NAMESPACE" "$blue_pod" -- nslookup test-green-service."$TEST_NAMESPACE".svc.cluster.local >/dev/null 2>&1; then
-        error "DNS resolution failed for green service from blue environment"
-        return 1
-    fi
-    
-    # Test DNS resolution for blue service from green environment
-    local green_pod
-    green_pod=$(kubectl get pods -n "$TEST_NAMESPACE" -l environment-color=green -o jsonpath='{.items[0].metadata.name}')
-    
-    if ! kubectl exec -n "$TEST_NAMESPACE" "$green_pod" -- nslookup test-blue-service."$TEST_NAMESPACE".svc.cluster.local >/dev/null 2>&1; then
-        error "DNS resolution failed for blue service from green environment"
-        return 1
-    fi
-    
-    # Test service endpoint discovery
-    local blue_endpoints green_endpoints
-    blue_endpoints=$(kubectl get endpoints test-blue-service -n "$TEST_NAMESPACE" -o jsonpath='{.subsets[0].addresses}')
-    green_endpoints=$(kubectl get endpoints test-green-service -n "$TEST_NAMESPACE" -o jsonpath='{.subsets[0].addresses}')
-    
-    if [[ -z "$blue_endpoints" ]]; then
-        error "No endpoints found for blue service"
-        return 1
-    fi
-    
-    if [[ -z "$green_endpoints" ]]; then
-        error "No endpoints found for green service"
-        return 1
-    fi
-    
-    # Count endpoints
-    local blue_endpoint_count green_endpoint_count
-    blue_endpoint_count=$(echo "$blue_endpoints" | jq '. | length')
-    green_endpoint_count=$(echo "$green_endpoints" | jq '. | length')
-    
-    if [[ $blue_endpoint_count -lt 2 ]]; then
-        error "Blue service has insufficient endpoints. Expected: 2, Got: $blue_endpoint_count"
-        return 1
-    fi
-    
-    if [[ $green_endpoint_count -lt 2 ]]; then
-        error "Green service has insufficient endpoints. Expected: 2, Got: $green_endpoint_count"
-        return 1
-    fi
-    
-    success "Service discovery validation test passed"
-    return 0
-}
-
-# Test 6: Environment Switching Simulation
-test_environment_switching() {
-    log "Testing environment switching simulation..."
-    
-    # Get current active environment
-    local current_color
-    current_color=$(kubectl get configmap blue-green-config -n "$TEST_NAMESPACE" -o jsonpath='{.data.ENVIRONMENT_COLOR}')
-    
-    # Determine target environment
-    local target_color
-    if [[ "$current_color" == "blue" ]]; then
-        target_color="green"
-    else
-        target_color="blue"
-    fi
-    
-    log "Simulating switch from $current_color to $target_color environment"
-    
-    # Update configuration to switch environments
-    kubectl patch configmap blue-green-config -n "$TEST_NAMESPACE" --patch "{
-        \"data\": {
-            \"ENVIRONMENT_COLOR\": \"$target_color\",
-            \"PREVIOUS_COLOR\": \"$current_color\",
-            \"DEPLOYMENT_TIMESTAMP\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
-        }
-    }"
-    
-    # Verify the switch
-    local new_color
-    new_color=$(kubectl get configmap blue-green-config -n "$TEST_NAMESPACE" -o jsonpath='{.data.ENVIRONMENT_COLOR}')
-    
-    if [[ "$new_color" != "$target_color" ]]; then
-        error "Environment switch failed. Expected: $target_color, Got: $new_color"
-        return 1
-    fi
-    
-    # Verify previous color is recorded
-    local previous_color
-    previous_color=$(kubectl get configmap blue-green-config -n "$TEST_NAMESPACE" -o jsonpath='{.data.PREVIOUS_COLOR}')
-    
-    if [[ "$previous_color" != "$current_color" ]]; then
-        error "Previous color not recorded correctly. Expected: $current_color, Got: $previous_color"
-        return 1
-    fi
-    
-    # Test that both environments are still healthy after switch
-    sleep 5
-    
-    # Verify target environment is healthy
-    local target_pod target_health
-    target_pod=$(kubectl get pods -n "$TEST_NAMESPACE" -l environment-color="$target_color" -o jsonpath='{.items[0].metadata.name}')
-    target_health=$(kubectl exec -n "$TEST_NAMESPACE" "$target_pod" -- curl -s http://localhost/health)
-    
-    if ! echo "$target_health" | jq -e '.status == "healthy"' >/dev/null; then
-        error "Target environment ($target_color) is not healthy after switch"
-        return 1
-    fi
-    
-    # Switch back to original environment
-    kubectl patch configmap blue-green-config -n "$TEST_NAMESPACE" --patch "{
-        \"data\": {
-            \"ENVIRONMENT_COLOR\": \"$current_color\",
-            \"PREVIOUS_COLOR\": \"$target_color\",
-            \"DEPLOYMENT_TIMESTAMP\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
-        }
-    }"
-    
-    success "Environment switching simulation test passed"
-    return 0
-}
-
-# Test 7: Load Balancing and Traffic Distribution
-test_load_balancing_traffic_distribution() {
-    log "Testing load balancing and traffic distribution..."
-    
-    # Test load balancing within blue environment
-    local blue_responses=()
-    local blue_service_ip
-    blue_service_ip=$(kubectl get service test-blue-service -n "$TEST_NAMESPACE" -o jsonpath='{.spec.clusterIP}')
-    
-    # Make multiple requests to test load balancing
-    local test_pod
-    test_pod=$(kubectl get pods -n "$TEST_NAMESPACE" -l environment-color=blue -o jsonpath='{.items[0].metadata.name}')
-    
-    for i in {1..10}; do
-        local response
-        response=$(kubectl exec -n "$TEST_NAMESPACE" "$test_pod" -- curl -s "http://$blue_service_ip/health" | jq -r '.pod_name')
-        blue_responses+=("$response")
+    for namespace in "$BLUE_NAMESPACE" "$GREEN_NAMESPACE"; do
+        log "Testing service discovery in $namespace..."
+        
+        # Get a test pod
+        local test_pod
+        test_pod=$(kubectl get pods -n "$namespace" -l app=gateway-service -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+        
+        if [[ -z "$test_pod" ]]; then
+            error "No gateway-service pod found in $namespace for service discovery test"
+            service_discovery_valid=false
+            continue
+        fi
+        
+        # Test DNS resolution for each service
+        for service_config in "${SERVICES[@]}"; do
+            local service_name
+            service_name=$(echo "$service_config" | cut -d':' -f1)
+            
+            # Test DNS resolution
+            local dns_test
+            dns_test=$(kubectl exec "$test_pod" -n "$namespace" -- nslookup "$service_name.$namespace.svc.cluster.local" 2>/dev/null | grep -c "Address:" || echo "0")
+            
+            if [[ $dns_test -gt 0 ]]; then
+                success "Service discovery for $service_name in $namespace: DNS resolved"
+            else
+                error "Service discovery for $service_name in $namespace: DNS resolution failed"
+                service_discovery_valid=false
+            fi
+        done
     done
     
-    # Check if requests were distributed across multiple pods
-    local unique_pods
-    unique_pods=$(printf '%s\n' "${blue_responses[@]}" | sort -u | wc -l)
-    
-    if [[ $unique_pods -lt 2 ]]; then
-        warning "Load balancing may not be working properly. Only $unique_pods unique pods responded"
-    else
-        log "Load balancing working correctly. Requests distributed across $unique_pods pods"
-    fi
-    
-    # Test the same for green environment
-    local green_responses=()
-    local green_service_ip
-    green_service_ip=$(kubectl get service test-green-service -n "$TEST_NAMESPACE" -o jsonpath='{.spec.clusterIP}')
-    
-    for i in {1..10}; do
-        local response
-        response=$(kubectl exec -n "$TEST_NAMESPACE" "$test_pod" -- curl -s "http://$green_service_ip/health" | jq -r '.pod_name')
-        green_responses+=("$response")
-    done
-    
-    unique_pods=$(printf '%s\n' "${green_responses[@]}" | sort -u | wc -l)
-    
-    if [[ $unique_pods -lt 2 ]]; then
-        warning "Green environment load balancing may not be working properly. Only $unique_pods unique pods responded"
-    else
-        log "Green environment load balancing working correctly. Requests distributed across $unique_pods pods"
-    fi
-    
-    success "Load balancing and traffic distribution test passed"
-    return 0
+    return $([[ "$service_discovery_valid" == "true" ]] && echo 0 || echo 1)
 }
 
-# Test 8: Environment Consistency Validation
+# Test 6: Environment Consistency Check
 test_environment_consistency() {
-    log "Testing environment consistency validation..."
+    log "Testing environment consistency between blue and green..."
     
-    # Check that all blue pods report the same environment color
-    local blue_pods
-    readarray -t blue_pods < <(kubectl get pods -n "$TEST_NAMESPACE" -l environment-color=blue -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n')
+    local consistency_valid=true
     
-    for pod in "${blue_pods[@]}"; do
-        local pod_color
-        pod_color=$(kubectl exec -n "$TEST_NAMESPACE" "$pod" -- curl -s http://localhost/health | jq -r '.environment_color')
+    # Compare service configurations
+    for service_config in "${SERVICES[@]}"; do
+        local service_name
+        service_name=$(echo "$service_config" | cut -d':' -f1)
         
-        if [[ "$pod_color" != "blue" ]]; then
-            error "Blue pod $pod reporting incorrect environment color: $pod_color"
-            return 1
+        # Get blue environment configuration
+        local blue_image
+        blue_image=$(kubectl get deployment "$service_name" -n "$BLUE_NAMESPACE" -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || echo "")
+        local blue_replicas
+        blue_replicas=$(kubectl get deployment "$service_name" -n "$BLUE_NAMESPACE" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "")
+        
+        # Get green environment configuration
+        local green_image
+        green_image=$(kubectl get deployment "$service_name" -n "$GREEN_NAMESPACE" -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || echo "")
+        local green_replicas
+        green_replicas=$(kubectl get deployment "$service_name" -n "$GREEN_NAMESPACE" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "")
+        
+        # Compare configurations
+        if [[ "$blue_image" == "$green_image" ]]; then
+            success "$service_name image consistency: $blue_image"
+        else
+            warning "$service_name image difference: Blue=$blue_image, Green=$green_image"
+            # This might be expected during deployment, so it's a warning not an error
+        fi
+        
+        if [[ "$blue_replicas" == "$green_replicas" ]]; then
+            success "$service_name replica consistency: $blue_replicas"
+        else
+            error "$service_name replica difference: Blue=$blue_replicas, Green=$green_replicas"
+            consistency_valid=false
         fi
     done
     
-    # Check that all green pods report the same environment color
-    local green_pods
-    readarray -t green_pods < <(kubectl get pods -n "$TEST_NAMESPACE" -l environment-color=green -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n')
+    return $([[ "$consistency_valid" == "true" ]] && echo 0 || echo 1)
+}
+
+# Test 7: Database Migration Coordination
+test_database_migration_coordination() {
+    log "Testing database migration coordination..."
     
-    for pod in "${green_pods[@]}"; do
-        local pod_color
-        pod_color=$(kubectl exec -n "$TEST_NAMESPACE" "$pod" -- curl -s http://localhost/health | jq -r '.environment_color')
-        
-        if [[ "$pod_color" != "green" ]]; then
-            error "Green pod $pod reporting incorrect environment color: $pod_color"
-            return 1
-        fi
-    done
+    # Check if migration service is available
+    local migration_pod
+    migration_pod=$(kubectl get pods -n "$BLUE_NAMESPACE" -l app=shared -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
     
-    # Verify that environments are isolated (no cross-contamination)
-    local blue_pod_count_in_green green_pod_count_in_blue
-    blue_pod_count_in_green=$(kubectl get pods -n "$TEST_NAMESPACE" -l app=test-app,environment-color=green --field-selector=metadata.name~=blue --no-headers 2>/dev/null | wc -l)
-    green_pod_count_in_blue=$(kubectl get pods -n "$TEST_NAMESPACE" -l app=test-app,environment-color=blue --field-selector=metadata.name~=green --no-headers 2>/dev/null | wc -l)
+    if [[ -z "$migration_pod" ]]; then
+        migration_pod=$(kubectl get pods -n "$GREEN_NAMESPACE" -l app=shared -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+    fi
     
-    if [[ $blue_pod_count_in_green -gt 0 ]]; then
-        error "Found blue pods in green environment (cross-contamination detected)"
+    if [[ -z "$migration_pod" ]]; then
+        error "No shared service pod found for migration testing"
         return 1
     fi
     
-    if [[ $green_pod_count_in_blue -gt 0 ]]; then
-        error "Found green pods in blue environment (cross-contamination detected)"
+    local namespace
+    namespace=$(kubectl get pod "$migration_pod" -o jsonpath='{.metadata.namespace}' 2>/dev/null || echo "")
+    
+    # Test migration status check
+    local migration_status
+    migration_status=$(kubectl exec "$migration_pod" -n "$namespace" -- php artisan blue-green:migration-status 2>/dev/null || echo "FAILED")
+    
+    if [[ "$migration_status" != "FAILED" ]]; then
+        success "Database migration coordination is functional"
+        info "Migration status: $migration_status"
+        return 0
+    else
+        error "Database migration coordination test failed"
         return 1
     fi
-    
-    success "Environment consistency validation test passed"
-    return 0
 }
 
 # Main test execution
 main() {
     log "Starting Blue-Green Deployment Validation Test Suite"
-    log "Log file: $LOG_FILE"
+    log "Logging to: $LOG_FILE"
+    log "Blue Namespace: $BLUE_NAMESPACE"
+    log "Green Namespace: $GREEN_NAMESPACE"
+    log "Timeout: ${TIMEOUT}s"
+    echo ""
     
-    # Check prerequisites
-    if ! check_prerequisites; then
-        error "Prerequisites check failed"
+    # Check if kubectl is available
+    if ! command -v kubectl &>/dev/null; then
+        error "kubectl is not installed or not in PATH"
         exit 1
     fi
     
-    # Setup test environment
-    if ! setup_test_environment; then
-        error "Test environment setup failed"
+    # Check if cluster is accessible
+    if ! kubectl cluster-info &>/dev/null; then
+        error "Cannot access Kubernetes cluster"
         exit 1
     fi
     
     # Run all tests
-    run_test "Environment Color Configuration" test_environment_color_configuration
-    run_test "Blue and Green Environment Deployment" test_blue_green_environment_deployment
-    run_test "Health Check Validation" test_health_check_validation
+    run_test "Environment Namespace Validation" test_environment_namespaces
+    run_test "Service Deployment Validation" test_service_deployments
+    run_test "Health Check Validation" test_health_checks
     run_test "Cross-Environment Connectivity" test_cross_environment_connectivity
-    run_test "Service Discovery Validation" test_service_discovery_validation
-    run_test "Environment Switching Simulation" test_environment_switching
-    run_test "Load Balancing and Traffic Distribution" test_load_balancing_traffic_distribution
-    run_test "Environment Consistency Validation" test_environment_consistency
+    run_test "Service Discovery Validation" test_service_discovery
+    run_test "Environment Consistency Check" test_environment_consistency
+    run_test "Database Migration Coordination" test_database_migration_coordination
     
-    # Print test summary
-    log "Test Summary:"
-    log "============="
+    # Print summary
+    echo "=================================="
+    log "Blue-Green Validation Test Summary"
+    echo "=================================="
     success "Tests Passed: $TESTS_PASSED"
     
     if [[ $TESTS_FAILED -gt 0 ]]; then
         error "Tests Failed: $TESTS_FAILED"
-        error "Failed Tests:"
+        error "Failed tests:"
         for test in "${FAILED_TESTS[@]}"; do
             error "  - $test"
         done
+        echo ""
+        error "❌ Blue-Green validation tests FAILED"
         exit 1
     else
-        success "All tests passed!"
+        echo ""
+        success "✅ All Blue-Green validation tests PASSED"
         exit 0
     fi
 }
