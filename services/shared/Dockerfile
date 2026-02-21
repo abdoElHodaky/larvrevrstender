@@ -63,7 +63,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* && apt-get clean
 
 # Install required PHP extensions for runtime
-RUN docker-php-ext-install -j$(nproc) \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpng-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && docker-php-ext-install -j$(nproc) \
     pdo_mysql \
     pdo_pgsql \
     zip \
@@ -71,6 +74,7 @@ RUN docker-php-ext-install -j$(nproc) \
     xml \
     curl \
     mbstring \
+    gd \
     && docker-php-ext-enable opcache
 
 # Set labels for container metadata

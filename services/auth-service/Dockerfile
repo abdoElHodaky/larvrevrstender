@@ -6,25 +6,17 @@ ENV SERVICE_NAME=${SERVICE_NAME}
 
 USER root
 
-# Install build-only dependencies including auth-specific requirements
+# Install build-only dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
     libzip-dev \
     libpq-dev \
     libicu-dev \
     libxml2-dev \
     libcurl4-openssl-dev \
-    libssl-dev \
     libonig-dev \
-    libsodium-dev \
-    pkg-config \
     && rm -rf /var/lib/apt/lists/*
-
-# Configure GD extension with JPEG and FreeType support
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 
 # Install PHP extensions needed for authentication processing
 RUN docker-php-ext-install -j$(nproc) \
@@ -38,14 +30,7 @@ RUN docker-php-ext-install -j$(nproc) \
     exif \
     xml \
     curl \
-    mbstring \
-    sodium \
-    sockets
-
-# Install additional PHP extensions for auth security
-RUN pecl install \
-    redis \
-    && docker-php-ext-enable redis
+    mbstring
 
 WORKDIR /var/www/html
 
@@ -86,18 +71,31 @@ ENV OCTANE_MEMORY_LIMIT=512M
 
 USER root
 
-# Install runtime-only system dependencies for auth processing
+# Install runtime-only system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     libxml2 \
     libcurl4 \
     curl \
     ca-certificates \
+    libpq-dev \
+    libicu-dev \
     && rm -rf /var/lib/apt/lists/* && apt-get clean
 
-# PHP extensions are already compiled and available from build stage
-# Just enable opcache and redis for runtime
-RUN docker-php-ext-enable opcache
+# Re-install extensions for runtime
+RUN docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    pdo_pgsql \
+    pcntl \
+    bcmath \
+    gd \
+    zip \
+    intl \
+    exif \
+    xml \
+    curl \
+    mbstring \
+    && docker-php-ext-enable opcache
 
 # Install Redis extension
 RUN (pecl install redis || echo "Redis already installed") && docker-php-ext-enable redis
