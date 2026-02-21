@@ -1,0 +1,492 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: blue-environment-network-policy
+  namespace: reverse-tender-blue
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8001  # auth-service
+    - protocol: TCP
+      port: 8002  # user-service
+    - protocol: TCP
+      port: 8006  # payment-service
+    - protocol: TCP
+      port: 8007  # notification-service
+    - protocol: TCP
+      port: 8009  # gateway-service
+  
+  # Allow inter-service communication within blue environment
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8001
+    - protocol: TCP
+      port: 8002
+    - protocol: TCP
+      port: 8006
+    - protocol: TCP
+      port: 8007
+    - protocol: TCP
+      port: 8009
+  
+  # Allow monitoring from monitoring namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080  # metrics port
+  
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  
+  # Allow communication to other services in same namespace
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8001
+    - protocol: TCP
+      port: 8002
+    - protocol: TCP
+      port: 8006
+    - protocol: TCP
+      port: 8007
+    - protocol: TCP
+      port: 8009
+  
+  # Allow database connections (adjust based on your database setup)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 3306  # MySQL
+    - protocol: TCP
+      port: 5432  # PostgreSQL
+  
+  # Allow HTTPS for external API calls
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  
+  # Allow HTTP for health checks and external services
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: green-environment-network-policy
+  namespace: reverse-tender-green
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8001  # auth-service
+    - protocol: TCP
+      port: 8002  # user-service
+    - protocol: TCP
+      port: 8006  # payment-service
+    - protocol: TCP
+      port: 8007  # notification-service
+    - protocol: TCP
+      port: 8009  # gateway-service
+  
+  # Allow inter-service communication within green environment
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8001
+    - protocol: TCP
+      port: 8002
+    - protocol: TCP
+      port: 8006
+    - protocol: TCP
+      port: 8007
+    - protocol: TCP
+      port: 8009
+  
+  # Allow monitoring from monitoring namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080  # metrics port
+  
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  
+  # Allow communication to other services in same namespace
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8001
+    - protocol: TCP
+      port: 8002
+    - protocol: TCP
+      port: 8006
+    - protocol: TCP
+      port: 8007
+    - protocol: TCP
+      port: 8009
+  
+  # Allow database connections
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 3306  # MySQL
+    - protocol: TCP
+      port: 5432  # PostgreSQL
+  
+  # Allow HTTPS for external API calls
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  
+  # Allow HTTP for health checks and external services
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-network-policy
+  namespace: monitoring
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow access from ingress controller for dashboards
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3000  # Grafana
+    - protocol: TCP
+      port: 9090  # Prometheus
+    - protocol: TCP
+      port: 9093  # AlertManager
+  
+  # Allow inter-service communication within monitoring
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 3000
+    - protocol: TCP
+      port: 9090
+    - protocol: TCP
+      port: 9093
+    - protocol: TCP
+      port: 8080
+  
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  
+  # Allow scraping metrics from blue/green environments
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: reverse-tender-blue
+    ports:
+    - protocol: TCP
+      port: 8080  # metrics
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: reverse-tender-green
+    ports:
+    - protocol: TCP
+      port: 8080  # metrics
+  
+  # Allow scraping FluxCD metrics
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: flux-system
+    ports:
+    - protocol: TCP
+      port: 8080
+  
+  # Allow communication within monitoring namespace
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 3000
+    - protocol: TCP
+      port: 9090
+    - protocol: TCP
+      port: 9093
+    - protocol: TCP
+      port: 8080
+  
+  # Allow HTTPS for external notifications (Slack, email, etc.)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  
+  # Allow SMTP for email notifications
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 587
+    - protocol: TCP
+      port: 25
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: flux-system-network-policy
+  namespace: flux-system
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow monitoring from monitoring namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080  # metrics
+  
+  # Allow inter-controller communication
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9440
+  
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  
+  # Allow Git repository access (HTTPS)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  
+  # Allow Git repository access (SSH)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 22
+  
+  # Allow communication to Kubernetes API server
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 6443
+    - protocol: TCP
+      port: 443
+  
+  # Allow inter-controller communication
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9440
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ingress-nginx-network-policy
+  namespace: ingress-nginx
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow external traffic
+  - {}
+  
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  
+  # Allow communication to blue environment
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: reverse-tender-blue
+    ports:
+    - protocol: TCP
+      port: 8001
+    - protocol: TCP
+      port: 8002
+    - protocol: TCP
+      port: 8006
+    - protocol: TCP
+      port: 8007
+    - protocol: TCP
+      port: 8009
+  
+  # Allow communication to green environment
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: reverse-tender-green
+    ports:
+    - protocol: TCP
+      port: 8001
+    - protocol: TCP
+      port: 8002
+    - protocol: TCP
+      port: 8006
+    - protocol: TCP
+      port: 8007
+    - protocol: TCP
+      port: 8009
+  
+  # Allow communication to monitoring
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 3000
+    - protocol: TCP
+      port: 9090
+    - protocol: TCP
+      port: 9093
+
+---
+# Default deny-all policy for enhanced security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: reverse-tender-blue
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: reverse-tender-green
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+
+---
+# Network policy for cross-environment communication (disabled by default)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cross-environment-policy
+  namespace: reverse-tender-blue
+  annotations:
+    policy.kubernetes.io/enabled: "false"
+spec:
+  podSelector:
+    matchLabels:
+      allow-cross-env: "true"
+  policyTypes:
+  - Egress
+  egress:
+  # Allow communication to green environment for specific services
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: reverse-tender-green
+    - podSelector:
+        matchLabels:
+          allow-cross-env: "true"
+    ports:
+    - protocol: TCP
+      port: 8001
+    - protocol: TCP
+      port: 8002
+    - protocol: TCP
+      port: 8006
+    - protocol: TCP
+      port: 8007
+    - protocol: TCP
+      port: 8009
+

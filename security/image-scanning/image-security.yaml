@@ -1,0 +1,474 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: image-security-system
+---
+# Trivy Operator for container image scanning
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trivy-operator
+  namespace: image-security-system
+  labels:
+    app.kubernetes.io/name: trivy-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: trivy-operator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: trivy-operator
+    spec:
+      serviceAccountName: trivy-operator
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+      - name: trivy-operator
+        image: aquasec/trivy-operator:0.16.4
+        env:
+        - name: OPERATOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: OPERATOR_TARGET_NAMESPACES
+          value: "reverse-tender-blue,reverse-tender-green"
+        - name: TRIVY_SEVERITY
+          value: "CRITICAL,HIGH,MEDIUM"
+        - name: TRIVY_SLOW
+          value: "true"
+        - name: TRIVY_IGNORE_UNFIXED
+          value: "false"
+        - name: TRIVY_OFFLINE_SCAN
+          value: "false"
+        - name: TRIVY_JAVA_DB_REPOSITORY
+          value: "ghcr.io/aquasecurity/trivy-java-db"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          capabilities:
+            drop:
+            - ALL
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /.cache
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: trivy-operator
+  namespace: image-security-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: trivy-operator
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log", "replicationcontrollers"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["replicasets", "deployments", "daemonsets", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["aquasecurity.github.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: trivy-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: trivy-operator
+subjects:
+- kind: ServiceAccount
+  name: trivy-operator
+  namespace: image-security-system
+---
+# Admission Controller for image policy enforcement
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-policy-webhook
+  namespace: image-security-system
+  labels:
+    app: image-policy-webhook
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: image-policy-webhook
+  template:
+    metadata:
+      labels:
+        app: image-policy-webhook
+    spec:
+      serviceAccountName: image-policy-webhook
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+      - name: webhook
+        image: openpolicyagent/gatekeeper:v3.14.0
+        ports:
+        - containerPort: 8443
+          name: webhook
+        - containerPort: 8080
+          name: metrics
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          capabilities:
+            drop:
+            - ALL
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+        volumeMounts:
+        - name: webhook-certs
+          mountPath: /etc/certs
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: image-policy-webhook-certs
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: image-policy-webhook
+  namespace: image-security-system
+---
+# Image Security Policy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: image-security-policy
+  namespace: image-security-system
+data:
+  policy.rego: |
+    package kubernetes.admission
+    
+    import future.keywords.contains
+    import future.keywords.if
+    import future.keywords.in
+    
+    # Deny images from untrusted registries
+    deny[msg] {
+        input.request.kind.kind == "Pod"
+        image := input.request.object.spec.containers[_].image
+        not starts_with(image, "ghcr.io/abdoelhodaky/")
+        not starts_with(image, "registry.k8s.io/")
+        not starts_with(image, "quay.io/")
+        not starts_with(image, "docker.io/library/")
+        msg := sprintf("Image '%v' is from an untrusted registry", [image])
+    }
+    
+    # Deny images without specific tags (no latest)
+    deny[msg] {
+        input.request.kind.kind == "Pod"
+        image := input.request.object.spec.containers[_].image
+        endswith(image, ":latest")
+        msg := sprintf("Image '%v' uses 'latest' tag which is not allowed", [image])
+    }
+    
+    # Deny images without tags
+    deny[msg] {
+        input.request.kind.kind == "Pod"
+        image := input.request.object.spec.containers[_].image
+        not contains(image, ":")
+        msg := sprintf("Image '%v' must have a specific tag", [image])
+    }
+    
+    # Require security context
+    deny[msg] {
+        input.request.kind.kind == "Pod"
+        container := input.request.object.spec.containers[_]
+        not container.securityContext.runAsNonRoot
+        msg := sprintf("Container '%v' must run as non-root", [container.name])
+    }
+    
+    # Require read-only root filesystem
+    deny[msg] {
+        input.request.kind.kind == "Pod"
+        container := input.request.object.spec.containers[_]
+        not container.securityContext.readOnlyRootFilesystem
+        msg := sprintf("Container '%v' must have read-only root filesystem", [container.name])
+    }
+    
+    # Deny privileged containers
+    deny[msg] {
+        input.request.kind.kind == "Pod"
+        container := input.request.object.spec.containers[_]
+        container.securityContext.privileged
+        msg := sprintf("Container '%v' cannot run in privileged mode", [container.name])
+    }
+---
+# ValidatingAdmissionWebhook for image policy
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionWebhook
+metadata:
+  name: image-policy-webhook
+webhooks:
+- name: image-policy.security.io
+  clientConfig:
+    service:
+      name: image-policy-webhook
+      namespace: image-security-system
+      path: /validate
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: [""]
+    apiVersions: ["v1"]
+    resources: ["pods"]
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["apps"]
+    apiVersions: ["v1"]
+    resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+  namespaceSelector:
+    matchLabels:
+      image-policy: "enforced"
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail
+---
+# Service for admission webhook
+apiVersion: v1
+kind: Service
+metadata:
+  name: image-policy-webhook
+  namespace: image-security-system
+spec:
+  selector:
+    app: image-policy-webhook
+  ports:
+  - name: webhook
+    port: 443
+    targetPort: 8443
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+---
+# Image scanning CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: image-vulnerability-scan
+  namespace: image-security-system
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: trivy-operator
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            fsGroup: 65534
+          containers:
+          - name: scanner
+            image: aquasec/trivy:0.48.3
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Scan all images in blue-green environments
+              NAMESPACES="reverse-tender-blue reverse-tender-green"
+              
+              for namespace in $NAMESPACES; do
+                echo "Scanning images in namespace: $namespace"
+                
+                # Get all images from deployments
+                kubectl get deployments -n $namespace -o jsonpath='{range .items[*]}{.spec.template.spec.containers[*].image}{"\n"}{end}' | while read image; do
+                  if [ ! -z "$image" ]; then
+                    echo "Scanning image: $image"
+                    
+                    # Run Trivy scan
+                    trivy image --severity HIGH,CRITICAL --format json --output /tmp/scan-result.json $image
+                    
+                    # Check for critical vulnerabilities
+                    CRITICAL_COUNT=$(cat /tmp/scan-result.json | jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL") | length' | wc -l)
+                    HIGH_COUNT=$(cat /tmp/scan-result.json | jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH") | length' | wc -l)
+                    
+                    if [ $CRITICAL_COUNT -gt 0 ] || [ $HIGH_COUNT -gt 5 ]; then
+                      echo "ALERT: Image $image has $CRITICAL_COUNT critical and $HIGH_COUNT high vulnerabilities"
+                      
+                      # Create alert annotation on deployment
+                      kubectl annotate deployment -n $namespace --selector="app.kubernetes.io/image=$image" \
+                        security.scan/status="vulnerable" \
+                        security.scan/critical-count="$CRITICAL_COUNT" \
+                        security.scan/high-count="$HIGH_COUNT" \
+                        security.scan/last-scan="$(date -Iseconds)" \
+                        --overwrite
+                    else
+                      kubectl annotate deployment -n $namespace --selector="app.kubernetes.io/image=$image" \
+                        security.scan/status="clean" \
+                        security.scan/last-scan="$(date -Iseconds)" \
+                        --overwrite
+                    fi
+                  fi
+                done
+              done
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 65534
+              capabilities:
+                drop:
+                - ALL
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 1000m
+                memory: 1Gi
+            volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /.cache
+          volumes:
+          - name: tmp
+            emptyDir: {}
+          - name: cache
+            emptyDir: {}
+          restartPolicy: OnFailure
+---
+# Image security monitoring
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: image-security-dashboard
+  namespace: monitoring
+data:
+  dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Image Security Dashboard",
+        "panels": [
+          {
+            "title": "Vulnerable Images",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "count(kube_deployment_annotations{annotation_security_scan_status=\"vulnerable\"})",
+                "legendFormat": "Vulnerable Images"
+              }
+            ]
+          },
+          {
+            "title": "Critical Vulnerabilities",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(kube_deployment_annotations{annotation_security_scan_critical_count!=\"0\"})",
+                "legendFormat": "Critical Vulnerabilities"
+              }
+            ]
+          },
+          {
+            "title": "Scan Status by Namespace",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "kube_deployment_annotations{annotation_security_scan_status!=\"\"}",
+                "format": "table"
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+# Alert rules for image security
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: image-security-alerts
+  namespace: monitoring
+spec:
+  groups:
+  - name: image-security.rules
+    rules:
+    - alert: VulnerableImageDetected
+      expr: kube_deployment_annotations{annotation_security_scan_status="vulnerable"} > 0
+      for: 0m
+      labels:
+        severity: critical
+        component: image-security
+      annotations:
+        summary: "Vulnerable container image detected"
+        description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} is using a vulnerable image with {{ $labels.annotation_security_scan_critical_count }} critical vulnerabilities."
+    
+    - alert: ImageScanFailed
+      expr: time() - kube_deployment_annotations{annotation_security_scan_last_scan!=""} > 86400
+      for: 1h
+      labels:
+        severity: warning
+        component: image-security
+      annotations:
+        summary: "Image scan is outdated"
+        description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has not been scanned for vulnerabilities in over 24 hours."
+
