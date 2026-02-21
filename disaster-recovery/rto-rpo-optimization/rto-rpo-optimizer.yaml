@@ -1,0 +1,761 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rto-rpo-optimization-system
+---
+# RTO/RPO Optimization Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rto-rpo-config
+  namespace: rto-rpo-optimization-system
+data:
+  optimization-config.yaml: |
+    rto_rpo_optimization:
+      version: "1.0"
+      
+      # Service Classifications
+      service_tiers:
+        tier_1_critical:
+          rto_target: "5m"    # 5 minutes
+          rpo_target: "1m"    # 1 minute
+          services:
+          - gateway-service
+          - auth-service
+          - payment-service
+          optimization_strategies:
+          - "hot_standby"
+          - "synchronous_replication"
+          - "pre_warmed_instances"
+          - "circuit_breaker"
+          
+        tier_2_important:
+          rto_target: "15m"   # 15 minutes
+          rpo_target: "5m"    # 5 minutes
+          services:
+          - user-service
+          - notification-service
+          optimization_strategies:
+          - "warm_standby"
+          - "asynchronous_replication"
+          - "auto_scaling"
+          
+        tier_3_standard:
+          rto_target: "1h"    # 1 hour
+          rpo_target: "15m"   # 15 minutes
+          services:
+          - monitoring
+          - logging
+          optimization_strategies:
+          - "cold_standby"
+          - "backup_restore"
+      
+      # Optimization Techniques
+      optimization_techniques:
+        hot_standby:
+          description: "Always-on redundant systems"
+          rto_improvement: "90%"
+          cost_multiplier: 2.0
+          implementation:
+          - "Duplicate infrastructure in secondary region"
+          - "Real-time data synchronization"
+          - "Instant failover capability"
+          
+        warm_standby:
+          description: "Pre-configured but not fully active systems"
+          rto_improvement: "70%"
+          cost_multiplier: 1.5
+          implementation:
+          - "Pre-deployed infrastructure"
+          - "Regular data synchronization"
+          - "Quick activation process"
+          
+        cold_standby:
+          description: "Backup systems activated on demand"
+          rto_improvement: "30%"
+          cost_multiplier: 1.2
+          implementation:
+          - "Infrastructure as code"
+          - "Automated deployment"
+          - "Backup restoration"
+          
+        synchronous_replication:
+          description: "Real-time data replication"
+          rpo_improvement: "95%"
+          latency_impact: "10-20ms"
+          implementation:
+          - "Database synchronous replication"
+          - "Storage-level replication"
+          - "Application-level sync"
+          
+        asynchronous_replication:
+          description: "Near real-time data replication"
+          rpo_improvement: "80%"
+          latency_impact: "0-5ms"
+          implementation:
+          - "Database async replication"
+          - "Message queue replication"
+          - "Batch data sync"
+      
+      # Monitoring and Measurement
+      monitoring:
+        rto_measurement:
+          metrics:
+          - "incident_detection_time"
+          - "failover_execution_time"
+          - "service_restoration_time"
+          - "verification_time"
+          
+        rpo_measurement:
+          metrics:
+          - "last_backup_timestamp"
+          - "replication_lag"
+          - "data_loss_window"
+          - "sync_completion_time"
+          
+        sla_tracking:
+          availability_target: "99.99%"
+          downtime_budget: "52.56m/year"
+          measurement_window: "monthly"
+          
+      # Continuous Improvement
+      improvement_process:
+        review_frequency: "monthly"
+        optimization_triggers:
+        - "RTO/RPO target misses"
+        - "Cost optimization opportunities"
+        - "Technology improvements"
+        - "Business requirement changes"
+        
+        improvement_actions:
+        - "Infrastructure upgrades"
+        - "Process automation"
+        - "Technology adoption"
+        - "Training and procedures"
+---
+# RTO/RPO Optimizer Controller
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rto-rpo-optimizer
+  namespace: rto-rpo-optimization-system
+  labels:
+    app: rto-rpo-optimizer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rto-rpo-optimizer
+  template:
+    metadata:
+      labels:
+        app: rto-rpo-optimizer
+    spec:
+      serviceAccountName: rto-rpo-optimizer
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+      - name: optimizer
+        image: python:3.11-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install kubernetes pyyaml requests numpy pandas
+          python /app/rto_rpo_optimizer.py
+        ports:
+        - containerPort: 8080
+          name: metrics
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          capabilities:
+            drop:
+            - ALL
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        volumeMounts:
+        - name: optimizer-code
+          mountPath: /app
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: PROMETHEUS_URL
+          value: "http://prometheus.monitoring.svc.cluster.local:9090"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: optimizer-code
+        configMap:
+          name: rto-rpo-optimizer-code
+      - name: tmp
+        emptyDir: {}
+---
+# RTO/RPO Optimizer Code
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rto-rpo-optimizer-code
+  namespace: rto-rpo-optimization-system
+data:
+  rto_rpo_optimizer.py: |
+    #!/usr/bin/env python3
+    """
+    RTO/RPO Optimizer
+    Continuously optimizes Recovery Time and Recovery Point Objectives
+    """
+    
+    import time
+    import logging
+    import yaml
+    import json
+    import requests
+    import numpy as np
+    from datetime import datetime, timedelta
+    from kubernetes import client, config
+    from prometheus_client import start_http_server, Gauge, Histogram, Counter
+    
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    
+    # Prometheus metrics
+    rto_actual = Gauge('rto_actual_seconds', 'Actual RTO measured', ['service', 'tier'])
+    rpo_actual = Gauge('rpo_actual_seconds', 'Actual RPO measured', ['service', 'tier'])
+    rto_target = Gauge('rto_target_seconds', 'RTO target', ['service', 'tier'])
+    rpo_target = Gauge('rpo_target_seconds', 'RPO target', ['service', 'tier'])
+    optimization_score = Gauge('optimization_score', 'Optimization score', ['service'])
+    cost_efficiency = Gauge('cost_efficiency', 'Cost efficiency ratio', ['service'])
+    
+    class RTORPOOptimizer:
+        def __init__(self):
+            # Initialize Kubernetes client
+            try:
+                config.load_incluster_config()
+            except:
+                config.load_kube_config()
+            
+            self.k8s_client = client.ApiClient()
+            self.core_v1 = client.CoreV1Api()
+            self.apps_v1 = client.AppsV1Api()
+            
+            self.prometheus_url = "http://prometheus.monitoring.svc.cluster.local:9090"
+            
+            # Load optimization configuration
+            self.load_optimization_config()
+            
+            # Historical data for analysis
+            self.historical_data = {
+                'rto_measurements': [],
+                'rpo_measurements': [],
+                'cost_data': [],
+                'performance_data': []
+            }
+        
+        def load_optimization_config(self):
+            """Load RTO/RPO optimization configuration"""
+            try:
+                config_map = self.core_v1.read_namespaced_config_map(
+                    name="rto-rpo-config",
+                    namespace="rto-rpo-optimization-system"
+                )
+                self.config = yaml.safe_load(config_map.data['optimization-config.yaml'])
+                logger.info("Loaded RTO/RPO optimization configuration")
+            except Exception as e:
+                logger.error(f"Failed to load optimization configuration: {e}")
+                self.config = {}
+        
+        def measure_current_rto_rpo(self):
+            """Measure current RTO and RPO for all services"""
+            try:
+                service_tiers = self.config.get('rto_rpo_optimization', {}).get('service_tiers', {})
+                
+                for tier_name, tier_config in service_tiers.items():
+                    services = tier_config.get('services', [])
+                    rto_target_str = tier_config.get('rto_target', '15m')
+                    rpo_target_str = tier_config.get('rpo_target', '5m')
+                    
+                    # Convert target strings to seconds
+                    rto_target_seconds = self.parse_time_string(rto_target_str)
+                    rpo_target_seconds = self.parse_time_string(rpo_target_str)
+                    
+                    for service in services:
+                        # Measure actual RTO
+                        actual_rto = self.measure_service_rto(service)
+                        actual_rpo = self.measure_service_rpo(service)
+                        
+                        # Update metrics
+                        rto_actual.labels(service=service, tier=tier_name).set(actual_rto)
+                        rpo_actual.labels(service=service, tier=tier_name).set(actual_rpo)
+                        rto_target.labels(service=service, tier=tier_name).set(rto_target_seconds)
+                        rpo_target.labels(service=service, tier=tier_name).set(rpo_target_seconds)
+                        
+                        # Calculate optimization score
+                        opt_score = self.calculate_optimization_score(
+                            actual_rto, actual_rpo, rto_target_seconds, rpo_target_seconds
+                        )
+                        optimization_score.labels(service=service).set(opt_score)
+                        
+                        logger.info(f"Service {service}: RTO={actual_rto}s (target={rto_target_seconds}s), "
+                                  f"RPO={actual_rpo}s (target={rpo_target_seconds}s), Score={opt_score:.2f}")
+                
+            except Exception as e:
+                logger.error(f"Failed to measure RTO/RPO: {e}")
+        
+        def measure_service_rto(self, service):
+            """Measure actual RTO for a service"""
+            try:
+                # Query Prometheus for recent incident data
+                query = f'avg_over_time(incident_recovery_time_seconds{{service="{service}"}}[7d])'
+                response = requests.get(
+                    f"{self.prometheus_url}/api/v1/query",
+                    params={'query': query}
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data['data']['result']:
+                        return float(data['data']['result'][0]['value'][1])
+                
+                # Fallback: estimate based on deployment readiness time
+                return self.estimate_rto_from_deployment(service)
+                
+            except Exception as e:
+                logger.error(f"Failed to measure RTO for {service}: {e}")
+                return 900  # Default 15 minutes
+        
+        def measure_service_rpo(self, service):
+            """Measure actual RPO for a service"""
+            try:
+                # Query Prometheus for backup/replication lag
+                query = f'max_over_time(backup_lag_seconds{{service="{service}"}}[7d])'
+                response = requests.get(
+                    f"{self.prometheus_url}/api/v1/query",
+                    params={'query': query}
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data['data']['result']:
+                        return float(data['data']['result'][0]['value'][1])
+                
+                # Fallback: estimate based on backup frequency
+                return self.estimate_rpo_from_backup_schedule(service)
+                
+            except Exception as e:
+                logger.error(f"Failed to measure RPO for {service}: {e}")
+                return 300  # Default 5 minutes
+        
+        def estimate_rto_from_deployment(self, service):
+            """Estimate RTO based on deployment characteristics"""
+            try:
+                # Get deployment information
+                deployments = self.apps_v1.list_deployment_for_all_namespaces(
+                    label_selector=f"app={service}"
+                )
+                
+                if deployments.items:
+                    deployment = deployments.items[0]
+                    replicas = deployment.spec.replicas or 1
+                    
+                    # Estimate based on replicas and startup time
+                    base_startup_time = 60  # 1 minute base startup
+                    scaling_factor = max(1, replicas / 2)  # More replicas = faster recovery
+                    
+                    estimated_rto = base_startup_time / scaling_factor
+                    return estimated_rto
+                
+                return 300  # Default 5 minutes
+                
+            except Exception as e:
+                logger.error(f"Failed to estimate RTO for {service}: {e}")
+                return 300
+        
+        def estimate_rpo_from_backup_schedule(self, service):
+            """Estimate RPO based on backup schedule"""
+            try:
+                # Check for backup schedules
+                # This would integrate with Velero or other backup systems
+                
+                # For now, return estimated values based on service tier
+                if service in ['gateway-service', 'auth-service', 'payment-service']:
+                    return 60   # 1 minute for critical services
+                elif service in ['user-service', 'notification-service']:
+                    return 300  # 5 minutes for important services
+                else:
+                    return 900  # 15 minutes for standard services
+                
+            except Exception as e:
+                logger.error(f"Failed to estimate RPO for {service}: {e}")
+                return 300
+        
+        def calculate_optimization_score(self, actual_rto, actual_rpo, target_rto, target_rpo):
+            """Calculate optimization score (0-100)"""
+            try:
+                # RTO score (higher is better when actual < target)
+                rto_score = min(100, (target_rto / max(actual_rto, 1)) * 50)
+                
+                # RPO score (higher is better when actual < target)
+                rpo_score = min(100, (target_rpo / max(actual_rpo, 1)) * 50)
+                
+                # Combined score
+                combined_score = (rto_score + rpo_score) / 2
+                
+                return combined_score
+                
+            except Exception as e:
+                logger.error(f"Failed to calculate optimization score: {e}")
+                return 0
+        
+        def analyze_optimization_opportunities(self):
+            """Analyze opportunities for RTO/RPO optimization"""
+            try:
+                service_tiers = self.config.get('rto_rpo_optimization', {}).get('service_tiers', {})
+                optimization_techniques = self.config.get('rto_rpo_optimization', {}).get('optimization_techniques', {})
+                
+                recommendations = []
+                
+                for tier_name, tier_config in service_tiers.items():
+                    services = tier_config.get('services', [])
+                    
+                    for service in services:
+                        # Get current metrics
+                        current_rto = rto_actual.labels(service=service, tier=tier_name)._value._value or 0
+                        current_rpo = rpo_actual.labels(service=service, tier=tier_name)._value._value or 0
+                        target_rto = rto_target.labels(service=service, tier=tier_name)._value._value or 0
+                        target_rpo = rpo_target.labels(service=service, tier=tier_name)._value._value or 0
+                        
+                        if current_rto > target_rto or current_rpo > target_rpo:
+                            # Service not meeting targets
+                            recommendation = self.generate_optimization_recommendation(
+                                service, tier_name, current_rto, current_rpo, target_rto, target_rpo
+                            )
+                            recommendations.append(recommendation)
+                
+                # Log recommendations
+                for rec in recommendations:
+                    logger.info(f"Optimization recommendation: {rec}")
+                
+                return recommendations
+                
+            except Exception as e:
+                logger.error(f"Failed to analyze optimization opportunities: {e}")
+                return []
+        
+        def generate_optimization_recommendation(self, service, tier, current_rto, current_rpo, target_rto, target_rpo):
+            """Generate optimization recommendation for a service"""
+            recommendations = []
+            
+            # RTO optimization
+            if current_rto > target_rto:
+                rto_gap = current_rto - target_rto
+                if rto_gap > 300:  # > 5 minutes
+                    recommendations.append("Implement hot standby")
+                elif rto_gap > 60:  # > 1 minute
+                    recommendations.append("Implement warm standby")
+                else:
+                    recommendations.append("Optimize startup time")
+            
+            # RPO optimization
+            if current_rpo > target_rpo:
+                rpo_gap = current_rpo - target_rpo
+                if rpo_gap > 300:  # > 5 minutes
+                    recommendations.append("Implement synchronous replication")
+                elif rpo_gap > 60:  # > 1 minute
+                    recommendations.append("Increase backup frequency")
+                else:
+                    recommendations.append("Optimize replication lag")
+            
+            return {
+                'service': service,
+                'tier': tier,
+                'current_rto': current_rto,
+                'current_rpo': current_rpo,
+                'target_rto': target_rto,
+                'target_rpo': target_rpo,
+                'recommendations': recommendations
+            }
+        
+        def implement_optimization(self, recommendation):
+            """Implement optimization recommendation"""
+            try:
+                service = recommendation['service']
+                recommendations = recommendation['recommendations']
+                
+                for rec in recommendations:
+                    if rec == "Implement hot standby":
+                        self.implement_hot_standby(service)
+                    elif rec == "Implement warm standby":
+                        self.implement_warm_standby(service)
+                    elif rec == "Implement synchronous replication":
+                        self.implement_sync_replication(service)
+                    elif rec == "Increase backup frequency":
+                        self.increase_backup_frequency(service)
+                    elif rec == "Optimize startup time":
+                        self.optimize_startup_time(service)
+                    elif rec == "Optimize replication lag":
+                        self.optimize_replication_lag(service)
+                
+                logger.info(f"Implemented optimizations for {service}: {recommendations}")
+                
+            except Exception as e:
+                logger.error(f"Failed to implement optimization: {e}")
+        
+        def implement_hot_standby(self, service):
+            """Implement hot standby for service"""
+            logger.info(f"Implementing hot standby for {service}")
+            # This would create additional replicas in secondary region
+            # For now, just log the action
+        
+        def implement_warm_standby(self, service):
+            """Implement warm standby for service"""
+            logger.info(f"Implementing warm standby for {service}")
+            # This would pre-deploy infrastructure but keep it scaled down
+            # For now, just log the action
+        
+        def implement_sync_replication(self, service):
+            """Implement synchronous replication for service"""
+            logger.info(f"Implementing synchronous replication for {service}")
+            # This would configure database/storage synchronous replication
+            # For now, just log the action
+        
+        def increase_backup_frequency(self, service):
+            """Increase backup frequency for service"""
+            logger.info(f"Increasing backup frequency for {service}")
+            # This would update backup schedules
+            # For now, just log the action
+        
+        def optimize_startup_time(self, service):
+            """Optimize startup time for service"""
+            logger.info(f"Optimizing startup time for {service}")
+            # This would optimize container images, resource allocation, etc.
+            # For now, just log the action
+        
+        def optimize_replication_lag(self, service):
+            """Optimize replication lag for service"""
+            logger.info(f"Optimizing replication lag for {service}")
+            # This would tune replication parameters
+            # For now, just log the action
+        
+        def parse_time_string(self, time_str):
+            """Parse time string (e.g., '5m', '1h') to seconds"""
+            try:
+                if time_str.endswith('s'):
+                    return int(time_str[:-1])
+                elif time_str.endswith('m'):
+                    return int(time_str[:-1]) * 60
+                elif time_str.endswith('h'):
+                    return int(time_str[:-1]) * 3600
+                else:
+                    return int(time_str)
+            except:
+                return 300  # Default 5 minutes
+        
+        def generate_optimization_report(self):
+            """Generate optimization report"""
+            try:
+                report = {
+                    'timestamp': datetime.now().isoformat(),
+                    'services': {},
+                    'overall_score': 0,
+                    'recommendations': []
+                }
+                
+                service_tiers = self.config.get('rto_rpo_optimization', {}).get('service_tiers', {})
+                total_score = 0
+                service_count = 0
+                
+                for tier_name, tier_config in service_tiers.items():
+                    services = tier_config.get('services', [])
+                    
+                    for service in services:
+                        score = optimization_score.labels(service=service)._value._value or 0
+                        total_score += score
+                        service_count += 1
+                        
+                        report['services'][service] = {
+                            'tier': tier_name,
+                            'optimization_score': score,
+                            'rto_actual': rto_actual.labels(service=service, tier=tier_name)._value._value or 0,
+                            'rpo_actual': rpo_actual.labels(service=service, tier=tier_name)._value._value or 0,
+                            'rto_target': rto_target.labels(service=service, tier=tier_name)._value._value or 0,
+                            'rpo_target': rpo_target.labels(service=service, tier=tier_name)._value._value or 0
+                        }
+                
+                if service_count > 0:
+                    report['overall_score'] = total_score / service_count
+                
+                logger.info(f"Generated optimization report: Overall score {report['overall_score']:.2f}")
+                return report
+                
+            except Exception as e:
+                logger.error(f"Failed to generate optimization report: {e}")
+                return {}
+        
+        def run(self):
+            """Main optimizer loop"""
+            logger.info("Starting RTO/RPO Optimizer")
+            
+            # Start metrics server
+            start_http_server(8080)
+            
+            while True:
+                try:
+                    # Measure current RTO/RPO
+                    self.measure_current_rto_rpo()
+                    
+                    # Analyze optimization opportunities
+                    recommendations = self.analyze_optimization_opportunities()
+                    
+                    # Generate optimization report
+                    report = self.generate_optimization_report()
+                    
+                    # Implement optimizations (if enabled)
+                    # for rec in recommendations:
+                    #     self.implement_optimization(rec)
+                    
+                except Exception as e:
+                    logger.error(f"Optimizer loop error: {e}")
+                
+                # Run every hour
+                time.sleep(3600)
+    
+    if __name__ == "__main__":
+        optimizer = RTORPOOptimizer()
+        optimizer.run()
+---
+# Service Account and RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rto-rpo-optimizer
+  namespace: rto-rpo-optimization-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rto-rpo-optimizer
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "services", "pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "patch"]
+- apiGroups: ["batch"]
+  resources: ["cronjobs"]
+  verbs: ["get", "list", "watch", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rto-rpo-optimizer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rto-rpo-optimizer
+subjects:
+- kind: ServiceAccount
+  name: rto-rpo-optimizer
+  namespace: rto-rpo-optimization-system
+---
+# RTO/RPO Optimizer Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: rto-rpo-optimizer
+  namespace: rto-rpo-optimization-system
+  labels:
+    app: rto-rpo-optimizer
+spec:
+  selector:
+    app: rto-rpo-optimizer
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+# ServiceMonitor for RTO/RPO Optimization
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rto-rpo-optimization
+  namespace: monitoring
+  labels:
+    app: rto-rpo-optimization
+spec:
+  selector:
+    matchLabels:
+      app: rto-rpo-optimizer
+  namespaceSelector:
+    matchNames:
+    - rto-rpo-optimization-system
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+---
+# RTO/RPO Alert Rules
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rto-rpo-alerts
+  namespace: monitoring
+spec:
+  groups:
+  - name: rto-rpo.rules
+    rules:
+    - alert: RTOTargetMissed
+      expr: rto_actual_seconds > rto_target_seconds
+      for: 5m
+      labels:
+        severity: warning
+        component: disaster-recovery
+      annotations:
+        summary: "RTO target missed"
+        description: "Service {{ $labels.service }} RTO ({{ $value }}s) exceeds target ({{ $labels.rto_target }}s)."
+    
+    - alert: RPOTargetMissed
+      expr: rpo_actual_seconds > rpo_target_seconds
+      for: 5m
+      labels:
+        severity: warning
+        component: disaster-recovery
+      annotations:
+        summary: "RPO target missed"
+        description: "Service {{ $labels.service }} RPO ({{ $value }}s) exceeds target ({{ $labels.rpo_target }}s)."
+    
+    - alert: OptimizationScoreLow
+      expr: optimization_score < 70
+      for: 10m
+      labels:
+        severity: warning
+        component: disaster-recovery
+      annotations:
+        summary: "Low optimization score"
+        description: "Service {{ $labels.service }} optimization score ({{ $value }}) is below 70%."
+
