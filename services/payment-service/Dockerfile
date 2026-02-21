@@ -90,6 +90,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng16-16 \
     && rm -rf /var/lib/apt/lists/* && apt-get clean
 
+# Configure GD extension for runtime
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
+
 # Re-install extensions for runtime
 RUN docker-php-ext-install -j$(nproc) \
     pdo_mysql \

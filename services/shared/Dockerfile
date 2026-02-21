@@ -9,6 +9,9 @@ USER root
 # Install build dependencies for PHP extensions
 RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
     libzip-dev \
     libpq-dev \
     libicu-dev \
@@ -16,6 +19,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     libonig-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Configure GD extension with JPEG and FreeType support
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 
 # Install required PHP extensions
 RUN docker-php-ext-install -j$(nproc) \
@@ -25,7 +31,8 @@ RUN docker-php-ext-install -j$(nproc) \
     intl \
     xml \
     curl \
-    mbstring
+    mbstring \
+    gd
 
 # Set working directory
 WORKDIR /var/www/html
@@ -60,15 +67,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4 \
     curl \
     ca-certificates \
-    && rm -rf /var/lib/apt/lists/* && apt-get clean
-
-# Install required PHP extensions for runtime
-RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    libzip-dev \
+    libpq-dev \
+    libicu-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    libonig-dev \
+    libjpeg62-turbo \
+    libfreetype6 \
+    libpng16-16 \
+    && rm -rf /var/lib/apt/lists/* && apt-get clean
+
+# Configure and install PHP extensions for runtime
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
     pdo_mysql \
     pdo_pgsql \
