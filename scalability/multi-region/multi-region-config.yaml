@@ -1,0 +1,582 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: multi-region-system
+---
+# Multi-Region Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-region-config
+  namespace: multi-region-system
+data:
+  regions.yaml: |
+    regions:
+      primary:
+        name: "us-west-2"
+        zone: "us-west-2a,us-west-2b,us-west-2c"
+        cluster: "reverse-tender-primary"
+        endpoint: "https://primary.reverse-tender.com"
+        weight: 70
+        priority: 1
+        
+      secondary:
+        name: "us-east-1"
+        zone: "us-east-1a,us-east-1b,us-east-1c"
+        cluster: "reverse-tender-secondary"
+        endpoint: "https://secondary.reverse-tender.com"
+        weight: 30
+        priority: 2
+        
+      disaster-recovery:
+        name: "eu-west-1"
+        zone: "eu-west-1a,eu-west-1b,eu-west-1c"
+        cluster: "reverse-tender-dr"
+        endpoint: "https://dr.reverse-tender.com"
+        weight: 0
+        priority: 3
+        
+    failover:
+      enabled: true
+      healthCheckInterval: "30s"
+      failoverThreshold: 3
+      recoveryThreshold: 2
+      automaticFailback: true
+      failbackDelay: "10m"
+      
+    replication:
+      database:
+        enabled: true
+        mode: "async"
+        lag_threshold: "5s"
+      storage:
+        enabled: true
+        sync_interval: "1m"
+      secrets:
+        enabled: true
+        sync_interval: "5m"
+---
+# Global Load Balancer Configuration
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: multi-region-gateway
+  namespace: multi-region-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*.reverse-tender.com"
+    tls:
+      httpsRedirect: true
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: reverse-tender-tls
+    hosts:
+    - "*.reverse-tender.com"
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: multi-region-routing
+  namespace: multi-region-system
+spec:
+  hosts:
+  - "api.reverse-tender.com"
+  gateways:
+  - multi-region-gateway
+  http:
+  - match:
+    - headers:
+        region:
+          exact: "us-west-2"
+    route:
+    - destination:
+        host: gateway-service.reverse-tender-blue.svc.cluster.local
+        port:
+          number: 8009
+      weight: 100
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 5s
+  - match:
+    - headers:
+        region:
+          exact: "us-east-1"
+    route:
+    - destination:
+        host: gateway-service-east.reverse-tender-blue.svc.cluster.local
+        port:
+          number: 8009
+      weight: 100
+  - route:
+    - destination:
+        host: gateway-service.reverse-tender-blue.svc.cluster.local
+        port:
+          number: 8009
+      weight: 70
+    - destination:
+        host: gateway-service-east.reverse-tender-blue.svc.cluster.local
+        port:
+          number: 8009
+      weight: 30
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+---
+# Cross-Region Service Mesh Configuration
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: external-region-services
+  namespace: multi-region-system
+spec:
+  hosts:
+  - secondary.reverse-tender.com
+  - dr.reverse-tender.com
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  - number: 80
+    name: http
+    protocol: HTTP
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: multi-region-destination
+  namespace: multi-region-system
+spec:
+  host: "*.reverse-tender.com"
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30s
+        keepAlive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 64
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+        consecutiveGatewayErrors: 5
+        interval: 30s
+        baseEjectionTime: 30s
+        maxEjectionPercent: 50
+    loadBalancer:
+      simple: LEAST_CONN
+    outlierDetection:
+      consecutiveGatewayErrors: 5
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+---
+# Multi-Region Database Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-multi-region-config
+  namespace: multi-region-system
+data:
+  database-config.yaml: |
+    primary:
+      host: "primary-db.reverse-tender.com"
+      port: 3306
+      database: "reverse_tender"
+      read_replicas:
+      - "primary-db-read-1.reverse-tender.com:3306"
+      - "primary-db-read-2.reverse-tender.com:3306"
+      
+    secondary:
+      host: "secondary-db.reverse-tender.com"
+      port: 3306
+      database: "reverse_tender"
+      read_replicas:
+      - "secondary-db-read-1.reverse-tender.com:3306"
+      - "secondary-db-read-2.reverse-tender.com:3306"
+      
+    disaster_recovery:
+      host: "dr-db.reverse-tender.com"
+      port: 3306
+      database: "reverse_tender"
+      
+    replication:
+      mode: "async"
+      lag_monitoring: true
+      max_lag_seconds: 5
+      failover_timeout: 30
+      
+    connection_pooling:
+      max_connections: 100
+      min_connections: 10
+      connection_timeout: 30
+      idle_timeout: 300
+---
+# Cross-Region Secret Synchronization
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cross-region-secret-sync
+  namespace: multi-region-system
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: cross-region-sync
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            fsGroup: 65534
+          containers:
+          - name: secret-sync
+            image: bitnami/kubectl:1.28
+            command:
+            - /bin/bash
+            - -c
+            - |
+              # Sync secrets across regions
+              REGIONS=("us-west-2" "us-east-1" "eu-west-1")
+              NAMESPACES=("reverse-tender-blue" "reverse-tender-green")
+              
+              for region in "${REGIONS[@]}"; do
+                echo "Syncing secrets to region: $region"
+                
+                for namespace in "${NAMESPACES[@]}"; do
+                  # Get secrets from primary region
+                  kubectl get secrets -n $namespace -o yaml | \
+                  sed "s/namespace: $namespace/namespace: $namespace-$region/" | \
+                  kubectl apply --context=$region-context -f -
+                done
+              done
+              
+              echo "Secret synchronization completed"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 65534
+              capabilities:
+                drop:
+                - ALL
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+            volumeMounts:
+            - name: kubeconfig
+              mountPath: /root/.kube
+              readOnly: true
+          volumes:
+          - name: kubeconfig
+            secret:
+              secretName: multi-region-kubeconfig
+          restartPolicy: OnFailure
+---
+# Multi-Region Health Check
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multi-region-health-checker
+  namespace: multi-region-system
+  labels:
+    app: multi-region-health-checker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: multi-region-health-checker
+  template:
+    metadata:
+      labels:
+        app: multi-region-health-checker
+    spec:
+      serviceAccountName: multi-region-health-checker
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+      - name: health-checker
+        image: curlimages/curl:8.4.0
+        command:
+        - /bin/sh
+        - -c
+        - |
+          while true; do
+            # Check primary region
+            if curl -f -s --max-time 10 https://primary.reverse-tender.com/health > /dev/null; then
+              echo "$(date): Primary region healthy"
+              echo "1" > /tmp/primary_health
+            else
+              echo "$(date): Primary region unhealthy"
+              echo "0" > /tmp/primary_health
+            fi
+            
+            # Check secondary region
+            if curl -f -s --max-time 10 https://secondary.reverse-tender.com/health > /dev/null; then
+              echo "$(date): Secondary region healthy"
+              echo "1" > /tmp/secondary_health
+            else
+              echo "$(date): Secondary region unhealthy"
+              echo "0" > /tmp/secondary_health
+            fi
+            
+            # Check DR region
+            if curl -f -s --max-time 10 https://dr.reverse-tender.com/health > /dev/null; then
+              echo "$(date): DR region healthy"
+              echo "1" > /tmp/dr_health
+            else
+              echo "$(date): DR region unhealthy"
+              echo "0" > /tmp/dr_health
+            fi
+            
+            sleep 30
+          done
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          capabilities:
+            drop:
+            - ALL
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - name: health-status
+          mountPath: /tmp
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "test -f /tmp/primary_health"
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "test -f /tmp/primary_health"
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      - name: metrics-exporter
+        image: prom/node-exporter:v1.6.1
+        ports:
+        - containerPort: 9100
+          name: metrics
+        command:
+        - /bin/node_exporter
+        - --path.rootfs=/host
+        - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+        - --collector.textfile.directory=/tmp/metrics
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          capabilities:
+            drop:
+            - ALL
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - name: health-status
+          mountPath: /tmp/metrics
+          readOnly: true
+      volumes:
+      - name: health-status
+        emptyDir: {}
+---
+# Service Accounts and RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cross-region-sync
+  namespace: multi-region-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: multi-region-health-checker
+  namespace: multi-region-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cross-region-sync
+rules:
+- apiGroups: [""]
+  resources: ["secrets", "configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cross-region-sync
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cross-region-sync
+subjects:
+- kind: ServiceAccount
+  name: cross-region-sync
+  namespace: multi-region-system
+---
+# Multi-Region Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: multi-region-health-checker
+  namespace: multi-region-system
+  labels:
+    app: multi-region-health-checker
+spec:
+  selector:
+    app: multi-region-health-checker
+  ports:
+  - name: metrics
+    port: 9100
+    targetPort: 9100
+  type: ClusterIP
+---
+# ServiceMonitor for multi-region metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: multi-region-health
+  namespace: monitoring
+  labels:
+    app: multi-region-health
+spec:
+  selector:
+    matchLabels:
+      app: multi-region-health-checker
+  namespaceSelector:
+    matchNames:
+    - multi-region-system
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+---
+# Multi-Region Alert Rules
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: multi-region-alerts
+  namespace: monitoring
+spec:
+  groups:
+  - name: multi-region.rules
+    rules:
+    - alert: RegionDown
+      expr: up{job="multi-region-health"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: multi-region
+      annotations:
+        summary: "Region is down"
+        description: "Region {{ $labels.region }} has been down for more than 2 minutes."
+    
+    - alert: CrossRegionLatencyHigh
+      expr: histogram_quantile(0.95, rate(istio_request_duration_milliseconds_bucket{source_region!=destination_region}[5m])) > 1000
+      for: 5m
+      labels:
+        severity: warning
+        component: multi-region
+      annotations:
+        summary: "High cross-region latency"
+        description: "95th percentile cross-region latency is {{ $value }}ms, above 1000ms threshold."
+    
+    - alert: DatabaseReplicationLag
+      expr: mysql_slave_lag_seconds > 10
+      for: 2m
+      labels:
+        severity: critical
+        component: database
+      annotations:
+        summary: "Database replication lag high"
+        description: "Database replication lag is {{ $value }} seconds, above 10 second threshold."
+---
+# Traffic Splitting Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traffic-splitting-config
+  namespace: multi-region-system
+data:
+  traffic-config.yaml: |
+    traffic_splitting:
+      enabled: true
+      strategy: "weighted"
+      
+      weights:
+        us-west-2: 70
+        us-east-1: 30
+        eu-west-1: 0
+        
+      failover_rules:
+      - if: "region_health(us-west-2) < 0.8"
+        then: "redirect_to(us-east-1)"
+        weight: 100
+        
+      - if: "region_health(us-east-1) < 0.8 AND region_health(us-west-2) < 0.8"
+        then: "redirect_to(eu-west-1)"
+        weight: 100
+        
+      geo_routing:
+        enabled: true
+        rules:
+        - source_country: ["US", "CA", "MX"]
+          target_region: "us-west-2"
+          fallback: "us-east-1"
+          
+        - source_country: ["GB", "DE", "FR", "IT", "ES"]
+          target_region: "eu-west-1"
+          fallback: "us-east-1"
+          
+        - source_country: ["JP", "KR", "AU", "SG"]
+          target_region: "ap-southeast-1"
+          fallback: "us-west-2"
+
