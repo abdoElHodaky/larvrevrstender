@@ -10,6 +10,8 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
     libzip-dev \
     libpq-dev \
     libicu-dev \
@@ -17,6 +19,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     libonig-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Configure GD extension with JPEG and FreeType support
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 
 # Install PHP extensions needed for building/dependencies
 RUN docker-php-ext-install -j$(nproc) \
@@ -64,6 +69,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4 \
     libpq-dev \
     libicu-dev \
+    libjpeg62-turbo \
+    libfreetype6 \
+    libpng16-16 \
     && rm -rf /var/lib/apt/lists/* && apt-get clean
 
 # Re-install extensions for runtime

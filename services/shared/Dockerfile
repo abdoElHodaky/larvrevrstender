@@ -65,7 +65,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install required PHP extensions for runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
     && rm -rf /var/lib/apt/lists/* \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
     pdo_mysql \
     pdo_pgsql \
