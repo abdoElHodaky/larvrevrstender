@@ -1,0 +1,384 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-escalation-config
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: alertmanager-escalation-config
+    app.kubernetes.io/part-of: flux
+data:
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: 'localhost:587'
+      smtp_from: 'alerts@reversetender.com'
+      smtp_auth_username: 'alerts@reversetender.com'
+      smtp_auth_password: '${SMTP_PASSWORD}'
+      slack_api_url: '${SLACK_WEBHOOK_URL}'
+      pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+    # Inhibition rules - prevent duplicate alerts
+    inhibit_rules:
+    - source_match:
+        severity: 'critical'
+      target_match:
+        severity: 'warning'
+      equal: ['alertname', 'cluster', 'service']
+
+    - source_match:
+        alertname: 'BlueGreenRollbackRequired'
+      target_match_re:
+        alertname: 'BlueGreen.*'
+      equal: ['environment_color']
+
+    # Routing tree
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'default-receiver'
+      
+      routes:
+      # Critical FluxCD alerts - immediate escalation
+      - match:
+          component: fluxcd
+          severity: critical
+        receiver: 'fluxcd-critical'
+        group_wait: 10s
+        repeat_interval: 5m
+        routes:
+        - match:
+            escalation_level: "1"
+          receiver: 'fluxcd-critical-l1'
+          continue: true
+        - match:
+            escalation_level: "1"
+          receiver: 'fluxcd-critical-l2'
+          group_wait: 15m
+          continue: true
+        - match:
+            escalation_level: "1"
+          receiver: 'fluxcd-critical-l3'
+          group_wait: 30m
+
+      # Blue-green deployment alerts
+      - match:
+          component: blue-green
+          severity: critical
+        receiver: 'blue-green-critical'
+        group_wait: 10s
+        repeat_interval: 5m
+        routes:
+        - match:
+            auto_rollback: "true"
+          receiver: 'auto-rollback-trigger'
+          group_wait: 5s
+          continue: true
+        - match:
+            escalation_level: "1"
+          receiver: 'blue-green-critical-l1'
+          continue: true
+        - match:
+            escalation_level: "1"
+          receiver: 'blue-green-critical-l2'
+          group_wait: 10m
+          continue: true
+        - match:
+            escalation_level: "1"
+          receiver: 'blue-green-critical-l3'
+          group_wait: 20m
+
+      # Database alerts
+      - match:
+          component: database
+          severity: critical
+        receiver: 'database-critical'
+        group_wait: 10s
+        repeat_interval: 10m
+        routes:
+        - match:
+            team: database
+          receiver: 'database-team'
+          continue: true
+        - match:
+            escalation_level: "1"
+          receiver: 'database-critical-l2'
+          group_wait: 15m
+
+      # System health alerts
+      - match:
+          component: system
+          severity: critical
+        receiver: 'system-critical'
+        group_wait: 5s
+        repeat_interval: 5m
+        routes:
+        - match:
+            escalation_level: "1"
+          receiver: 'incident-commander'
+          group_wait: 10m
+          continue: true
+        - match:
+            escalation_level: "1"
+          receiver: 'executive-notification'
+          group_wait: 30m
+
+      # Warning level alerts
+      - match:
+          severity: warning
+        receiver: 'warning-alerts'
+        group_wait: 2m
+        repeat_interval: 2h
+        routes:
+        - match:
+            escalation_level: "2"
+          receiver: 'warning-escalation'
+          group_wait: 30m
+
+    # Receiver definitions
+    receivers:
+    - name: 'default-receiver'
+      slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts-general'
+        title: 'Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+    # FluxCD Critical Receivers
+    - name: 'fluxcd-critical'
+      slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts-fluxcd-critical'
+        title: '🚨 CRITICAL FluxCD Alert'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .CommonLabels.severity }}
+          *Component:* {{ .CommonLabels.component }}
+          
+          {{ range .Alerts }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Action Required:* {{ .Annotations.action_required }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        actions:
+        - type: button
+          text: 'View Runbook'
+          url: '{{ .CommonAnnotations.runbook_url }}'
+        - type: button
+          text: 'Acknowledge'
+          url: 'https://alertmanager.reversetender.com/#/alerts'
+
+    - name: 'fluxcd-critical-l1'
+      slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#devops-oncall'
+        title: '🚨 FluxCD Critical - Level 1 Escalation'
+        text: 'FluxCD critical alert escalated to Level 1. Immediate attention required.'
+
+    - name: 'fluxcd-critical-l2'
+      pagerduty_configs:
+      - routing_key: '${PAGERDUTY_FLUXCD_KEY}'
+        description: 'FluxCD Critical Alert - Level 2 Escalation'
+        severity: 'critical'
+        details:
+          alert: '{{ .GroupLabels.alertname }}'
+          summary: '{{ .CommonAnnotations.summary }}'
+          runbook: '{{ .CommonAnnotations.runbook_url }}'
+
+    - name: 'fluxcd-critical-l3'
+      email_configs:
+      - to: 'platform-lead@reversetender.com'
+        subject: 'URGENT: FluxCD Critical Alert - Level 3 Escalation'
+        body: |
+          FluxCD critical alert has escalated to Level 3.
+          
+          Alert: {{ .GroupLabels.alertname }}
+          Summary: {{ .CommonAnnotations.summary }}
+          Action Required: {{ .CommonAnnotations.action_required }}
+          Runbook: {{ .CommonAnnotations.runbook_url }}
+
+    # Blue-Green Critical Receivers
+    - name: 'blue-green-critical'
+      slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts-deployment-critical'
+        title: '🔄 CRITICAL Blue-Green Deployment Alert'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Environment:* {{ .CommonLabels.environment_color }}
+          *Severity:* {{ .CommonLabels.severity }}
+          
+          {{ range .Alerts }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Action Required:* {{ .Annotations.action_required }}
+          {{ end }}
+
+    - name: 'auto-rollback-trigger'
+      webhook_configs:
+      - url: 'https://api.reversetender.com/webhooks/auto-rollback'
+        http_config:
+          bearer_token: '${ROLLBACK_WEBHOOK_TOKEN}'
+        send_resolved: false
+
+    - name: 'blue-green-critical-l1'
+      slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#platform-oncall'
+        title: '🔄 Blue-Green Critical - Level 1 Escalation'
+        text: 'Blue-green deployment critical alert escalated. Deployment may need rollback.'
+
+    - name: 'blue-green-critical-l2'
+      pagerduty_configs:
+      - routing_key: '${PAGERDUTY_DEPLOYMENT_KEY}'
+        description: 'Blue-Green Deployment Critical - Level 2 Escalation'
+        severity: 'critical'
+
+    - name: 'blue-green-critical-l3'
+      email_configs:
+      - to: 'incident-commander@reversetender.com'
+        subject: 'URGENT: Blue-Green Deployment Critical - Level 3 Escalation'
+        body: |
+          Blue-green deployment critical alert has escalated to Level 3.
+          Incident commander activation may be required.
+
+    # Database Critical Receivers
+    - name: 'database-critical'
+      slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts-database-critical'
+        title: '🗄️ CRITICAL Database Alert'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Component:* Database Migration
+          
+          {{ range .Alerts }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+
+    - name: 'database-team'
+      slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#database-team'
+        title: '🗄️ Database Team Alert'
+        text: 'Database critical alert requires immediate attention from database team.'
+
+    - name: 'database-critical-l2'
+      pagerduty_configs:
+      - routing_key: '${PAGERDUTY_DATABASE_KEY}'
+        description: 'Database Critical Alert - Level 2 Escalation'
+        severity: 'critical'
+
+    # System Critical Receivers
+    - name: 'system-critical'
+      slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts-system-critical'
+        title: '🚨 SYSTEM CRITICAL ALERT'
+        text: |
+          *SYSTEM OUTAGE DETECTED*
+          
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Summary:* {{ .Annotations.summary }}
+          *Action Required:* {{ .Annotations.action_required }}
+          {{ end }}
+
+    - name: 'incident-commander'
+      pagerduty_configs:
+      - routing_key: '${PAGERDUTY_INCIDENT_COMMANDER_KEY}'
+        description: 'System Critical - Incident Commander Required'
+        severity: 'critical'
+      email_configs:
+      - to: 'incident-commander@reversetender.com'
+        subject: 'INCIDENT COMMANDER ACTIVATION REQUIRED'
+        body: 'System critical alert requires incident commander activation.'
+
+    - name: 'executive-notification'
+      email_configs:
+      - to: 'executives@reversetender.com'
+        subject: 'EXECUTIVE NOTIFICATION: System Outage'
+        body: |
+          Executive notification: System outage detected.
+          Incident commander has been activated.
+          
+          {{ range .Alerts }}
+          Alert: {{ .Labels.alertname }}
+          Summary: {{ .Annotations.summary }}
+          {{ end }}
+
+    # Warning Level Receivers
+    - name: 'warning-alerts'
+      slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts-warnings'
+        title: '⚠️ Warning Alert'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Summary:* {{ .Annotations.summary }}
+          {{ end }}
+
+    - name: 'warning-escalation'
+      slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#platform-team'
+        title: '⚠️ Warning Alert - Escalated'
+        text: 'Warning alert has been active for 30+ minutes and requires attention.'
+
+    # Templates for reusable message formatting
+    templates:
+    - '/etc/alertmanager/templates/*.tmpl'
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-templates
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: alertmanager-templates
+    app.kubernetes.io/part-of: flux
+data:
+  default.tmpl: |
+    {{ define "slack.default.title" }}
+    {{ if eq .Status "firing" }}🔥{{ else }}✅{{ end }} {{ .GroupLabels.alertname }}
+    {{ end }}
+
+    {{ define "slack.default.text" }}
+    {{ range .Alerts }}
+    *Alert:* {{ .Labels.alertname }}
+    *Status:* {{ .Status }}
+    *Severity:* {{ .Labels.severity }}
+    *Summary:* {{ .Annotations.summary }}
+    {{ if .Annotations.description }}*Description:* {{ .Annotations.description }}{{ end }}
+    {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+    {{ if .Annotations.action_required }}*Action Required:* {{ .Annotations.action_required }}{{ end }}
+    ---
+    {{ end }}
+    {{ end }}
+
+    {{ define "email.default.subject" }}
+    {{ if eq .Status "firing" }}[FIRING]{{ else }}[RESOLVED]{{ end }} {{ .GroupLabels.alertname }}
+    {{ end }}
+
+    {{ define "email.default.body" }}
+    Alert Status: {{ .Status }}
+    
+    {{ range .Alerts }}
+    Alert: {{ .Labels.alertname }}
+    Severity: {{ .Labels.severity }}
+    Summary: {{ .Annotations.summary }}
+    {{ if .Annotations.description }}Description: {{ .Annotations.description }}{{ end }}
+    {{ if .Annotations.runbook_url }}Runbook: {{ .Annotations.runbook_url }}{{ end }}
+    {{ if .Annotations.action_required }}Action Required: {{ .Annotations.action_required }}{{ end }}
+    
+    Labels:
+    {{ range .Labels.SortedPairs }}  {{ .Name }}: {{ .Value }}
+    {{ end }}
+    
+    {{ end }}
+    {{ end }}
+

@@ -1,0 +1,391 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: blue-green-slo-rules
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: blue-green-slo-rules
+    app.kubernetes.io/part-of: flux
+spec:
+  groups:
+  - name: blue-green-slo-definitions
+    interval: 30s
+    rules:
+    # SLO 1: Deployment Success Rate - Target 99.9%
+    - record: slo:deployment_success_rate:ratio_rate5m
+      expr: |
+        (
+          sum(rate(gotk_reconcile_condition{type="Ready",status="True",name=~"blue-green-deployment|green-environment-standby"}[5m]))
+          /
+          sum(rate(gotk_reconcile_condition{type="Ready",name=~"blue-green-deployment|green-environment-standby"}[5m]))
+        )
+
+    - record: slo:deployment_success_rate:ratio_rate30m
+      expr: |
+        (
+          sum(rate(gotk_reconcile_condition{type="Ready",status="True",name=~"blue-green-deployment|green-environment-standby"}[30m]))
+          /
+          sum(rate(gotk_reconcile_condition{type="Ready",name=~"blue-green-deployment|green-environment-standby"}[30m]))
+        )
+
+    - record: slo:deployment_success_rate:ratio_rate1h
+      expr: |
+        (
+          sum(rate(gotk_reconcile_condition{type="Ready",status="True",name=~"blue-green-deployment|green-environment-standby"}[1h]))
+          /
+          sum(rate(gotk_reconcile_condition{type="Ready",name=~"blue-green-deployment|green-environment-standby"}[1h]))
+        )
+
+    - record: slo:deployment_success_rate:ratio_rate6h
+      expr: |
+        (
+          sum(rate(gotk_reconcile_condition{type="Ready",status="True",name=~"blue-green-deployment|green-environment-standby"}[6h]))
+          /
+          sum(rate(gotk_reconcile_condition{type="Ready",name=~"blue-green-deployment|green-environment-standby"}[6h]))
+        )
+
+    - record: slo:deployment_success_rate:ratio_rate1d
+      expr: |
+        (
+          sum(rate(gotk_reconcile_condition{type="Ready",status="True",name=~"blue-green-deployment|green-environment-standby"}[1d]))
+          /
+          sum(rate(gotk_reconcile_condition{type="Ready",name=~"blue-green-deployment|green-environment-standby"}[1d]))
+        )
+
+    # SLO 2: Deployment Duration - Target <5 minutes (300 seconds)
+    - record: slo:deployment_duration:p95_5m
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(gotk_reconcile_duration_seconds_bucket{name=~"blue-green-deployment|green-environment-standby"}[5m])) by (le)
+        )
+
+    - record: slo:deployment_duration:p95_30m
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(gotk_reconcile_duration_seconds_bucket{name=~"blue-green-deployment|green-environment-standby"}[30m])) by (le)
+        )
+
+    - record: slo:deployment_duration:p95_1h
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(gotk_reconcile_duration_seconds_bucket{name=~"blue-green-deployment|green-environment-standby"}[1h])) by (le)
+        )
+
+    - record: slo:deployment_duration:p95_6h
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(gotk_reconcile_duration_seconds_bucket{name=~"blue-green-deployment|green-environment-standby"}[6h])) by (le)
+        )
+
+    - record: slo:deployment_duration:p95_1d
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(gotk_reconcile_duration_seconds_bucket{name=~"blue-green-deployment|green-environment-standby"}[1d])) by (le)
+        )
+
+    # SLO 3: System Availability - Target 99.95%
+    - record: slo:system_availability:ratio_rate5m
+      expr: |
+        (
+          sum(up{job=~"api-gateway|auth-service|user-service|payment-service|bidding-service|order-service|notification-service|analytics-service|vin-ocr-service"})
+          /
+          count(up{job=~"api-gateway|auth-service|user-service|payment-service|bidding-service|order-service|notification-service|analytics-service|vin-ocr-service"})
+        )
+
+    - record: slo:system_availability:ratio_rate30m
+      expr: |
+        avg_over_time(slo:system_availability:ratio_rate5m[30m])
+
+    - record: slo:system_availability:ratio_rate1h
+      expr: |
+        avg_over_time(slo:system_availability:ratio_rate5m[1h])
+
+    - record: slo:system_availability:ratio_rate6h
+      expr: |
+        avg_over_time(slo:system_availability:ratio_rate5m[6h])
+
+    - record: slo:system_availability:ratio_rate1d
+      expr: |
+        avg_over_time(slo:system_availability:ratio_rate5m[1d])
+
+    # SLO 4: Health Check Response Time - Target 99.9% <1000ms
+    - record: slo:health_check_latency:ratio_rate5m
+      expr: |
+        (
+          sum(rate(http_request_duration_seconds_bucket{endpoint="/health",le="1.0"}[5m]))
+          /
+          sum(rate(http_request_duration_seconds_bucket{endpoint="/health"}[5m]))
+        )
+
+    - record: slo:health_check_latency:ratio_rate30m
+      expr: |
+        (
+          sum(rate(http_request_duration_seconds_bucket{endpoint="/health",le="1.0"}[30m]))
+          /
+          sum(rate(http_request_duration_seconds_bucket{endpoint="/health"}[30m]))
+        )
+
+    - record: slo:health_check_latency:ratio_rate1h
+      expr: |
+        (
+          sum(rate(http_request_duration_seconds_bucket{endpoint="/health",le="1.0"}[1h]))
+          /
+          sum(rate(http_request_duration_seconds_bucket{endpoint="/health"}[1h]))
+        )
+
+    - record: slo:health_check_latency:ratio_rate6h
+      expr: |
+        (
+          sum(rate(http_request_duration_seconds_bucket{endpoint="/health",le="1.0"}[6h]))
+          /
+          sum(rate(http_request_duration_seconds_bucket{endpoint="/health"}[6h]))
+        )
+
+    - record: slo:health_check_latency:ratio_rate1d
+      expr: |
+        (
+          sum(rate(http_request_duration_seconds_bucket{endpoint="/health",le="1.0"}[1d]))
+          /
+          sum(rate(http_request_duration_seconds_bucket{endpoint="/health"}[1d]))
+        )
+
+    # SLO 5: Rollback Success Rate - Target 99.99%
+    - record: slo:rollback_success_rate:ratio_rate5m
+      expr: |
+        (
+          sum(rate(blue_green_rollback_total{status="success"}[5m]))
+          /
+          sum(rate(blue_green_rollback_total[5m]))
+        )
+
+    - record: slo:rollback_success_rate:ratio_rate30m
+      expr: |
+        (
+          sum(rate(blue_green_rollback_total{status="success"}[30m]))
+          /
+          sum(rate(blue_green_rollback_total[30m]))
+        )
+
+    - record: slo:rollback_success_rate:ratio_rate1h
+      expr: |
+        (
+          sum(rate(blue_green_rollback_total{status="success"}[1h]))
+          /
+          sum(rate(blue_green_rollback_total[1h]))
+        )
+
+    - record: slo:rollback_success_rate:ratio_rate6h
+      expr: |
+        (
+          sum(rate(blue_green_rollback_total{status="success"}[6h]))
+          /
+          sum(rate(blue_green_rollback_total[6h]))
+        )
+
+    - record: slo:rollback_success_rate:ratio_rate1d
+      expr: |
+        (
+          sum(rate(blue_green_rollback_total{status="success"}[1d]))
+          /
+          sum(rate(blue_green_rollback_total[1d]))
+        )
+
+  - name: slo-error-budget-burn-rate
+    interval: 30s
+    rules:
+    # Error Budget Burn Rate Calculations
+    # Deployment Success Rate SLO (99.9% target, 0.1% error budget)
+    - record: slo:deployment_success_rate:error_budget_burn_rate_5m
+      expr: |
+        (1 - slo:deployment_success_rate:ratio_rate5m) / (1 - 0.999)
+
+    - record: slo:deployment_success_rate:error_budget_burn_rate_30m
+      expr: |
+        (1 - slo:deployment_success_rate:ratio_rate30m) / (1 - 0.999)
+
+    - record: slo:deployment_success_rate:error_budget_burn_rate_1h
+      expr: |
+        (1 - slo:deployment_success_rate:ratio_rate1h) / (1 - 0.999)
+
+    - record: slo:deployment_success_rate:error_budget_burn_rate_6h
+      expr: |
+        (1 - slo:deployment_success_rate:ratio_rate6h) / (1 - 0.999)
+
+    # System Availability SLO (99.95% target, 0.05% error budget)
+    - record: slo:system_availability:error_budget_burn_rate_5m
+      expr: |
+        (1 - slo:system_availability:ratio_rate5m) / (1 - 0.9995)
+
+    - record: slo:system_availability:error_budget_burn_rate_30m
+      expr: |
+        (1 - slo:system_availability:ratio_rate30m) / (1 - 0.9995)
+
+    - record: slo:system_availability:error_budget_burn_rate_1h
+      expr: |
+        (1 - slo:system_availability:ratio_rate1h) / (1 - 0.9995)
+
+    - record: slo:system_availability:error_budget_burn_rate_6h
+      expr: |
+        (1 - slo:system_availability:ratio_rate6h) / (1 - 0.9995)
+
+    # Health Check Latency SLO (99.9% target, 0.1% error budget)
+    - record: slo:health_check_latency:error_budget_burn_rate_5m
+      expr: |
+        (1 - slo:health_check_latency:ratio_rate5m) / (1 - 0.999)
+
+    - record: slo:health_check_latency:error_budget_burn_rate_30m
+      expr: |
+        (1 - slo:health_check_latency:ratio_rate30m) / (1 - 0.999)
+
+    - record: slo:health_check_latency:error_budget_burn_rate_1h
+      expr: |
+        (1 - slo:health_check_latency:ratio_rate1h) / (1 - 0.999)
+
+    - record: slo:health_check_latency:error_budget_burn_rate_6h
+      expr: |
+        (1 - slo:health_check_latency:ratio_rate6h) / (1 - 0.999)
+
+    # Rollback Success Rate SLO (99.99% target, 0.01% error budget)
+    - record: slo:rollback_success_rate:error_budget_burn_rate_5m
+      expr: |
+        (1 - slo:rollback_success_rate:ratio_rate5m) / (1 - 0.9999)
+
+    - record: slo:rollback_success_rate:error_budget_burn_rate_30m
+      expr: |
+        (1 - slo:rollback_success_rate:ratio_rate30m) / (1 - 0.9999)
+
+    - record: slo:rollback_success_rate:error_budget_burn_rate_1h
+      expr: |
+        (1 - slo:rollback_success_rate:ratio_rate1h) / (1 - 0.9999)
+
+    - record: slo:rollback_success_rate:error_budget_burn_rate_6h
+      expr: |
+        (1 - slo:rollback_success_rate:ratio_rate6h) / (1 - 0.9999)
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-definitions
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: slo-definitions
+    app.kubernetes.io/part-of: flux
+data:
+  slo-config.yaml: |
+    # Blue-Green Deployment SLO Definitions
+    slos:
+      deployment_success_rate:
+        name: "Deployment Success Rate"
+        description: "Percentage of successful blue-green deployments"
+        target: 99.9  # 99.9%
+        error_budget: 0.1  # 0.1%
+        measurement_window: "30d"
+        alerting_windows:
+          - window: "5m"
+            burn_rate_threshold: 14.4  # 2% of monthly budget in 5 minutes
+            severity: "critical"
+          - window: "30m"
+            burn_rate_threshold: 6  # 5% of monthly budget in 30 minutes
+            severity: "critical"
+          - window: "1h"
+            burn_rate_threshold: 3  # 10% of monthly budget in 1 hour
+            severity: "warning"
+          - window: "6h"
+            burn_rate_threshold: 1  # 25% of monthly budget in 6 hours
+            severity: "warning"
+
+      deployment_duration:
+        name: "Deployment Duration"
+        description: "95th percentile deployment duration"
+        target: 300  # 5 minutes in seconds
+        threshold: 600  # Alert if >10 minutes
+        measurement_window: "30d"
+        alerting_windows:
+          - window: "5m"
+            threshold: 900  # 15 minutes
+            severity: "critical"
+          - window: "30m"
+            threshold: 600  # 10 minutes
+            severity: "warning"
+
+      system_availability:
+        name: "System Availability"
+        description: "Percentage of time all critical services are available"
+        target: 99.95  # 99.95%
+        error_budget: 0.05  # 0.05%
+        measurement_window: "30d"
+        alerting_windows:
+          - window: "5m"
+            burn_rate_threshold: 14.4
+            severity: "critical"
+          - window: "30m"
+            burn_rate_threshold: 6
+            severity: "critical"
+          - window: "1h"
+            burn_rate_threshold: 3
+            severity: "warning"
+          - window: "6h"
+            burn_rate_threshold: 1
+            severity: "warning"
+
+      health_check_latency:
+        name: "Health Check Response Time"
+        description: "Percentage of health checks responding within 1000ms"
+        target: 99.9  # 99.9%
+        error_budget: 0.1  # 0.1%
+        measurement_window: "30d"
+        alerting_windows:
+          - window: "5m"
+            burn_rate_threshold: 14.4
+            severity: "critical"
+          - window: "30m"
+            burn_rate_threshold: 6
+            severity: "warning"
+
+      rollback_success_rate:
+        name: "Rollback Success Rate"
+        description: "Percentage of successful rollback operations"
+        target: 99.99  # 99.99%
+        error_budget: 0.01  # 0.01%
+        measurement_window: "30d"
+        alerting_windows:
+          - window: "5m"
+            burn_rate_threshold: 14.4
+            severity: "critical"
+          - window: "30m"
+            burn_rate_threshold: 6
+            severity: "critical"
+
+    # Error Budget Policies
+    error_budget_policies:
+      - name: "Deployment Freeze"
+        condition: "error_budget_remaining < 10%"
+        action: "freeze_deployments"
+        notification_channels: ["slack", "email"]
+        
+      - name: "Emergency Response"
+        condition: "error_budget_burn_rate > 10"
+        action: "emergency_response"
+        notification_channels: ["pagerduty", "slack", "email"]
+        
+      - name: "SLO Review"
+        condition: "error_budget_remaining < 50%"
+        action: "schedule_slo_review"
+        notification_channels: ["slack"]
+
+    # Reporting Configuration
+    reporting:
+      frequency: "weekly"
+      recipients:
+        - "platform-team@reversetender.com"
+        - "engineering-leads@reversetender.com"
+      
+      monthly_review:
+        enabled: true
+        recipients:
+          - "executives@reversetender.com"
+          - "platform-team@reversetender.com"
+        
+      dashboard_url: "https://grafana.reversetender.com/d/slo-overview"
+

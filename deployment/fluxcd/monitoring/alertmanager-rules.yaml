@@ -1,0 +1,244 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: fluxcd-alertmanager-rules
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: fluxcd-alertmanager-rules
+    app.kubernetes.io/part-of: flux
+spec:
+  groups:
+  - name: fluxcd-critical-alerts
+    interval: 30s
+    rules:
+    - alert: FluxCDControllerDown
+      expr: up{job="flux-system"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: fluxcd
+        team: platform
+        escalation_level: "1"
+      annotations:
+        summary: "FluxCD controller is down"
+        description: "FluxCD controller {{ $labels.instance }} has been down for more than 2 minutes."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#fluxcd-controller-failures"
+        action_required: "Immediate investigation required - GitOps deployments are blocked"
+
+    - alert: FluxCDGitSyncFailure
+      expr: increase(gotk_reconcile_condition{type="Ready",status="False",kind="GitRepository"}[10m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+        component: fluxcd
+        team: platform
+        escalation_level: "1"
+      annotations:
+        summary: "FluxCD Git synchronization failure"
+        description: "Git repository {{ $labels.name }} sync has been failing for more than 5 minutes."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#git-synchronization-issues"
+        action_required: "Check Git repository connectivity and credentials"
+
+    - alert: FluxCDReconciliationStuck
+      expr: time() - gotk_reconcile_condition_timestamp{type="Ready"} > 1800
+      for: 5m
+      labels:
+        severity: warning
+        component: fluxcd
+        team: platform
+        escalation_level: "2"
+      annotations:
+        summary: "FluxCD reconciliation stuck"
+        description: "{{ $labels.kind }}/{{ $labels.name }} has not reconciled for more than 30 minutes."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#reconciliation-issues"
+        action_required: "Investigate resource reconciliation status"
+
+  - name: blue-green-deployment-alerts
+    interval: 30s
+    rules:
+    - alert: BlueGreenDeploymentFailed
+      expr: increase(gotk_reconcile_condition{type="Ready",status="False",name=~"blue-green-deployment|green-environment-standby"}[5m]) > 0
+      for: 2m
+      labels:
+        severity: critical
+        component: blue-green
+        team: platform
+        escalation_level: "1"
+      annotations:
+        summary: "Blue-green deployment failed"
+        description: "Blue-green deployment {{ $labels.name }} has failed reconciliation."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/blue-green-deployment-runbook.md#deployment-failures"
+        action_required: "Immediate rollback may be required"
+
+    - alert: BlueGreenEnvironmentUnhealthy
+      expr: blue_green:environment_health_score < 80
+      for: 3m
+      labels:
+        severity: critical
+        component: blue-green
+        team: platform
+        escalation_level: "1"
+      annotations:
+        summary: "Blue-green environment unhealthy"
+        description: "{{ $labels.environment_color }} environment health score is {{ $value }}%, below 80% threshold."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#environment-health-issues"
+        action_required: "Investigate service health and consider rollback"
+
+    - alert: BlueGreenTrafficSwitchStuck
+      expr: |
+        (
+          time() - on() kube_configmap_info{configmap="blue-green-config",key="DEPLOYMENT_TIMESTAMP"}
+        ) > 900 and
+        (
+          sum(blue_green:traffic_distribution{environment_color="blue"}) > 0 and
+          sum(blue_green:traffic_distribution{environment_color="green"}) > 0
+        )
+      for: 5m
+      labels:
+        severity: warning
+        component: blue-green
+        team: platform
+        escalation_level: "2"
+      annotations:
+        summary: "Blue-green traffic switch stuck"
+        description: "Traffic is being split between environments for more than 15 minutes."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/blue-green-deployment-runbook.md#traffic-switch-issues"
+        action_required: "Complete traffic switch or initiate rollback"
+
+    - alert: BlueGreenRollbackRequired
+      expr: |
+        (
+          rate(http_requests_total{status=~"5.."}[5m]) / 
+          rate(http_requests_total[5m])
+        ) > 0.05
+      for: 2m
+      labels:
+        severity: critical
+        component: blue-green
+        team: platform
+        escalation_level: "1"
+        auto_rollback: "true"
+      annotations:
+        summary: "High error rate detected - rollback required"
+        description: "Error rate is {{ $value | humanizePercentage }}, exceeding 5% threshold."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/blue-green-deployment-runbook.md#emergency-rollback"
+        action_required: "Immediate rollback required"
+
+  - name: service-discovery-alerts
+    interval: 30s
+    rules:
+    - alert: ServiceDiscoveryHighErrorRate
+      expr: service_discovery:error_rate > 10
+      for: 3m
+      labels:
+        severity: warning
+        component: service-discovery
+        team: platform
+        escalation_level: "2"
+      annotations:
+        summary: "High service discovery error rate"
+        description: "Service {{ $labels.service_name }} in {{ $labels.environment_color }} environment has {{ $value }}% error rate."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#service-discovery-issues"
+        action_required: "Investigate service connectivity"
+
+    - alert: ServiceDiscoveryHighLatency
+      expr: service_discovery:response_time_p95 > 5000
+      for: 5m
+      labels:
+        severity: warning
+        component: service-discovery
+        team: platform
+        escalation_level: "2"
+      annotations:
+        summary: "High service discovery latency"
+        description: "Service {{ $labels.service_name }} in {{ $labels.environment_color }} environment has {{ $value }}ms P95 response time."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#performance-issues"
+        action_required: "Investigate service performance"
+
+    - alert: CrossEnvironmentConnectivityFailure
+      expr: service_discovery_cross_environment_healthy == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: service-discovery
+        team: platform
+        escalation_level: "1"
+      annotations:
+        summary: "Cross-environment connectivity failure"
+        description: "Cross-environment connectivity check is failing between {{ $labels.source_environment }} and {{ $labels.target_environment }}."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#network-connectivity-issues"
+        action_required: "Check network policies and service mesh configuration"
+
+  - name: database-migration-alerts
+    interval: 30s
+    rules:
+    - alert: DatabaseMigrationFailed
+      expr: blue_green_migration_status{status="failed"} == 1
+      for: 1m
+      labels:
+        severity: critical
+        component: database
+        team: database
+        escalation_level: "1"
+      annotations:
+        summary: "Database migration failed"
+        description: "Database migration {{ $labels.migration_name }} failed in {{ $labels.environment_color }} environment."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#database-migration-failures"
+        action_required: "Investigate migration failure and consider rollback"
+
+    - alert: DatabaseMigrationTimeout
+      expr: |
+        (
+          time() - blue_green_migration_start_time
+        ) > 3600 and blue_green_migration_status{status="running"} == 1
+      for: 5m
+      labels:
+        severity: warning
+        component: database
+        team: database
+        escalation_level: "2"
+      annotations:
+        summary: "Database migration timeout"
+        description: "Database migration {{ $labels.migration_name }} has been running for more than 1 hour."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#migration-performance-issues"
+        action_required: "Check migration progress and consider intervention"
+
+  - name: system-health-alerts
+    interval: 30s
+    rules:
+    - alert: SystemAvailabilityLow
+      expr: |
+        (
+          sum(up{job=~"api-gateway|auth-service|user-service|payment-service"}) /
+          count(up{job=~"api-gateway|auth-service|user-service|payment-service"})
+        ) < 0.8
+      for: 2m
+      labels:
+        severity: critical
+        component: system
+        team: platform
+        escalation_level: "1"
+      annotations:
+        summary: "System availability below threshold"
+        description: "System availability is {{ $value | humanizePercentage }}, below 80% threshold."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/disaster-recovery-procedures.md#system-outage-response"
+        action_required: "Investigate service failures and initiate recovery procedures"
+
+    - alert: HighResourceUtilization
+      expr: |
+        (
+          sum(rate(container_cpu_usage_seconds_total{namespace="reverse-tender"}[5m])) /
+          sum(kube_pod_container_resource_limits{namespace="reverse-tender",resource="cpu"})
+        ) > 0.8
+      for: 10m
+      labels:
+        severity: warning
+        component: system
+        team: platform
+        escalation_level: "2"
+      annotations:
+        summary: "High CPU utilization"
+        description: "CPU utilization is {{ $value | humanizePercentage }}, above 80% threshold."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#resource-utilization-issues"
+        action_required: "Consider scaling up resources or investigating performance issues"
+

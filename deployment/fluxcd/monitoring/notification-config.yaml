@@ -1,0 +1,246 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-notification-secrets
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: alertmanager-notification-secrets
+    app.kubernetes.io/part-of: flux
+type: Opaque
+stringData:
+  # Slack Configuration
+  SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+  
+  # Email Configuration
+  SMTP_PASSWORD: "your-smtp-password"
+  
+  # PagerDuty Configuration
+  PAGERDUTY_FLUXCD_KEY: "your-pagerduty-fluxcd-integration-key"
+  PAGERDUTY_DEPLOYMENT_KEY: "your-pagerduty-deployment-integration-key"
+  PAGERDUTY_DATABASE_KEY: "your-pagerduty-database-integration-key"
+  PAGERDUTY_INCIDENT_COMMANDER_KEY: "your-pagerduty-incident-commander-key"
+  
+  # Webhook Configuration
+  ROLLBACK_WEBHOOK_TOKEN: "your-rollback-webhook-bearer-token"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notification-channel-config
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: notification-channel-config
+    app.kubernetes.io/part-of: flux
+data:
+  channels.yaml: |
+    # Notification Channel Configuration
+    channels:
+      slack:
+        # Critical alerts channels
+        fluxcd_critical: "#alerts-fluxcd-critical"
+        deployment_critical: "#alerts-deployment-critical"
+        database_critical: "#alerts-database-critical"
+        system_critical: "#alerts-system-critical"
+        
+        # Team channels
+        devops_oncall: "#devops-oncall"
+        platform_oncall: "#platform-oncall"
+        platform_team: "#platform-team"
+        database_team: "#database-team"
+        
+        # General channels
+        alerts_general: "#alerts-general"
+        alerts_warnings: "#alerts-warnings"
+        
+        # Escalation channels
+        incident_response: "#incident-response"
+        war_room: "#war-room"
+
+      email:
+        # Individual contacts
+        platform_lead: "platform-lead@reversetender.com"
+        incident_commander: "incident-commander@reversetender.com"
+        database_lead: "database-lead@reversetender.com"
+        
+        # Group contacts
+        executives: "executives@reversetender.com"
+        platform_team: "platform-team@reversetender.com"
+        database_team: "database-team@reversetender.com"
+        oncall_engineers: "oncall@reversetender.com"
+
+      pagerduty:
+        # Service keys for different components
+        fluxcd_service: "PAGERDUTY_FLUXCD_KEY"
+        deployment_service: "PAGERDUTY_DEPLOYMENT_KEY"
+        database_service: "PAGERDUTY_DATABASE_KEY"
+        incident_commander: "PAGERDUTY_INCIDENT_COMMANDER_KEY"
+        
+        # Escalation policies
+        platform_escalation: "P1234567"  # Replace with actual policy ID
+        database_escalation: "P2345678"  # Replace with actual policy ID
+        executive_escalation: "P3456789" # Replace with actual policy ID
+
+      webhooks:
+        # Automation webhooks
+        auto_rollback: "https://api.reversetender.com/webhooks/auto-rollback"
+        incident_creation: "https://api.reversetender.com/webhooks/create-incident"
+        status_page_update: "https://api.reversetender.com/webhooks/status-page"
+        
+        # Integration webhooks
+        jira_integration: "https://reversetender.atlassian.net/webhooks/alert-integration"
+        servicenow_integration: "https://reversetender.service-now.com/api/webhook/alerts"
+
+    # Escalation timing configuration
+    escalation_timing:
+      level_1: "0m"      # Immediate
+      level_2: "15m"     # After 15 minutes
+      level_3: "30m"     # After 30 minutes
+      executive: "45m"   # After 45 minutes for critical issues
+
+    # Alert routing rules
+    routing_rules:
+      # Critical alerts - immediate escalation
+      critical:
+        initial_channels: ["slack", "pagerduty"]
+        escalation_channels: ["email", "webhook"]
+        max_escalation_level: 3
+        
+      # Warning alerts - delayed escalation
+      warning:
+        initial_channels: ["slack"]
+        escalation_channels: ["email"]
+        escalation_delay: "30m"
+        max_escalation_level: 2
+        
+      # Info alerts - notification only
+      info:
+        initial_channels: ["slack"]
+        escalation_channels: []
+        max_escalation_level: 1
+
+    # Business hours configuration
+    business_hours:
+      timezone: "UTC"
+      weekdays:
+        start: "08:00"
+        end: "18:00"
+      weekends:
+        enabled: false
+      
+      # Different escalation during business hours vs after hours
+      escalation_policy:
+        business_hours:
+          level_1: "slack"
+          level_2: "email"
+          level_3: "pagerduty"
+        after_hours:
+          level_1: "pagerduty"
+          level_2: "email"
+          level_3: "phone"
+
+    # Alert suppression rules
+    suppression:
+      # Suppress duplicate alerts
+      duplicate_window: "5m"
+      
+      # Suppress alerts during maintenance windows
+      maintenance_windows:
+        - name: "weekly_maintenance"
+          schedule: "0 2 * * SUN"  # Every Sunday at 2 AM UTC
+          duration: "4h"
+          suppress_all: false
+          suppress_warnings: true
+        
+        - name: "deployment_window"
+          schedule: "0 14 * * TUE,THU"  # Tuesday and Thursday at 2 PM UTC
+          duration: "2h"
+          suppress_all: false
+          suppress_warnings: true
+
+    # Auto-resolution configuration
+    auto_resolution:
+      # Automatically resolve alerts after specified time if no updates
+      timeout: "24h"
+      
+      # Auto-resolve specific alert types
+      rules:
+        - alertname: "BlueGreenTrafficSwitchStuck"
+          timeout: "1h"
+        - alertname: "ServiceDiscoveryHighLatency"
+          timeout: "30m"
+        - alertname: "HighResourceUtilization"
+          timeout: "2h"
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: notification-config-validator
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: notification-config-validator
+    app.kubernetes.io/part-of: flux
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: validator
+            image: curlimages/curl:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Validating notification channels..."
+              
+              # Test Slack webhook
+              if [ -n "$SLACK_WEBHOOK_URL" ]; then
+                curl -X POST "$SLACK_WEBHOOK_URL" \
+                  -H 'Content-type: application/json' \
+                  --data '{"text":"Notification channel validation test - Slack OK"}' \
+                  --max-time 10 || echo "Slack webhook validation failed"
+              fi
+              
+              # Test email configuration (basic SMTP check)
+              if [ -n "$SMTP_PASSWORD" ]; then
+                echo "SMTP configuration present"
+              fi
+              
+              # Test PagerDuty integration
+              if [ -n "$PAGERDUTY_FLUXCD_KEY" ]; then
+                curl -X POST "https://events.pagerduty.com/v2/enqueue" \
+                  -H "Content-Type: application/json" \
+                  -d "{
+                    \"routing_key\": \"$PAGERDUTY_FLUXCD_KEY\",
+                    \"event_action\": \"trigger\",
+                    \"payload\": {
+                      \"summary\": \"Notification validation test\",
+                      \"severity\": \"info\",
+                      \"source\": \"notification-validator\"
+                    }
+                  }" \
+                  --max-time 10 || echo "PagerDuty validation failed"
+              fi
+              
+              echo "Notification validation completed"
+            env:
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: alertmanager-notification-secrets
+                  key: SLACK_WEBHOOK_URL
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: alertmanager-notification-secrets
+                  key: SMTP_PASSWORD
+            - name: PAGERDUTY_FLUXCD_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: alertmanager-notification-secrets
+                  key: PAGERDUTY_FLUXCD_KEY
+          restartPolicy: OnFailure
+

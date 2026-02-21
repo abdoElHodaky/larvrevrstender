@@ -1,0 +1,326 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: slo-burn-rate-alerts
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: slo-burn-rate-alerts
+    app.kubernetes.io/part-of: flux
+spec:
+  groups:
+  - name: slo-burn-rate-alerts
+    interval: 30s
+    rules:
+    # Multi-window, multi-burn-rate alerts for Deployment Success Rate SLO
+    - alert: DeploymentSuccessRateBurnRateCritical
+      expr: |
+        (
+          slo:deployment_success_rate:error_budget_burn_rate_5m > 14.4
+          and
+          slo:deployment_success_rate:error_budget_burn_rate_1h > 14.4
+        )
+        or
+        (
+          slo:deployment_success_rate:error_budget_burn_rate_30m > 6
+          and
+          slo:deployment_success_rate:error_budget_burn_rate_6h > 6
+        )
+      for: 2m
+      labels:
+        severity: critical
+        slo: deployment_success_rate
+        component: blue-green
+        team: platform
+        escalation_level: "1"
+      annotations:
+        summary: "Deployment Success Rate SLO burn rate critical"
+        description: "High error budget burn rate for deployment success rate. At this rate, the monthly error budget will be exhausted soon."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#slo-burn-rate-alerts"
+        action_required: "Investigate deployment failures immediately"
+        current_burn_rate_5m: "{{ $value }}"
+        error_budget_remaining: "{{ with query \"1 - (1 - slo:deployment_success_rate:ratio_rate1d) / (1 - 0.999)\" }}{{ . | first | value | humanizePercentage }}{{ end }}"
+
+    - alert: DeploymentSuccessRateBurnRateWarning
+      expr: |
+        (
+          slo:deployment_success_rate:error_budget_burn_rate_1h > 3
+          and
+          slo:deployment_success_rate:error_budget_burn_rate_6h > 3
+        )
+      for: 15m
+      labels:
+        severity: warning
+        slo: deployment_success_rate
+        component: blue-green
+        team: platform
+        escalation_level: "2"
+      annotations:
+        summary: "Deployment Success Rate SLO burn rate warning"
+        description: "Moderate error budget burn rate for deployment success rate."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#slo-burn-rate-alerts"
+        action_required: "Monitor deployment success rate closely"
+
+    # Multi-window, multi-burn-rate alerts for System Availability SLO
+    - alert: SystemAvailabilityBurnRateCritical
+      expr: |
+        (
+          slo:system_availability:error_budget_burn_rate_5m > 14.4
+          and
+          slo:system_availability:error_budget_burn_rate_1h > 14.4
+        )
+        or
+        (
+          slo:system_availability:error_budget_burn_rate_30m > 6
+          and
+          slo:system_availability:error_budget_burn_rate_6h > 6
+        )
+      for: 2m
+      labels:
+        severity: critical
+        slo: system_availability
+        component: system
+        team: platform
+        escalation_level: "1"
+      annotations:
+        summary: "System Availability SLO burn rate critical"
+        description: "High error budget burn rate for system availability. Multiple services may be down."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/disaster-recovery-procedures.md#system-outage-response"
+        action_required: "Immediate investigation of service outages required"
+        current_availability: "{{ with query \"slo:system_availability:ratio_rate5m\" }}{{ . | first | value | humanizePercentage }}{{ end }}"
+
+    - alert: SystemAvailabilityBurnRateWarning
+      expr: |
+        (
+          slo:system_availability:error_budget_burn_rate_1h > 3
+          and
+          slo:system_availability:error_budget_burn_rate_6h > 3
+        )
+      for: 15m
+      labels:
+        severity: warning
+        slo: system_availability
+        component: system
+        team: platform
+        escalation_level: "2"
+      annotations:
+        summary: "System Availability SLO burn rate warning"
+        description: "Moderate error budget burn rate for system availability."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#availability-issues"
+        action_required: "Monitor system health closely"
+
+    # Multi-window, multi-burn-rate alerts for Health Check Latency SLO
+    - alert: HealthCheckLatencyBurnRateCritical
+      expr: |
+        (
+          slo:health_check_latency:error_budget_burn_rate_5m > 14.4
+          and
+          slo:health_check_latency:error_budget_burn_rate_1h > 14.4
+        )
+        or
+        (
+          slo:health_check_latency:error_budget_burn_rate_30m > 6
+          and
+          slo:health_check_latency:error_budget_burn_rate_6h > 6
+        )
+      for: 2m
+      labels:
+        severity: critical
+        slo: health_check_latency
+        component: health-checks
+        team: platform
+        escalation_level: "1"
+      annotations:
+        summary: "Health Check Latency SLO burn rate critical"
+        description: "High error budget burn rate for health check latency. Health checks are responding slowly."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#performance-issues"
+        action_required: "Investigate health check performance immediately"
+        current_p95_latency: "{{ with query \"histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/health\"}[5m])) by (le))\" }}{{ . | first | value }}s{{ end }}"
+
+    - alert: HealthCheckLatencyBurnRateWarning
+      expr: |
+        (
+          slo:health_check_latency:error_budget_burn_rate_1h > 3
+          and
+          slo:health_check_latency:error_budget_burn_rate_6h > 3
+        )
+      for: 15m
+      labels:
+        severity: warning
+        slo: health_check_latency
+        component: health-checks
+        team: platform
+        escalation_level: "2"
+      annotations:
+        summary: "Health Check Latency SLO burn rate warning"
+        description: "Moderate error budget burn rate for health check latency."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#performance-issues"
+        action_required: "Monitor health check performance"
+
+    # Multi-window, multi-burn-rate alerts for Rollback Success Rate SLO
+    - alert: RollbackSuccessRateBurnRateCritical
+      expr: |
+        (
+          slo:rollback_success_rate:error_budget_burn_rate_5m > 14.4
+          and
+          slo:rollback_success_rate:error_budget_burn_rate_1h > 14.4
+        )
+        or
+        (
+          slo:rollback_success_rate:error_budget_burn_rate_30m > 6
+          and
+          slo:rollback_success_rate:error_budget_burn_rate_6h > 6
+        )
+      for: 1m
+      labels:
+        severity: critical
+        slo: rollback_success_rate
+        component: blue-green
+        team: platform
+        escalation_level: "1"
+      annotations:
+        summary: "Rollback Success Rate SLO burn rate critical"
+        description: "High error budget burn rate for rollback success rate. Rollback operations are failing."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/blue-green-deployment-runbook.md#rollback-failures"
+        action_required: "Investigate rollback mechanism immediately - manual intervention may be required"
+
+    # Deployment Duration Threshold Alerts
+    - alert: DeploymentDurationExceedsThreshold
+      expr: slo:deployment_duration:p95_5m > 600  # 10 minutes
+      for: 5m
+      labels:
+        severity: warning
+        slo: deployment_duration
+        component: blue-green
+        team: platform
+        escalation_level: "2"
+      annotations:
+        summary: "Deployment duration exceeds threshold"
+        description: "95th percentile deployment duration is {{ $value }}s, exceeding 10-minute threshold."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#deployment-performance-issues"
+        action_required: "Investigate deployment performance"
+
+    - alert: DeploymentDurationCritical
+      expr: slo:deployment_duration:p95_5m > 900  # 15 minutes
+      for: 2m
+      labels:
+        severity: critical
+        slo: deployment_duration
+        component: blue-green
+        team: platform
+        escalation_level: "1"
+      annotations:
+        summary: "Deployment duration critical"
+        description: "95th percentile deployment duration is {{ $value }}s, exceeding 15-minute critical threshold."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#deployment-performance-issues"
+        action_required: "Immediate investigation required - deployments are taking too long"
+
+  - name: slo-error-budget-alerts
+    interval: 5m
+    rules:
+    # Error Budget Exhaustion Alerts
+    - alert: SLOErrorBudgetExhausted
+      expr: |
+        (
+          (1 - slo:deployment_success_rate:ratio_rate1d) / (1 - 0.999) > 1
+        )
+        or
+        (
+          (1 - slo:system_availability:ratio_rate1d) / (1 - 0.9995) > 1
+        )
+        or
+        (
+          (1 - slo:health_check_latency:ratio_rate1d) / (1 - 0.999) > 1
+        )
+        or
+        (
+          (1 - slo:rollback_success_rate:ratio_rate1d) / (1 - 0.9999) > 1
+        )
+      for: 5m
+      labels:
+        severity: critical
+        component: slo
+        team: platform
+        escalation_level: "1"
+      annotations:
+        summary: "SLO error budget exhausted"
+        description: "One or more SLOs have exhausted their monthly error budget."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#error-budget-exhaustion"
+        action_required: "Implement deployment freeze and investigate SLO violations"
+
+    - alert: SLOErrorBudgetLow
+      expr: |
+        (
+          (1 - slo:deployment_success_rate:ratio_rate1d) / (1 - 0.999) > 0.8
+        )
+        or
+        (
+          (1 - slo:system_availability:ratio_rate1d) / (1 - 0.9995) > 0.8
+        )
+        or
+        (
+          (1 - slo:health_check_latency:ratio_rate1d) / (1 - 0.999) > 0.8
+        )
+        or
+        (
+          (1 - slo:rollback_success_rate:ratio_rate1d) / (1 - 0.9999) > 0.8
+        )
+      for: 10m
+      labels:
+        severity: warning
+        component: slo
+        team: platform
+        escalation_level: "2"
+      annotations:
+        summary: "SLO error budget low"
+        description: "One or more SLOs have consumed >80% of their monthly error budget."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#error-budget-management"
+        action_required: "Review deployment practices and consider reducing deployment frequency"
+
+  - name: slo-compliance-alerts
+    interval: 1h
+    rules:
+    # Daily SLO Compliance Check
+    - alert: SLOComplianceViolation
+      expr: |
+        (slo:deployment_success_rate:ratio_rate1d < 0.999)
+        or
+        (slo:system_availability:ratio_rate1d < 0.9995)
+        or
+        (slo:health_check_latency:ratio_rate1d < 0.999)
+        or
+        (slo:rollback_success_rate:ratio_rate1d < 0.9999)
+      for: 1h
+      labels:
+        severity: warning
+        component: slo
+        team: platform
+        escalation_level: "2"
+      annotations:
+        summary: "SLO compliance violation"
+        description: "One or more SLOs are not meeting their targets over the past 24 hours."
+        runbook_url: "https://github.com/abdoElHodaky/larvrevrstender/blob/main/docs/troubleshooting-guide.md#slo-compliance-issues"
+        action_required: "Review SLO performance and implement corrective actions"
+        deployment_success_rate: "{{ with query \"slo:deployment_success_rate:ratio_rate1d\" }}{{ . | first | value | humanizePercentage }}{{ end }}"
+        system_availability: "{{ with query \"slo:system_availability:ratio_rate1d\" }}{{ . | first | value | humanizePercentage }}{{ end }}"
+        health_check_latency: "{{ with query \"slo:health_check_latency:ratio_rate1d\" }}{{ . | first | value | humanizePercentage }}{{ end }}"
+        rollback_success_rate: "{{ with query \"slo:rollback_success_rate:ratio_rate1d\" }}{{ . | first | value | humanizePercentage }}{{ end }}"
+
+    # Weekly SLO Review Alert
+    - alert: WeeklySLOReview
+      expr: |
+        (
+          day_of_week() == 1  # Monday
+          and
+          hour() == 9  # 9 AM UTC
+        )
+      for: 5m
+      labels:
+        severity: info
+        component: slo
+        team: platform
+      annotations:
+        summary: "Weekly SLO review reminder"
+        description: "Time for weekly SLO performance review."
+        action_required: "Review SLO dashboard and prepare weekly report"
+        dashboard_url: "https://grafana.reversetender.com/d/slo-overview"
+
