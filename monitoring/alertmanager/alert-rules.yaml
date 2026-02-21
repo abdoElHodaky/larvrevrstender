@@ -1,0 +1,224 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: blue-green-deployment-alerts
+  namespace: monitoring
+  labels:
+    app: prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: fluxcd.rules
+    rules:
+    - alert: FluxCDControllerDown
+      expr: up{job="flux-system"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        component: fluxcd
+      annotations:
+        summary: "FluxCD controller is down"
+        description: "FluxCD controller {{ $labels.instance }} has been down for more than 5 minutes."
+
+    - alert: FluxCDReconciliationFailed
+      expr: increase(gotk_reconcile_condition{type="Ready",status="False"}[10m]) > 0
+      for: 2m
+      labels:
+        severity: warning
+        component: fluxcd
+      annotations:
+        summary: "FluxCD reconciliation failed"
+        description: "FluxCD reconciliation failed for {{ $labels.kind }}/{{ $labels.name }} in namespace {{ $labels.namespace }}."
+
+    - alert: FluxCDSuspendedResource
+      expr: gotk_suspend_status == 1
+      for: 10m
+      labels:
+        severity: warning
+        component: fluxcd
+      annotations:
+        summary: "FluxCD resource is suspended"
+        description: "FluxCD resource {{ $labels.kind }}/{{ $labels.name }} in namespace {{ $labels.namespace }} has been suspended for more than 10 minutes."
+
+  - name: deployment.rules
+    rules:
+    - alert: DeploymentReplicasMismatch
+      expr: kube_deployment_spec_replicas != kube_deployment_status_replicas_available
+      for: 10m
+      labels:
+        severity: warning
+        component: deployment
+      annotations:
+        summary: "Deployment replicas mismatch"
+        description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has {{ $labels.spec_replicas }} desired replicas but only {{ $labels.available_replicas }} are available."
+
+    - alert: DeploymentGenerationMismatch
+      expr: kube_deployment_status_observed_generation != kube_deployment_metadata_generation
+      for: 15m
+      labels:
+        severity: warning
+        component: deployment
+      annotations:
+        summary: "Deployment generation mismatch"
+        description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has not been updated for more than 15 minutes."
+
+    - alert: PodCrashLooping
+      expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+      for: 5m
+      labels:
+        severity: warning
+        component: pod
+      annotations:
+        summary: "Pod is crash looping"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is crash looping."
+
+    - alert: PodNotReady
+      expr: kube_pod_status_ready{condition="false"} == 1
+      for: 10m
+      labels:
+        severity: warning
+        component: pod
+      annotations:
+        summary: "Pod not ready"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has been not ready for more than 10 minutes."
+
+  - name: blue-green.rules
+    rules:
+    - alert: BlueGreenEnvironmentDown
+      expr: up{job=~"reverse-tender-(blue|green)"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        component: blue-green
+      annotations:
+        summary: "Blue-Green environment is down"
+        description: "{{ $labels.environment }} environment ({{ $labels.instance }}) has been down for more than 5 minutes."
+
+    - alert: BlueGreenHealthCheckFailed
+      expr: probe_success{job=~"reverse-tender-(blue|green)-health"} == 0
+      for: 3m
+      labels:
+        severity: critical
+        component: blue-green
+      annotations:
+        summary: "Blue-Green health check failed"
+        description: "Health check for {{ $labels.environment }} environment has been failing for more than 3 minutes."
+
+    - alert: BlueGreenServiceUnavailable
+      expr: kube_service_status_load_balancer_ingress == 0
+      for: 5m
+      labels:
+        severity: warning
+        component: blue-green
+      annotations:
+        summary: "Blue-Green service unavailable"
+        description: "Service {{ $labels.service }} in {{ $labels.namespace }} has no available load balancer ingress."
+
+  - name: ingress.rules
+    rules:
+    - alert: IngressControllerDown
+      expr: up{job="ingress-nginx-controller"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        component: ingress
+      annotations:
+        summary: "Ingress controller is down"
+        description: "Ingress controller {{ $labels.instance }} has been down for more than 5 minutes."
+
+    - alert: IngressHighErrorRate
+      expr: rate(nginx_ingress_controller_requests{status=~"5.."}[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        component: ingress
+      annotations:
+        summary: "High error rate on ingress"
+        description: "Ingress {{ $labels.ingress }} in namespace {{ $labels.namespace }} has high error rate ({{ $value }}%)."
+
+  - name: slo.rules
+    rules:
+    - alert: DeploymentSLOBreach
+      expr: deployment_success_rate_5m < 0.95
+      for: 2m
+      labels:
+        severity: critical
+        component: slo
+      annotations:
+        summary: "Deployment SLO breach"
+        description: "Deployment success rate ({{ $value }}%) is below SLO target of 95% for more than 2 minutes."
+
+    - alert: DeploymentDurationSLOBreach
+      expr: deployment_duration_p95_5m > 300
+      for: 5m
+      labels:
+        severity: warning
+        component: slo
+      annotations:
+        summary: "Deployment duration SLO breach"
+        description: "95th percentile deployment duration ({{ $value }}s) is above SLO target of 300s for more than 5 minutes."
+
+    - alert: ErrorBudgetExhausted
+      expr: error_budget_remaining < 0.1
+      for: 1m
+      labels:
+        severity: critical
+        component: slo
+      annotations:
+        summary: "Error budget exhausted"
+        description: "Error budget for {{ $labels.service }} is nearly exhausted ({{ $value }}% remaining)."
+
+  - name: resource.rules
+    rules:
+    - alert: HighCPUUsage
+      expr: (100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+      for: 10m
+      labels:
+        severity: warning
+        component: resource
+      annotations:
+        summary: "High CPU usage"
+        description: "CPU usage on {{ $labels.instance }} is above 80% for more than 10 minutes."
+
+    - alert: HighMemoryUsage
+      expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+      for: 10m
+      labels:
+        severity: warning
+        component: resource
+      annotations:
+        summary: "High memory usage"
+        description: "Memory usage on {{ $labels.instance }} is above 85% for more than 10 minutes."
+
+    - alert: DiskSpaceLow
+      expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 90
+      for: 5m
+      labels:
+        severity: critical
+        component: resource
+      annotations:
+        summary: "Disk space low"
+        description: "Disk usage on {{ $labels.instance }} mountpoint {{ $labels.mountpoint }} is above 90%."
+
+  - name: database.rules
+    rules:
+    - alert: DatabaseConnectionFailed
+      expr: mysql_up == 0 or postgres_up == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: database
+      annotations:
+        summary: "Database connection failed"
+        description: "Database {{ $labels.instance }} connection has been failing for more than 2 minutes."
+
+    - alert: DatabaseSlowQueries
+      expr: rate(mysql_global_status_slow_queries[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        component: database
+      annotations:
+        summary: "Database slow queries detected"
+        description: "Database {{ $labels.instance }} has high rate of slow queries ({{ $value }}/sec)."
+
