@@ -90,6 +90,8 @@ services:
         value: "8005"
       - name: APP_KEY
         value: "base64:YourAppKeyHere123456789012345678901234567890="
+      - name: APP_URL
+        value: "http://notification-service:8005"
       - name: DB_CONNECTION
         value: "mysql"
       - name: DB_HOST
