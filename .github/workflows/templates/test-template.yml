@@ -1,0 +1,187 @@
+name: Reusable Service Testing Template
+# Reusable workflow template for testing Laravel microservices
+# Supports PHP matrix testing with comprehensive coverage
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: 'Name of the service to test'
+        required: true
+        type: string
+      php_versions:
+        description: 'PHP versions to test (JSON array)'
+        required: false
+        type: string
+        default: '["8.2", "8.3"]'
+      working_directory:
+        description: 'Working directory for the service'
+        required: false
+        type: string
+        default: 'services'
+      skip_coverage:
+        description: 'Skip coverage reporting'
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      test_result:
+        description: 'Test execution result'
+        value: ${{ jobs.test.outputs.result }}
+      coverage_percentage:
+        description: 'Code coverage percentage'
+        value: ${{ jobs.test.outputs.coverage }}
+
+env:
+  COMPOSER_CACHE_DIR: ~/.composer/cache
+
+jobs:
+  test:
+    name: Test ${{ inputs.service_name }} (PHP ${{ matrix.php-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ${{ fromJson(inputs.php_versions) }}
+      fail-fast: false
+    outputs:
+      result: ${{ steps.test-result.outputs.result }}
+      coverage: ${{ steps.coverage.outputs.percentage }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Check if service exists
+      id: check-service
+      run: |
+        SERVICE_PATH="${{ inputs.working_directory }}/${{ inputs.service_name }}"
+        if [ -d "$SERVICE_PATH" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "path=$SERVICE_PATH" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "⚠️ Service ${{ inputs.service_name }} not found at $SERVICE_PATH"
+        fi
+      
+    - name: Setup PHP ${{ matrix.php-version }}
+      if: steps.check-service.outputs.exists == 'true'
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, pgsql, redis, curl, zip, gd, json, dom, filter, sqlite3
+        tools: composer:v2
+        coverage: xdebug
+        
+    - name: Verify PHP Configuration
+      if: steps.check-service.outputs.exists == 'true'
+      run: |
+        php --version
+        composer --version
+        php -m | grep -E "(redis|pdo_mysql|pdo_pgsql)"
+        
+    - name: Cache Composer packages
+      if: steps.check-service.outputs.exists == 'true'
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.composer/cache
+          ${{ steps.check-service.outputs.path }}/vendor
+        key: ${{ runner.os }}-composer-${{ matrix.php-version }}-${{ hashFiles(format('{0}/composer.lock', steps.check-service.outputs.path)) }}
+        restore-keys: |
+          ${{ runner.os }}-composer-${{ matrix.php-version }}-
+          ${{ runner.os }}-composer-
+          
+    - name: Setup Test Environment
+      if: steps.check-service.outputs.exists == 'true'
+      working-directory: ${{ steps.check-service.outputs.path }}
+      run: |
+        # Create test environment file
+        if [ -f ".env.testing" ]; then
+          cp .env.testing .env
+        elif [ -f ".env.example" ]; then
+          cp .env.example .env
+        fi
+        
+        # Set test-specific configurations
+        echo "APP_ENV=testing" >> .env
+        echo "APP_DEBUG=true" >> .env
+        echo "DB_CONNECTION=sqlite" >> .env
+        echo "DB_DATABASE=:memory:" >> .env
+        echo "CACHE_DRIVER=array" >> .env
+        echo "SESSION_DRIVER=array" >> .env
+        echo "QUEUE_CONNECTION=sync" >> .env
+        
+    - name: Install Composer Dependencies
+      if: steps.check-service.outputs.exists == 'true'
+      working-directory: ${{ steps.check-service.outputs.path }}
+      run: |
+        composer validate --strict
+        composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
+        
+    - name: Generate Application Key
+      if: steps.check-service.outputs.exists == 'true'
+      working-directory: ${{ steps.check-service.outputs.path }}
+      run: |
+        php artisan key:generate --ansi
+        
+    - name: Run Database Migrations
+      if: steps.check-service.outputs.exists == 'true'
+      working-directory: ${{ steps.check-service.outputs.path }}
+      run: |
+        php artisan migrate --force --no-interaction
+        
+    - name: Run PHPUnit Tests
+      if: steps.check-service.outputs.exists == 'true'
+      working-directory: ${{ steps.check-service.outputs.path }}
+      run: |
+        if [ "${{ inputs.skip_coverage }}" = "false" ]; then
+          php artisan test --coverage --min=80 --coverage-clover=coverage.xml
+        else
+          php artisan test
+        fi
+        
+    - name: Extract Coverage Percentage
+      if: steps.check-service.outputs.exists == 'true' && inputs.skip_coverage == false
+      id: coverage
+      working-directory: ${{ steps.check-service.outputs.path }}
+      run: |
+        if [ -f "coverage.xml" ]; then
+          COVERAGE=$(php -r "
+            \$xml = simplexml_load_file('coverage.xml');
+            \$metrics = \$xml->project->metrics;
+            \$percentage = round((\$metrics['coveredstatements'] / \$metrics['statements']) * 100, 2);
+            echo \$percentage;
+          ")
+          echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
+          echo "📊 Code Coverage: $COVERAGE%"
+        else
+          echo "percentage=0" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Upload Test Results
+      if: steps.check-service.outputs.exists == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ inputs.service_name }}-php${{ matrix.php-version }}
+        path: |
+          ${{ steps.check-service.outputs.path }}/tests/results/
+          ${{ steps.check-service.outputs.path }}/coverage.xml
+        retention-days: 7
+        
+    - name: Upload Coverage to Codecov
+      if: steps.check-service.outputs.exists == 'true' && inputs.skip_coverage == false
+      uses: codecov/codecov-action@v4
+      with:
+        file: ${{ steps.check-service.outputs.path }}/coverage.xml
+        flags: ${{ inputs.service_name }}
+        name: ${{ inputs.service_name }}-php${{ matrix.php-version }}
+        fail_ci_if_error: false
+        
+    - name: Set Test Result
+      id: test-result
+      run: |
+        if [ "${{ steps.check-service.outputs.exists }}" = "true" ]; then
+          echo "result=success" >> $GITHUB_OUTPUT
+        else
+          echo "result=skipped" >> $GITHUB_OUTPUT
+        fi

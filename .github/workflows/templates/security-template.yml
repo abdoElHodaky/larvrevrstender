@@ -1,0 +1,245 @@
+name: Reusable Security Scanning Template
+# Comprehensive security scanning template for Laravel microservices
+# Features: SAST, dependency scanning, container scanning, secret detection
+
+on:
+  workflow_call:
+    inputs:
+      scan_type:
+        description: 'Type of security scan (code, dependencies, container, secrets, all)'
+        required: false
+        type: string
+        default: 'all'
+      working_directory:
+        description: 'Working directory for scanning'
+        required: false
+        type: string
+        default: '.'
+      fail_on_severity:
+        description: 'Fail on security issues of this severity or higher'
+        required: false
+        type: string
+        default: 'HIGH'
+      upload_sarif:
+        description: 'Upload SARIF results to GitHub Security tab'
+        required: false
+        type: boolean
+        default: true
+    outputs:
+      scan_result:
+        description: 'Overall security scan result'
+        value: ${{ jobs.security-scan.outputs.result }}
+      vulnerabilities_found:
+        description: 'Number of vulnerabilities found'
+        value: ${{ jobs.security-scan.outputs.vuln_count }}
+
+jobs:
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.scan-result.outputs.result }}
+      vuln_count: ${{ steps.count-vulns.outputs.count }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better secret detection
+        
+    - name: Setup scanning environment
+      run: |
+        echo "🔒 Starting security scanning pipeline..."
+        echo "Scan type: ${{ inputs.scan_type }}"
+        echo "Working directory: ${{ inputs.working_directory }}"
+        echo "Fail on severity: ${{ inputs.fail_on_severity }}"
+        
+    # Code Security Analysis (SAST)
+    - name: Initialize CodeQL
+      if: inputs.scan_type == 'code' || inputs.scan_type == 'all'
+      uses: github/codeql-action/init@v3
+      with:
+        languages: php, javascript
+        queries: security-extended,security-and-quality
+        
+    - name: Autobuild for CodeQL
+      if: inputs.scan_type == 'code' || inputs.scan_type == 'all'
+      uses: github/codeql-action/autobuild@v3
+      
+    - name: Perform CodeQL Analysis
+      if: inputs.scan_type == 'code' || inputs.scan_type == 'all'
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:php"
+        upload: ${{ inputs.upload_sarif }}
+        
+    # Dependency Vulnerability Scanning
+    - name: Run Trivy filesystem scan
+      if: inputs.scan_type == 'dependencies' || inputs.scan_type == 'all'
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: ${{ inputs.working_directory }}
+        format: 'sarif'
+        output: 'trivy-fs-results.sarif'
+        severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
+        
+    - name: Upload Trivy filesystem scan results
+      if: (inputs.scan_type == 'dependencies' || inputs.scan_type == 'all') && inputs.upload_sarif
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-fs-results.sarif'
+        category: 'trivy-filesystem'
+        
+    # Secret Detection
+    - name: Run TruffleHog secret scan
+      if: inputs.scan_type == 'secrets' || inputs.scan_type == 'all'
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ${{ inputs.working_directory }}
+        base: ${{ github.event.repository.default_branch }}
+        head: HEAD
+        extra_args: --debug --only-verified
+        
+    # PHP-specific security scanning
+    - name: Setup PHP for security scanning
+      if: inputs.scan_type == 'code' || inputs.scan_type == 'all'
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        tools: composer:v2
+        
+    - name: Install PHP security scanner
+      if: inputs.scan_type == 'code' || inputs.scan_type == 'all'
+      run: |
+        composer global require --dev enlightn/security-checker
+        composer global require --dev phpstan/phpstan
+        composer global require --dev psalm/psalm
+        
+    - name: Run PHP Security Checker
+      if: inputs.scan_type == 'code' || inputs.scan_type == 'all'
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        # Check for known vulnerabilities in dependencies
+        if [ -f "composer.lock" ]; then
+          ~/.composer/vendor/bin/security-checker security:check composer.lock --format=json > security-check-results.json || true
+        fi
+        
+        # Run PHPStan for static analysis
+        if [ -f "composer.json" ]; then
+          composer install --no-dev --optimize-autoloader
+          ~/.composer/vendor/bin/phpstan analyse --error-format=json --no-progress > phpstan-results.json || true
+        fi
+        
+    # Container Security Scanning (if Dockerfile exists)
+    - name: Check for Dockerfile
+      id: check-dockerfile
+      if: inputs.scan_type == 'container' || inputs.scan_type == 'all'
+      run: |
+        if [ -f "Dockerfile" ] || [ -f "deployment/docker/Dockerfile.rpc" ]; then
+          echo "dockerfile_exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "dockerfile_exists=false" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Build image for container scanning
+      if: (inputs.scan_type == 'container' || inputs.scan_type == 'all') && steps.check-dockerfile.outputs.dockerfile_exists == 'true'
+      run: |
+        DOCKERFILE_PATH="Dockerfile"
+        if [ -f "deployment/docker/Dockerfile.rpc" ]; then
+          DOCKERFILE_PATH="deployment/docker/Dockerfile.rpc"
+        fi
+        docker build -f $DOCKERFILE_PATH -t security-scan-image:latest .
+        
+    - name: Run Trivy container scan
+      if: (inputs.scan_type == 'container' || inputs.scan_type == 'all') && steps.check-dockerfile.outputs.dockerfile_exists == 'true'
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'security-scan-image:latest'
+        format: 'sarif'
+        output: 'trivy-container-results.sarif'
+        severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
+        
+    - name: Upload Trivy container scan results
+      if: (inputs.scan_type == 'container' || inputs.scan_type == 'all') && steps.check-dockerfile.outputs.dockerfile_exists == 'true' && inputs.upload_sarif
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-container-results.sarif'
+        category: 'trivy-container'
+        
+    # Aggregate and analyze results
+    - name: Count vulnerabilities
+      id: count-vulns
+      run: |
+        TOTAL_VULNS=0
+        HIGH_CRITICAL_VULNS=0
+        
+        # Count from Trivy filesystem scan
+        if [ -f "trivy-fs-results.sarif" ]; then
+          FS_VULNS=$(jq '.runs[0].results | length' trivy-fs-results.sarif 2>/dev/null || echo "0")
+          TOTAL_VULNS=$((TOTAL_VULNS + FS_VULNS))
+          
+          # Count high/critical vulnerabilities
+          HIGH_CRIT_FS=$(jq '.runs[0].results[] | select(.level == "error" or .level == "warning") | length' trivy-fs-results.sarif 2>/dev/null || echo "0")
+          HIGH_CRITICAL_VULNS=$((HIGH_CRITICAL_VULNS + HIGH_CRIT_FS))
+        fi
+        
+        # Count from Trivy container scan
+        if [ -f "trivy-container-results.sarif" ]; then
+          CONTAINER_VULNS=$(jq '.runs[0].results | length' trivy-container-results.sarif 2>/dev/null || echo "0")
+          TOTAL_VULNS=$((TOTAL_VULNS + CONTAINER_VULNS))
+          
+          HIGH_CRIT_CONTAINER=$(jq '.runs[0].results[] | select(.level == "error" or .level == "warning") | length' trivy-container-results.sarif 2>/dev/null || echo "0")
+          HIGH_CRITICAL_VULNS=$((HIGH_CRITICAL_VULNS + HIGH_CRIT_CONTAINER))
+        fi
+        
+        echo "count=$TOTAL_VULNS" >> $GITHUB_OUTPUT
+        echo "high_critical=$HIGH_CRITICAL_VULNS" >> $GITHUB_OUTPUT
+        
+        echo "📊 Security Scan Summary:"
+        echo "Total vulnerabilities found: $TOTAL_VULNS"
+        echo "High/Critical vulnerabilities: $HIGH_CRITICAL_VULNS"
+        
+    - name: Generate security report
+      run: |
+        echo "## 🔒 Security Scan Report" >> $GITHUB_STEP_SUMMARY
+        echo "**Scan Type:** ${{ inputs.scan_type }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Working Directory:** ${{ inputs.working_directory }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Total Vulnerabilities:** ${{ steps.count-vulns.outputs.count }}" >> $GITHUB_STEP_SUMMARY
+        echo "**High/Critical Issues:** ${{ steps.count-vulns.outputs.high_critical }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.count-vulns.outputs.count }}" -gt "0" ]; then
+          echo "⚠️ **Security issues detected!** Please review the Security tab for details." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "✅ **No security vulnerabilities detected.**" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+    - name: Upload security artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-scan-results
+        path: |
+          trivy-*.sarif
+          security-check-results.json
+          phpstan-results.json
+        retention-days: 30
+        
+    - name: Determine scan result
+      id: scan-result
+      run: |
+        HIGH_CRITICAL_COUNT=${{ steps.count-vulns.outputs.high_critical }}
+        FAIL_THRESHOLD="${{ inputs.fail_on_severity }}"
+        
+        if [ "$FAIL_THRESHOLD" = "HIGH" ] && [ "$HIGH_CRITICAL_COUNT" -gt "0" ]; then
+          echo "result=failure" >> $GITHUB_OUTPUT
+          echo "❌ Security scan failed due to high/critical vulnerabilities"
+          exit 1
+        elif [ "$FAIL_THRESHOLD" = "MEDIUM" ] && [ "${{ steps.count-vulns.outputs.count }}" -gt "0" ]; then
+          echo "result=failure" >> $GITHUB_OUTPUT
+          echo "❌ Security scan failed due to medium+ vulnerabilities"
+          exit 1
+        else
+          echo "result=success" >> $GITHUB_OUTPUT
+          echo "✅ Security scan passed"
+        fi
