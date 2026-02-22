@@ -81,9 +81,37 @@ services:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "256Mi"
-        cpu: "200m"
-    env: []
+        memory: "512Mi"
+        cpu: "500m"
+    env:
+      - name: SERVICE_NAME
+        value: "notification-service"
+      - name: SERVICE_PORT
+        value: "8005"
+      - name: APP_KEY
+        value: "base64:YourAppKeyHere123456789012345678901234567890="
+      - name: DB_CONNECTION
+        value: "mysql"
+      - name: DB_HOST
+        value: "mysql"
+      - name: DB_PORT
+        value: "3306"
+      - name: DB_DATABASE
+        value: "notification_service"
+      - name: DB_USERNAME
+        value: "root"
+      - name: DB_PASSWORD
+        value: "password"
+      - name: REDIS_HOST
+        value: "redis"
+      - name: REDIS_PORT
+        value: "6379"
+      - name: CACHE_STORE
+        value: "redis"
+      - name: SESSION_DRIVER
+        value: "redis"
+      - name: QUEUE_CONNECTION
+        value: "redis"
 
 # Ingress configuration
 ingress:
