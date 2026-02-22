@@ -85,6 +85,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libpq-dev \
     libicu-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    libonig-dev \
+    libzip-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
     libjpeg62-turbo \
     libfreetype6 \
     libpng16-16 \
