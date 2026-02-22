@@ -1,0 +1,298 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reverse-tender-blue
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reverse-tender-green
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/warn: baseline
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flux-system
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+---
+# Security Context Constraints for Blue-Green Services
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-context-template
+  namespace: reverse-tender-blue
+data:
+  security-context.yaml: |
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65534  # nobody user
+      runAsGroup: 65534
+      fsGroup: 65534
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop:
+        - ALL
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+    
+    # Container security context
+    containerSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 65534
+      runAsGroup: 65534
+      capabilities:
+        drop:
+        - ALL
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      seccompProfile:
+        type: RuntimeDefault
+---
+# Pod Security Policy for Blue Environment
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: blue-green-restricted
+  namespace: reverse-tender-blue
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  runAsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  seLinux:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: true
+  seccompProfile:
+    type: RuntimeDefault
+---
+# Service Account with restricted permissions
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: blue-green-service-account
+  namespace: reverse-tender-blue
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: blue-green-service-account
+  namespace: reverse-tender-green
+automountServiceAccountToken: false
+---
+# RBAC for service accounts
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: reverse-tender-blue
+  name: blue-green-role
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: reverse-tender-green
+  name: blue-green-role
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: blue-green-rolebinding
+  namespace: reverse-tender-blue
+subjects:
+- kind: ServiceAccount
+  name: blue-green-service-account
+  namespace: reverse-tender-blue
+roleRef:
+  kind: Role
+  name: blue-green-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: blue-green-rolebinding
+  namespace: reverse-tender-green
+subjects:
+- kind: ServiceAccount
+  name: blue-green-service-account
+  namespace: reverse-tender-green
+roleRef:
+  kind: Role
+  name: blue-green-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Security-hardened deployment template
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: secure-deployment-template
+  namespace: reverse-tender-blue
+data:
+  deployment-template.yaml: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: REPLACE_SERVICE_NAME
+      namespace: REPLACE_NAMESPACE
+      labels:
+        app: REPLACE_SERVICE_NAME
+        security.policy: restricted
+    spec:
+      replicas: 2
+      selector:
+        matchLabels:
+          app: REPLACE_SERVICE_NAME
+      template:
+        metadata:
+          labels:
+            app: REPLACE_SERVICE_NAME
+            security.policy: restricted
+          annotations:
+            container.apparmor.security.beta.kubernetes.io/REPLACE_SERVICE_NAME: runtime/default
+        spec:
+          serviceAccountName: blue-green-service-account
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - name: REPLACE_SERVICE_NAME
+            image: REPLACE_IMAGE
+            ports:
+            - containerPort: REPLACE_PORT
+              name: http
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 65534
+              runAsGroup: 65534
+              capabilities:
+                drop:
+                - ALL
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              seccompProfile:
+                type: RuntimeDefault
+            volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+            - name: var-cache
+              mountPath: /var/cache
+            - name: var-log
+              mountPath: /var/log
+            env:
+            - name: APP_ENV
+              value: "production"
+            - name: SECURITY_MODE
+              value: "hardened"
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+                ephemeral-storage: 1Gi
+              limits:
+                cpu: 1000m
+                memory: 512Mi
+                ephemeral-storage: 2Gi
+            livenessProbe:
+              httpGet:
+                path: /health
+                port: http
+                scheme: HTTP
+              initialDelaySeconds: 30
+              periodSeconds: 10
+              timeoutSeconds: 5
+              failureThreshold: 3
+            readinessProbe:
+              httpGet:
+                path: /ready
+                port: http
+                scheme: HTTP
+              initialDelaySeconds: 5
+              periodSeconds: 5
+              timeoutSeconds: 3
+              failureThreshold: 3
+          volumes:
+          - name: tmp-volume
+            emptyDir: {}
+          - name: var-cache
+            emptyDir: {}
+          - name: var-log
+            emptyDir: {}
+          nodeSelector:
+            kubernetes.io/os: linux
+          tolerations:
+          - key: "node.kubernetes.io/not-ready"
+            operator: "Exists"
+            effect: "NoExecute"
+            tolerationSeconds: 300
+          - key: "node.kubernetes.io/unreachable"
+            operator: "Exists"
+            effect: "NoExecute"
+            tolerationSeconds: 300
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                      - REPLACE_SERVICE_NAME
+                  topologyKey: kubernetes.io/hostname
+

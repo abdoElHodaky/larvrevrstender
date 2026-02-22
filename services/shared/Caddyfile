@@ -1,0 +1,9 @@
+{
+    frankenphp
+    order php_server before file_server
+}
+
+:8010 {
+    root * /var/www/html/public
+    php_server
+}

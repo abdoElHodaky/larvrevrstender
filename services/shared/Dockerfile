@@ -9,6 +9,9 @@ USER root
 # Install build dependencies for PHP extensions
 RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
     libzip-dev \
     libpq-dev \
     libicu-dev \
@@ -16,6 +19,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     libonig-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Configure GD extension with JPEG and FreeType support
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 
 # Install required PHP extensions
 RUN docker-php-ext-install -j$(nproc) \
@@ -25,7 +31,8 @@ RUN docker-php-ext-install -j$(nproc) \
     intl \
     xml \
     curl \
-    mbstring
+    mbstring \
+    gd
 
 # Set working directory
 WORKDIR /var/www/html
@@ -60,10 +67,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4 \
     curl \
     ca-certificates \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    libpq-dev \
+    libicu-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    libonig-dev \
+    libjpeg62-turbo \
+    libfreetype6 \
+    libpng16-16 \
     && rm -rf /var/lib/apt/lists/* && apt-get clean
 
-# Install required PHP extensions for runtime
-RUN docker-php-ext-install -j$(nproc) \
+# Configure and install PHP extensions for runtime
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
     pdo_mysql \
     pdo_pgsql \
     zip \
@@ -71,6 +91,7 @@ RUN docker-php-ext-install -j$(nproc) \
     xml \
     curl \
     mbstring \
+    gd \
     && docker-php-ext-enable opcache
 
 # Set labels for container metadata
@@ -99,8 +120,8 @@ ENV PHP_OPCACHE_ENABLE=1 \
     PHP_REALPATH_CACHE_TTL=600
 
 # Configure FrankenPHP for shared service
-ENV FRANKENPHP_CONFIG="worker ./public/worker.php" \
-    SERVER_NAME=":8010"
+ENV SERVER_NAME=":8010" \
+    DOCUMENT_ROOT="/var/www/html/public"
 
 # Expose port for shared service
 EXPOSE 8010
@@ -113,4 +134,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 USER www-data
 
 # Start FrankenPHP server
-CMD ["frankenphp", "run"]
+CMD ["frankenphp", "run", "--config", "Caddyfile"]

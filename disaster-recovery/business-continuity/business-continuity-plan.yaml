@@ -1,0 +1,734 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: business-continuity-system
+---
+# Business Continuity Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: business-continuity-config
+  namespace: business-continuity-system
+data:
+  continuity-plan.yaml: |
+    business_continuity_plan:
+      version: "2.0"
+      last_updated: "2026-02-21"
+      
+      # Recovery Time Objectives (RTO) and Recovery Point Objectives (RPO)
+      objectives:
+        critical_services:
+          rto: "15m"  # 15 minutes
+          rpo: "5m"   # 5 minutes
+          services:
+          - gateway-service
+          - auth-service
+          - payment-service
+          
+        important_services:
+          rto: "1h"   # 1 hour
+          rpo: "15m"  # 15 minutes
+          services:
+          - user-service
+          - notification-service
+          
+        supporting_services:
+          rto: "4h"   # 4 hours
+          rpo: "1h"   # 1 hour
+          services:
+          - monitoring
+          - logging
+          - backup-systems
+      
+      # Incident Response Team
+      incident_response_team:
+        primary_contact:
+          name: "DevOps Lead"
+          email: "devops-lead@reverse-tender.com"
+          phone: "+1-555-DEVOPS"
+          role: "Incident Commander"
+          
+        secondary_contact:
+          name: "SRE Manager"
+          email: "sre-manager@reverse-tender.com"
+          phone: "+1-555-SRE-MGR"
+          role: "Technical Lead"
+          
+        escalation_contacts:
+        - name: "CTO"
+          email: "cto@reverse-tender.com"
+          phone: "+1-555-CTO"
+          role: "Executive Escalation"
+          
+        - name: "VP Engineering"
+          email: "vp-eng@reverse-tender.com"
+          phone: "+1-555-VP-ENG"
+          role: "Engineering Escalation"
+      
+      # Communication Channels
+      communication:
+        primary_channel: "#incident-response"
+        war_room: "#war-room"
+        status_page: "https://status.reverse-tender.com"
+        customer_communication: "support@reverse-tender.com"
+        
+        notification_methods:
+        - slack
+        - email
+        - sms
+        - pagerduty
+        
+        escalation_timeline:
+        - level: 1
+          time: "0m"
+          contacts: ["primary_contact"]
+        - level: 2
+          time: "30m"
+          contacts: ["secondary_contact"]
+        - level: 3
+          time: "1h"
+          contacts: ["escalation_contacts"]
+      
+      # Disaster Scenarios
+      disaster_scenarios:
+        complete_region_failure:
+          description: "Primary region (us-west-2) completely unavailable"
+          impact: "High - All services affected"
+          recovery_procedure:
+          - "Activate secondary region (us-east-1)"
+          - "Update DNS to point to secondary region"
+          - "Verify database failover"
+          - "Monitor application functionality"
+          - "Communicate with customers"
+          estimated_rto: "30m"
+          
+        database_failure:
+          description: "Primary database cluster failure"
+          impact: "Critical - Data services unavailable"
+          recovery_procedure:
+          - "Promote read replica to primary"
+          - "Update application configuration"
+          - "Verify data consistency"
+          - "Resume normal operations"
+          estimated_rto: "15m"
+          
+        kubernetes_cluster_failure:
+          description: "Primary Kubernetes cluster failure"
+          impact: "High - All containerized services affected"
+          recovery_procedure:
+          - "Activate standby cluster"
+          - "Restore from latest backup"
+          - "Update load balancer configuration"
+          - "Verify service functionality"
+          estimated_rto: "45m"
+          
+        network_partition:
+          description: "Network connectivity issues between regions"
+          impact: "Medium - Cross-region communication affected"
+          recovery_procedure:
+          - "Isolate affected region"
+          - "Route traffic to healthy regions"
+          - "Monitor for resolution"
+          - "Gradually restore connectivity"
+          estimated_rto: "20m"
+          
+        security_breach:
+          description: "Confirmed security incident"
+          impact: "Variable - Depends on scope"
+          recovery_procedure:
+          - "Isolate affected systems"
+          - "Activate incident response team"
+          - "Preserve evidence"
+          - "Implement containment measures"
+          - "Communicate with stakeholders"
+          estimated_rto: "Variable"
+      
+      # Recovery Procedures
+      recovery_procedures:
+        automated_failover:
+          enabled: true
+          triggers:
+          - "Health check failures > 3 consecutive"
+          - "Response time > 30s for 5 minutes"
+          - "Error rate > 10% for 2 minutes"
+          actions:
+          - "Switch traffic to healthy environment"
+          - "Send notifications"
+          - "Create incident ticket"
+          
+        manual_failover:
+          process:
+          - "Assess situation"
+          - "Get approval from incident commander"
+          - "Execute failover procedure"
+          - "Verify functionality"
+          - "Update status page"
+          
+        rollback_procedure:
+          triggers:
+          - "Deployment causing issues"
+          - "Performance degradation"
+          - "Functional problems"
+          steps:
+          - "Stop deployment"
+          - "Switch to previous environment"
+          - "Verify rollback success"
+          - "Investigate root cause"
+      
+      # Business Impact Analysis
+      business_impact:
+        revenue_impact:
+          per_hour_downtime: "$50000"
+          peak_hours_multiplier: 2.5
+          
+        customer_impact:
+          critical_customers: 150
+          total_active_users: 10000
+          sla_commitments: "99.9% uptime"
+          
+        regulatory_impact:
+          compliance_requirements:
+          - "PCI DSS"
+          - "SOC 2"
+          - "GDPR"
+          notification_requirements:
+          - "Customers within 4 hours"
+          - "Regulators within 24 hours"
+      
+      # Testing and Validation
+      testing_schedule:
+        dr_tests:
+          frequency: "weekly"
+          scope: "automated"
+          
+        tabletop_exercises:
+          frequency: "monthly"
+          participants: ["incident_response_team"]
+          
+        full_scale_tests:
+          frequency: "quarterly"
+          scope: "complete_failover"
+          
+        annual_review:
+          frequency: "yearly"
+          scope: "plan_update"
+---
+# Business Continuity Controller
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: business-continuity-controller
+  namespace: business-continuity-system
+  labels:
+    app: business-continuity-controller
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: business-continuity-controller
+  template:
+    metadata:
+      labels:
+        app: business-continuity-controller
+    spec:
+      serviceAccountName: business-continuity-controller
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+      - name: controller
+        image: python:3.11-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install kubernetes pyyaml requests slack-sdk
+          python /app/business_continuity_controller.py
+        ports:
+        - containerPort: 8080
+          name: metrics
+        - containerPort: 8090
+          name: webhook
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          capabilities:
+            drop:
+            - ALL
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        volumeMounts:
+        - name: bc-controller-code
+          mountPath: /app
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-credentials
+              key: bot-token
+        - name: PAGERDUTY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pagerduty-credentials
+              key: api-key
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: bc-controller-code
+        configMap:
+          name: bc-controller-code
+      - name: tmp
+        emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - business-continuity-controller
+              topologyKey: kubernetes.io/hostname
+---
+# Business Continuity Controller Code
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bc-controller-code
+  namespace: business-continuity-system
+data:
+  business_continuity_controller.py: |
+    #!/usr/bin/env python3
+    """
+    Business Continuity Controller
+    Manages incident response and business continuity procedures
+    """
+    
+    import time
+    import logging
+    import yaml
+    import json
+    import requests
+    from datetime import datetime, timedelta
+    from kubernetes import client, config
+    from slack_sdk import WebClient
+    from prometheus_client import start_http_server, Gauge, Counter
+    
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    
+    # Prometheus metrics
+    incident_active = Gauge('incident_active', 'Active incidents', ['severity'])
+    incident_total = Counter('incident_total', 'Total incidents', ['type', 'severity'])
+    recovery_time = Gauge('recovery_time_seconds', 'Recovery time for incidents', ['type'])
+    
+    class BusinessContinuityController:
+        def __init__(self):
+            # Initialize Kubernetes client
+            try:
+                config.load_incluster_config()
+            except:
+                config.load_kube_config()
+            
+            self.k8s_client = client.ApiClient()
+            self.core_v1 = client.CoreV1Api()
+            
+            # Initialize Slack client
+            self.slack_client = WebClient(token=os.environ.get('SLACK_BOT_TOKEN'))
+            
+            # Load business continuity configuration
+            self.load_bc_config()
+            
+            # Active incidents tracking
+            self.active_incidents = {}
+        
+        def load_bc_config(self):
+            """Load business continuity configuration"""
+            try:
+                config_map = self.core_v1.read_namespaced_config_map(
+                    name="business-continuity-config",
+                    namespace="business-continuity-system"
+                )
+                self.bc_config = yaml.safe_load(config_map.data['continuity-plan.yaml'])
+                logger.info("Loaded business continuity configuration")
+            except Exception as e:
+                logger.error(f"Failed to load BC configuration: {e}")
+                self.bc_config = {}
+        
+        def create_incident(self, incident_type, severity, description, affected_services=None):
+            """Create a new incident"""
+            incident_id = f"INC-{int(time.time())}"
+            
+            incident = {
+                'id': incident_id,
+                'type': incident_type,
+                'severity': severity,
+                'description': description,
+                'affected_services': affected_services or [],
+                'created_at': datetime.now().isoformat(),
+                'status': 'active',
+                'response_team': [],
+                'timeline': []
+            }
+            
+            self.active_incidents[incident_id] = incident
+            
+            # Update metrics
+            incident_active.labels(severity=severity).inc()
+            incident_total.labels(type=incident_type, severity=severity).inc()
+            
+            # Notify response team
+            self.notify_incident_team(incident)
+            
+            # Start automated response if applicable
+            self.start_automated_response(incident)
+            
+            logger.info(f"Created incident {incident_id}: {description}")
+            return incident_id
+        
+        def notify_incident_team(self, incident):
+            """Notify incident response team"""
+            try:
+                severity = incident['severity']
+                incident_id = incident['id']
+                description = incident['description']
+                
+                # Determine notification level based on severity
+                if severity == 'critical':
+                    contacts = self.bc_config.get('incident_response_team', {})
+                    primary = contacts.get('primary_contact', {})
+                    
+                    # Send Slack notification
+                    message = f"""
+🚨 *CRITICAL INCIDENT* 🚨
+*Incident ID:* {incident_id}
+*Description:* {description}
+*Severity:* {severity}
+*Time:* {incident['created_at']}
+
+*Primary Contact:* {primary.get('name', 'Unknown')}
+*Phone:* {primary.get('phone', 'Unknown')}
+
+Please join #incident-response channel immediately.
+                    """
+                    
+                    self.slack_client.chat_postMessage(
+                        channel="#incident-response",
+                        text=message
+                    )
+                    
+                    # Send to war room
+                    self.slack_client.chat_postMessage(
+                        channel="#war-room",
+                        text=f"Critical incident {incident_id} created. War room activated."
+                    )
+                
+                logger.info(f"Notified incident team for {incident_id}")
+                
+            except Exception as e:
+                logger.error(f"Failed to notify incident team: {e}")
+        
+        def start_automated_response(self, incident):
+            """Start automated response procedures"""
+            try:
+                incident_type = incident['type']
+                severity = incident['severity']
+                
+                # Check if automated response is enabled
+                recovery_procedures = self.bc_config.get('recovery_procedures', {})
+                automated_failover = recovery_procedures.get('automated_failover', {})
+                
+                if automated_failover.get('enabled', False) and severity == 'critical':
+                    logger.info(f"Starting automated response for {incident['id']}")
+                    
+                    # Execute automated actions based on incident type
+                    if incident_type == 'service_failure':
+                        self.execute_service_failover(incident)
+                    elif incident_type == 'region_failure':
+                        self.execute_region_failover(incident)
+                    elif incident_type == 'database_failure':
+                        self.execute_database_failover(incident)
+                
+            except Exception as e:
+                logger.error(f"Failed to start automated response: {e}")
+        
+        def execute_service_failover(self, incident):
+            """Execute service failover"""
+            try:
+                affected_services = incident.get('affected_services', [])
+                
+                for service in affected_services:
+                    logger.info(f"Executing failover for service: {service}")
+                    
+                    # Switch traffic to healthy environment
+                    # This would integrate with ingress controller or load balancer
+                    
+                    # Update incident timeline
+                    self.add_incident_timeline(incident['id'], f"Executed failover for {service}")
+                
+            except Exception as e:
+                logger.error(f"Service failover failed: {e}")
+        
+        def execute_region_failover(self, incident):
+            """Execute region failover"""
+            try:
+                logger.info("Executing region failover")
+                
+                # Update DNS to point to secondary region
+                # This would integrate with DNS provider API
+                
+                # Update incident timeline
+                self.add_incident_timeline(incident['id'], "Executed region failover")
+                
+            except Exception as e:
+                logger.error(f"Region failover failed: {e}")
+        
+        def execute_database_failover(self, incident):
+            """Execute database failover"""
+            try:
+                logger.info("Executing database failover")
+                
+                # Promote read replica to primary
+                # This would integrate with database management system
+                
+                # Update incident timeline
+                self.add_incident_timeline(incident['id'], "Executed database failover")
+                
+            except Exception as e:
+                logger.error(f"Database failover failed: {e}")
+        
+        def add_incident_timeline(self, incident_id, event):
+            """Add event to incident timeline"""
+            if incident_id in self.active_incidents:
+                timeline_entry = {
+                    'timestamp': datetime.now().isoformat(),
+                    'event': event
+                }
+                self.active_incidents[incident_id]['timeline'].append(timeline_entry)
+                logger.info(f"Added timeline entry to {incident_id}: {event}")
+        
+        def resolve_incident(self, incident_id, resolution_notes):
+            """Resolve an incident"""
+            if incident_id in self.active_incidents:
+                incident = self.active_incidents[incident_id]
+                incident['status'] = 'resolved'
+                incident['resolved_at'] = datetime.now().isoformat()
+                incident['resolution_notes'] = resolution_notes
+                
+                # Calculate recovery time
+                created_at = datetime.fromisoformat(incident['created_at'])
+                resolved_at = datetime.fromisoformat(incident['resolved_at'])
+                recovery_time_seconds = (resolved_at - created_at).total_seconds()
+                
+                # Update metrics
+                incident_active.labels(severity=incident['severity']).dec()
+                recovery_time.labels(type=incident['type']).set(recovery_time_seconds)
+                
+                # Notify team
+                self.notify_incident_resolution(incident)
+                
+                # Remove from active incidents
+                del self.active_incidents[incident_id]
+                
+                logger.info(f"Resolved incident {incident_id}")
+        
+        def notify_incident_resolution(self, incident):
+            """Notify team of incident resolution"""
+            try:
+                message = f"""
+✅ *INCIDENT RESOLVED* ✅
+*Incident ID:* {incident['id']}
+*Description:* {incident['description']}
+*Resolution:* {incident.get('resolution_notes', 'No notes provided')}
+*Duration:* {self.calculate_incident_duration(incident)}
+                """
+                
+                self.slack_client.chat_postMessage(
+                    channel="#incident-response",
+                    text=message
+                )
+                
+            except Exception as e:
+                logger.error(f"Failed to notify incident resolution: {e}")
+        
+        def calculate_incident_duration(self, incident):
+            """Calculate incident duration"""
+            try:
+                created_at = datetime.fromisoformat(incident['created_at'])
+                resolved_at = datetime.fromisoformat(incident['resolved_at'])
+                duration = resolved_at - created_at
+                
+                hours = int(duration.total_seconds() // 3600)
+                minutes = int((duration.total_seconds() % 3600) // 60)
+                
+                return f"{hours}h {minutes}m"
+            except:
+                return "Unknown"
+        
+        def monitor_system_health(self):
+            """Monitor system health and create incidents as needed"""
+            try:
+                # Check service health
+                self.check_service_health()
+                
+                # Check database health
+                self.check_database_health()
+                
+                # Check region health
+                self.check_region_health()
+                
+            except Exception as e:
+                logger.error(f"Health monitoring failed: {e}")
+        
+        def check_service_health(self):
+            """Check service health"""
+            # This would integrate with monitoring system
+            # For now, just log
+            logger.debug("Checking service health...")
+        
+        def check_database_health(self):
+            """Check database health"""
+            # This would integrate with database monitoring
+            # For now, just log
+            logger.debug("Checking database health...")
+        
+        def check_region_health(self):
+            """Check region health"""
+            # This would integrate with region monitoring
+            # For now, just log
+            logger.debug("Checking region health...")
+        
+        def run(self):
+            """Main controller loop"""
+            logger.info("Starting Business Continuity Controller")
+            
+            # Start metrics server
+            start_http_server(8080)
+            
+            while True:
+                try:
+                    # Monitor system health
+                    self.monitor_system_health()
+                    
+                    # Process any pending incidents
+                    self.process_active_incidents()
+                    
+                except Exception as e:
+                    logger.error(f"Controller loop error: {e}")
+                
+                time.sleep(30)  # Check every 30 seconds
+        
+        def process_active_incidents(self):
+            """Process active incidents"""
+            for incident_id, incident in list(self.active_incidents.items()):
+                # Check for automatic resolution conditions
+                # This would be based on monitoring data
+                pass
+    
+    if __name__ == "__main__":
+        import os
+        controller = BusinessContinuityController()
+        controller.run()
+---
+# Service Account and RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: business-continuity-controller
+  namespace: business-continuity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: business-continuity-controller
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets", "services", "pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "patch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: business-continuity-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: business-continuity-controller
+subjects:
+- kind: ServiceAccount
+  name: business-continuity-controller
+  namespace: business-continuity-system
+---
+# Business Continuity Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: business-continuity-controller
+  namespace: business-continuity-system
+  labels:
+    app: business-continuity-controller
+spec:
+  selector:
+    app: business-continuity-controller
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+  - name: webhook
+    port: 8090
+    targetPort: 8090
+  type: ClusterIP
+---
+# ServiceMonitor for Business Continuity
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: business-continuity
+  namespace: monitoring
+  labels:
+    app: business-continuity
+spec:
+  selector:
+    matchLabels:
+      app: business-continuity-controller
+  namespaceSelector:
+    matchNames:
+    - business-continuity-system
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+

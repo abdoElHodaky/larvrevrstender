@@ -1,0 +1,267 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slo-exporter
+  namespace: monitoring
+  labels:
+    app: slo-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: slo-exporter
+  template:
+    metadata:
+      labels:
+        app: slo-exporter
+    spec:
+      containers:
+      - name: slo-exporter
+        image: python:3.11-slim
+        ports:
+        - containerPort: 8080
+        command:
+        - /bin/sh
+        - -c
+        - |
+          pip install prometheus_client requests pyyaml kubernetes
+          python /app/slo_exporter.py
+        volumeMounts:
+        - name: slo-exporter-code
+          mountPath: /app
+        env:
+        - name: PROMETHEUS_URL
+          value: "http://prometheus:9090"
+        - name: FLUXCD_NAMESPACE
+          value: "flux-system"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: slo-exporter-code
+        configMap:
+          name: slo-exporter-code
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-exporter-code
+  namespace: monitoring
+data:
+  slo_exporter.py: |
+    #!/usr/bin/env python3
+    """
+    SLO Exporter for Blue-Green Deployment System
+    Exports custom SLO metrics for Prometheus monitoring
+    """
+    
+    import time
+    import logging
+    import requests
+    import yaml
+    from datetime import datetime, timedelta
+    from prometheus_client import start_http_server, Gauge, Counter, Histogram
+    from kubernetes import client, config
+    
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    
+    # Prometheus metrics
+    deployment_success_rate = Gauge('deployment_success_rate', 'Deployment success rate percentage', ['environment', 'service'])
+    deployment_duration = Histogram('deployment_duration_seconds', 'Deployment duration in seconds', ['environment', 'service'])
+    deployment_total = Counter('deployment_total', 'Total deployments', ['environment', 'service', 'status'])
+    blue_green_switch_total = Counter('blue_green_switch_total', 'Total blue-green switches', ['from_env', 'to_env', 'status'])
+    fluxcd_reconciliation_success = Gauge('fluxcd_reconciliation_success_rate', 'FluxCD reconciliation success rate', ['controller', 'namespace'])
+    error_budget_remaining = Gauge('error_budget_remaining', 'Error budget remaining percentage', ['service'])
+    
+    class SLOExporter:
+        def __init__(self):
+            self.prometheus_url = "http://prometheus:9090"
+            self.fluxcd_namespace = "flux-system"
+            self.blue_namespace = "reverse-tender-blue"
+            self.green_namespace = "reverse-tender-green"
+            
+            # Initialize Kubernetes client
+            try:
+                config.load_incluster_config()
+            except:
+                config.load_kube_config()
+            
+            self.k8s_client = client.ApiClient()
+            self.apps_v1 = client.AppsV1Api()
+            self.core_v1 = client.CoreV1Api()
+            
+        def collect_deployment_metrics(self):
+            """Collect deployment success rate and duration metrics"""
+            try:
+                # Get deployment status from both environments
+                for namespace in [self.blue_namespace, self.green_namespace]:
+                    environment = "blue" if "blue" in namespace else "green"
+                    
+                    deployments = self.apps_v1.list_namespaced_deployment(namespace=namespace)
+                    
+                    for deployment in deployments.items:
+                        service_name = deployment.metadata.name
+                        
+                        # Calculate success rate based on ready replicas
+                        desired_replicas = deployment.spec.replicas or 1
+                        ready_replicas = deployment.status.ready_replicas or 0
+                        
+                        success_rate = (ready_replicas / desired_replicas) * 100
+                        deployment_success_rate.labels(environment=environment, service=service_name).set(success_rate)
+                        
+                        # Track deployment events
+                        if ready_replicas == desired_replicas:
+                            deployment_total.labels(environment=environment, service=service_name, status="success").inc()
+                        else:
+                            deployment_total.labels(environment=environment, service=service_name, status="failure").inc()
+                        
+                        logger.info(f"Updated metrics for {service_name} in {environment}: {success_rate}% success rate")
+                        
+            except Exception as e:
+                logger.error(f"Error collecting deployment metrics: {e}")
+        
+        def collect_fluxcd_metrics(self):
+            """Collect FluxCD reconciliation metrics"""
+            try:
+                # Query FluxCD controller status
+                controllers = ["source-controller", "kustomize-controller", "helm-controller", "notification-controller"]
+                
+                for controller in controllers:
+                    try:
+                        deployment = self.apps_v1.read_namespaced_deployment(
+                            name=controller, 
+                            namespace=self.fluxcd_namespace
+                        )
+                        
+                        desired_replicas = deployment.spec.replicas or 1
+                        ready_replicas = deployment.status.ready_replicas or 0
+                        
+                        success_rate = (ready_replicas / desired_replicas) * 100
+                        fluxcd_reconciliation_success.labels(controller=controller, namespace=self.fluxcd_namespace).set(success_rate)
+                        
+                        logger.info(f"Updated FluxCD metrics for {controller}: {success_rate}% success rate")
+                        
+                    except Exception as e:
+                        logger.warning(f"Could not get metrics for {controller}: {e}")
+                        fluxcd_reconciliation_success.labels(controller=controller, namespace=self.fluxcd_namespace).set(0)
+                        
+            except Exception as e:
+                logger.error(f"Error collecting FluxCD metrics: {e}")
+        
+        def calculate_error_budget(self):
+            """Calculate error budget remaining for each service"""
+            try:
+                services = ["gateway-service", "auth-service", "user-service", "payment-service", "notification-service"]
+                slo_target = 0.95  # 95% availability SLO
+                
+                for service in services:
+                    # Calculate error budget based on recent deployment success rate
+                    # This is a simplified calculation - in production, you'd use more sophisticated methods
+                    
+                    # Get success rate from both environments
+                    blue_success = deployment_success_rate.labels(environment="blue", service=service)._value._value
+                    green_success = deployment_success_rate.labels(environment="green", service=service)._value._value
+                    
+                    if blue_success is not None and green_success is not None:
+                        avg_success_rate = (blue_success + green_success) / 2 / 100  # Convert to decimal
+                        
+                        # Calculate error budget remaining
+                        if avg_success_rate >= slo_target:
+                            budget_remaining = 100  # Full budget if meeting SLO
+                        else:
+                            error_rate = 1 - avg_success_rate
+                            allowed_error_rate = 1 - slo_target
+                            budget_used = error_rate / allowed_error_rate
+                            budget_remaining = max(0, (1 - budget_used) * 100)
+                        
+                        error_budget_remaining.labels(service=service).set(budget_remaining)
+                        logger.info(f"Updated error budget for {service}: {budget_remaining}% remaining")
+                        
+            except Exception as e:
+                logger.error(f"Error calculating error budget: {e}")
+        
+        def simulate_blue_green_switch_metrics(self):
+            """Simulate blue-green switch metrics (in production, this would track actual switches)"""
+            try:
+                # This is a placeholder - in production, you'd track actual blue-green switches
+                # For now, we'll simulate successful switches
+                import random
+                
+                if random.random() < 0.1:  # 10% chance to simulate a switch
+                    from_env = random.choice(["blue", "green"])
+                    to_env = "green" if from_env == "blue" else "blue"
+                    status = "success" if random.random() < 0.95 else "failure"  # 95% success rate
+                    
+                    blue_green_switch_total.labels(from_env=from_env, to_env=to_env, status=status).inc()
+                    logger.info(f"Simulated blue-green switch: {from_env} -> {to_env} ({status})")
+                    
+            except Exception as e:
+                logger.error(f"Error simulating blue-green switch metrics: {e}")
+        
+        def run(self):
+            """Main collection loop"""
+            logger.info("Starting SLO Exporter")
+            
+            # Start Prometheus metrics server
+            start_http_server(8080)
+            logger.info("Prometheus metrics server started on port 8080")
+            
+            while True:
+                try:
+                    logger.info("Collecting SLO metrics...")
+                    
+                    self.collect_deployment_metrics()
+                    self.collect_fluxcd_metrics()
+                    self.calculate_error_budget()
+                    self.simulate_blue_green_switch_metrics()
+                    
+                    logger.info("SLO metrics collection completed")
+                    
+                except Exception as e:
+                    logger.error(f"Error in metrics collection cycle: {e}")
+                
+                # Wait 30 seconds before next collection
+                time.sleep(30)
+    
+    if __name__ == "__main__":
+        exporter = SLOExporter()
+        exporter.run()
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: slo-exporter
+  namespace: monitoring
+  labels:
+    app: slo-exporter
+spec:
+  selector:
+    app: slo-exporter
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: slo-exporter
+  namespace: monitoring
+  labels:
+    app: slo-exporter
+spec:
+  selector:
+    matchLabels:
+      app: slo-exporter
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+

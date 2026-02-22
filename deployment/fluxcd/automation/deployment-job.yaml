@@ -1,0 +1,235 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: blue-green-deployment-job
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: blue-green-deployment-job
+    app.kubernetes.io/part-of: flux
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: blue-green-deployment-job
+        app.kubernetes.io/part-of: flux
+    spec:
+      serviceAccountName: flux-controller
+      restartPolicy: OnFailure
+      containers:
+      - name: blue-green-deployer
+        image: bitnami/kubectl:latest
+        command: ["/bin/bash"]
+        args:
+        - -c
+        - |
+          set -euo pipefail
+          
+          echo "🚀 Starting Blue-Green Deployment Orchestration..."
+          
+          # Source automation scripts
+          source /scripts/pre_deployment_script
+          source /scripts/post_deployment_script
+          source /scripts/traffic_switch_script
+          source /scripts/rollback_script
+          
+          # Get current environment
+          CURRENT_COLOR=$(kubectl get configmap blue-green-config -n reverse-tender -o jsonpath='{.data.ENVIRONMENT_COLOR}' || echo "blue")
+          NEW_COLOR="green"
+          if [ "$CURRENT_COLOR" = "green" ]; then
+            NEW_COLOR="blue"
+          fi
+          
+          echo "Current environment: $CURRENT_COLOR"
+          echo "Target environment: $NEW_COLOR"
+          
+          # Function to handle rollback on failure
+          handle_failure() {
+            echo "❌ Deployment failed, initiating rollback..."
+            rollback_script || echo "⚠️ Rollback also failed - manual intervention required"
+            exit 1
+          }
+          
+          # Set trap for failure handling
+          trap handle_failure ERR
+          
+          # Step 1: Pre-deployment validation
+          echo "📋 Step 1: Pre-deployment validation"
+          pre_deployment_script
+          
+          # Step 2: Activate standby environment
+          echo "📋 Step 2: Activating $NEW_COLOR environment"
+          if [ "$NEW_COLOR" = "green" ]; then
+            kubectl patch kustomization green-environment-standby -n flux-system --patch '{"spec":{"suspend":false}}'
+            kubectl patch kustomization blue-green-deployment -n flux-system --patch '{"spec":{"suspend":true}}'
+          else
+            kubectl patch kustomization blue-green-deployment -n flux-system --patch '{"spec":{"suspend":false}}'
+            kubectl patch kustomization green-environment-standby -n flux-system --patch '{"spec":{"suspend":true}}'
+          fi
+          
+          # Step 3: Wait for new environment to be ready
+          echo "📋 Step 3: Waiting for $NEW_COLOR environment deployment"
+          timeout 600 bash -c "
+            while true; do
+              if kubectl get kustomization ${NEW_COLOR}-environment* -n flux-system -o jsonpath='{.items[0].status.conditions[?(@.type==\"Ready\")].status}' | grep -q True; then
+                echo '✅ $NEW_COLOR environment is ready'
+                break
+              fi
+              echo 'Waiting for $NEW_COLOR environment...'
+              sleep 10
+            done
+          "
+          
+          # Step 4: Post-deployment validation
+          echo "📋 Step 4: Post-deployment validation"
+          post_deployment_script "$NEW_COLOR"
+          
+          # Step 5: Health check validation
+          echo "📋 Step 5: Comprehensive health validation"
+          HEALTH_TIMEOUT=${HEALTH_CHECK_TIMEOUT:-300}
+          timeout $HEALTH_TIMEOUT bash -c "
+            while true; do
+              # Check service discovery health
+              HEALTHY_SERVICES=\$(kubectl exec -n reverse-tender deployment/api-gateway-$NEW_COLOR -- curl -s http://localhost/health/deep | jq -r '.service_discovery.healthy_services // 0')
+              TOTAL_SERVICES=\$(kubectl exec -n reverse-tender deployment/api-gateway-$NEW_COLOR -- curl -s http://localhost/health/deep | jq -r '.service_discovery.total_services // 9')
+              
+              if [ \"\$HEALTHY_SERVICES\" -ge \"${MIN_HEALTHY_SERVICES:-7}\" ]; then
+                echo \"✅ Health validation passed: \$HEALTHY_SERVICES/\$TOTAL_SERVICES services healthy\"
+                break
+              fi
+              
+              echo \"⏳ Health validation: \$HEALTHY_SERVICES/\$TOTAL_SERVICES services healthy (need ${MIN_HEALTHY_SERVICES:-7})\"
+              sleep 15
+            done
+          "
+          
+          # Step 6: Traffic switch
+          echo "📋 Step 6: Switching traffic to $NEW_COLOR environment"
+          traffic_switch_script "$NEW_COLOR" "$CURRENT_COLOR"
+          
+          # Step 7: Post-switch validation
+          echo "📋 Step 7: Post-switch validation"
+          SWITCH_TIMEOUT=${TRAFFIC_SWITCH_TIMEOUT:-60}
+          timeout $SWITCH_TIMEOUT bash -c "
+            while true; do
+              # Validate traffic is flowing to new environment
+              RESPONSE=\$(curl -s -H 'Host: api.reversetender.com' http://api-gateway-$NEW_COLOR.reverse-tender.svc.cluster.local/health | jq -r '.environment_color // \"unknown\"')
+              if [ \"\$RESPONSE\" = \"$NEW_COLOR\" ]; then
+                echo '✅ Traffic switch validation successful'
+                break
+              fi
+              echo \"⏳ Validating traffic switch... (got: \$RESPONSE, expected: $NEW_COLOR)\"
+              sleep 5
+            done
+          "
+          
+          # Step 8: Monitor new environment
+          echo "📋 Step 8: Monitoring new environment for 2 minutes"
+          timeout 120 bash -c "
+            ERROR_COUNT=0
+            MAX_ERRORS=3
+            
+            while true; do
+              # Check error rate
+              ERROR_RATE=\$(kubectl exec -n reverse-tender deployment/api-gateway-$NEW_COLOR -- curl -s http://localhost/metrics | grep 'http_requests_total.*5[0-9][0-9]' | awk '{sum+=\$2} END {print sum+0}')
+              TOTAL_REQUESTS=\$(kubectl exec -n reverse-tender deployment/api-gateway-$NEW_COLOR -- curl -s http://localhost/metrics | grep 'http_requests_total' | awk '{sum+=\$2} END {print sum+0}')
+              
+              if [ \"\$TOTAL_REQUESTS\" -gt 0 ]; then
+                ERROR_PERCENTAGE=\$(echo \"scale=2; \$ERROR_RATE * 100 / \$TOTAL_REQUESTS\" | bc -l)
+                if (( \$(echo \"\$ERROR_PERCENTAGE > ${MAX_ERROR_RATE:-5}\" | bc -l) )); then
+                  ((ERROR_COUNT++))
+                  echo \"⚠️ High error rate detected: \$ERROR_PERCENTAGE% (threshold: ${MAX_ERROR_RATE:-5}%)\"
+                  
+                  if [ \$ERROR_COUNT -ge \$MAX_ERRORS ]; then
+                    echo \"❌ Error rate threshold exceeded \$MAX_ERRORS times\"
+                    exit 1
+                  fi
+                else
+                  ERROR_COUNT=0
+                  echo \"✅ Error rate acceptable: \$ERROR_PERCENTAGE%\"
+                fi
+              fi
+              
+              sleep 10
+            done
+          "
+          
+          # Step 9: Cleanup old environment
+          echo "📋 Step 9: Cleaning up $CURRENT_COLOR environment"
+          if [ "$CURRENT_COLOR" = "green" ]; then
+            kubectl patch kustomization green-environment-standby -n flux-system --patch '{"spec":{"suspend":true}}'
+          else
+            kubectl patch kustomization blue-green-deployment -n flux-system --patch '{"spec":{"suspend":true}}'
+          fi
+          
+          # Step 10: Update deployment status
+          echo "📋 Step 10: Updating deployment status"
+          kubectl patch configmap blue-green-config -n reverse-tender --patch "
+          data:
+            ENVIRONMENT_COLOR: \"$NEW_COLOR\"
+            PREVIOUS_COLOR: \"$CURRENT_COLOR\"
+            DEPLOYMENT_TIMESTAMP: \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+            DEPLOYMENT_STATUS: \"completed\"
+            LAST_SUCCESSFUL_DEPLOYMENT: \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+          "
+          
+          echo "🎉 Blue-Green Deployment completed successfully!"
+          echo "✅ Traffic switched from $CURRENT_COLOR to $NEW_COLOR environment"
+          echo "📊 Deployment metrics available in Grafana dashboards"
+        
+        env:
+        - name: HEALTH_CHECK_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: blue-green-automation-config
+              key: HEALTH_CHECK_TIMEOUT
+        - name: TRAFFIC_SWITCH_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: blue-green-automation-config
+              key: TRAFFIC_SWITCH_TIMEOUT
+        - name: MIN_HEALTHY_SERVICES
+          valueFrom:
+            configMapKeyRef:
+              name: blue-green-automation-config
+              key: MIN_HEALTHY_SERVICES
+        - name: MAX_ERROR_RATE
+          valueFrom:
+            configMapKeyRef:
+              name: blue-green-automation-config
+              key: MAX_ERROR_RATE
+        - name: MIN_SUCCESS_RATE
+          valueFrom:
+            configMapKeyRef:
+              name: blue-green-automation-config
+              key: MIN_SUCCESS_RATE
+        
+        volumeMounts:
+        - name: automation-scripts
+          mountPath: /scripts
+          readOnly: true
+        
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      
+      volumes:
+      - name: automation-scripts
+        configMap:
+          name: blue-green-automation-config
+          defaultMode: 0755
+          items:
+          - key: pre_deployment_script
+            path: pre_deployment_script
+          - key: post_deployment_script
+            path: post_deployment_script
+          - key: traffic_switch_script
+            path: traffic_switch_script
+          - key: rollback_script
+            path: rollback_script
+  
+  backoffLimit: 2
+  activeDeadlineSeconds: 1800  # 30 minutes timeout

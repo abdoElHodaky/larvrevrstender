@@ -1,0 +1,668 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "showHeader": true
+      },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        {
+          "expr": "slo:deployment_success_rate:ratio_rate1d * 100",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "Deployment Success Rate",
+          "refId": "A"
+        },
+        {
+          "expr": "slo:system_availability:ratio_rate1d * 100",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "System Availability",
+          "refId": "B"
+        },
+        {
+          "expr": "slo:health_check_latency:ratio_rate1d * 100",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "Health Check Latency SLO",
+          "refId": "C"
+        },
+        {
+          "expr": "slo:rollback_success_rate:ratio_rate1d * 100",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "Rollback Success Rate",
+          "refId": "D"
+        },
+        {
+          "expr": "slo:deployment_duration:p95_1d",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "Deployment Duration P95 (seconds)",
+          "refId": "E"
+        }
+      ],
+      "title": "SLO Overview - Current Status",
+      "type": "table"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 99.9
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "slo:deployment_success_rate:ratio_rate1h * 100",
+          "legendFormat": "Deployment Success Rate",
+          "refId": "A"
+        },
+        {
+          "expr": "slo:system_availability:ratio_rate1h * 100",
+          "legendFormat": "System Availability",
+          "refId": "B"
+        },
+        {
+          "expr": "slo:health_check_latency:ratio_rate1h * 100",
+          "legendFormat": "Health Check Latency SLO",
+          "refId": "C"
+        },
+        {
+          "expr": "slo:rollback_success_rate:ratio_rate1h * 100",
+          "legendFormat": "Rollback Success Rate",
+          "refId": "D"
+        }
+      ],
+      "title": "SLO Trends (1 Hour Window)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 3,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        {
+          "expr": "(1 - slo:deployment_success_rate:ratio_rate1d) / (1 - 0.999) * 100",
+          "legendFormat": "Deployment Success Rate",
+          "refId": "A"
+        },
+        {
+          "expr": "(1 - slo:system_availability:ratio_rate1d) / (1 - 0.9995) * 100",
+          "legendFormat": "System Availability",
+          "refId": "B"
+        },
+        {
+          "expr": "(1 - slo:health_check_latency:ratio_rate1d) / (1 - 0.999) * 100",
+          "legendFormat": "Health Check Latency",
+          "refId": "C"
+        },
+        {
+          "expr": "(1 - slo:rollback_success_rate:ratio_rate1d) / (1 - 0.9999) * 100",
+          "legendFormat": "Rollback Success Rate",
+          "refId": "D"
+        }
+      ],
+      "title": "Error Budget Consumption (Monthly)",
+      "type": "gauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 6
+              },
+              {
+                "color": "red",
+                "value": 14.4
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "slo:deployment_success_rate:error_budget_burn_rate_5m",
+          "legendFormat": "Deployment Success Rate (5m)",
+          "refId": "A"
+        },
+        {
+          "expr": "slo:system_availability:error_budget_burn_rate_5m",
+          "legendFormat": "System Availability (5m)",
+          "refId": "B"
+        },
+        {
+          "expr": "slo:health_check_latency:error_budget_burn_rate_5m",
+          "legendFormat": "Health Check Latency (5m)",
+          "refId": "C"
+        },
+        {
+          "expr": "slo:rollback_success_rate:error_budget_burn_rate_5m",
+          "legendFormat": "Rollback Success Rate (5m)",
+          "refId": "D"
+        }
+      ],
+      "title": "Error Budget Burn Rate (5 minute window)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "slo:deployment_duration:p95_1h",
+          "legendFormat": "P95 Deployment Duration (1h)",
+          "refId": "A"
+        },
+        {
+          "expr": "slo:deployment_duration:p95_6h",
+          "legendFormat": "P95 Deployment Duration (6h)",
+          "refId": "B"
+        },
+        {
+          "expr": "slo:deployment_duration:p95_1d",
+          "legendFormat": "P95 Deployment Duration (1d)",
+          "refId": "C"
+        }
+      ],
+      "title": "Deployment Duration Trends",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(gotk_reconcile_condition{type=\"Ready\",status=\"True\",name=~\"blue-green-deployment|green-environment-standby\"}[5m]))",
+          "legendFormat": "Successful Deployments",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(gotk_reconcile_condition{type=\"Ready\",status=\"False\",name=~\"blue-green-deployment|green-environment-standby\"}[5m]))",
+          "legendFormat": "Failed Deployments",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(blue_green_rollback_total{status=\"success\"}[5m]))",
+          "legendFormat": "Successful Rollbacks",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(rate(blue_green_rollback_total{status=\"failed\"}[5m]))",
+          "legendFormat": "Failed Rollbacks",
+          "refId": "D"
+        }
+      ],
+      "title": "Deployment and Rollback Activity",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/health\"}[5m])) by (le))",
+          "legendFormat": "P50 Health Check Latency",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/health\"}[5m])) by (le))",
+          "legendFormat": "P95 Health Check Latency",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/health\"}[5m])) by (le))",
+          "legendFormat": "P99 Health Check Latency",
+          "refId": "C"
+        }
+      ],
+      "title": "Health Check Latency Distribution",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 27,
+  "style": "dark",
+  "tags": [
+    "slo",
+    "blue-green",
+    "deployment",
+    "monitoring"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Blue-Green Deployment SLO Dashboard",
+  "uid": "blue-green-slo",
+  "version": 1
+}
+

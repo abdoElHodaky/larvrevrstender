@@ -18,7 +18,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxml2-dev \
     libcurl4-openssl-dev \
     libonig-dev \
-    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Configure GD extension with JPEG and FreeType support
@@ -68,11 +67,39 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     libxml2 \
     libcurl4 \
+    curl \
+    ca-certificates \
+    libpq-dev \
+    libicu-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    libonig-dev \
+    libzip-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo \
+    libfreetype6 \
+    libpng16-16 \
     && rm -rf /var/lib/apt/lists/* && apt-get clean
 
-# PHP extensions are already compiled and available from build stage
-# Just enable opcache and redis for runtime
-RUN docker-php-ext-enable opcache
+# Configure GD extension for runtime
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
+
+# Re-install extensions for runtime
+RUN docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    pdo_pgsql \
+    pcntl \
+    bcmath \
+    gd \
+    zip \
+    intl \
+    exif \
+    xml \
+    curl \
+    mbstring \
+    && docker-php-ext-enable opcache
 
 # Install Redis (skip if already installed)
 RUN (pecl install redis || echo "Redis already installed") && docker-php-ext-enable redis
