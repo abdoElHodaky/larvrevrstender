@@ -87,7 +87,6 @@ USER www-data
 # Use the serversideup custom entrypoint scripts if needed, 
 # or use a simplified Octane command.
 # We override the CMD to launch Octane via FrankenPHP.
-CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8002"]
+CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8003"]
 
-EXPOSE 8002
-
+EXPOSE 8003

@@ -158,9 +158,9 @@ RUN echo "memory_limit = 1G" >> /usr/local/etc/php/conf.d/payment.ini \
 USER www-data
 
 # Payment service startup command with Octane FrankenPHP
-CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8004", "--workers=6", "--task-workers=8", "--max-requests=500"]
+CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8006", "--workers=6", "--task-workers=8", "--max-requests=500"]
 
-EXPOSE 8004
+EXPOSE 8006
 
 # Health check for payment service
 HEALTHCHECK --interval=30s --timeout=15s --start-period=90s --retries=5 \
