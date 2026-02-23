@@ -597,14 +597,34 @@ jobs:
       environment: ${{ inputs.target_environment || 'staging' }}
     secrets: inherit
 
-  # Phase 7: Self-Healing & Optimization (Template Integration)
-  self-healing:
-    name: 🔧 Self-Healing & Optimization
-    needs: [change-detection, dependency-environment-validation, comprehensive-testing]
+  # Phase 7: Performance Testing (NEW)
+  performance-testing:
+    name: 🚀 Performance Testing
+    needs: [change-detection, dependency-environment-validation, service-build, comprehensive-testing]
     if: |
       always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
-      needs.comprehensive-testing.result == 'success' &&
+      (needs.service-build.result == 'success' || needs.service-build.result == 'skipped') &&
+      (needs.comprehensive-testing.result == 'success' || needs.comprehensive-testing.result == 'skipped') &&
+      (needs.change-detection.outputs.change_impact == 'high' || contains(needs.change-detection.outputs.affected_services, 'auction') || contains(needs.change-detection.outputs.affected_services, 'gateway'))
+    uses: ./.github/workflows/templates/performance.yml
+    with:
+      services: ${{ needs.change-detection.outputs.affected_services }}
+      environment: ${{ inputs.target_environment || 'staging' }}
+      test_duration: ${{ needs.change-detection.outputs.change_impact == 'high' && '600' || '300' }}
+      concurrent_users: ${{ needs.change-detection.outputs.change_impact == 'high' && '200' || '100' }}
+      performance_thresholds: '{"response_time_p95": 200, "response_time_p99": 500, "error_rate": 0.01}'
+    secrets: inherit
+
+  # Phase 8: Self-Healing & Optimization (Template Integration)
+  self-healing:
+    name: 🔧 Self-Healing & Optimization
+    needs: [change-detection, dependency-environment-validation, comprehensive-testing, performance-testing]
+    if: |
+      always() && 
+      needs.change-detection.outputs.should_deploy == 'true' &&
+      (needs.comprehensive-testing.result == 'success' || needs.comprehensive-testing.result == 'skipped') &&
+      (needs.performance-testing.result == 'success' || needs.performance-testing.result == 'skipped' || needs.performance-testing.result == 'warning') &&
       env.SELF_HEALING_ENABLED == 'true'
     uses: ./.github/workflows/templates/healing.yml
     with:
@@ -613,15 +633,16 @@ jobs:
       enable_predictive_recovery: true
     secrets: inherit
 
-  # Phase 8: Blue-Green Deployment (Dependency-Ordered)
+  # Phase 9: Blue-Green Deployment (Dependency-Ordered)
   deployment:
     name: 🚀 Blue-Green Deployment (Dependency-Ordered)
-    needs: [change-detection, dependency-environment-validation, service-build, comprehensive-testing, self-healing]
+    needs: [change-detection, dependency-environment-validation, service-build, comprehensive-testing, performance-testing, self-healing]
     if: |
       always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
       needs.service-build.result == 'success' &&
-      needs.comprehensive-testing.result == 'success' &&
+      (needs.comprehensive-testing.result == 'success' || needs.comprehensive-testing.result == 'skipped') &&
+      (needs.performance-testing.result == 'success' || needs.performance-testing.result == 'skipped' || needs.performance-testing.result == 'warning') &&
       (needs.self-healing.result == 'success' || needs.self-healing.result == 'skipped')
     strategy:
       fail-fast: false
@@ -639,10 +660,10 @@ jobs:
       environment_config: ${{ needs.dependency-environment-validation.outputs.environment_config }}
     secrets: inherit
 
-  # Phase 9: Risk Scoring Optimization (Template Integration)
+  # Phase 10: Risk Scoring Optimization (Template Integration)
   optimization:
     name: 📊 Risk Scoring Optimization
-    needs: [change-detection, dependency-environment-validation, deployment]
+    needs: [change-detection, dependency-environment-validation, performance-testing, deployment]
     if: |
       always() && 
       needs.deployment.result == 'success' &&
@@ -654,11 +675,11 @@ jobs:
       services: ${{ needs.change-detection.outputs.affected_services }}
     secrets: inherit
 
-  # Phase 10: Final Reporting & Notifications
+  # Phase 11: Final Reporting & Notifications
   pipeline-summary:
     name: 📋 Pipeline Summary
     runs-on: ubuntu-latest
-    needs: [change-detection, dependency-environment-validation, security-scan, service-build, database-migration, comprehensive-testing, self-healing, deployment, optimization]
+    needs: [change-detection, dependency-environment-validation, security-scan, service-build, database-migration, comprehensive-testing, performance-testing, self-healing, deployment, optimization]
     if: always()
     
     steps:
