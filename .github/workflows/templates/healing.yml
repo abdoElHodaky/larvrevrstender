@@ -1,8 +1,7 @@
-# Self-Healing Pipeline Template
+# Healing Template
 # Intelligent automation with automatic recovery and predictive capabilities
-# Part of Phase 4B: Enhanced Automation & Intelligence
 
-name: Self-Healing Pipeline Template
+name: Healing Template
 
 on:
   workflow_call:
@@ -569,4 +568,3 @@ jobs:
               \"status\": \"$STATUS\"
             }" \
             "${{ secrets.SLACK_WEBHOOK_URL }}" || echo "Notification failed"
-

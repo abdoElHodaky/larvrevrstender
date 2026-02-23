@@ -1,8 +1,7 @@
-# Blue-Green Deployment Template
+# Deployment Template
 # Advanced zero-downtime deployment strategy with automated rollback
-# Part of Phase 4A: Advanced Deployment Strategies
 
-name: Blue-Green Deployment Template
+name: Deployment Template
 
 on:
   workflow_call:
@@ -398,4 +397,3 @@ jobs:
               }' \
               "${{ secrets.SLACK_WEBHOOK_URL }}"
           fi
-

@@ -1,8 +1,7 @@
-# Risk Scoring Optimization Template
+# Optimization Template
 # Data-driven fine-tuning of predictive analysis and deployment thresholds
-# Based on real deployment patterns and success metrics
 
-name: Risk Scoring Optimization
+name: Optimization Template
 
 on:
   workflow_call:
@@ -534,4 +533,3 @@ jobs:
               \"color\": \"$COLOR\"
             }" \
             "${{ secrets.SLACK_WEBHOOK_URL }}" || echo "Notification failed"
-

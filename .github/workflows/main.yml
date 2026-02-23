@@ -1,7 +1,6 @@
-name: Unified CI/CD Pipeline (Phase 4)
-# Advanced unified pipeline with Phase 4 enhancements
+name: Main CI/CD Pipeline
+# Advanced unified pipeline with intelligent automation
 # Features: Blue-Green Deployment, Self-Healing, Predictive Analytics
-# Built on the stable foundation of Phase 3 consolidation
 
 on:
   push:
@@ -606,4 +605,3 @@ jobs:
               \"color\": \"$COLOR\"
             }" \
             "${{ secrets.SLACK_WEBHOOK_URL }}" || echo "Notification failed"
-

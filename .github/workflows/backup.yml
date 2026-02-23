@@ -1,7 +1,6 @@
-name: Unified CI/CD Pipeline (Shadow)
-# Shadow pipeline for testing consolidated workflow approach
-# Based on successful ci-cd-pipeline.yml pattern with enhanced features
-# Runs in parallel with existing workflows for validation
+name: Backup CI/CD Pipeline
+# Backup pipeline for fallback and testing
+# Stable version for emergency rollback if needed
 
 on:
   push:
