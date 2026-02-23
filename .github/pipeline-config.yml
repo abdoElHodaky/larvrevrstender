@@ -16,7 +16,7 @@ pipeline_migration:
     
     # Phase 3B: Medium Risk Services (IN PROGRESS)
     order-service: "unified"         # MIGRATED: Business logic, moderate risk
-    bidding-service: "legacy"        # Core functionality
+    bidding-service: "unified"       # MIGRATED: Core functionality
     user-service: "legacy"           # Important but stable
     
     # Phase 3C: High Risk Services (Migrate last)
