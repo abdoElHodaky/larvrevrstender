@@ -33,6 +33,16 @@ on:
         required: false
         type: boolean
         default: true
+      dependency_graph:
+        description: 'Service dependency graph JSON'
+        required: false
+        type: string
+        default: '{}'
+      deployment_order:
+        description: 'Deployment order JSON array'
+        required: false
+        type: string
+        default: '[]'
     secrets:
       registry_username:
         description: 'Registry username'
@@ -143,6 +153,62 @@ jobs:
           
           echo "✅ Dependencies validation passed"
 
+      - name: Service Dependency Analysis
+        id: dependency-check
+        run: |
+          echo "🔗 Analyzing service dependencies for ${{ inputs.service_name }}..."
+          
+          # Parse dependency graph
+          DEPENDENCY_GRAPH='${{ inputs.dependency_graph }}'
+          DEPLOYMENT_ORDER='${{ inputs.deployment_order }}'
+          
+          if [ "$DEPENDENCY_GRAPH" != "{}" ] && [ "$DEPLOYMENT_ORDER" != "[]" ]; then
+            # Get service dependencies
+            SERVICE_DEPS=$(echo "$DEPENDENCY_GRAPH" | jq -r ".\"${{ inputs.service_name }}\".dependencies // \"\"")
+            SERVICE_CRITICALITY=$(echo "$DEPENDENCY_GRAPH" | jq -r ".\"${{ inputs.service_name }}\".criticality // 3")
+            SERVICE_STARTUP_TIME=$(echo "$DEPENDENCY_GRAPH" | jq -r ".\"${{ inputs.service_name }}\".startup_time // 30")
+            
+            # Get deployment order position
+            DEPLOYMENT_POSITION=$(echo "$DEPLOYMENT_ORDER" | jq -r "to_entries | map(select(.value == \"${{ inputs.service_name }}\")) | .[0].key // -1")
+            
+            echo "📊 Service Analysis Results:"
+            echo "  Service: ${{ inputs.service_name }}"
+            echo "  Dependencies: $SERVICE_DEPS"
+            echo "  Criticality: $SERVICE_CRITICALITY/5"
+            echo "  Startup Time: ${SERVICE_STARTUP_TIME}s"
+            echo "  Deployment Order: $((DEPLOYMENT_POSITION + 1))"
+            
+            # Validate dependencies are available
+            if [ -n "$SERVICE_DEPS" ] && [ "$SERVICE_DEPS" != "null" ]; then
+              IFS=',' read -ra DEPS <<< "$SERVICE_DEPS"
+              for dep in "${DEPS[@]}"; do
+                dep=$(echo "$dep" | xargs)  # trim whitespace
+                if [ -n "$dep" ]; then
+                  if [ -d "services/$dep" ]; then
+                    echo "✅ Dependency available: $dep"
+                  else
+                    echo "❌ Missing dependency: $dep"
+                    exit 1
+                  fi
+                fi
+              done
+            else
+              echo "ℹ️ No dependencies required for ${{ inputs.service_name }}"
+            fi
+            
+            # Export for build process
+            echo "dependencies=$SERVICE_DEPS" >> $GITHUB_OUTPUT
+            echo "criticality=$SERVICE_CRITICALITY" >> $GITHUB_OUTPUT
+            echo "startup_time=$SERVICE_STARTUP_TIME" >> $GITHUB_OUTPUT
+            echo "deployment_position=$DEPLOYMENT_POSITION" >> $GITHUB_OUTPUT
+          else
+            echo "ℹ️ No dependency graph provided, skipping dependency analysis"
+            echo "dependencies=" >> $GITHUB_OUTPUT
+            echo "criticality=3" >> $GITHUB_OUTPUT
+            echo "startup_time=30" >> $GITHUB_OUTPUT
+            echo "deployment_position=-1" >> $GITHUB_OUTPUT
+          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
@@ -211,4 +277,3 @@ jobs:
           echo "- Registry: ${{ inputs.registry }}" >> $GITHUB_STEP_SUMMARY
           echo "- Image: ${{ inputs.registry }}/${{ inputs.image_name }}-${{ inputs.service_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- Digest: ${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
-

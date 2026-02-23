@@ -184,10 +184,295 @@ jobs:
           echo "  Risk Score: $RISK_SCORE/100"
           echo "  Services Matrix: $SERVICES_MATRIX"
 
-  # Phase 2: Security Scanning (Template Integration)
+  # Phase 2: Service Dependency & Environment Validation
+  dependency-environment-validation:
+    name: 🔗 Service Dependencies & Environment Config
+    needs: [change-detection]
+    if: needs.change-detection.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      deployment_order: ${{ steps.dependency-analysis.outputs.deployment_order }}
+      environment_config: ${{ steps.env-validation.outputs.config_status }}
+      health_check_urls: ${{ steps.health-checks.outputs.urls }}
+      dependency_graph: ${{ steps.dependency-analysis.outputs.dependency_graph }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Advanced Service Dependency Analysis
+        id: dependency-analysis
+        run: |
+          echo "🔍 Analyzing service dependencies and deployment order..."
+          
+          # Define comprehensive service dependency graph
+          declare -A SERVICE_DEPS
+          declare -A SERVICE_HEALTH_ENDPOINTS
+          declare -A SERVICE_STARTUP_TIME
+          declare -A SERVICE_CRITICALITY
+          
+          # Service dependencies (what each service depends on)
+          SERVICE_DEPS[shared]=""
+          SERVICE_DEPS[auth]="shared"
+          SERVICE_DEPS[user]="shared,auth"
+          SERVICE_DEPS[auction]="shared,auth,user"
+          SERVICE_DEPS[bidding]="shared,auth,user,auction"
+          SERVICE_DEPS[payment]="shared,auth,user"
+          SERVICE_DEPS[order]="shared,auth,user,payment"
+          SERVICE_DEPS[notification]="shared,auth,user"
+          SERVICE_DEPS[analytics]="shared,auth,user"
+          SERVICE_DEPS[vin-ocr]="shared,auth"
+          SERVICE_DEPS[gateway]="shared,auth,user,auction,bidding,payment,order,notification,analytics,vin-ocr"
+          
+          # Health check endpoints for each service
+          SERVICE_HEALTH_ENDPOINTS[shared]="/health"
+          SERVICE_HEALTH_ENDPOINTS[auth]="/api/auth/health"
+          SERVICE_HEALTH_ENDPOINTS[user]="/api/users/health"
+          SERVICE_HEALTH_ENDPOINTS[auction]="/api/auctions/health"
+          SERVICE_HEALTH_ENDPOINTS[bidding]="/api/bids/health"
+          SERVICE_HEALTH_ENDPOINTS[payment]="/api/payments/health"
+          SERVICE_HEALTH_ENDPOINTS[order]="/api/orders/health"
+          SERVICE_HEALTH_ENDPOINTS[notification]="/api/notifications/health"
+          SERVICE_HEALTH_ENDPOINTS[analytics]="/api/analytics/health"
+          SERVICE_HEALTH_ENDPOINTS[vin-ocr]="/api/ocr/health"
+          SERVICE_HEALTH_ENDPOINTS[gateway]="/api/gateway/health"
+          
+          # Estimated startup times (seconds)
+          SERVICE_STARTUP_TIME[shared]=30
+          SERVICE_STARTUP_TIME[auth]=45
+          SERVICE_STARTUP_TIME[user]=40
+          SERVICE_STARTUP_TIME[auction]=60
+          SERVICE_STARTUP_TIME[bidding]=50
+          SERVICE_STARTUP_TIME[payment]=55
+          SERVICE_STARTUP_TIME[order]=45
+          SERVICE_STARTUP_TIME[notification]=40
+          SERVICE_STARTUP_TIME[analytics]=50
+          SERVICE_STARTUP_TIME[vin-ocr]=70
+          SERVICE_STARTUP_TIME[gateway]=35
+          
+          # Service criticality (1=low, 5=critical)
+          SERVICE_CRITICALITY[shared]=5
+          SERVICE_CRITICALITY[auth]=5
+          SERVICE_CRITICALITY[user]=4
+          SERVICE_CRITICALITY[auction]=5
+          SERVICE_CRITICALITY[bidding]=4
+          SERVICE_CRITICALITY[payment]=5
+          SERVICE_CRITICALITY[order]=4
+          SERVICE_CRITICALITY[notification]=3
+          SERVICE_CRITICALITY[analytics]=2
+          SERVICE_CRITICALITY[vin-ocr]=3
+          SERVICE_CRITICALITY[gateway]=5
+          
+          # Calculate deployment order based on dependencies
+          DEPLOYMENT_ORDER=()
+          
+          # Level 0: No dependencies
+          for service in shared; do
+            DEPLOYMENT_ORDER+=("$service")
+          done
+          
+          # Level 1: Depends only on shared
+          for service in auth; do
+            DEPLOYMENT_ORDER+=("$service")
+          done
+          
+          # Level 2: Depends on shared + auth
+          for service in user; do
+            DEPLOYMENT_ORDER+=("$service")
+          done
+          
+          # Level 3: Depends on shared + auth + user
+          for service in auction payment notification analytics vin-ocr; do
+            DEPLOYMENT_ORDER+=("$service")
+          done
+          
+          # Level 4: Depends on multiple services
+          for service in bidding order; do
+            DEPLOYMENT_ORDER+=("$service")
+          done
+          
+          # Level 5: Gateway (depends on everything)
+          for service in gateway; do
+            DEPLOYMENT_ORDER+=("$service")
+          done
+          
+          # Create deployment order JSON
+          DEPLOYMENT_ORDER_JSON=$(printf '%s\n' "${DEPLOYMENT_ORDER[@]}" | jq -R . | jq -s .)
+          
+          # Create dependency graph JSON
+          DEPENDENCY_GRAPH="{"
+          for service in "${DEPLOYMENT_ORDER[@]}"; do
+            deps="${SERVICE_DEPS[$service]}"
+            health="${SERVICE_HEALTH_ENDPOINTS[$service]}"
+            startup="${SERVICE_STARTUP_TIME[$service]}"
+            criticality="${SERVICE_CRITICALITY[$service]}"
+            
+            DEPENDENCY_GRAPH="$DEPENDENCY_GRAPH\"$service\":{\"dependencies\":\"$deps\",\"health_endpoint\":\"$health\",\"startup_time\":$startup,\"criticality\":$criticality},"
+          done
+          DEPENDENCY_GRAPH="${DEPENDENCY_GRAPH%,}}"
+          
+          # Output results
+          echo "deployment_order=$DEPLOYMENT_ORDER_JSON" >> $GITHUB_OUTPUT
+          echo "dependency_graph=$DEPENDENCY_GRAPH" >> $GITHUB_OUTPUT
+          
+          echo "📊 Service Deployment Order:"
+          printf '%s\n' "${DEPLOYMENT_ORDER[@]}" | nl
+          
+          echo "🔗 Dependency Graph Created:"
+          echo "$DEPENDENCY_GRAPH" | jq .
+
+      - name: Environment Configuration Validation
+        id: env-validation
+        run: |
+          echo "⚙️ Validating environment configurations..."
+          
+          TARGET_ENV="${{ inputs.target_environment || 'staging' }}"
+          
+          # Define environment-specific configurations
+          declare -A ENV_CONFIGS
+          declare -A ENV_SECRETS
+          declare -A ENV_DATABASES
+          declare -A ENV_REDIS
+          declare -A ENV_DOMAINS
+          
+          # Staging environment configuration
+          ENV_CONFIGS[staging_db_host]="staging-postgres.larvrevrstender.com"
+          ENV_CONFIGS[staging_redis_host]="staging-redis.larvrevrstender.com"
+          ENV_CONFIGS[staging_domain]="staging.larvrevrstender.com"
+          ENV_CONFIGS[staging_replicas]=2
+          ENV_CONFIGS[staging_resources_cpu]="500m"
+          ENV_CONFIGS[staging_resources_memory]="1Gi"
+          
+          # Production environment configuration
+          ENV_CONFIGS[production_db_host]="prod-postgres.larvrevrstender.com"
+          ENV_CONFIGS[production_redis_host]="prod-redis.larvrevrstender.com"
+          ENV_CONFIGS[production_domain]="larvrevrstender.com"
+          ENV_CONFIGS[production_replicas]=5
+          ENV_CONFIGS[production_resources_cpu]="1000m"
+          ENV_CONFIGS[production_resources_memory]="2Gi"
+          
+          # Required secrets per environment
+          ENV_SECRETS[staging]="STAGING_DB_PASSWORD,STAGING_REDIS_PASSWORD,STAGING_JWT_SECRET,STAGING_APP_KEY"
+          ENV_SECRETS[production]="PROD_DB_PASSWORD,PROD_REDIS_PASSWORD,PROD_JWT_SECRET,PROD_APP_KEY,PROD_PAYMENT_API_KEY"
+          
+          # Validate environment configuration
+          CONFIG_STATUS="valid"
+          MISSING_CONFIGS=()
+          
+          # Check required configurations exist
+          REQUIRED_CONFIGS=(
+            "${TARGET_ENV}_db_host"
+            "${TARGET_ENV}_redis_host"
+            "${TARGET_ENV}_domain"
+            "${TARGET_ENV}_replicas"
+            "${TARGET_ENV}_resources_cpu"
+            "${TARGET_ENV}_resources_memory"
+          )
+          
+          for config in "${REQUIRED_CONFIGS[@]}"; do
+            if [ -z "${ENV_CONFIGS[$config]}" ]; then
+              MISSING_CONFIGS+=("$config")
+              CONFIG_STATUS="invalid"
+            else
+              echo "✅ $config: ${ENV_CONFIGS[$config]}"
+            fi
+          done
+          
+          # Validate docker-compose files exist for environment
+          COMPOSE_FILES=(
+            "docker-compose.yml"
+            "docker-compose.${TARGET_ENV}.yml"
+          )
+          
+          for compose_file in "${COMPOSE_FILES[@]}"; do
+            if [ -f "$compose_file" ]; then
+              echo "✅ Found: $compose_file"
+            else
+              echo "⚠️ Missing: $compose_file"
+              if [ "$compose_file" = "docker-compose.${TARGET_ENV}.yml" ]; then
+                echo "ℹ️ Using base docker-compose.yml for $TARGET_ENV"
+              fi
+            fi
+          done
+          
+          # Create environment configuration JSON
+          ENV_CONFIG_JSON="{"
+          ENV_CONFIG_JSON="$ENV_CONFIG_JSON\"environment\":\"$TARGET_ENV\","
+          ENV_CONFIG_JSON="$ENV_CONFIG_JSON\"db_host\":\"${ENV_CONFIGS[${TARGET_ENV}_db_host]}\","
+          ENV_CONFIG_JSON="$ENV_CONFIG_JSON\"redis_host\":\"${ENV_CONFIGS[${TARGET_ENV}_redis_host]}\","
+          ENV_CONFIG_JSON="$ENV_CONFIG_JSON\"domain\":\"${ENV_CONFIGS[${TARGET_ENV}_domain]}\","
+          ENV_CONFIG_JSON="$ENV_CONFIG_JSON\"replicas\":${ENV_CONFIGS[${TARGET_ENV}_replicas]},"
+          ENV_CONFIG_JSON="$ENV_CONFIG_JSON\"resources\":{\"cpu\":\"${ENV_CONFIGS[${TARGET_ENV}_resources_cpu]}\",\"memory\":\"${ENV_CONFIGS[${TARGET_ENV}_resources_memory]}\"},"
+          ENV_CONFIG_JSON="$ENV_CONFIG_JSON\"status\":\"$CONFIG_STATUS\""
+          ENV_CONFIG_JSON="$ENV_CONFIG_JSON}"
+          
+          # Output results
+          echo "config_status=$CONFIG_STATUS" >> $GITHUB_OUTPUT
+          echo "environment_config=$ENV_CONFIG_JSON" >> $GITHUB_OUTPUT
+          
+          if [ "$CONFIG_STATUS" = "invalid" ]; then
+            echo "❌ Environment configuration validation failed"
+            echo "Missing configurations: ${MISSING_CONFIGS[*]}"
+            exit 1
+          else
+            echo "✅ Environment configuration validation passed"
+          fi
+
+      - name: Generate Health Check URLs
+        id: health-checks
+        run: |
+          echo "🏥 Generating health check URLs for services..."
+          
+          TARGET_ENV="${{ inputs.target_environment || 'staging' }}"
+          DOMAIN=$(echo '${{ steps.env-validation.outputs.environment_config }}' | jq -r '.domain')
+          
+          # Parse affected services
+          IFS=',' read -ra SERVICES <<< "${{ needs.change-detection.outputs.affected_services }}"
+          
+          HEALTH_URLS="{"
+          for service in "${SERVICES[@]}"; do
+            service=$(echo "$service" | xargs)  # trim whitespace
+            if [ -n "$service" ]; then
+              # Get health endpoint from dependency graph
+              HEALTH_ENDPOINT=$(echo '${{ steps.dependency-analysis.outputs.dependency_graph }}' | jq -r ".\"$service\".health_endpoint // \"/health\"")
+              HEALTH_URL="https://${service}-${TARGET_ENV}.${DOMAIN}${HEALTH_ENDPOINT}"
+              HEALTH_URLS="$HEALTH_URLS\"$service\":\"$HEALTH_URL\","
+            fi
+          done
+          HEALTH_URLS="${HEALTH_URLS%,}}"
+          
+          echo "urls=$HEALTH_URLS" >> $GITHUB_OUTPUT
+          
+          echo "🏥 Health Check URLs Generated:"
+          echo "$HEALTH_URLS" | jq .
+
+      - name: Service Dependency Summary
+        run: |
+          echo "## 🔗 Service Dependencies & Environment Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Environment:** ${{ inputs.target_environment || 'staging' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Configuration Status:** ${{ steps.env-validation.outputs.config_status == 'valid' && '✅ Valid' || '❌ Invalid' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Deployment Order" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Parse deployment order and create table
+          DEPLOYMENT_ORDER='${{ steps.dependency-analysis.outputs.deployment_order }}'
+          echo "| Order | Service | Dependencies | Criticality |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|---------|--------------|-------------|" >> $GITHUB_STEP_SUMMARY
+          
+          ORDER=1
+          echo "$DEPLOYMENT_ORDER" | jq -r '.[]' | while read service; do
+            DEPS=$(echo '${{ steps.dependency-analysis.outputs.dependency_graph }}' | jq -r ".\"$service\".dependencies // \"none\"")
+            CRIT=$(echo '${{ steps.dependency-analysis.outputs.dependency_graph }}' | jq -r ".\"$service\".criticality")
+            echo "| $ORDER | $service | $DEPS | $CRIT/5 |" >> $GITHUB_STEP_SUMMARY
+            ORDER=$((ORDER + 1))
+          done
+
+  # Phase 3: Security Scanning (Template Integration)
   security-scan:
     name: 🔒 Security Scanning
-    needs: [change-detection]
+    needs: [change-detection, dependency-environment-validation]
     if: needs.change-detection.outputs.should_deploy == 'true'
     uses: ./.github/workflows/templates/security.yml
     with:
@@ -195,10 +480,10 @@ jobs:
       risk_score: ${{ needs.change-detection.outputs.risk_score }}
     secrets: inherit
 
-  # Phase 3: Service Build Matrix (Per-Service Orchestration)
+  # Phase 4: Service Build Matrix (Dependency-Ordered Orchestration)
   service-build:
-    name: 🏗️ Service Build
-    needs: [change-detection, security-scan]
+    name: 🏗️ Service Build (Dependency-Ordered)
+    needs: [change-detection, dependency-environment-validation, security-scan]
     if: needs.change-detection.outputs.should_deploy == 'true'
     strategy:
       fail-fast: false
@@ -210,12 +495,14 @@ jobs:
       environment: ${{ inputs.target_environment || 'staging' }}
       registry: ${{ env.REGISTRY }}
       image_name: ${{ env.IMAGE_NAME }}
+      dependency_graph: ${{ needs.dependency-environment-validation.outputs.dependency_graph }}
+      deployment_order: ${{ needs.dependency-environment-validation.outputs.deployment_order }}
     secrets: inherit
 
-  # Phase 4: Database Migration Integration
+  # Phase 5: Database Migration Integration
   database-migration:
     name: 🗄️ Database Migration
-    needs: [change-detection]
+    needs: [change-detection, dependency-environment-validation]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' && 
       (contains(needs.change-detection.outputs.affected_services, 'shared') || 
@@ -294,10 +581,10 @@ jobs:
             fi
           done
 
-  # Phase 5: Comprehensive Testing (Template Integration)
+  # Phase 6: Comprehensive Testing (Template Integration)
   comprehensive-testing:
     name: 🧪 Comprehensive Testing
-    needs: [change-detection, service-build, database-migration]
+    needs: [change-detection, dependency-environment-validation, service-build, database-migration]
     if: |
       always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
@@ -310,10 +597,10 @@ jobs:
       environment: ${{ inputs.target_environment || 'staging' }}
     secrets: inherit
 
-  # Phase 6: Self-Healing & Optimization (Template Integration)
+  # Phase 7: Self-Healing & Optimization (Template Integration)
   self-healing:
     name: 🔧 Self-Healing & Optimization
-    needs: [change-detection, comprehensive-testing]
+    needs: [change-detection, dependency-environment-validation, comprehensive-testing]
     if: |
       always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
@@ -326,10 +613,10 @@ jobs:
       enable_predictive_recovery: true
     secrets: inherit
 
-  # Phase 7: Blue-Green Deployment (Template Integration)
+  # Phase 8: Blue-Green Deployment (Dependency-Ordered)
   deployment:
-    name: 🚀 Blue-Green Deployment
-    needs: [change-detection, service-build, comprehensive-testing, self-healing]
+    name: 🚀 Blue-Green Deployment (Dependency-Ordered)
+    needs: [change-detection, dependency-environment-validation, service-build, comprehensive-testing, self-healing]
     if: |
       always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
@@ -344,15 +631,18 @@ jobs:
       service_name: ${{ matrix.service }}
       environment: ${{ inputs.target_environment || 'staging' }}
       image_tag: ${{ github.sha }}
-      health_check_url: "https://${{ matrix.service }}-${{ inputs.target_environment || 'staging' }}.larvrevrstender.com/health"
+      health_check_url: ${{ fromJson(needs.dependency-environment-validation.outputs.health_check_urls)[matrix.service] || format('https://{0}-{1}.larvrevrstender.com/health', matrix.service, inputs.target_environment || 'staging') }}
       deployment_strategy: ${{ needs.change-detection.outputs.deployment_strategy }}
       rollback_on_failure: true
+      dependency_graph: ${{ needs.dependency-environment-validation.outputs.dependency_graph }}
+      deployment_order: ${{ needs.dependency-environment-validation.outputs.deployment_order }}
+      environment_config: ${{ needs.dependency-environment-validation.outputs.environment_config }}
     secrets: inherit
 
-  # Phase 8: Risk Scoring Optimization (Template Integration)
+  # Phase 9: Risk Scoring Optimization (Template Integration)
   optimization:
     name: 📊 Risk Scoring Optimization
-    needs: [change-detection, deployment]
+    needs: [change-detection, dependency-environment-validation, deployment]
     if: |
       always() && 
       needs.deployment.result == 'success' &&
@@ -364,11 +654,11 @@ jobs:
       services: ${{ needs.change-detection.outputs.affected_services }}
     secrets: inherit
 
-  # Phase 9: Final Reporting & Notifications
+  # Phase 10: Final Reporting & Notifications
   pipeline-summary:
     name: 📋 Pipeline Summary
     runs-on: ubuntu-latest
-    needs: [change-detection, security-scan, service-build, database-migration, comprehensive-testing, self-healing, deployment, optimization]
+    needs: [change-detection, dependency-environment-validation, security-scan, service-build, database-migration, comprehensive-testing, self-healing, deployment, optimization]
     if: always()
     
     steps:
@@ -439,4 +729,3 @@ jobs:
               }" \
               "${{ secrets.SLACK_WEBHOOK_URL }}" || echo "Notification failed"
           fi
-

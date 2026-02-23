@@ -32,6 +32,21 @@ on:
         required: false
         type: number
         default: 10
+      dependency_graph:
+        description: 'Service dependency graph JSON'
+        required: false
+        type: string
+        default: '{}'
+      deployment_order:
+        description: 'Deployment order JSON array'
+        required: false
+        type: string
+        default: '[]'
+      environment_config:
+        description: 'Environment configuration JSON'
+        required: false
+        type: string
+        default: '{}'
     outputs:
       deployment_status:
         description: 'Final deployment status'
