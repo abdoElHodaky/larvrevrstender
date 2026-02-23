@@ -11,7 +11,7 @@ pipeline_migration:
   service_overrides:
     # Phase 3A: Low Risk Services (Start here)
     analytics-service: "unified"     # MIGRATED: First service moved to unified pipeline
-    notification-service: "shadow"   # Supporting service, isolated
+    notification-service: "unified"  # MIGRATED: Second service moved to unified pipeline
     vin-ocr-service: "shadow"        # Specialized, minimal dependencies
     
     # Phase 3B: Medium Risk Services (Migrate second)
