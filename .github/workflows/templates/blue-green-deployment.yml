@@ -1,0 +1,401 @@
+# Blue-Green Deployment Template
+# Advanced zero-downtime deployment strategy with automated rollback
+# Part of Phase 4A: Advanced Deployment Strategies
+
+name: Blue-Green Deployment Template
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: 'Name of the service to deploy'
+        required: true
+        type: string
+      environment:
+        description: 'Target environment (staging/production)'
+        required: true
+        type: string
+      image_tag:
+        description: 'Docker image tag to deploy'
+        required: true
+        type: string
+      health_check_url:
+        description: 'Health check endpoint for validation'
+        required: true
+        type: string
+      rollback_on_failure:
+        description: 'Enable automatic rollback on failure'
+        required: false
+        type: boolean
+        default: true
+      canary_percentage:
+        description: 'Percentage of traffic for canary deployment'
+        required: false
+        type: number
+        default: 10
+    outputs:
+      deployment_status:
+        description: 'Final deployment status'
+        value: ${{ jobs.blue-green-deploy.outputs.status }}
+      active_slot:
+        description: 'Currently active deployment slot'
+        value: ${{ jobs.blue-green-deploy.outputs.active_slot }}
+      rollback_performed:
+        description: 'Whether rollback was performed'
+        value: ${{ jobs.blue-green-deploy.outputs.rollback_performed }}
+
+env:
+  DEPLOYMENT_TIMEOUT: 600  # 10 minutes
+  HEALTH_CHECK_RETRIES: 30
+  HEALTH_CHECK_INTERVAL: 10
+  ROLLBACK_TIMEOUT: 120    # 2 minutes
+
+jobs:
+  blue-green-deploy:
+    name: Blue-Green Deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      status: ${{ steps.deployment-result.outputs.status }}
+      active_slot: ${{ steps.deployment-result.outputs.active_slot }}
+      rollback_performed: ${{ steps.deployment-result.outputs.rollback_performed }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Deployment Environment
+        id: setup
+        run: |
+          echo "🔵 Setting up Blue-Green deployment for ${{ inputs.service_name }}"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Image Tag: ${{ inputs.image_tag }}"
+          
+          # Determine current active slot
+          CURRENT_SLOT=$(curl -s "https://api.${{ inputs.environment }}.example.com/deployment/status/${{ inputs.service_name }}" | jq -r '.active_slot // "blue"')
+          
+          if [ "$CURRENT_SLOT" = "blue" ]; then
+            TARGET_SLOT="green"
+          else
+            TARGET_SLOT="blue"
+          fi
+          
+          echo "current_slot=$CURRENT_SLOT" >> $GITHUB_OUTPUT
+          echo "target_slot=$TARGET_SLOT" >> $GITHUB_OUTPUT
+          echo "deployment_id=$(date +%s)-${{ github.run_id }}" >> $GITHUB_OUTPUT
+          
+          echo "📊 Current active slot: $CURRENT_SLOT"
+          echo "🎯 Target deployment slot: $TARGET_SLOT"
+
+      - name: Pre-deployment Validation
+        id: pre-validation
+        run: |
+          echo "🔍 Running pre-deployment validation..."
+          
+          # Validate image exists
+          if ! docker manifest inspect ${{ inputs.image_tag }} > /dev/null 2>&1; then
+            echo "❌ Docker image ${{ inputs.image_tag }} not found"
+            exit 1
+          fi
+          
+          # Validate environment readiness
+          ENVIRONMENT_STATUS=$(curl -s "https://api.${{ inputs.environment }}.example.com/health" | jq -r '.status')
+          if [ "$ENVIRONMENT_STATUS" != "healthy" ]; then
+            echo "❌ Environment ${{ inputs.environment }} is not healthy: $ENVIRONMENT_STATUS"
+            exit 1
+          fi
+          
+          # Check resource availability
+          AVAILABLE_RESOURCES=$(curl -s "https://api.${{ inputs.environment }}.example.com/resources/check" | jq -r '.available')
+          if [ "$AVAILABLE_RESOURCES" != "true" ]; then
+            echo "❌ Insufficient resources available for deployment"
+            exit 1
+          fi
+          
+          echo "✅ Pre-deployment validation passed"
+
+      - name: Deploy to Target Slot
+        id: deploy
+        run: |
+          echo "🚀 Deploying ${{ inputs.service_name }} to ${{ steps.setup.outputs.target_slot }} slot..."
+          
+          # Deploy to target slot
+          DEPLOYMENT_RESULT=$(curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.DEPLOYMENT_TOKEN }}" \
+            -d '{
+              "service": "${{ inputs.service_name }}",
+              "slot": "${{ steps.setup.outputs.target_slot }}",
+              "image": "${{ inputs.image_tag }}",
+              "environment": "${{ inputs.environment }}",
+              "deployment_id": "${{ steps.setup.outputs.deployment_id }}"
+            }' \
+            "https://api.${{ inputs.environment }}.example.com/deploy")
+          
+          DEPLOY_STATUS=$(echo $DEPLOYMENT_RESULT | jq -r '.status')
+          
+          if [ "$DEPLOY_STATUS" != "success" ]; then
+            echo "❌ Deployment to ${{ steps.setup.outputs.target_slot }} slot failed"
+            echo "Error: $(echo $DEPLOYMENT_RESULT | jq -r '.error')"
+            exit 1
+          fi
+          
+          echo "✅ Successfully deployed to ${{ steps.setup.outputs.target_slot }} slot"
+          echo "deployment_url=$(echo $DEPLOYMENT_RESULT | jq -r '.url')" >> $GITHUB_OUTPUT
+
+      - name: Health Check Validation
+        id: health-check
+        run: |
+          echo "🏥 Running health checks on ${{ steps.setup.outputs.target_slot }} slot..."
+          
+          TARGET_URL="https://${{ steps.setup.outputs.target_slot }}.${{ inputs.service_name }}.${{ inputs.environment }}.example.com${{ inputs.health_check_url }}"
+          
+          for i in $(seq 1 ${{ env.HEALTH_CHECK_RETRIES }}); do
+            echo "Health check attempt $i/${{ env.HEALTH_CHECK_RETRIES }}"
+            
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$TARGET_URL" || echo "000")
+            
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Health check passed (HTTP $HTTP_STATUS)"
+              
+              # Additional application-specific health checks
+              HEALTH_RESPONSE=$(curl -s "$TARGET_URL" | jq -r '.status // "unknown"')
+              if [ "$HEALTH_RESPONSE" = "healthy" ]; then
+                echo "✅ Application health check passed"
+                echo "health_check_passed=true" >> $GITHUB_OUTPUT
+                break
+              else
+                echo "⚠️ Application reports unhealthy status: $HEALTH_RESPONSE"
+              fi
+            else
+              echo "❌ Health check failed (HTTP $HTTP_STATUS)"
+            fi
+            
+            if [ $i -eq ${{ env.HEALTH_CHECK_RETRIES }} ]; then
+              echo "❌ Health checks failed after ${{ env.HEALTH_CHECK_RETRIES }} attempts"
+              echo "health_check_passed=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+            
+            sleep ${{ env.HEALTH_CHECK_INTERVAL }}
+          done
+
+      - name: Canary Traffic Routing
+        id: canary
+        if: inputs.canary_percentage > 0
+        run: |
+          echo "🐤 Starting canary deployment with ${{ inputs.canary_percentage }}% traffic..."
+          
+          # Route canary traffic to target slot
+          CANARY_RESULT=$(curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.DEPLOYMENT_TOKEN }}" \
+            -d '{
+              "service": "${{ inputs.service_name }}",
+              "environment": "${{ inputs.environment }}",
+              "canary_slot": "${{ steps.setup.outputs.target_slot }}",
+              "canary_percentage": ${{ inputs.canary_percentage }},
+              "deployment_id": "${{ steps.setup.outputs.deployment_id }}"
+            }' \
+            "https://api.${{ inputs.environment }}.example.com/canary/enable")
+          
+          CANARY_STATUS=$(echo $CANARY_RESULT | jq -r '.status')
+          
+          if [ "$CANARY_STATUS" != "success" ]; then
+            echo "❌ Canary routing failed"
+            exit 1
+          fi
+          
+          echo "✅ Canary traffic routing enabled"
+          
+          # Monitor canary performance for 2 minutes
+          echo "📊 Monitoring canary performance..."
+          sleep 120
+          
+          # Check canary metrics
+          CANARY_METRICS=$(curl -s "https://api.${{ inputs.environment }}.example.com/metrics/canary/${{ inputs.service_name }}")
+          ERROR_RATE=$(echo $CANARY_METRICS | jq -r '.error_rate')
+          RESPONSE_TIME=$(echo $CANARY_METRICS | jq -r '.avg_response_time')
+          
+          echo "Canary error rate: $ERROR_RATE%"
+          echo "Canary response time: ${RESPONSE_TIME}ms"
+          
+          # Validate canary performance
+          if (( $(echo "$ERROR_RATE > 5.0" | bc -l) )); then
+            echo "❌ Canary error rate too high: $ERROR_RATE%"
+            echo "canary_passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          if (( $(echo "$RESPONSE_TIME > 2000" | bc -l) )); then
+            echo "❌ Canary response time too high: ${RESPONSE_TIME}ms"
+            echo "canary_passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          echo "✅ Canary performance validation passed"
+          echo "canary_passed=true" >> $GITHUB_OUTPUT
+
+      - name: Traffic Switch
+        id: traffic-switch
+        run: |
+          echo "🔄 Switching traffic to ${{ steps.setup.outputs.target_slot }} slot..."
+          
+          # Switch all traffic to target slot
+          SWITCH_RESULT=$(curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.DEPLOYMENT_TOKEN }}" \
+            -d '{
+              "service": "${{ inputs.service_name }}",
+              "environment": "${{ inputs.environment }}",
+              "active_slot": "${{ steps.setup.outputs.target_slot }}",
+              "deployment_id": "${{ steps.setup.outputs.deployment_id }}"
+            }' \
+            "https://api.${{ inputs.environment }}.example.com/traffic/switch")
+          
+          SWITCH_STATUS=$(echo $SWITCH_RESULT | jq -r '.status')
+          
+          if [ "$SWITCH_STATUS" != "success" ]; then
+            echo "❌ Traffic switch failed"
+            exit 1
+          fi
+          
+          echo "✅ Traffic successfully switched to ${{ steps.setup.outputs.target_slot }} slot"
+          echo "switch_time=$(date -Iseconds)" >> $GITHUB_OUTPUT
+
+      - name: Post-deployment Validation
+        id: post-validation
+        run: |
+          echo "🔍 Running post-deployment validation..."
+          
+          # Wait for traffic to stabilize
+          sleep 30
+          
+          # Validate production traffic
+          PROD_URL="https://${{ inputs.service_name }}.${{ inputs.environment }}.example.com${{ inputs.health_check_url }}"
+          
+          for i in $(seq 1 10); do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_URL")
+            
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Production traffic validation passed (attempt $i)"
+              break
+            else
+              echo "❌ Production traffic validation failed (HTTP $HTTP_STATUS, attempt $i)"
+              if [ $i -eq 10 ]; then
+                echo "post_validation_passed=false" >> $GITHUB_OUTPUT
+                exit 1
+              fi
+              sleep 5
+            fi
+          done
+          
+          # Check production metrics
+          PROD_METRICS=$(curl -s "https://api.${{ inputs.environment }}.example.com/metrics/production/${{ inputs.service_name }}")
+          PROD_ERROR_RATE=$(echo $PROD_METRICS | jq -r '.error_rate')
+          
+          echo "Production error rate: $PROD_ERROR_RATE%"
+          
+          if (( $(echo "$PROD_ERROR_RATE > 2.0" | bc -l) )); then
+            echo "❌ Production error rate too high: $PROD_ERROR_RATE%"
+            echo "post_validation_passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          echo "✅ Post-deployment validation passed"
+          echo "post_validation_passed=true" >> $GITHUB_OUTPUT
+
+      - name: Cleanup Previous Slot
+        id: cleanup
+        run: |
+          echo "🧹 Cleaning up previous slot (${{ steps.setup.outputs.current_slot }})..."
+          
+          # Keep previous slot for quick rollback (don't destroy immediately)
+          CLEANUP_RESULT=$(curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.DEPLOYMENT_TOKEN }}" \
+            -d '{
+              "service": "${{ inputs.service_name }}",
+              "environment": "${{ inputs.environment }}",
+              "slot": "${{ steps.setup.outputs.current_slot }}",
+              "action": "standby",
+              "deployment_id": "${{ steps.setup.outputs.deployment_id }}"
+            }' \
+            "https://api.${{ inputs.environment }}.example.com/slot/manage")
+          
+          echo "✅ Previous slot moved to standby for quick rollback"
+
+      - name: Deployment Result
+        id: deployment-result
+        if: always()
+        run: |
+          if [ "${{ steps.post-validation.outputs.post_validation_passed }}" = "true" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "active_slot=${{ steps.setup.outputs.target_slot }}" >> $GITHUB_OUTPUT
+            echo "rollback_performed=false" >> $GITHUB_OUTPUT
+            echo "🎉 Blue-Green deployment completed successfully!"
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "active_slot=${{ steps.setup.outputs.current_slot }}" >> $GITHUB_OUTPUT
+            echo "rollback_performed=false" >> $GITHUB_OUTPUT
+            echo "❌ Blue-Green deployment failed"
+          fi
+
+      - name: Automatic Rollback
+        id: rollback
+        if: failure() && inputs.rollback_on_failure
+        run: |
+          echo "🔄 Performing automatic rollback to ${{ steps.setup.outputs.current_slot }} slot..."
+          
+          # Rollback traffic to previous slot
+          ROLLBACK_RESULT=$(curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.DEPLOYMENT_TOKEN }}" \
+            -d '{
+              "service": "${{ inputs.service_name }}",
+              "environment": "${{ inputs.environment }}",
+              "active_slot": "${{ steps.setup.outputs.current_slot }}",
+              "deployment_id": "${{ steps.setup.outputs.deployment_id }}",
+              "reason": "automatic_rollback"
+            }' \
+            "https://api.${{ inputs.environment }}.example.com/traffic/switch")
+          
+          ROLLBACK_STATUS=$(echo $ROLLBACK_RESULT | jq -r '.status')
+          
+          if [ "$ROLLBACK_STATUS" = "success" ]; then
+            echo "✅ Automatic rollback completed successfully"
+            echo "rollback_performed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Automatic rollback failed - manual intervention required"
+            echo "rollback_performed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notification
+        if: always()
+        run: |
+          if [ "${{ steps.deployment-result.outputs.status }}" = "success" ]; then
+            echo "📢 Sending success notification..."
+            curl -X POST \
+              -H "Content-Type: application/json" \
+              -d '{
+                "text": "🎉 Blue-Green deployment successful for ${{ inputs.service_name }} in ${{ inputs.environment }}",
+                "deployment_id": "${{ steps.setup.outputs.deployment_id }}",
+                "active_slot": "${{ steps.deployment-result.outputs.active_slot }}",
+                "image_tag": "${{ inputs.image_tag }}"
+              }' \
+              "${{ secrets.SLACK_WEBHOOK_URL }}"
+          else
+            echo "📢 Sending failure notification..."
+            curl -X POST \
+              -H "Content-Type: application/json" \
+              -d '{
+                "text": "❌ Blue-Green deployment failed for ${{ inputs.service_name }} in ${{ inputs.environment }}",
+                "deployment_id": "${{ steps.setup.outputs.deployment_id }}",
+                "rollback_performed": "${{ steps.deployment-result.outputs.rollback_performed }}",
+                "image_tag": "${{ inputs.image_tag }}"
+              }' \
+              "${{ secrets.SLACK_WEBHOOK_URL }}"
+          fi
+

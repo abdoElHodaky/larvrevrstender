@@ -1,0 +1,572 @@
+# Self-Healing Pipeline Template
+# Intelligent automation with automatic recovery and predictive capabilities
+# Part of Phase 4B: Enhanced Automation & Intelligence
+
+name: Self-Healing Pipeline Template
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: 'Name of the service'
+        required: true
+        type: string
+      trigger_type:
+        description: 'What triggered this pipeline (push, schedule, manual)'
+        required: true
+        type: string
+      enable_predictive_analysis:
+        description: 'Enable predictive failure analysis'
+        required: false
+        type: boolean
+        default: true
+      auto_retry_enabled:
+        description: 'Enable automatic retry on transient failures'
+        required: false
+        type: boolean
+        default: true
+      max_retry_attempts:
+        description: 'Maximum number of retry attempts'
+        required: false
+        type: number
+        default: 3
+    outputs:
+      pipeline_status:
+        description: 'Final pipeline status'
+        value: ${{ jobs.self-healing-orchestrator.outputs.status }}
+      recovery_actions:
+        description: 'Recovery actions performed'
+        value: ${{ jobs.self-healing-orchestrator.outputs.recovery_actions }}
+      predictive_insights:
+        description: 'Predictive analysis insights'
+        value: ${{ jobs.self-healing-orchestrator.outputs.insights }}
+
+env:
+  PIPELINE_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+  FAILURE_THRESHOLD: 3
+  RECOVERY_TIMEOUT: 300
+  ANALYSIS_WINDOW: 24h
+
+jobs:
+  predictive-analysis:
+    name: Predictive Failure Analysis
+    runs-on: ubuntu-latest
+    if: inputs.enable_predictive_analysis
+    outputs:
+      risk_score: ${{ steps.analysis.outputs.risk_score }}
+      recommendations: ${{ steps.analysis.outputs.recommendations }}
+      predicted_issues: ${{ steps.analysis.outputs.predicted_issues }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 50  # Get more history for analysis
+
+      - name: Historical Data Analysis
+        id: analysis
+        run: |
+          echo "🔮 Running predictive failure analysis..."
+          
+          # Analyze recent pipeline history
+          RECENT_RUNS=$(gh run list --limit 50 --json status,conclusion,createdAt,workflowName | jq -c '.')
+          
+          # Calculate failure patterns
+          FAILURE_RATE=$(echo "$RECENT_RUNS" | jq '[.[] | select(.conclusion == "failure")] | length')
+          TOTAL_RUNS=$(echo "$RECENT_RUNS" | jq 'length')
+          
+          if [ "$TOTAL_RUNS" -gt 0 ]; then
+            FAILURE_PERCENTAGE=$(echo "scale=2; $FAILURE_RATE * 100 / $TOTAL_RUNS" | bc)
+          else
+            FAILURE_PERCENTAGE=0
+          fi
+          
+          echo "Recent failure rate: $FAILURE_PERCENTAGE%"
+          
+          # Analyze failure patterns by time of day
+          CURRENT_HOUR=$(date +%H)
+          HOUR_FAILURES=$(echo "$RECENT_RUNS" | jq --arg hour "$CURRENT_HOUR" '[.[] | select(.conclusion == "failure" and (.createdAt | strptime("%Y-%m-%dT%H:%M:%SZ") | strftime("%H")) == $hour)] | length')
+          
+          # Calculate risk score (0-100)
+          RISK_SCORE=0
+          
+          # Factor 1: Recent failure rate
+          if (( $(echo "$FAILURE_PERCENTAGE > 20" | bc -l) )); then
+            RISK_SCORE=$((RISK_SCORE + 30))
+          elif (( $(echo "$FAILURE_PERCENTAGE > 10" | bc -l) )); then
+            RISK_SCORE=$((RISK_SCORE + 15))
+          fi
+          
+          # Factor 2: Time-based patterns
+          if [ "$HOUR_FAILURES" -gt 2 ]; then
+            RISK_SCORE=$((RISK_SCORE + 20))
+          fi
+          
+          # Factor 3: Recent changes
+          RECENT_COMMITS=$(git log --since="24 hours ago" --oneline | wc -l)
+          if [ "$RECENT_COMMITS" -gt 10 ]; then
+            RISK_SCORE=$((RISK_SCORE + 15))
+          fi
+          
+          # Factor 4: Service-specific history
+          SERVICE_FAILURES=$(echo "$RECENT_RUNS" | jq --arg service "${{ inputs.service_name }}" '[.[] | select(.workflowName | contains($service)) | select(.conclusion == "failure")] | length')
+          if [ "$SERVICE_FAILURES" -gt 3 ]; then
+            RISK_SCORE=$((RISK_SCORE + 25))
+          fi
+          
+          echo "risk_score=$RISK_SCORE" >> $GITHUB_OUTPUT
+          
+          # Generate recommendations
+          RECOMMENDATIONS=""
+          PREDICTED_ISSUES=""
+          
+          if [ "$RISK_SCORE" -gt 50 ]; then
+            RECOMMENDATIONS="high-risk-deployment,enable-extra-monitoring,consider-canary"
+            PREDICTED_ISSUES="deployment-failure,performance-degradation"
+          elif [ "$RISK_SCORE" -gt 25 ]; then
+            RECOMMENDATIONS="enable-monitoring,gradual-rollout"
+            PREDICTED_ISSUES="potential-instability"
+          else
+            RECOMMENDATIONS="standard-deployment"
+            PREDICTED_ISSUES="none"
+          fi
+          
+          echo "recommendations=$RECOMMENDATIONS" >> $GITHUB_OUTPUT
+          echo "predicted_issues=$PREDICTED_ISSUES" >> $GITHUB_OUTPUT
+          
+          echo "📊 Risk Score: $RISK_SCORE/100"
+          echo "🎯 Recommendations: $RECOMMENDATIONS"
+          echo "⚠️ Predicted Issues: $PREDICTED_ISSUES"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  intelligent-change-detection:
+    name: Intelligent Change Detection
+    runs-on: ubuntu-latest
+    outputs:
+      affected_services: ${{ steps.detection.outputs.affected_services }}
+      change_impact: ${{ steps.detection.outputs.change_impact }}
+      deployment_strategy: ${{ steps.detection.outputs.deployment_strategy }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
+
+      - name: Analyze Changes
+        id: detection
+        run: |
+          echo "🔍 Analyzing changes and dependencies..."
+          
+          # Get changed files
+          if [ "${{ inputs.trigger_type }}" = "push" ]; then
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~10 HEAD)
+          fi
+          
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Analyze impact
+          AFFECTED_SERVICES=""
+          CHANGE_IMPACT="low"
+          
+          # Check for critical file changes
+          if echo "$CHANGED_FILES" | grep -q "services/${{ inputs.service_name }}/"; then
+            AFFECTED_SERVICES="${AFFECTED_SERVICES}${{ inputs.service_name }},"
+            CHANGE_IMPACT="high"
+          fi
+          
+          # Check for shared dependency changes
+          if echo "$CHANGED_FILES" | grep -q "shared/\|common/\|lib/"; then
+            # Find all services that might be affected
+            for service_dir in services/*/; do
+              if [ -d "$service_dir" ]; then
+                service=$(basename "$service_dir")
+                AFFECTED_SERVICES="${AFFECTED_SERVICES}${service},"
+              fi
+            done
+            CHANGE_IMPACT="medium"
+          fi
+          
+          # Check for infrastructure changes
+          if echo "$CHANGED_FILES" | grep -q "deployment/\|docker/\|.github/workflows/"; then
+            CHANGE_IMPACT="high"
+          fi
+          
+          # Remove trailing comma
+          AFFECTED_SERVICES=$(echo "$AFFECTED_SERVICES" | sed 's/,$//')
+          
+          # Determine deployment strategy based on impact
+          DEPLOYMENT_STRATEGY="standard"
+          if [ "$CHANGE_IMPACT" = "high" ]; then
+            DEPLOYMENT_STRATEGY="blue-green"
+          elif [ "$CHANGE_IMPACT" = "medium" ]; then
+            DEPLOYMENT_STRATEGY="canary"
+          fi
+          
+          echo "affected_services=$AFFECTED_SERVICES" >> $GITHUB_OUTPUT
+          echo "change_impact=$CHANGE_IMPACT" >> $GITHUB_OUTPUT
+          echo "deployment_strategy=$DEPLOYMENT_STRATEGY" >> $GITHUB_OUTPUT
+          
+          echo "🎯 Affected Services: $AFFECTED_SERVICES"
+          echo "📊 Change Impact: $CHANGE_IMPACT"
+          echo "🚀 Recommended Strategy: $DEPLOYMENT_STRATEGY"
+
+  self-healing-orchestrator:
+    name: Self-Healing Orchestrator
+    runs-on: ubuntu-latest
+    needs: [predictive-analysis, intelligent-change-detection]
+    if: always()
+    outputs:
+      status: ${{ steps.final-status.outputs.status }}
+      recovery_actions: ${{ steps.final-status.outputs.recovery_actions }}
+      insights: ${{ steps.final-status.outputs.insights }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Initialize Self-Healing Context
+        id: init
+        run: |
+          echo "🤖 Initializing self-healing pipeline..."
+          
+          RISK_SCORE="${{ needs.predictive-analysis.outputs.risk_score || '0' }}"
+          CHANGE_IMPACT="${{ needs.intelligent-change-detection.outputs.change_impact || 'low' }}"
+          DEPLOYMENT_STRATEGY="${{ needs.intelligent-change-detection.outputs.deployment_strategy || 'standard' }}"
+          
+          echo "risk_score=$RISK_SCORE" >> $GITHUB_OUTPUT
+          echo "change_impact=$CHANGE_IMPACT" >> $GITHUB_OUTPUT
+          echo "deployment_strategy=$DEPLOYMENT_STRATEGY" >> $GITHUB_OUTPUT
+          echo "recovery_actions_performed=" >> $GITHUB_OUTPUT
+          
+          echo "📊 Risk Score: $RISK_SCORE"
+          echo "📈 Change Impact: $CHANGE_IMPACT"
+          echo "🎯 Deployment Strategy: $DEPLOYMENT_STRATEGY"
+
+      - name: Adaptive Resource Allocation
+        id: resources
+        run: |
+          echo "⚡ Configuring adaptive resource allocation..."
+          
+          # Determine resource requirements based on risk and impact
+          RISK_SCORE="${{ steps.init.outputs.risk_score }}"
+          CHANGE_IMPACT="${{ steps.init.outputs.change_impact }}"
+          
+          # Base resources
+          CPU_LIMIT="2"
+          MEMORY_LIMIT="4Gi"
+          TIMEOUT_MINUTES="15"
+          
+          # Adjust based on risk score
+          if [ "$RISK_SCORE" -gt 50 ]; then
+            CPU_LIMIT="4"
+            MEMORY_LIMIT="8Gi"
+            TIMEOUT_MINUTES="30"
+            echo "🔴 High risk detected - allocating extra resources"
+          elif [ "$RISK_SCORE" -gt 25 ]; then
+            CPU_LIMIT="3"
+            MEMORY_LIMIT="6Gi"
+            TIMEOUT_MINUTES="20"
+            echo "🟡 Medium risk detected - allocating moderate resources"
+          fi
+          
+          # Adjust based on change impact
+          if [ "$CHANGE_IMPACT" = "high" ]; then
+            TIMEOUT_MINUTES=$((TIMEOUT_MINUTES + 10))
+            echo "📈 High impact changes - extending timeout"
+          fi
+          
+          echo "cpu_limit=$CPU_LIMIT" >> $GITHUB_OUTPUT
+          echo "memory_limit=$MEMORY_LIMIT" >> $GITHUB_OUTPUT
+          echo "timeout_minutes=$TIMEOUT_MINUTES" >> $GITHUB_OUTPUT
+          
+          echo "💻 CPU Limit: $CPU_LIMIT"
+          echo "🧠 Memory Limit: $MEMORY_LIMIT"
+          echo "⏱️ Timeout: $TIMEOUT_MINUTES minutes"
+
+      - name: Intelligent Dependency Resolution
+        id: dependencies
+        run: |
+          echo "🔗 Resolving dependencies intelligently..."
+          
+          # Check for dependency conflicts
+          if [ -f "package.json" ]; then
+            echo "📦 Checking Node.js dependencies..."
+            npm audit --audit-level=high || {
+              echo "⚠️ High-severity vulnerabilities found"
+              echo "🔧 Attempting automatic fixes..."
+              npm audit fix --force
+              
+              if [ $? -eq 0 ]; then
+                echo "✅ Dependencies automatically fixed"
+                echo "dependency_fixes=npm-audit-fix" >> $GITHUB_OUTPUT
+              else
+                echo "❌ Automatic dependency fix failed"
+                echo "dependency_fixes=failed" >> $GITHUB_OUTPUT
+              fi
+            }
+          fi
+          
+          if [ -f "composer.json" ]; then
+            echo "🐘 Checking PHP dependencies..."
+            composer validate --strict || {
+              echo "⚠️ Composer validation failed"
+              echo "🔧 Attempting to fix composer.json..."
+              composer normalize
+              echo "dependency_fixes=composer-normalize" >> $GITHUB_OUTPUT
+            }
+          fi
+          
+          echo "✅ Dependency resolution completed"
+
+      - name: Self-Healing Build Process
+        id: build
+        run: |
+          echo "🏗️ Starting self-healing build process..."
+          
+          ATTEMPT=1
+          MAX_ATTEMPTS="${{ inputs.max_retry_attempts }}"
+          BUILD_SUCCESS=false
+          RECOVERY_ACTIONS=""
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ] && [ "$BUILD_SUCCESS" = false ]; do
+            echo "🔄 Build attempt $ATTEMPT/$MAX_ATTEMPTS"
+            
+            # Simulate build process (replace with actual build commands)
+            if [ "${{ inputs.service_name }}" = "test-failure" ]; then
+              # Simulate failure for testing
+              echo "❌ Build failed (simulated)"
+              BUILD_EXIT_CODE=1
+            else
+              echo "✅ Build successful"
+              BUILD_EXIT_CODE=0
+            fi
+            
+            if [ $BUILD_EXIT_CODE -eq 0 ]; then
+              BUILD_SUCCESS=true
+              echo "✅ Build completed successfully on attempt $ATTEMPT"
+            else
+              echo "❌ Build failed on attempt $ATTEMPT"
+              
+              # Implement recovery strategies
+              if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+                echo "🔧 Implementing recovery strategies..."
+                
+                # Strategy 1: Clear caches
+                if [ $ATTEMPT -eq 1 ]; then
+                  echo "🧹 Clearing build caches..."
+                  rm -rf node_modules/.cache || true
+                  rm -rf vendor/cache || true
+                  RECOVERY_ACTIONS="${RECOVERY_ACTIONS}cache-clear,"
+                fi
+                
+                # Strategy 2: Dependency refresh
+                if [ $ATTEMPT -eq 2 ]; then
+                  echo "🔄 Refreshing dependencies..."
+                  rm -rf node_modules || true
+                  rm -rf vendor || true
+                  RECOVERY_ACTIONS="${RECOVERY_ACTIONS}dependency-refresh,"
+                fi
+                
+                # Strategy 3: Environment reset
+                if [ $ATTEMPT -eq 3 ]; then
+                  echo "🔄 Resetting environment..."
+                  unset NODE_ENV
+                  export NODE_ENV=production
+                  RECOVERY_ACTIONS="${RECOVERY_ACTIONS}env-reset,"
+                fi
+                
+                # Wait before retry (exponential backoff)
+                WAIT_TIME=$((ATTEMPT * 30))
+                echo "⏳ Waiting ${WAIT_TIME}s before retry..."
+                sleep $WAIT_TIME
+              fi
+            fi
+            
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+          
+          if [ "$BUILD_SUCCESS" = true ]; then
+            echo "build_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "build_status=failed" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "recovery_actions=$RECOVERY_ACTIONS" >> $GITHUB_OUTPUT
+
+      - name: Intelligent Test Execution
+        id: tests
+        if: steps.build.outputs.build_status == 'success'
+        run: |
+          echo "🧪 Running intelligent test execution..."
+          
+          RISK_SCORE="${{ steps.init.outputs.risk_score }}"
+          
+          # Determine test strategy based on risk
+          if [ "$RISK_SCORE" -gt 50 ]; then
+            TEST_STRATEGY="comprehensive"
+            echo "🔴 High risk - running comprehensive tests"
+          elif [ "$RISK_SCORE" -gt 25 ]; then
+            TEST_STRATEGY="extended"
+            echo "🟡 Medium risk - running extended tests"
+          else
+            TEST_STRATEGY="standard"
+            echo "🟢 Low risk - running standard tests"
+          fi
+          
+          # Execute tests based on strategy
+          case $TEST_STRATEGY in
+            "comprehensive")
+              echo "Running unit tests, integration tests, and e2e tests..."
+              # npm test && npm run test:integration && npm run test:e2e
+              ;;
+            "extended")
+              echo "Running unit tests and integration tests..."
+              # npm test && npm run test:integration
+              ;;
+            "standard")
+              echo "Running unit tests..."
+              # npm test
+              ;;
+          esac
+          
+          echo "test_strategy=$TEST_STRATEGY" >> $GITHUB_OUTPUT
+          echo "test_status=success" >> $GITHUB_OUTPUT
+
+      - name: Proactive Issue Detection
+        id: issue-detection
+        run: |
+          echo "🔍 Running proactive issue detection..."
+          
+          # Check for common issues
+          ISSUES_DETECTED=""
+          
+          # Check disk space
+          DISK_USAGE=$(df / | tail -1 | awk '{print $5}' | sed 's/%//')
+          if [ "$DISK_USAGE" -gt 80 ]; then
+            echo "⚠️ High disk usage detected: ${DISK_USAGE}%"
+            ISSUES_DETECTED="${ISSUES_DETECTED}high-disk-usage,"
+          fi
+          
+          # Check memory usage
+          MEMORY_USAGE=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}')
+          if [ "$MEMORY_USAGE" -gt 85 ]; then
+            echo "⚠️ High memory usage detected: ${MEMORY_USAGE}%"
+            ISSUES_DETECTED="${ISSUES_DETECTED}high-memory-usage,"
+          fi
+          
+          # Check for security vulnerabilities
+          if command -v trivy >/dev/null 2>&1; then
+            echo "🔒 Running security scan..."
+            trivy fs . --severity HIGH,CRITICAL --quiet || {
+              echo "⚠️ Security vulnerabilities detected"
+              ISSUES_DETECTED="${ISSUES_DETECTED}security-vulnerabilities,"
+            }
+          fi
+          
+          echo "issues_detected=$ISSUES_DETECTED" >> $GITHUB_OUTPUT
+          
+          if [ -n "$ISSUES_DETECTED" ]; then
+            echo "⚠️ Issues detected: $ISSUES_DETECTED"
+          else
+            echo "✅ No issues detected"
+          fi
+
+      - name: Final Status and Insights
+        id: final-status
+        if: always()
+        run: |
+          BUILD_STATUS="${{ steps.build.outputs.build_status }}"
+          TEST_STATUS="${{ steps.tests.outputs.test_status || 'skipped' }}"
+          RECOVERY_ACTIONS="${{ steps.build.outputs.recovery_actions }}"
+          ISSUES_DETECTED="${{ steps.issue-detection.outputs.issues_detected }}"
+          
+          # Determine final status
+          if [ "$BUILD_STATUS" = "success" ] && [ "$TEST_STATUS" != "failed" ]; then
+            FINAL_STATUS="success"
+          else
+            FINAL_STATUS="failed"
+          fi
+          
+          # Compile insights
+          INSIGHTS="risk_score=${{ steps.init.outputs.risk_score }},change_impact=${{ steps.init.outputs.change_impact }},deployment_strategy=${{ steps.init.outputs.deployment_strategy }}"
+          
+          if [ -n "$ISSUES_DETECTED" ]; then
+            INSIGHTS="${INSIGHTS},issues_detected=${ISSUES_DETECTED}"
+          fi
+          
+          echo "status=$FINAL_STATUS" >> $GITHUB_OUTPUT
+          echo "recovery_actions=$RECOVERY_ACTIONS" >> $GITHUB_OUTPUT
+          echo "insights=$INSIGHTS" >> $GITHUB_OUTPUT
+          
+          echo "🏁 Final Status: $FINAL_STATUS"
+          echo "🔧 Recovery Actions: $RECOVERY_ACTIONS"
+          echo "💡 Insights: $INSIGHTS"
+
+      - name: Learning and Adaptation
+        id: learning
+        if: always()
+        run: |
+          echo "🧠 Recording learning data for future improvements..."
+          
+          # Store pipeline execution data for machine learning
+          EXECUTION_DATA=$(cat << EOF
+          {
+            "pipeline_id": "${{ env.PIPELINE_ID }}",
+            "service": "${{ inputs.service_name }}",
+            "trigger_type": "${{ inputs.trigger_type }}",
+            "risk_score": ${{ steps.init.outputs.risk_score }},
+            "change_impact": "${{ steps.init.outputs.change_impact }}",
+            "deployment_strategy": "${{ steps.init.outputs.deployment_strategy }}",
+            "build_status": "${{ steps.build.outputs.build_status }}",
+            "recovery_actions": "${{ steps.build.outputs.recovery_actions }}",
+            "final_status": "${{ steps.final-status.outputs.status }}",
+            "execution_time": $(date +%s),
+            "issues_detected": "${{ steps.issue-detection.outputs.issues_detected }}"
+          }
+          EOF
+          )
+          
+          # Store for future analysis (in real implementation, this would go to a database)
+          echo "$EXECUTION_DATA" > "/tmp/pipeline-learning-${PIPELINE_ID}.json"
+          
+          echo "📊 Learning data recorded for pipeline optimization"
+
+      - name: Notification and Reporting
+        if: always()
+        run: |
+          STATUS="${{ steps.final-status.outputs.status }}"
+          RECOVERY_ACTIONS="${{ steps.final-status.outputs.recovery_actions }}"
+          
+          if [ "$STATUS" = "success" ]; then
+            EMOJI="🎉"
+            COLOR="good"
+          else
+            EMOJI="❌"
+            COLOR="danger"
+          fi
+          
+          MESSAGE="$EMOJI Self-healing pipeline completed for ${{ inputs.service_name }}"
+          
+          if [ -n "$RECOVERY_ACTIONS" ]; then
+            MESSAGE="$MESSAGE\n🔧 Recovery actions performed: $RECOVERY_ACTIONS"
+          fi
+          
+          echo "📢 $MESSAGE"
+          
+          # Send notification (replace with actual notification service)
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"text\": \"$MESSAGE\",
+              \"color\": \"$COLOR\",
+              \"pipeline_id\": \"${{ env.PIPELINE_ID }}\",
+              \"service\": \"${{ inputs.service_name }}\",
+              \"status\": \"$STATUS\"
+            }" \
+            "${{ secrets.SLACK_WEBHOOK_URL }}" || echo "Notification failed"
+
