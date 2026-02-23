@@ -651,10 +651,33 @@ jobs:
       enable_predictive_recovery: true
     secrets: inherit
 
+  # Phase 8.5: Disaster Recovery Automation (NEW)
+  disaster-recovery:
+    name: 🛡️ Disaster Recovery Automation
+    needs: [change-detection, dependency-environment-validation, docker-optimization, comprehensive-testing, performance-testing, self-healing]
+    if: |
+      always() && 
+      needs.change-detection.outputs.should_deploy == 'true' &&
+      (needs.change-detection.outputs.change_impact == 'high' || 
+       contains(needs.change-detection.outputs.affected_services, 'shared') ||
+       contains(needs.change-detection.outputs.affected_services, 'auth') ||
+       contains(needs.change-detection.outputs.affected_services, 'gateway'))
+    uses: ./.github/workflows/templates/disaster-recovery.yml
+    with:
+      services: ${{ needs.change-detection.outputs.affected_services }}
+      target_environment: ${{ inputs.target_environment || 'staging' }}
+      backup_retention_days: 30
+      rto_target_minutes: 15
+      rpo_target_minutes: 5
+      enable_multi_region: true
+      enable_failover_testing: true
+      enable_backup_validation: true
+    secrets: inherit
+
   # Phase 9: Blue-Green Deployment (Dependency-Ordered)
   deployment:
     name: 🚀 Blue-Green Deployment (Dependency-Ordered)
-    needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, comprehensive-testing, performance-testing, self-healing]
+    needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, comprehensive-testing, performance-testing, self-healing, disaster-recovery]
     if: |
       always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
@@ -662,7 +685,8 @@ jobs:
       (needs.docker-optimization.result == 'success' || needs.docker-optimization.result == 'skipped') &&
       (needs.comprehensive-testing.result == 'success' || needs.comprehensive-testing.result == 'skipped') &&
       (needs.performance-testing.result == 'success' || needs.performance-testing.result == 'skipped' || needs.performance-testing.result == 'warning') &&
-      (needs.self-healing.result == 'success' || needs.self-healing.result == 'skipped')
+      (needs.self-healing.result == 'success' || needs.self-healing.result == 'skipped') &&
+      (needs.disaster-recovery.result == 'success' || needs.disaster-recovery.result == 'skipped' || needs.disaster-recovery.result == 'warning')
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.change-detection.outputs.services_matrix) }}
