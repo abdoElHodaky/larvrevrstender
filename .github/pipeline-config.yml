@@ -22,7 +22,7 @@ pipeline_migration:
     # Phase 3C: High Risk Services (IN PROGRESS)
     auth-service: "unified"          # MIGRATED: Critical authentication
     payment-service: "unified"       # MIGRATED: Financial transactions
-    auction-service: "legacy"        # Core business logic
+    auction-service: "unified"       # MIGRATED: Core business logic
     gateway-service: "legacy"        # Entry point, affects all services
   
   # Traffic percentage for gradual rollout (when migration_phase != "shadow")
