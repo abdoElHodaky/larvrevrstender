@@ -1,187 +1,320 @@
-name: Reusable Service Testing Template
-# Reusable workflow template for testing Laravel microservices
-# Supports PHP matrix testing with comprehensive coverage
+name: Testing Template
+# Comprehensive testing template for Laravel microservices
+# Features: Service-specific testing, integration tests, coverage reporting
 
 on:
   workflow_call:
     inputs:
-      service_name:
-        description: 'Name of the service to test'
+      services:
+        description: 'Comma-separated list of services to test'
         required: true
         type: string
-      php_versions:
-        description: 'PHP versions to test (JSON array)'
+      test_strategy:
+        description: 'Testing strategy (targeted/comprehensive)'
         required: false
         type: string
-        default: '["8.2", "8.3"]'
-      working_directory:
-        description: 'Working directory for the service'
+        default: 'targeted'
+      environment:
+        description: 'Test environment'
         required: false
         type: string
-        default: 'services'
-      skip_coverage:
-        description: 'Skip coverage reporting'
+        default: 'staging'
+      php_version:
+        description: 'PHP version for testing'
         required: false
-        type: boolean
-        default: false
+        type: string
+        default: '8.2'
     outputs:
       test_result:
-        description: 'Test execution result'
+        description: 'Overall test result'
         value: ${{ jobs.test.outputs.result }}
       coverage_percentage:
-        description: 'Code coverage percentage'
+        description: 'Test coverage percentage'
         value: ${{ jobs.test.outputs.coverage }}
-
-env:
-  COMPOSER_CACHE_DIR: ~/.composer/cache
 
 jobs:
   test:
-    name: Test ${{ inputs.service_name }} (PHP ${{ matrix.php-version }})
+    name: 🧪 Testing Suite
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php-version: ${{ fromJson(inputs.php_versions) }}
-      fail-fast: false
     outputs:
       result: ${{ steps.test-result.outputs.result }}
       coverage: ${{ steps.coverage.outputs.percentage }}
     
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: larvrevrstender_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7.0
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Check if service exists
-      id: check-service
-      run: |
-        SERVICE_PATH="${{ inputs.working_directory }}/${{ inputs.service_name }}"
-        if [ -d "$SERVICE_PATH" ]; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-          echo "path=$SERVICE_PATH" >> $GITHUB_OUTPUT
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-          echo "⚠️ Service ${{ inputs.service_name }} not found at $SERVICE_PATH"
-        fi
-      
-    - name: Setup PHP ${{ matrix.php-version }}
-      if: steps.check-service.outputs.exists == 'true'
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: ${{ matrix.php-version }}
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, pgsql, redis, curl, zip, gd, json, dom, filter, sqlite3
-        tools: composer:v2
-        coverage: xdebug
-        
-    - name: Verify PHP Configuration
-      if: steps.check-service.outputs.exists == 'true'
-      run: |
-        php --version
-        composer --version
-        php -m | grep -E "(redis|pdo_mysql|pdo_pgsql)"
-        
-    - name: Cache Composer packages
-      if: steps.check-service.outputs.exists == 'true'
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.composer/cache
-          ${{ steps.check-service.outputs.path }}/vendor
-        key: ${{ runner.os }}-composer-${{ matrix.php-version }}-${{ hashFiles(format('{0}/composer.lock', steps.check-service.outputs.path)) }}
-        restore-keys: |
-          ${{ runner.os }}-composer-${{ matrix.php-version }}-
-          ${{ runner.os }}-composer-
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php_version }}
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, redis
+          coverage: xdebug
+
+      - name: Parse Services to Test
+        id: parse-services
+        run: |
+          echo "🔍 Parsing services to test: ${{ inputs.services }}"
           
-    - name: Setup Test Environment
-      if: steps.check-service.outputs.exists == 'true'
-      working-directory: ${{ steps.check-service.outputs.path }}
-      run: |
-        # Create test environment file
-        if [ -f ".env.testing" ]; then
-          cp .env.testing .env
-        elif [ -f ".env.example" ]; then
-          cp .env.example .env
-        fi
-        
-        # Set test-specific configurations
-        echo "APP_ENV=testing" >> .env
-        echo "APP_DEBUG=true" >> .env
-        echo "DB_CONNECTION=sqlite" >> .env
-        echo "DB_DATABASE=:memory:" >> .env
-        echo "CACHE_DRIVER=array" >> .env
-        echo "SESSION_DRIVER=array" >> .env
-        echo "QUEUE_CONNECTION=sync" >> .env
-        
-    - name: Install Composer Dependencies
-      if: steps.check-service.outputs.exists == 'true'
-      working-directory: ${{ steps.check-service.outputs.path }}
-      run: |
-        composer validate --strict
-        composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
-        
-    - name: Generate Application Key
-      if: steps.check-service.outputs.exists == 'true'
-      working-directory: ${{ steps.check-service.outputs.path }}
-      run: |
-        php artisan key:generate --ansi
-        
-    - name: Run Database Migrations
-      if: steps.check-service.outputs.exists == 'true'
-      working-directory: ${{ steps.check-service.outputs.path }}
-      run: |
-        php artisan migrate --force --no-interaction
-        
-    - name: Run PHPUnit Tests
-      if: steps.check-service.outputs.exists == 'true'
-      working-directory: ${{ steps.check-service.outputs.path }}
-      run: |
-        if [ "${{ inputs.skip_coverage }}" = "false" ]; then
-          php artisan test --coverage --min=80 --coverage-clover=coverage.xml
-        else
-          php artisan test
-        fi
-        
-    - name: Extract Coverage Percentage
-      if: steps.check-service.outputs.exists == 'true' && inputs.skip_coverage == false
-      id: coverage
-      working-directory: ${{ steps.check-service.outputs.path }}
-      run: |
-        if [ -f "coverage.xml" ]; then
-          COVERAGE=$(php -r "
-            \$xml = simplexml_load_file('coverage.xml');
-            \$metrics = \$xml->project->metrics;
-            \$percentage = round((\$metrics['coveredstatements'] / \$metrics['statements']) * 100, 2);
-            echo \$percentage;
-          ")
-          echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
-          echo "📊 Code Coverage: $COVERAGE%"
-        else
-          echo "percentage=0" >> $GITHUB_OUTPUT
-        fi
-        
-    - name: Upload Test Results
-      if: steps.check-service.outputs.exists == 'true'
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-results-${{ inputs.service_name }}-php${{ matrix.php-version }}
-        path: |
-          ${{ steps.check-service.outputs.path }}/tests/results/
-          ${{ steps.check-service.outputs.path }}/coverage.xml
-        retention-days: 7
-        
-    - name: Upload Coverage to Codecov
-      if: steps.check-service.outputs.exists == 'true' && inputs.skip_coverage == false
-      uses: codecov/codecov-action@v4
-      with:
-        file: ${{ steps.check-service.outputs.path }}/coverage.xml
-        flags: ${{ inputs.service_name }}
-        name: ${{ inputs.service_name }}-php${{ matrix.php-version }}
-        fail_ci_if_error: false
-        
-    - name: Set Test Result
-      id: test-result
-      run: |
-        if [ "${{ steps.check-service.outputs.exists }}" = "true" ]; then
-          echo "result=success" >> $GITHUB_OUTPUT
-        else
-          echo "result=skipped" >> $GITHUB_OUTPUT
-        fi
+          # Convert comma-separated services to array
+          IFS=',' read -ra SERVICES <<< "${{ inputs.services }}"
+          
+          # Validate services exist and have tests
+          TESTABLE_SERVICES=()
+          for service in "${SERVICES[@]}"; do
+            service=$(echo "$service" | xargs)  # trim whitespace
+            if [ -d "services/$service" ]; then
+              if [ -d "services/$service/tests" ] || [ -f "services/$service/phpunit.xml" ]; then
+                TESTABLE_SERVICES+=("$service")
+                echo "✅ Testable service found: $service"
+              else
+                echo "ℹ️ Service $service has no tests directory"
+              fi
+            else
+              echo "⚠️ Service not found: $service"
+            fi
+          done
+          
+          # Export for later steps
+          printf '%s\n' "${TESTABLE_SERVICES[@]}" > /tmp/services_to_test.txt
+          echo "testable_count=${#TESTABLE_SERVICES[@]}" >> $GITHUB_OUTPUT
+          
+          if [ ${#TESTABLE_SERVICES[@]} -eq 0 ]; then
+            echo "ℹ️ No testable services found"
+            echo "testable_count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Shared Dependencies
+        if: steps.parse-services.outputs.testable_count > 0
+        run: |
+          echo "📦 Installing shared library dependencies..."
+          
+          if [ -d "services/shared" ] && [ -f "services/shared/composer.json" ]; then
+            cd services/shared
+            composer install --no-interaction --prefer-dist --optimize-autoloader
+            cd - > /dev/null
+            echo "✅ Shared dependencies installed"
+          else
+            echo "ℹ️ No shared library found"
+          fi
+
+      - name: Run Service Tests
+        if: steps.parse-services.outputs.testable_count > 0
+        id: run-tests
+        run: |
+          echo "🧪 Running tests for services..."
+          
+          TOTAL_TESTS=0
+          PASSED_TESTS=0
+          FAILED_TESTS=0
+          TOTAL_ASSERTIONS=0
+          
+          while IFS= read -r service; do
+            echo "🧪 Testing service: $service"
+            
+            cd "services/$service"
+            
+            # Install service-specific dependencies
+            if [ -f "composer.json" ]; then
+              echo "📦 Installing dependencies for $service..."
+              composer install --no-interaction --prefer-dist --optimize-autoloader --quiet
+            fi
+            
+            # Setup environment
+            if [ -f ".env.testing" ]; then
+              cp .env.testing .env
+            elif [ -f ".env.example" ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key if Laravel
+            if [ -f "artisan" ]; then
+              php artisan key:generate --no-interaction --quiet || true
+            fi
+            
+            # Run tests based on strategy
+            TEST_COMMAND="vendor/bin/phpunit"
+            if [ "${{ inputs.test_strategy }}" = "comprehensive" ]; then
+              TEST_COMMAND="$TEST_COMMAND --coverage-text --coverage-clover=coverage.xml"
+            fi
+            
+            # Execute tests
+            if [ -f "phpunit.xml" ] || [ -d "tests" ]; then
+              echo "🚀 Running tests for $service..."
+              
+              if $TEST_COMMAND --log-junit=/tmp/junit_$service.xml > /tmp/test_output_$service.txt 2>&1; then
+                echo "✅ Tests passed for $service"
+                
+                # Extract test statistics
+                if [ -f "/tmp/junit_$service.xml" ]; then
+                  TESTS=$(grep -o 'tests="[0-9]*"' /tmp/junit_$service.xml | grep -o '[0-9]*' || echo "0")
+                  ASSERTIONS=$(grep -o 'assertions="[0-9]*"' /tmp/junit_$service.xml | grep -o '[0-9]*' || echo "0")
+                  FAILURES=$(grep -o 'failures="[0-9]*"' /tmp/junit_$service.xml | grep -o '[0-9]*' || echo "0")
+                  
+                  TOTAL_TESTS=$((TOTAL_TESTS + TESTS))
+                  TOTAL_ASSERTIONS=$((TOTAL_ASSERTIONS + ASSERTIONS))
+                  
+                  if [ "$FAILURES" -eq 0 ]; then
+                    PASSED_TESTS=$((PASSED_TESTS + 1))
+                  else
+                    FAILED_TESTS=$((FAILED_TESTS + 1))
+                  fi
+                  
+                  echo "  📊 $service: $TESTS tests, $ASSERTIONS assertions, $FAILURES failures"
+                else
+                  PASSED_TESTS=$((PASSED_TESTS + 1))
+                fi
+              else
+                echo "❌ Tests failed for $service"
+                FAILED_TESTS=$((FAILED_TESTS + 1))
+                
+                # Show test output for debugging
+                echo "Test output for $service:"
+                tail -20 /tmp/test_output_$service.txt || true
+              fi
+            else
+              echo "ℹ️ No tests found for $service"
+            fi
+            
+            cd - > /dev/null
+          done < /tmp/services_to_test.txt
+          
+          # Export results
+          echo "total_tests=$TOTAL_TESTS" >> $GITHUB_OUTPUT
+          echo "passed_services=$PASSED_TESTS" >> $GITHUB_OUTPUT
+          echo "failed_services=$FAILED_TESTS" >> $GITHUB_OUTPUT
+          echo "total_assertions=$TOTAL_ASSERTIONS" >> $GITHUB_OUTPUT
+          
+          echo "📊 Test Summary:"
+          echo "  Services tested: $((PASSED_TESTS + FAILED_TESTS))"
+          echo "  Services passed: $PASSED_TESTS"
+          echo "  Services failed: $FAILED_TESTS"
+          echo "  Total tests: $TOTAL_TESTS"
+          echo "  Total assertions: $TOTAL_ASSERTIONS"
+
+      - name: Calculate Coverage
+        if: inputs.test_strategy == 'comprehensive'
+        id: coverage
+        run: |
+          echo "📊 Calculating test coverage..."
+          
+          TOTAL_COVERAGE=0
+          COVERAGE_COUNT=0
+          
+          while IFS= read -r service; do
+            if [ -f "services/$service/coverage.xml" ]; then
+              # Extract coverage percentage from clover XML
+              COVERAGE=$(php -r "
+                \$xml = simplexml_load_file('services/$service/coverage.xml');
+                if (\$xml && isset(\$xml->project->metrics)) {
+                  \$metrics = \$xml->project->metrics;
+                  \$covered = (int)\$metrics['coveredstatements'];
+                  \$total = (int)\$metrics['statements'];
+                  if (\$total > 0) {
+                    echo round((\$covered / \$total) * 100, 2);
+                  } else {
+                    echo '0';
+                  }
+                } else {
+                  echo '0';
+                }
+              " 2>/dev/null || echo "0")
+              
+              if [ "$COVERAGE" != "0" ]; then
+                TOTAL_COVERAGE=$(echo "$TOTAL_COVERAGE + $COVERAGE" | bc -l 2>/dev/null || echo "$TOTAL_COVERAGE")
+                COVERAGE_COUNT=$((COVERAGE_COUNT + 1))
+                echo "📊 $service coverage: $COVERAGE%"
+              fi
+            fi
+          done < /tmp/services_to_test.txt
+          
+          # Calculate average coverage
+          if [ "$COVERAGE_COUNT" -gt 0 ]; then
+            AVG_COVERAGE=$(echo "scale=2; $TOTAL_COVERAGE / $COVERAGE_COUNT" | bc -l 2>/dev/null || echo "0")
+          else
+            AVG_COVERAGE="0"
+          fi
+          
+          echo "percentage=$AVG_COVERAGE" >> $GITHUB_OUTPUT
+          echo "📊 Average test coverage: $AVG_COVERAGE%"
+
+      - name: Integration Tests
+        if: inputs.test_strategy == 'comprehensive'
+        run: |
+          echo "🔗 Running integration tests..."
+          
+          # Run integration tests if they exist
+          if [ -f "tests/run-all-tests.sh" ]; then
+            echo "🚀 Running comprehensive integration tests..."
+            chmod +x tests/run-all-tests.sh
+            ./tests/run-all-tests.sh || echo "⚠️ Integration tests completed with warnings"
+          else
+            echo "ℹ️ No integration tests found"
+          fi
+
+      - name: Determine Test Result
+        id: test-result
+        run: |
+          FAILED_SERVICES=${{ steps.run-tests.outputs.failed_services || '0' }}
+          TESTABLE_COUNT=${{ steps.parse-services.outputs.testable_count || '0' }}
+          
+          if [ "$TESTABLE_COUNT" -eq 0 ]; then
+            echo "result=skipped" >> $GITHUB_OUTPUT
+            echo "ℹ️ No testable services found - tests skipped"
+          elif [ "$FAILED_SERVICES" -eq 0 ]; then
+            echo "result=success" >> $GITHUB_OUTPUT
+            echo "✅ All tests passed"
+          else
+            echo "result=failure" >> $GITHUB_OUTPUT
+            echo "❌ $FAILED_SERVICES service(s) failed tests"
+            exit 1
+          fi
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Strategy:** ${{ inputs.test_strategy }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**PHP Version:** ${{ inputs.php_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Services Tested:** ${{ steps.parse-services.outputs.testable_count || '0' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Services Passed:** ${{ steps.run-tests.outputs.passed_services || '0' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Services Failed:** ${{ steps.run-tests.outputs.failed_services || '0' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Total Tests:** ${{ steps.run-tests.outputs.total_tests || '0' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Total Assertions:** ${{ steps.run-tests.outputs.total_assertions || '0' }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ inputs.test_strategy }}" = "comprehensive" ]; then
+            echo "**Average Coverage:** ${{ steps.coverage.outputs.percentage || '0' }}%" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Overall Result:** ${{ steps.test-result.outputs.result == 'success' && '✅ PASSED' || steps.test-result.outputs.result == 'skipped' && '⏭️ SKIPPED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
+

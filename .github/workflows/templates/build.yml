@@ -1,6 +1,6 @@
-name: Reusable Service Build Template
-# Reusable workflow template for building Docker images for Laravel microservices
-# Features: BuildKit optimization, multi-stage builds, caching strategies
+name: Service Build Template
+# Microservices build template with dependency management
+# Features: Per-service builds, dependency validation, caching optimization
 
 on:
   workflow_call:
@@ -9,16 +9,16 @@ on:
         description: 'Name of the service to build'
         required: true
         type: string
-      dockerfile_path:
-        description: 'Path to Dockerfile'
+      php_version:
+        description: 'PHP version to use'
         required: false
         type: string
-        default: 'deployment/docker/Dockerfile.rpc'
-      build_context:
-        description: 'Build context directory'
+        default: '8.2'
+      environment:
+        description: 'Target environment'
         required: false
         type: string
-        default: '.'
+        default: 'staging'
       registry:
         description: 'Container registry'
         required: false
@@ -33,11 +33,6 @@ on:
         required: false
         type: boolean
         default: true
-      platforms:
-        description: 'Target platforms'
-        required: false
-        type: string
-        default: 'linux/amd64'
     secrets:
       registry_username:
         description: 'Registry username'
@@ -49,9 +44,9 @@ on:
       image_tag:
         description: 'Built image tag'
         value: ${{ jobs.build.outputs.tag }}
-      image_digest:
-        description: 'Image digest'
-        value: ${{ jobs.build.outputs.digest }}
+      build_status:
+        description: 'Build status'
+        value: ${{ jobs.build.outputs.status }}
 
 env:
   DOCKER_BUILDKIT: 1
@@ -59,125 +54,161 @@ env:
 
 jobs:
   build:
-    name: Build ${{ inputs.service_name }}
+    name: 🏗️ Build ${{ inputs.service_name }}
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.meta.outputs.tags }}
-      digest: ${{ steps.build.outputs.digest }}
+      status: ${{ steps.build-result.outputs.status }}
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Check if service exists
-      id: check-service
-      run: |
-        SERVICE_PATH="services/${{ inputs.service_name }}"
-        if [ -d "$SERVICE_PATH" ]; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-          echo "path=$SERVICE_PATH" >> $GITHUB_OUTPUT
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-          echo "⚠️ Service ${{ inputs.service_name }} not found at $SERVICE_PATH"
-        fi
-        
-    - name: Check if Dockerfile exists
-      id: check-dockerfile
-      if: steps.check-service.outputs.exists == 'true'
-      run: |
-        if [ -f "${{ inputs.dockerfile_path }}" ]; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-          echo "⚠️ Dockerfile not found at ${{ inputs.dockerfile_path }}"
-        fi
-      
-    - name: Set up Docker Buildx
-      if: steps.check-service.outputs.exists == 'true' && steps.check-dockerfile.outputs.exists == 'true'
-      uses: docker/setup-buildx-action@v3
-      with:
-        driver-opts: |
-          network=host
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Validate Service Structure
+        id: validate
+        run: |
+          echo "🔍 Validating service: ${{ inputs.service_name }}"
           
-    - name: Log in to Container Registry
-      if: steps.check-service.outputs.exists == 'true' && steps.check-dockerfile.outputs.exists == 'true' && inputs.push_image
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ inputs.registry }}
-        username: ${{ secrets.registry_username || github.actor }}
-        password: ${{ secrets.registry_password || secrets.GITHUB_TOKEN }}
-        
-    - name: Extract metadata
-      if: steps.check-service.outputs.exists == 'true' && steps.check-dockerfile.outputs.exists == 'true'
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ inputs.registry }}/${{ inputs.image_name }}/${{ inputs.service_name }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-        labels: |
-          org.opencontainers.image.title=${{ inputs.service_name }}
-          org.opencontainers.image.description=Laravel microservice: ${{ inputs.service_name }}
-          org.opencontainers.image.vendor=Reverse Tender Platform
+          SERVICE_PATH="services/${{ inputs.service_name }}"
           
-    - name: Build and push Docker image
-      if: steps.check-service.outputs.exists == 'true' && steps.check-dockerfile.outputs.exists == 'true'
-      id: build
-      uses: docker/build-push-action@v5
-      with:
-        context: ${{ inputs.build_context }}
-        file: ${{ inputs.dockerfile_path }}
-        platforms: ${{ inputs.platforms }}
-        push: ${{ inputs.push_image }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        build-args: |
-          SERVICE_NAME=${{ inputs.service_name }}
-          BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
-          VCS_REF=${{ github.sha }}
-        cache-from: type=gha,scope=${{ inputs.service_name }}
-        cache-to: type=gha,mode=max,scope=${{ inputs.service_name }}
-        
-    - name: Generate SBOM
-      if: steps.check-service.outputs.exists == 'true' && steps.check-dockerfile.outputs.exists == 'true' && inputs.push_image
-      uses: anchore/sbom-action@v0
-      with:
-        image: ${{ steps.meta.outputs.tags }}
-        format: spdx-json
-        output-file: sbom-${{ inputs.service_name }}.spdx.json
-        
-    - name: Upload SBOM
-      if: steps.check-service.outputs.exists == 'true' && steps.check-dockerfile.outputs.exists == 'true' && inputs.push_image
-      uses: actions/upload-artifact@v4
-      with:
-        name: sbom-${{ inputs.service_name }}
-        path: sbom-${{ inputs.service_name }}.spdx.json
-        retention-days: 30
-        
-    - name: Run Trivy vulnerability scanner
-      if: steps.check-service.outputs.exists == 'true' && steps.check-dockerfile.outputs.exists == 'true'
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: ${{ steps.meta.outputs.tags }}
-        format: 'sarif'
-        output: 'trivy-results-${{ inputs.service_name }}.sarif'
-        
-    - name: Upload Trivy scan results
-      if: steps.check-service.outputs.exists == 'true' && steps.check-dockerfile.outputs.exists == 'true'
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: 'trivy-results-${{ inputs.service_name }}.sarif'
-        category: 'trivy-${{ inputs.service_name }}'
-        
-    - name: Image Summary
-      if: steps.check-service.outputs.exists == 'true' && steps.check-dockerfile.outputs.exists == 'true'
-      run: |
-        echo "## 🐳 Docker Build Summary" >> $GITHUB_STEP_SUMMARY
-        echo "**Service:** ${{ inputs.service_name }}" >> $GITHUB_STEP_SUMMARY
-        echo "**Image:** ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
-        echo "**Digest:** ${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
-        echo "**Platforms:** ${{ inputs.platforms }}" >> $GITHUB_STEP_SUMMARY
-        echo "**Pushed:** ${{ inputs.push_image }}" >> $GITHUB_STEP_SUMMARY
+          # Check if service directory exists
+          if [ ! -d "$SERVICE_PATH" ]; then
+            echo "❌ Service directory not found: $SERVICE_PATH"
+            echo "exists=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Check for Dockerfile
+          if [ ! -f "$SERVICE_PATH/Dockerfile" ]; then
+            echo "❌ Dockerfile not found in $SERVICE_PATH"
+            echo "dockerfile_exists=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Check for composer.json (Laravel services)
+          if [ -f "$SERVICE_PATH/composer.json" ]; then
+            echo "✅ Laravel service detected (composer.json found)"
+            echo "is_laravel=true" >> $GITHUB_OUTPUT
+          else
+            echo "ℹ️ Non-Laravel service (no composer.json)"
+            echo "is_laravel=false" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "dockerfile_exists=true" >> $GITHUB_OUTPUT
+          echo "service_path=$SERVICE_PATH" >> $GITHUB_OUTPUT
+          
+          echo "✅ Service validation passed"
+
+      - name: Setup PHP (Laravel Services)
+        if: steps.validate.outputs.is_laravel == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php_version }}
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, redis
+          coverage: none
+
+      - name: Validate Dependencies (Laravel Services)
+        if: steps.validate.outputs.is_laravel == 'true'
+        working-directory: ${{ steps.validate.outputs.service_path }}
+        run: |
+          echo "🔍 Validating Laravel dependencies..."
+          
+          # Check composer.json syntax
+          if ! php -r "json_decode(file_get_contents('composer.json'), true, 512, JSON_THROW_ON_ERROR);"; then
+            echo "❌ Invalid composer.json syntax"
+            exit 1
+          fi
+          
+          # Check for shared library dependency
+          if grep -q '"Shared\\\\": "../shared/src/"' composer.json; then
+            echo "✅ Shared library dependency found"
+            
+            # Validate shared library exists
+            if [ ! -d "../shared/src" ]; then
+              echo "❌ Shared library not found at ../shared/src"
+              exit 1
+            fi
+            echo "✅ Shared library validated"
+          fi
+          
+          # Validate critical Laravel dependencies
+          REQUIRED_DEPS=("laravel/framework" "php")
+          for dep in "${REQUIRED_DEPS[@]}"; do
+            if ! grep -q "\"$dep\":" composer.json; then
+              echo "❌ Missing required dependency: $dep"
+              exit 1
+            fi
+          done
+          
+          echo "✅ Dependencies validation passed"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+
+      - name: Log in to Container Registry
+        if: inputs.push_image
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ secrets.registry_username || github.actor }}
+          password: ${{ secrets.registry_password || secrets.GITHUB_TOKEN }}
+
+      - name: Extract Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ inputs.registry }}/${{ inputs.image_name }}-${{ inputs.service_name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ inputs.environment }}
+
+      - name: Build and Push Docker Image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.validate.outputs.service_path }}
+          file: ${{ steps.validate.outputs.service_path }}/Dockerfile
+          push: ${{ inputs.push_image }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha,scope=${{ inputs.service_name }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.service_name }}
+          build-args: |
+            PHP_VERSION=${{ inputs.php_version }}
+            ENVIRONMENT=${{ inputs.environment }}
+            SERVICE_NAME=${{ inputs.service_name }}
+
+      - name: Set Build Result
+        id: build-result
+        run: |
+          if [ "${{ steps.build.outcome }}" = "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "✅ Build completed successfully for ${{ inputs.service_name }}"
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "❌ Build failed for ${{ inputs.service_name }}"
+            exit 1
+          fi
+
+      - name: Service Build Summary
+        run: |
+          echo "## 🏗️ Service Build Summary: ${{ inputs.service_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Service:** ${{ inputs.service_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**PHP Version:** ${{ inputs.php_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tags:** ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Details:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Registry: ${{ inputs.registry }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: ${{ inputs.registry }}/${{ inputs.image_name }}-${{ inputs.service_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Digest: ${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+

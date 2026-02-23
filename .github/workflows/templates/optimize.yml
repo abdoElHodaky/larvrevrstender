@@ -6,20 +6,18 @@ name: Optimization Template
 on:
   workflow_call:
     inputs:
-      service_name:
-        description: 'Service to optimize risk scoring for'
+      deployment_success:
+        description: 'Whether deployment was successful'
+        required: true
+        type: boolean
+      risk_score:
+        description: 'Risk score from change detection'
         required: true
         type: string
-      analysis_window:
-        description: 'Time window for historical analysis (hours)'
-        required: false
-        type: number
-        default: 168  # 7 days
-      optimization_mode:
-        description: 'Optimization mode (conservative/balanced/aggressive)'
-        required: false
+      services:
+        description: 'Comma-separated list of services'
+        required: true
         type: string
-        default: 'balanced'
     outputs:
       optimized_thresholds:
         description: 'Optimized risk thresholds'

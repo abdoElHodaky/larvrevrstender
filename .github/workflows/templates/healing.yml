@@ -6,28 +6,19 @@ name: Healing Template
 on:
   workflow_call:
     inputs:
-      service_name:
-        description: 'Name of the service'
+      risk_score:
+        description: 'Risk score from change detection'
         required: true
         type: string
-      trigger_type:
-        description: 'What triggered this pipeline (push, schedule, manual)'
+      affected_services:
+        description: 'Comma-separated list of affected services'
         required: true
         type: string
-      enable_predictive_analysis:
-        description: 'Enable predictive failure analysis'
+      enable_predictive_recovery:
+        description: 'Enable predictive recovery mechanisms'
         required: false
         type: boolean
         default: true
-      auto_retry_enabled:
-        description: 'Enable automatic retry on transient failures'
-        required: false
-        type: boolean
-        default: true
-      max_retry_attempts:
-        description: 'Maximum number of retry attempts'
-        required: false
-        type: number
         default: 3
     outputs:
       pipeline_status:
