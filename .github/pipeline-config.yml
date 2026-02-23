@@ -4,7 +4,7 @@
 pipeline_migration:
   # Global migration settings
   enabled: true
-  default_pipeline: "legacy"  # Options: legacy | unified | shadow
+  default_pipeline: "unified" # Options: legacy | unified | shadow
   migration_phase: "full"     # Options: shadow | canary | partial | majority | full
   
   # Service-specific overrides for gradual migration
