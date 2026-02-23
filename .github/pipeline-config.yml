@@ -5,7 +5,7 @@ pipeline_migration:
   # Global migration settings
   enabled: true
   default_pipeline: "legacy"  # Options: legacy | unified | shadow
-  migration_phase: "partial"  # Options: shadow | canary | partial | majority | full
+  migration_phase: "majority" # Options: shadow | canary | partial | majority | full
   
   # Service-specific overrides for gradual migration
   service_overrides:
@@ -14,13 +14,13 @@ pipeline_migration:
     notification-service: "unified"  # MIGRATED: Second service moved to unified pipeline
     vin-ocr-service: "unified"       # MIGRATED: Third service moved to unified pipeline
     
-    # Phase 3B: Medium Risk Services (IN PROGRESS)
+    # Phase 3B: Medium Risk Services (COMPLETE!)
     order-service: "unified"         # MIGRATED: Business logic, moderate risk
     bidding-service: "unified"       # MIGRATED: Core functionality
-    user-service: "legacy"           # Important but stable
+    user-service: "unified"          # MIGRATED: Important but stable
     
-    # Phase 3C: High Risk Services (Migrate last)
-    auth-service: "legacy"           # Critical authentication
+    # Phase 3C: High Risk Services (IN PROGRESS)
+    auth-service: "unified"          # MIGRATED: Critical authentication
     payment-service: "legacy"        # Financial transactions
     auction-service: "legacy"        # Core business logic
     gateway-service: "legacy"        # Entry point, affects all services
