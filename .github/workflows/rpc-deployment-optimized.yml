@@ -1,8 +1,19 @@
 name: RPC Services Deployment Pipeline (Optimized)
-# Optimized deployment pipeline with improved performance and resource usage
-# Updated for Laravel 12+ compatibility with enhanced security scanning
+# 🚫 DEPRECATED WORKFLOW - DO NOT USE 🚫
+# This workflow has been replaced by the Unified CI/CD Pipeline
+# Migration completed: February 23, 2026
+# All services now use: .github/workflows/unified-pipeline-shadow.yml
+# 
+# This workflow is disabled to prevent accidental usage
+# For support, contact the DevOps team
 
 on:
+  workflow_dispatch:
+    inputs:
+      confirm_deprecated:
+        description: '⚠️ This workflow is DEPRECATED. Use unified pipeline instead.'
+        required: true
+        default: 'DEPRECATED - DO NOT USE'
   push:
     branches:
       - 'rpc/**'
