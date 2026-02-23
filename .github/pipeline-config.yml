@@ -5,12 +5,12 @@ pipeline_migration:
   # Global migration settings
   enabled: true
   default_pipeline: "legacy"  # Options: legacy | unified | shadow
-  migration_phase: "shadow"   # Options: shadow | canary | partial | majority | full
+  migration_phase: "canary"   # Options: shadow | canary | partial | majority | full
   
   # Service-specific overrides for gradual migration
   service_overrides:
     # Phase 3A: Low Risk Services (Start here)
-    analytics-service: "shadow"      # Non-critical, safe to test first
+    analytics-service: "unified"     # MIGRATED: First service moved to unified pipeline
     notification-service: "shadow"   # Supporting service, isolated
     vin-ocr-service: "shadow"        # Specialized, minimal dependencies
     
