@@ -499,10 +499,28 @@ jobs:
       deployment_order: ${{ needs.dependency-environment-validation.outputs.deployment_order }}
     secrets: inherit
 
+  # Phase 4.5: Docker Image Optimization (NEW)
+  docker-optimization:
+    name: 🐳 Docker Image Optimization
+    needs: [change-detection, dependency-environment-validation, service-build]
+    if: |
+      always() && 
+      needs.change-detection.outputs.should_deploy == 'true' &&
+      (needs.service-build.result == 'success' || needs.service-build.result == 'skipped')
+    uses: ./.github/workflows/templates/docker-optimize.yml
+    with:
+      services: ${{ needs.change-detection.outputs.affected_services }}
+      registry: 'ghcr.io'
+      base_image: 'serversideup/php:8.3.27-frankenphp-alpine'
+      enable_cache: true
+      enable_security_scan: true
+      cleanup_old_images: true
+    secrets: inherit
+
   # Phase 5: Database Migration Integration
   database-migration:
     name: 🗄️ Database Migration
-    needs: [change-detection, dependency-environment-validation]
+    needs: [change-detection, dependency-environment-validation, docker-optimization]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' && 
       (contains(needs.change-detection.outputs.affected_services, 'shared') || 
@@ -584,7 +602,7 @@ jobs:
   # Phase 6: Comprehensive Testing (Template Integration)
   comprehensive-testing:
     name: 🧪 Comprehensive Testing
-    needs: [change-detection, dependency-environment-validation, service-build, database-migration]
+    needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, database-migration]
     if: |
       always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
@@ -600,7 +618,7 @@ jobs:
   # Phase 7: Performance Testing (NEW)
   performance-testing:
     name: 🚀 Performance Testing
-    needs: [change-detection, dependency-environment-validation, service-build, comprehensive-testing]
+    needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, comprehensive-testing]
     if: |
       always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
@@ -619,7 +637,7 @@ jobs:
   # Phase 8: Self-Healing & Optimization (Template Integration)
   self-healing:
     name: 🔧 Self-Healing & Optimization
-    needs: [change-detection, dependency-environment-validation, comprehensive-testing, performance-testing]
+    needs: [change-detection, dependency-environment-validation, docker-optimization, comprehensive-testing, performance-testing]
     if: |
       always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
@@ -636,11 +654,12 @@ jobs:
   # Phase 9: Blue-Green Deployment (Dependency-Ordered)
   deployment:
     name: 🚀 Blue-Green Deployment (Dependency-Ordered)
-    needs: [change-detection, dependency-environment-validation, service-build, comprehensive-testing, performance-testing, self-healing]
+    needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, comprehensive-testing, performance-testing, self-healing]
     if: |
       always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
       needs.service-build.result == 'success' &&
+      (needs.docker-optimization.result == 'success' || needs.docker-optimization.result == 'skipped') &&
       (needs.comprehensive-testing.result == 'success' || needs.comprehensive-testing.result == 'skipped') &&
       (needs.performance-testing.result == 'success' || needs.performance-testing.result == 'skipped' || needs.performance-testing.result == 'warning') &&
       (needs.self-healing.result == 'success' || needs.self-healing.result == 'skipped')
@@ -663,7 +682,7 @@ jobs:
   # Phase 10: Risk Scoring Optimization (Template Integration)
   optimization:
     name: 📊 Risk Scoring Optimization
-    needs: [change-detection, dependency-environment-validation, performance-testing, deployment]
+    needs: [change-detection, dependency-environment-validation, docker-optimization, performance-testing, deployment]
     if: |
       always() && 
       needs.deployment.result == 'success' &&
@@ -679,7 +698,7 @@ jobs:
   pipeline-summary:
     name: 📋 Pipeline Summary
     runs-on: ubuntu-latest
-    needs: [change-detection, dependency-environment-validation, security-scan, service-build, database-migration, comprehensive-testing, performance-testing, self-healing, deployment, optimization]
+    needs: [change-detection, dependency-environment-validation, security-scan, service-build, docker-optimization, database-migration, comprehensive-testing, performance-testing, self-healing, deployment, optimization]
     if: always()
     
     steps:
