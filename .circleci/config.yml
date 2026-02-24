@@ -111,7 +111,15 @@ commands:
       - run:
           name: Install Composer dependencies
           command: |
-            cd << parameters.service >>
+            # Handle both service naming patterns
+            if [ -d "<< parameters.service >>-service" ]; then
+              cd << parameters.service >>-service
+            elif [ -d "<< parameters.service >>" ]; then
+              cd << parameters.service >>
+            else
+              echo "Service directory not found: << parameters.service >>"
+              exit 1
+            fi
             composer install --no-interaction --prefer-dist --optimize-autoloader
             
       - save_cache:
@@ -137,7 +145,16 @@ commands:
       - run:
           name: Install Node dependencies
           command: |
-            cd << parameters.service >>
+            # Handle both service naming patterns
+            if [ -d "<< parameters.service >>-service" ]; then
+              cd << parameters.service >>-service
+            elif [ -d "<< parameters.service >>" ]; then
+              cd << parameters.service >>
+            else
+              echo "Service directory not found: << parameters.service >>"
+              exit 1
+            fi
+            
             if [ -f package-lock.json ]; then
               npm ci
             elif [ -f yarn.lock ]; then
@@ -208,11 +225,16 @@ jobs:
             
             # Determine affected services
             AFFECTED_SERVICES=""
-            for service in auth user auction bidding payment gateway order analytics notification vin-ocr shared; do
-              if echo "$CHANGED_FILES" | grep -q "services/$service/"; then
+            for service in auth user auction bidding payment gateway order analytics notification vin-ocr; do
+              if echo "$CHANGED_FILES" | grep -q "services/$service-service/"; then
                 AFFECTED_SERVICES="$AFFECTED_SERVICES $service"
               fi
             done
+            
+            # Check shared service (different naming pattern)
+            if echo "$CHANGED_FILES" | grep -q "services/shared/"; then
+              AFFECTED_SERVICES="$AFFECTED_SERVICES shared"
+            fi
             
             # Check for global changes
             GLOBAL_CHANGES=false
@@ -332,19 +354,19 @@ jobs:
           at: /tmp/workspace
       - setup-php
       - install-composer-deps:
-          service: services/auth
+          service: services/auth-service
       - run:
           name: Check for Node dependencies
           command: |
-            if [ -f services/auth/package.json ]; then
+            if [ -f services/auth-service/package.json ]; then
               echo "Installing Node dependencies for auth"
             fi
       - install-node-deps:
-          service: services/auth
+          service: services/auth-service
       - run:
           name: Setup auth test environment
           command: |
-            cd services/auth
+            cd services/auth-service
             if [ -f .env.testing ]; then
               cp .env.testing .env
             elif [ -f .env.example ]; then
@@ -364,13 +386,13 @@ jobs:
       - run:
           name: Run auth database migrations
           command: |
-            cd services/auth
+            cd services/auth-service
             php artisan migrate --force --seed
 
       - run:
           name: Run auth PHPUnit tests
           command: |
-            cd services/auth
+            cd services/auth-service
             vendor/bin/phpunit \
               --coverage-clover=coverage.xml \
               --coverage-html=coverage-html \
@@ -380,25 +402,25 @@ jobs:
       - run:
           name: Run auth Feature tests
           command: |
-            cd services/auth
+            cd services/auth-service
             if [ -d tests/Feature ]; then
               vendor/bin/phpunit tests/Feature \
                 --log-junit=feature-test-results.xml
             fi
 
       - store_test_results:
-          path: services/auth/test-results.xml
+          path: services/auth-service/test-results.xml
       - store_test_results:
-          path: services/auth/feature-test-results.xml
+          path: services/auth-service/feature-test-results.xml
       - store_artifacts:
-          path: services/auth/coverage-html
+          path: services/auth-service/coverage-html
           destination: coverage-auth
       - store_artifacts:
-          path: services/auth/testdox.html
+          path: services/auth-service/testdox.html
           destination: testdox-auth.html
 
       - codecov/upload:
-          file: services/auth/coverage.xml
+          file: services/auth-service/coverage.xml
           flags: auth
 
       - notify-slack:
@@ -414,15 +436,15 @@ jobs:
           at: /tmp/workspace
       - setup-php
       - install-composer-deps:
-          service: services/user
+          service: services/user-service
       - run:
           name: Check for Node dependencies
           command: |
-            if [ -f services/user/package.json ]; then
+            if [ -f services/user-service/package.json ]; then
               echo "Installing Node dependencies for user"
             fi
       - install-node-deps:
-          service: services/user
+          service: services/user-service
       - run:
           name: Setup user test environment
           command: |
@@ -469,18 +491,18 @@ jobs:
             fi
 
       - store_test_results:
-          path: services/user/test-results.xml
+          path: services/user-service/test-results.xml
       - store_test_results:
-          path: services/user/feature-test-results.xml
+          path: services/user-service/feature-test-results.xml
       - store_artifacts:
-          path: services/user/coverage-html
+          path: services/user-service/coverage-html
           destination: coverage-user
       - store_artifacts:
-          path: services/user/testdox.html
+          path: services/user-service/testdox.html
           destination: testdox-user.html
 
       - codecov/upload:
-          file: services/user/coverage.xml
+          file: services/user-service/coverage.xml
           flags: user
 
       - notify-slack:
@@ -496,15 +518,15 @@ jobs:
           at: /tmp/workspace
       - setup-php
       - install-composer-deps:
-          service: services/auction
+          service: services/auction-service
       - run:
           name: Check for Node dependencies
           command: |
-            if [ -f services/auction/package.json ]; then
+            if [ -f services/auction-service/package.json ]; then
               echo "Installing Node dependencies for auction"
             fi
       - install-node-deps:
-          service: services/auction
+          service: services/auction-service
       - run:
           name: Setup auction test environment
           command: |
@@ -551,18 +573,18 @@ jobs:
             fi
 
       - store_test_results:
-          path: services/auction/test-results.xml
+          path: services/auction-service/test-results.xml
       - store_test_results:
-          path: services/auction/feature-test-results.xml
+          path: services/auction-service/feature-test-results.xml
       - store_artifacts:
-          path: services/auction/coverage-html
+          path: services/auction-service/coverage-html
           destination: coverage-auction
       - store_artifacts:
-          path: services/auction/testdox.html
+          path: services/auction-service/testdox.html
           destination: testdox-auction.html
 
       - codecov/upload:
-          file: services/auction/coverage.xml
+          file: services/auction-service/coverage.xml
           flags: auction
 
       - notify-slack:
@@ -578,15 +600,15 @@ jobs:
           at: /tmp/workspace
       - setup-php
       - install-composer-deps:
-          service: services/bidding
+          service: services/bidding-service
       - run:
           name: Check for Node dependencies
           command: |
-            if [ -f services/bidding/package.json ]; then
+            if [ -f services/bidding-service/package.json ]; then
               echo "Installing Node dependencies for bidding"
             fi
       - install-node-deps:
-          service: services/bidding
+          service: services/bidding-service
       - run:
           name: Setup bidding test environment
           command: |
@@ -633,18 +655,18 @@ jobs:
             fi
 
       - store_test_results:
-          path: services/bidding/test-results.xml
+          path: services/bidding-service/test-results.xml
       - store_test_results:
-          path: services/bidding/feature-test-results.xml
+          path: services/bidding-service/feature-test-results.xml
       - store_artifacts:
-          path: services/bidding/coverage-html
+          path: services/bidding-service/coverage-html
           destination: coverage-bidding
       - store_artifacts:
-          path: services/bidding/testdox.html
+          path: services/bidding-service/testdox.html
           destination: testdox-bidding.html
 
       - codecov/upload:
-          file: services/bidding/coverage.xml
+          file: services/bidding-service/coverage.xml
           flags: bidding
 
       - notify-slack:
@@ -660,15 +682,15 @@ jobs:
           at: /tmp/workspace
       - setup-php
       - install-composer-deps:
-          service: services/payment
+          service: services/payment-service
       - run:
           name: Check for Node dependencies
           command: |
-            if [ -f services/payment/package.json ]; then
+            if [ -f services/payment-service/package.json ]; then
               echo "Installing Node dependencies for payment"
             fi
       - install-node-deps:
-          service: services/payment
+          service: services/payment-service
       - run:
           name: Setup payment test environment
           command: |
@@ -715,18 +737,18 @@ jobs:
             fi
 
       - store_test_results:
-          path: services/payment/test-results.xml
+          path: services/payment-service/test-results.xml
       - store_test_results:
-          path: services/payment/feature-test-results.xml
+          path: services/payment-service/feature-test-results.xml
       - store_artifacts:
-          path: services/payment/coverage-html
+          path: services/payment-service/coverage-html
           destination: coverage-payment
       - store_artifacts:
-          path: services/payment/testdox.html
+          path: services/payment-service/testdox.html
           destination: testdox-payment.html
 
       - codecov/upload:
-          file: services/payment/coverage.xml
+          file: services/payment-service/coverage.xml
           flags: payment
 
       - notify-slack:
@@ -742,15 +764,15 @@ jobs:
           at: /tmp/workspace
       - setup-php
       - install-composer-deps:
-          service: services/gateway
+          service: services/gateway-service
       - run:
           name: Check for Node dependencies
           command: |
-            if [ -f services/gateway/package.json ]; then
+            if [ -f services/gateway-service/package.json ]; then
               echo "Installing Node dependencies for gateway"
             fi
       - install-node-deps:
-          service: services/gateway
+          service: services/gateway-service
       - run:
           name: Setup gateway test environment
           command: |
@@ -797,18 +819,18 @@ jobs:
             fi
 
       - store_test_results:
-          path: services/gateway/test-results.xml
+          path: services/gateway-service/test-results.xml
       - store_test_results:
-          path: services/gateway/feature-test-results.xml
+          path: services/gateway-service/feature-test-results.xml
       - store_artifacts:
-          path: services/gateway/coverage-html
+          path: services/gateway-service/coverage-html
           destination: coverage-gateway
       - store_artifacts:
-          path: services/gateway/testdox.html
+          path: services/gateway-service/testdox.html
           destination: testdox-gateway.html
 
       - codecov/upload:
-          file: services/gateway/coverage.xml
+          file: services/gateway-service/coverage.xml
           flags: gateway
 
       - notify-slack:
@@ -824,15 +846,15 @@ jobs:
           at: /tmp/workspace
       - setup-php
       - install-composer-deps:
-          service: services/order
+          service: services/order-service
       - run:
           name: Check for Node dependencies
           command: |
-            if [ -f services/order/package.json ]; then
+            if [ -f services/order-service/package.json ]; then
               echo "Installing Node dependencies for order"
             fi
       - install-node-deps:
-          service: services/order
+          service: services/order-service
       - run:
           name: Setup order test environment
           command: |
@@ -879,18 +901,18 @@ jobs:
             fi
 
       - store_test_results:
-          path: services/order/test-results.xml
+          path: services/order-service/test-results.xml
       - store_test_results:
-          path: services/order/feature-test-results.xml
+          path: services/order-service/feature-test-results.xml
       - store_artifacts:
-          path: services/order/coverage-html
+          path: services/order-service/coverage-html
           destination: coverage-order
       - store_artifacts:
-          path: services/order/testdox.html
+          path: services/order-service/testdox.html
           destination: testdox-order.html
 
       - codecov/upload:
-          file: services/order/coverage.xml
+          file: services/order-service/coverage.xml
           flags: order
 
       - notify-slack:
@@ -906,15 +928,15 @@ jobs:
           at: /tmp/workspace
       - setup-php
       - install-composer-deps:
-          service: services/analytics
+          service: services/analytics-service
       - run:
           name: Check for Node dependencies
           command: |
-            if [ -f services/analytics/package.json ]; then
+            if [ -f services/analytics-service/package.json ]; then
               echo "Installing Node dependencies for analytics"
             fi
       - install-node-deps:
-          service: services/analytics
+          service: services/analytics-service
       - run:
           name: Setup analytics test environment
           command: |
@@ -961,18 +983,18 @@ jobs:
             fi
 
       - store_test_results:
-          path: services/analytics/test-results.xml
+          path: services/analytics-service/test-results.xml
       - store_test_results:
-          path: services/analytics/feature-test-results.xml
+          path: services/analytics-service/feature-test-results.xml
       - store_artifacts:
-          path: services/analytics/coverage-html
+          path: services/analytics-service/coverage-html
           destination: coverage-analytics
       - store_artifacts:
-          path: services/analytics/testdox.html
+          path: services/analytics-service/testdox.html
           destination: testdox-analytics.html
 
       - codecov/upload:
-          file: services/analytics/coverage.xml
+          file: services/analytics-service/coverage.xml
           flags: analytics
 
       - notify-slack:
@@ -988,15 +1010,15 @@ jobs:
           at: /tmp/workspace
       - setup-php
       - install-composer-deps:
-          service: services/notification
+          service: services/notification-service
       - run:
           name: Check for Node dependencies
           command: |
-            if [ -f services/notification/package.json ]; then
+            if [ -f services/notification-service/package.json ]; then
               echo "Installing Node dependencies for notification"
             fi
       - install-node-deps:
-          service: services/notification
+          service: services/notification-service
       - run:
           name: Setup notification test environment
           command: |
@@ -1043,18 +1065,18 @@ jobs:
             fi
 
       - store_test_results:
-          path: services/notification/test-results.xml
+          path: services/notification-service/test-results.xml
       - store_test_results:
-          path: services/notification/feature-test-results.xml
+          path: services/notification-service/feature-test-results.xml
       - store_artifacts:
-          path: services/notification/coverage-html
+          path: services/notification-service/coverage-html
           destination: coverage-notification
       - store_artifacts:
-          path: services/notification/testdox.html
+          path: services/notification-service/testdox.html
           destination: testdox-notification.html
 
       - codecov/upload:
-          file: services/notification/coverage.xml
+          file: services/notification-service/coverage.xml
           flags: notification
 
       - notify-slack:
@@ -1070,15 +1092,15 @@ jobs:
           at: /tmp/workspace
       - setup-php
       - install-composer-deps:
-          service: services/vin-ocr
+          service: services/vin-ocr-service
       - run:
           name: Check for Node dependencies
           command: |
-            if [ -f services/vin-ocr/package.json ]; then
+            if [ -f services/vin-ocr-service/package.json ]; then
               echo "Installing Node dependencies for vin-ocr"
             fi
       - install-node-deps:
-          service: services/vin-ocr
+          service: services/vin-ocr-service
       - run:
           name: Setup vin-ocr test environment
           command: |
@@ -1125,18 +1147,18 @@ jobs:
             fi
 
       - store_test_results:
-          path: services/vin-ocr/test-results.xml
+          path: services/vin-ocr-service/test-results.xml
       - store_test_results:
-          path: services/vin-ocr/feature-test-results.xml
+          path: services/vin-ocr-service/feature-test-results.xml
       - store_artifacts:
-          path: services/vin-ocr/coverage-html
+          path: services/vin-ocr-service/coverage-html
           destination: coverage-vin-ocr
       - store_artifacts:
-          path: services/vin-ocr/testdox.html
+          path: services/vin-ocr-service/testdox.html
           destination: testdox-vin-ocr.html
 
       - codecov/upload:
-          file: services/vin-ocr/coverage.xml
+          file: services/vin-ocr-service/coverage.xml
           flags: vin-ocr
 
       - notify-slack:
@@ -1532,4 +1554,4 @@ workflows:
             - test-shared-service
           filters:
             branches:
-              only: /.*/ 
+              only: /.*/
