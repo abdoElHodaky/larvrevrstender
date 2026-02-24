@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\Order\OrderItem;
+use App\Events\OrderCreated;
 use App\RPC\Adapters\AuctionServiceAdapter;
 use App\RPC\Adapters\BiddingServiceAdapter;
 use App\RPC\Adapters\PaymentServiceAdapter;
@@ -99,6 +100,14 @@ class OrderCreationService
             // Step 6: Send notifications
             $this->sendOrderCreationNotifications($order, $bidData, $auctionData);
 
+            // Step 7: Fire OrderCreated event to trigger payment workflow
+            event(new OrderCreated($order, [
+                'bid_data' => $bidData,
+                'auction_data' => $auctionData,
+                'pricing' => $pricing,
+                'created_via' => 'winner_selection_automation'
+            ]));
+
             DB::commit();
 
             Log::info('Order created successfully from winning bid', [
@@ -106,7 +115,8 @@ class OrderCreationService
                 'order_number' => $order->order_number,
                 'bid_id' => $winningBidId,
                 'auction_id' => $auctionId,
-                'total_amount' => $order->total_amount
+                'total_amount' => $order->total_amount,
+                'event_fired' => 'OrderCreated'
             ]);
 
             return new OrderCreationResult(
