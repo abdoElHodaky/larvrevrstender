@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Auction;
 use App\Models\Bid;
 use App\Models\BidEvaluation;
+use App\Events\WinnerSelectedEvent;
 use App\RPC\Adapters\UserServiceAdapter;
 use App\RPC\Adapters\NotificationServiceAdapter;
 use Illuminate\Support\Collection;
@@ -82,6 +83,9 @@ class WinnerSelectionService
 
             // Step 6: Send notifications
             $this->sendWinnerNotifications($auction, $winner, $rankedEvaluations);
+
+            // Step 7: Fire winner selected event for downstream processing
+            $this->fireWinnerSelectedEvent($auction, $winner, $rankedEvaluations);
 
             DB::commit();
 
@@ -314,6 +318,44 @@ class WinnerSelectionService
         } catch (\Exception $e) {
             Log::warning('Failed to send winner notifications', [
                 'auction_id' => $auction->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Fire winner selected event for downstream processing.
+     */
+    private function fireWinnerSelectedEvent(Auction $auction, BidEvaluation $winner, Collection $evaluations): void
+    {
+        try {
+            $evaluationSummary = [
+                'total_bids' => $evaluations->count(),
+                'winner_rank' => $winner->rank,
+                'winner_composite_score' => $winner->composite_score,
+                'evaluation_criteria' => $winner->evaluation_criteria,
+                'score_breakdown' => $winner->score_breakdown,
+            ];
+
+            WinnerSelectedEvent::dispatch(
+                $auction->id,
+                $winner->bid_id,
+                $winner->bid->user_id,
+                $winner->bid->amount,
+                $winner->composite_score,
+                $evaluationSummary
+            );
+
+            Log::info('Winner selected event fired', [
+                'auction_id' => $auction->id,
+                'winning_bid_id' => $winner->bid_id,
+                'winner_user_id' => $winner->bid->user_id
+            ]);
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to fire winner selected event', [
+                'auction_id' => $auction->id,
+                'winning_bid_id' => $winner->bid_id,
                 'error' => $e->getMessage()
             ]);
         }
