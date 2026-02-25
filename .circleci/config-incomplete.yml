@@ -17,8 +17,17 @@ orbs:
 # EXECUTORS - Reusable execution environments
 # ============================================================================
 executors:
-  # Small executor for lightweight tasks
-  small-executor:
+  # Small executor for lightweight tasks - PHP 8.2
+  small-executor-php82:
+    docker:
+      - image: cimg/php:8.2-node
+    resource_class: small
+    environment:
+      PHP_VERSION: "8.2"
+      NODE_VERSION: "18"
+    
+  # Small executor for lightweight tasks - PHP 8.3
+  small-executor-php83:
     docker:
       - image: cimg/php:8.3-node
     resource_class: small
@@ -26,8 +35,31 @@ executors:
       PHP_VERSION: "8.3"
       NODE_VERSION: "18"
     
-  # Medium executor for service testing
-  medium-executor:
+  # Medium executor for service testing - PHP 8.2
+  medium-executor-php82:
+    docker:
+      - image: cimg/php:8.2-node
+      - image: cimg/postgres:15.0
+        environment:
+          POSTGRES_USER: laravel
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: laravel_test
+      - image: cimg/redis:7.0
+    resource_class: medium
+    environment:
+      PHP_VERSION: "8.2"
+      NODE_VERSION: "18"
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: laravel_test
+      DB_USERNAME: laravel
+      DB_PASSWORD: secret
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+    
+  # Medium executor for service testing - PHP 8.3
+  medium-executor-php83:
     docker:
       - image: cimg/php:8.3-node
       - image: cimg/postgres:15.0
@@ -49,17 +81,39 @@ executors:
       REDIS_HOST: localhost
       REDIS_PORT: 6379
     
-  # Large executor for Docker builds
-  large-executor:
+  # Large executor for Docker builds - PHP 8.2
+  large-executor-php82:
+    docker:
+      - image: cimg/php:8.2-node
+    resource_class: large
+    environment:
+      PHP_VERSION: "8.2"
+      NODE_VERSION: "18"
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+    
+  # Large executor for Docker builds - PHP 8.3
+  large-executor-php83:
     docker:
       - image: cimg/php:8.3-node
     resource_class: large
     environment:
+      PHP_VERSION: "8.3"
+      NODE_VERSION: "18"
       DOCKER_BUILDKIT: 1
       COMPOSE_DOCKER_CLI_BUILD: 1
     
-  # XLarge executor for performance testing
-  xlarge-executor:
+  # XLarge executor for performance testing - PHP 8.2
+  xlarge-executor-php82:
+    docker:
+      - image: cimg/php:8.2-node
+    resource_class: xlarge
+    environment:
+      PHP_VERSION: "8.2"
+      NODE_VERSION: "18"
+      
+  # XLarge executor for performance testing - PHP 8.3
+  xlarge-executor-php83:
     docker:
       - image: cimg/php:8.3-node
     resource_class: xlarge
@@ -71,27 +125,30 @@ executors:
 # COMMANDS - Reusable command sequences
 # ============================================================================
 commands:
-  # Setup PHP environment with extensions
+  # Setup PHP environment with extensions (dynamic version)
   setup-php:
-    description: "Setup PHP with required extensions"
+    description: "Setup PHP with required extensions based on PHP_VERSION environment variable"
     steps:
       - run:
           name: Install PHP extensions
           command: |
+            echo "Setting up PHP ${PHP_VERSION} with extensions..."
             sudo apt-get update
             sudo apt-get install -y \
-              php8.3-pgsql \
-              php8.3-redis \
-              php8.3-gd \
-              php8.3-zip \
-              php8.3-xml \
-              php8.3-mbstring \
-              php8.3-curl \
-              php8.3-bcmath \
-              php8.3-intl
+              php${PHP_VERSION}-pgsql \
+              php${PHP_VERSION}-redis \
+              php${PHP_VERSION}-gd \
+              php${PHP_VERSION}-zip \
+              php${PHP_VERSION}-xml \
+              php${PHP_VERSION}-mbstring \
+              php${PHP_VERSION}-curl \
+              php${PHP_VERSION}-bcmath \
+              php${PHP_VERSION}-intl
             
             # Verify PHP configuration
+            echo "PHP Version:"
             php -v
+            echo "PHP Extensions:"
             php -m | grep -E "(pdo_pgsql|redis|gd|zip)"
   
   # Install and cache Composer dependencies
@@ -265,7 +322,7 @@ commands:
 jobs:
   # Phase 0: Change Detection & Planning
   change-detection:
-    executor: small-executor
+    executor: small-executor-php83  # Use PHP 8.3 for change detection (lightweight)
     steps:
       - checkout
       - run:
@@ -317,7 +374,7 @@ jobs:
   
   # Phase 1: Security Scanning
   security-scanning:
-    executor: small-executor
+    executor: small-executor-php83  # Use PHP 8.3 for security scanning (lightweight)
     steps:
       - checkout
       - attach_workspace:
@@ -378,9 +435,7 @@ jobs:
   
   # Phase 1: Code Quality PHP 8.2
   code-quality-php82:
-    executor: medium-executor
-    docker:
-      - image: cimg/php:8.2-node
+    executor: medium-executor-php82  # Use PHP 8.2 specific executor
     steps:
       - checkout
       - setup-php
@@ -412,7 +467,7 @@ jobs:
   
   # Phase 1: Code Quality PHP 8.3
   code-quality-php83:
-    executor: medium-executor
+    executor: medium-executor-php83  # Use PHP 8.3 specific executor
     steps:
       - checkout
       - setup-php
@@ -447,9 +502,9 @@ jobs:
 # ============================================================================
 
 # Service Testing Jobs (Phase 2)
-  # Test job for auth service
+  # Test job for auth service (core service - use medium resources)
   test-auth-service:
-    executor: medium-executor
+    executor: medium-executor-php83  # Core service needs medium resources
     steps:
       - checkout
       - attach_workspace:
@@ -529,9 +584,9 @@ jobs:
           status: "passed"
           job_name: "Test auth Service"
 
-  # Test job for user service
+  # Test job for user service (core service - use medium resources)
   test-user-service:
-    executor: medium-executor
+    executor: medium-executor-php83  # Core service needs medium resources
     steps:
       - checkout
       - attach_workspace:
@@ -615,9 +670,9 @@ jobs:
   # (For brevity, showing pattern for first 2 services)
 
 # Service Build Jobs (Phase 3)  
-  # Build job for auth service
+  # Build job for auth service (Docker build - use large resources)
   build-auth-service:
-    executor: large-executor
+    executor: large-executor-php83  # Docker builds need large resources
     steps:
       - checkout
       - attach_workspace:
@@ -691,7 +746,122 @@ jobs:
   # (For brevity, showing pattern for first service)
 
 # ============================================================================
-# WORKFLOWS - Orchestration of jobs
+# ADDITIONAL JOBS - Advanced features
+# ============================================================================
+
+  # Docker Optimization Job
+  docker-optimization:
+    executor: large-executor-php83  # Docker optimization needs large resources
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+          
+      - setup_remote_docker:
+          docker_layer_caching: true
+          
+      - run:
+          name: Optimize Docker images
+          command: |
+            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+            
+            for service in $AFFECTED_SERVICES; do
+              if [ -d "services/$service" ]; then
+                echo "Optimizing $service Docker image..."
+                cd services/$service
+                
+                # Analyze image size
+                docker build --target=production -t temp-$service .
+                docker images temp-$service --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+                
+                # Security scan
+                trivy image temp-$service
+                
+                cd ../..
+              fi
+            done
+            
+      - notify-slack:
+          status: "passed"
+          job_name: "Docker Optimization"
+  
+  # Performance Testing Job
+  performance-testing:
+    executor: xlarge-executor-php83  # Performance testing needs maximum resources
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+          
+      - run:
+          name: Install performance testing tools
+          command: |
+            # Install k6 for load testing
+            sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+            echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+            sudo apt-get update
+            sudo apt-get install k6
+            
+      - run:
+          name: Run performance tests
+          command: |
+            # Run load tests for affected services
+            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+            
+            for service in $AFFECTED_SERVICES; do
+              if [ -f "tests/performance/$service-load-test.js" ]; then
+                echo "Running performance tests for $service..."
+                k6 run tests/performance/$service-load-test.js
+              fi
+            done
+            
+      - store_artifacts:
+          path: performance-results/
+          destination: performance/
+          
+      - notify-slack:
+          status: "passed"
+          job_name: "Performance Testing"
+  
+  # Blue-Green Deployment Job
+  blue-green-deployment:
+    executor: medium-executor-php83  # Deployment needs medium resources
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+          
+      - run:
+          name: Deploy to staging (blue-green)
+          command: |
+            echo "Deploying affected services to staging environment..."
+            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+            
+            # Deploy each affected service
+            for service in $AFFECTED_SERVICES; do
+              echo "Deploying $service..."
+              # Deployment logic would go here
+              # This would integrate with your deployment infrastructure
+            done
+            
+      - run:
+          name: Run health checks
+          command: |
+            echo "Running health checks on deployed services..."
+            # Health check logic would go here
+            
+      - run:
+          name: Switch traffic (if health checks pass)
+          command: |
+            echo "Switching traffic to new deployment..."
+            # Traffic switching logic would go here
+            
+      - notify-slack:
+          status: "passed"
+          job_name: "Blue-Green Deployment"
+
+# ============================================================================
+# WORKFLOWS - Complete orchestration of all jobs
 # ============================================================================
 workflows:
   version: 2
@@ -703,7 +873,7 @@ workflows:
             branches:
               only: /.*/
       
-      # Phase 1: Parallel Security & Quality (4 concurrent)
+      # Phase 1: Parallel Security & Quality (3 concurrent)
       - security-scanning:
           requires: [change-detection]
           
@@ -803,7 +973,7 @@ workflows:
             branches:
               only: /.*/
       
-      # Phase 3: Service Builds (11 parallel services)
+      # Phase 3: Service Builds (11 parallel services with dependencies)
       - build-auth-service:
           requires:
             - test-auth-service
@@ -833,6 +1003,7 @@ workflows:
             - test-bidding-service
             - test-shared-service
             - test-auth-service
+            - test-user-service
             - test-auction-service
           filters:
             branches:
@@ -851,6 +1022,14 @@ workflows:
             - test-gateway-service
             - test-shared-service
             - test-auth-service
+            - test-user-service
+            - test-auction-service
+            - test-bidding-service
+            - test-payment-service
+            - test-order-service
+            - test-analytics-service
+            - test-notification-service
+            - test-vin-ocr-service
           filters:
             branches:
               only: /.*/
@@ -890,6 +1069,7 @@ workflows:
           requires:
             - test-vin-ocr-service
             - test-shared-service
+            - test-auth-service
           filters:
             branches:
               only: /.*/
@@ -898,168 +1078,4 @@ workflows:
             - test-shared-service
           filters:
             branches:
-              only: /.*/ 
-      
-      # Phase 4: Docker Optimization
-      - docker-optimization:
-          requires: 
-            - build-auth-service
-            - build-user-service
-            - build-auction-service
-            - build-bidding-service
-            - build-payment-service
-            - build-gateway-service
-            - build-order-service
-            - build-analytics-service
-            - build-notification-service
-            - build-vin-ocr-service
-            - build-shared-service
-          filters:
-            branches:
-              only: [main, v2, staging, develop]
-      
-      # Phase 5: Performance Testing (Conditional)
-      - performance-testing:
-          requires: [docker-optimization]
-          filters:
-            branches:
-              only: [main, v2]
-      
-      # Phase 6: Blue-Green Deployment (Production only)
-      - blue-green-deployment:
-          requires: [performance-testing]
-          filters:
-            branches:
-              only: [main, v2]
-          type: approval  # Manual approval for production
-
-# ============================================================================
-# PIPELINE PARAMETERS - Dynamic configuration
-# ============================================================================
-parameters:
-  services_matrix:
-    type: string
-    default: |
-      # Dynamic service testing jobs will be generated here
-      # Based on change detection results
-      
-  build_matrix:
-    type: string
-    default: |
-      # Dynamic service build jobs will be generated here
-      # Based on change detection results
-
-# ============================================================================
-# ADDITIONAL JOBS - Advanced features
-# ============================================================================
-
-  # Docker Optimization Job
-  docker-optimization:
-    executor: large-executor
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp/workspace
-          
-      - setup_remote_docker:
-          docker_layer_caching: true
-          
-      - run:
-          name: Optimize Docker images
-          command: |
-            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
-            
-            for service in $AFFECTED_SERVICES; do
-              if [ -d "services/$service" ]; then
-                echo "Optimizing $service Docker image..."
-                cd services/$service
-                
-                # Analyze image size
-                docker build --target=production -t temp-$service .
-                docker images temp-$service --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
-                
-                # Security scan
-                trivy image temp-$service
-                
-                cd ../..
-              fi
-            done
-            
-      - notify-slack:
-          status: "passed"
-          job_name: "Docker Optimization"
-  
-  # Performance Testing Job
-  performance-testing:
-    executor: xlarge-executor
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp/workspace
-          
-      - run:
-          name: Install performance testing tools
-          command: |
-            # Install k6 for load testing
-            sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-            echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-            sudo apt-get update
-            sudo apt-get install k6
-            
-      - run:
-          name: Run performance tests
-          command: |
-            # Run load tests for affected services
-            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
-            
-            for service in $AFFECTED_SERVICES; do
-              if [ -f "tests/performance/$service-load-test.js" ]; then
-                echo "Running performance tests for $service..."
-                k6 run tests/performance/$service-load-test.js
-              fi
-            done
-            
-      - store_artifacts:
-          path: performance-results/
-          destination: performance/
-          
-      - notify-slack:
-          status: "passed"
-          job_name: "Performance Testing"
-  
-  # Blue-Green Deployment Job
-  blue-green-deployment:
-    executor: medium-executor
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp/workspace
-          
-      - run:
-          name: Deploy to staging (blue-green)
-          command: |
-            echo "Deploying affected services to staging environment..."
-            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
-            
-            # Deploy each affected service
-            for service in $AFFECTED_SERVICES; do
-              echo "Deploying $service..."
-              # Deployment logic would go here
-              # This would integrate with your deployment infrastructure
-            done
-            
-      - run:
-          name: Run health checks
-          command: |
-            echo "Running health checks on deployed services..."
-            # Health check logic would go here
-            
-      - run:
-          name: Switch traffic (if health checks pass)
-          command: |
-            echo "Switching traffic to new deployment..."
-            # Traffic switching logic would go here
-            
-      - notify-slack:
-          status: "passed"
-          job_name: "Blue-Green Deployment"
+              only: /.*/
