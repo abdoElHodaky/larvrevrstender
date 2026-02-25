@@ -151,9 +151,9 @@ commands:
             echo "PHP Extensions:"
             php -m | grep -E "(pdo_pgsql|redis|gd|zip)"
   
-  # Install and cache Composer dependencies
+  # Install and cache Composer dependencies (Phase 5: Advanced Caching)
   install-composer-deps:
-    description: "Install Composer dependencies with caching"
+    description: "Install Composer dependencies with advanced multi-level caching"
     parameters:
       service:
         type: string
@@ -161,25 +161,47 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - composer-v2-{{ .Environment.CIRCLE_JOB }}-{{ checksum "<< parameters.service >>/composer.lock" }}
-            - composer-v2-{{ .Environment.CIRCLE_JOB }}-
-            - composer-v2-
+            # Primary cache: exact match on composer.lock + PHP version
+            - composer-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/composer.lock" }}-{{ checksum "<< parameters.service >>/composer.json" }}
+            # Secondary cache: composer.lock only
+            - composer-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/composer.lock" }}
+            # Tertiary cache: job-specific
+            - composer-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-
+            # Fallback cache: global
+            - composer-v3-{{ arch }}-
+            - composer-v3-
       
       - run:
-          name: Install Composer dependencies
+          name: Install Composer dependencies with advanced caching
           command: |
             cd << parameters.service >>
-            composer install --no-interaction --prefer-dist --optimize-autoloader
+            
+            # Enable Composer parallel downloads and optimize cache
+            composer config --global process-timeout 600
+            composer config --global cache-files-maxsize "1GB"
+            composer config --global cache-vcs-maxsize "500MB"
+            
+            # Install with optimizations
+            composer install \
+              --no-interaction \
+              --prefer-dist \
+              --optimize-autoloader \
+              --classmap-authoritative \
+              --no-dev
+            
+            # Generate optimized autoloader
+            composer dump-autoload --optimize --classmap-authoritative
             
       - save_cache:
-          key: composer-v2-{{ .Environment.CIRCLE_JOB }}-{{ checksum "<< parameters.service >>/composer.lock" }}
+          key: composer-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/composer.lock" }}-{{ checksum "<< parameters.service >>/composer.json" }}
           paths:
             - << parameters.service >>/vendor
             - ~/.composer/cache
+            - ~/.composer/auth.json
   
-  # Install and cache Node dependencies
+  # Install and cache Node dependencies (Phase 5: Advanced Caching)
   install-node-deps:
-    description: "Install Node dependencies with caching"
+    description: "Install Node dependencies with advanced multi-level caching"
     parameters:
       service:
         type: string
@@ -187,26 +209,124 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - node-v2-{{ .Environment.CIRCLE_JOB }}-{{ checksum "<< parameters.service >>/package-lock.json" }}
-            - node-v2-{{ .Environment.CIRCLE_JOB }}-
-            - node-v2-
+            # Primary cache: exact match on package-lock.json + Node version
+            - node-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/package-lock.json" }}-{{ checksum "<< parameters.service >>/package.json" }}
+            # Secondary cache: package-lock.json only
+            - node-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/package-lock.json" }}
+            # Tertiary cache: yarn.lock fallback
+            - node-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/yarn.lock" }}
+            # Quaternary cache: job-specific
+            - node-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-
+            # Fallback cache: global
+            - node-v3-{{ arch }}-
+            - node-v3-
       
       - run:
-          name: Install Node dependencies
+          name: Install Node dependencies with advanced caching
           command: |
             cd << parameters.service >>
+            
+            # Configure npm for optimal caching and performance
+            npm config set cache ~/.npm --global
+            npm config set prefer-offline true --global
+            npm config set audit false --global
+            npm config set fund false --global
+            
             if [ -f package-lock.json ]; then
-              npm ci
+              # Use npm ci for faster, reliable, reproducible builds
+              npm ci --prefer-offline --no-audit --no-fund
             elif [ -f yarn.lock ]; then
-              yarn install --frozen-lockfile
+              # Configure yarn for optimal caching
+              yarn config set cache-folder ~/.yarn-cache
+              yarn install --frozen-lockfile --prefer-offline --silent
+            else
+              echo "No package-lock.json or yarn.lock found, using npm install"
+              npm install --prefer-offline --no-audit --no-fund
             fi
             
       - save_cache:
-          key: node-v2-{{ .Environment.CIRCLE_JOB }}-{{ checksum "<< parameters.service >>/package-lock.json" }}
+          key: node-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/package-lock.json" }}-{{ checksum "<< parameters.service >>/package.json" }}
           paths:
             - << parameters.service >>/node_modules
             - ~/.npm
-  
+            - ~/.yarn-cache
+
+  # Advanced build artifact caching (Phase 5: Advanced Caching)
+  cache-build-artifacts:
+    description: "Cache build artifacts and compiled assets with intelligent versioning"
+    parameters:
+      service:
+        type: string
+      cache_paths:
+        type: string
+        default: "public/build,public/mix-manifest.json,public/hot"
+    steps:
+      - restore_cache:
+          keys:
+            # Primary cache: exact match on source files
+            - build-artifacts-v1-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/webpack.mix.js" }}-{{ checksum "<< parameters.service >>/package.json" }}
+            # Secondary cache: webpack config only
+            - build-artifacts-v1-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/webpack.mix.js" }}
+            # Fallback cache: job-specific
+            - build-artifacts-v1-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-
+            
+      - run:
+          name: Build assets with caching optimization
+          command: |
+            cd << parameters.service >>
+            
+            # Check if build is needed
+            if [ -f "public/mix-manifest.json" ] && [ -d "public/build" ]; then
+              echo "Build artifacts found in cache, checking if rebuild needed..."
+              
+              # Check if source files are newer than build
+              if [ "webpack.mix.js" -nt "public/mix-manifest.json" ] || [ "package.json" -nt "public/mix-manifest.json" ]; then
+                echo "Source files updated, rebuilding..."
+                npm run production
+              else
+                echo "Build artifacts are up to date, skipping build"
+              fi
+            else
+              echo "No cached build artifacts found, building..."
+              npm run production
+            fi
+            
+      - save_cache:
+          key: build-artifacts-v1-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/webpack.mix.js" }}-{{ checksum "<< parameters.service >>/package.json" }}
+          paths:
+            - << parameters.service >>/public/build
+            - << parameters.service >>/public/mix-manifest.json
+            - << parameters.service >>/public/hot
+
+  # Enhanced workspace persistence (Phase 5: Advanced Caching)
+  persist-workspace-data:
+    description: "Persist workspace data with compression and optimization"
+    parameters:
+      workspace_data:
+        type: string
+        default: "affected_services,build_info,test_results"
+    steps:
+      - run:
+          name: Prepare workspace data for persistence
+          command: |
+            mkdir -p /tmp/workspace
+            
+            # Compress large files to save space
+            if [ -f "composer.lock" ]; then
+              gzip -c composer.lock > /tmp/workspace/composer.lock.gz
+            fi
+            
+            # Create build metadata
+            echo "Build Time: $(date)" > /tmp/workspace/build_metadata.txt
+            echo "Commit SHA: ${CIRCLE_SHA1}" >> /tmp/workspace/build_metadata.txt
+            echo "Branch: ${CIRCLE_BRANCH}" >> /tmp/workspace/build_metadata.txt
+            echo "Job: ${CIRCLE_JOB}" >> /tmp/workspace/build_metadata.txt
+            
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - "*"
+
   # Run PHPUnit tests with coverage
   run-phpunit-tests:
     description: "Run PHPUnit tests with coverage reporting"
@@ -249,8 +369,9 @@ commands:
           flags: << parameters.service >>
   
   # Build and push Docker image with layer caching
+  # Build Docker image with advanced caching (Phase 5: Advanced Caching)
   build-docker-image:
-    description: "Build Docker image with layer caching"
+    description: "Build Docker image with advanced multi-layer caching and BuildKit optimization"
     parameters:
       service:
         type: string
@@ -262,26 +383,57 @@ commands:
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
+          version: 20.10.14
           
       - run:
-          name: Build Docker image
+          name: Enable BuildKit and configure Docker
+          command: |
+            # Enable BuildKit for advanced caching features
+            echo 'export DOCKER_BUILDKIT=1' >> $BASH_ENV
+            echo 'export BUILDKIT_PROGRESS=plain' >> $BASH_ENV
+            source $BASH_ENV
+            
+      - run:
+          name: Build Docker image with advanced caching
           command: |
             cd services/<< parameters.service >>
             
-            # Build multi-stage image with caching
+            # Pull multiple cache sources for maximum cache hit rate
+            echo "Pulling cache images..."
+            docker pull << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:cache || true
+            docker pull << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:latest || true
+            docker pull << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:main || true
+            
+            # Build with advanced caching strategies
             docker build \
               --cache-from=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:cache \
+              --cache-from=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:latest \
+              --cache-from=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:main \
               --target=production \
               --tag=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:${CIRCLE_SHA1} \
               --tag=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:latest \
               --tag=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:cache \
+              --build-arg BUILDKIT_INLINE_CACHE=1 \
+              --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+              --build-arg VCS_REF=${CIRCLE_SHA1} \
               .
             
-            # Push images
+            # Analyze image efficiency
+            echo "=== Image Analysis ==="
+            docker images << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:${CIRCLE_SHA1} --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+            
+            # Push images with optimized order (cache first for next builds)
             echo $GITHUB_TOKEN | docker login << parameters.registry >> -u $GITHUB_USERNAME --password-stdin
+            docker push << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:cache
             docker push << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:${CIRCLE_SHA1}
             docker push << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:latest
-            docker push << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:cache
+            
+      - run:
+          name: Cleanup and optimize
+          command: |
+            # Cleanup local images to save space
+            docker image prune -f
+            docker system prune -f
   
   # Notify Slack on job completion
   notify-slack:
@@ -321,14 +473,15 @@ commands:
 # ============================================================================
 jobs:
   # Phase 0: Change Detection & Planning
+  # Enhanced Change Detection (Phase 7: Conditional Execution)
   change-detection:
     executor: small-executor-php83  # Use PHP 8.3 for change detection (lightweight)
     steps:
       - checkout
       - run:
-          name: Detect changed files
+          name: Enhanced change detection with smart filtering
           command: |
-            # Get changed files between current commit and main
+            # Get changed files with better comparison logic
             if [ "$CIRCLE_BRANCH" != "main" ]; then
               git fetch origin main
               CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
@@ -336,37 +489,117 @@ jobs:
               CHANGED_FILES=$(git diff --name-only HEAD~1...HEAD)
             fi
             
+            echo "=== CHANGE DETECTION ANALYSIS ==="
+            echo "Branch: ${CIRCLE_BRANCH}"
             echo "Changed files:"
             echo "$CHANGED_FILES"
             
-            # Determine affected services
+            # Initialize tracking variables
             AFFECTED_SERVICES=""
-            for service in auth user auction bidding payment gateway order analytics notification vin-ocr shared; do
+            SKIP_EXPENSIVE_JOBS=true
+            SKIP_DOCKER_BUILDS=true
+            SKIP_PERFORMANCE_TESTS=true
+            
+            # Determine affected services with dependency mapping
+            declare -A service_deps
+            service_deps[shared]=""
+            service_deps[auth]="shared"
+            service_deps[user]="shared auth"
+            service_deps[vin-ocr]="shared auth"
+            service_deps[notification]="shared auth user"
+            service_deps[payment]="shared auth user"
+            service_deps[auction]="shared auth user"
+            service_deps[bidding]="shared auth user auction"
+            service_deps[order]="shared auth user auction bidding payment"
+            service_deps[analytics]="shared auth user auction bidding"
+            service_deps[gateway]="shared auth user auction bidding payment order analytics notification vin-ocr"
+            
+            # Check each service for changes
+            for service in shared auth user auction bidding payment gateway order analytics notification vin-ocr; do
               if echo "$CHANGED_FILES" | grep -q "services/$service/"; then
                 AFFECTED_SERVICES="$AFFECTED_SERVICES $service"
+                
+                # Add dependent services
+                for dep_service in shared auth user auction bidding payment gateway order analytics notification vin-ocr; do
+                  if echo "${service_deps[$dep_service]}" | grep -q "$service"; then
+                    if ! echo "$AFFECTED_SERVICES" | grep -q "$dep_service"; then
+                      AFFECTED_SERVICES="$AFFECTED_SERVICES $dep_service"
+                      echo "Added $dep_service due to dependency on $service"
+                    fi
+                  fi
+                done
               fi
             done
             
-            # Check for global changes
+            # Check for different types of changes
             GLOBAL_CHANGES=false
-            if echo "$CHANGED_FILES" | grep -qE "(\.github/|docker-compose|Dockerfile|\.circleci/)"; then
+            INFRASTRUCTURE_CHANGES=false
+            
+            if echo "$CHANGED_FILES" | grep -qE "(\.circleci/|\.github/workflows/)"; then
+              echo "CI/CD configuration changes detected"
               GLOBAL_CHANGES=true
-              AFFECTED_SERVICES="auth user auction bidding payment gateway order analytics notification vin-ocr shared"
+              INFRASTRUCTURE_CHANGES=true
+              AFFECTED_SERVICES="shared auth user auction bidding payment gateway order analytics notification vin-ocr"
             fi
             
+            if echo "$CHANGED_FILES" | grep -qE "(docker-compose|Dockerfile|\.dockerignore)"; then
+              echo "Docker configuration changes detected"
+              GLOBAL_CHANGES=true
+              SKIP_DOCKER_BUILDS=false
+              AFFECTED_SERVICES="shared auth user auction bidding payment gateway order analytics notification vin-ocr"
+            fi
+            
+            if echo "$CHANGED_FILES" | grep -qE "(composer\.json|composer\.lock|package\.json|package-lock\.json)"; then
+              echo "Dependency changes detected"
+              SKIP_EXPENSIVE_JOBS=false
+            fi
+            
+            if echo "$CHANGED_FILES" | grep -qE "(\.env|config/|database/migrations/)"; then
+              echo "Configuration or schema changes detected"
+              SKIP_EXPENSIVE_JOBS=false
+              SKIP_PERFORMANCE_TESTS=false
+            fi
+            
+            # Branch-specific logic
+            if [ "${CIRCLE_BRANCH}" = "main" ] || [ "${CIRCLE_BRANCH}" = "develop" ]; then
+              echo "Main/develop branch detected - running full pipeline"
+              SKIP_EXPENSIVE_JOBS=false
+              SKIP_DOCKER_BUILDS=false
+              SKIP_PERFORMANCE_TESTS=false
+            fi
+            
+            # If no services affected, still run basic checks
+            if [ -z "$AFFECTED_SERVICES" ]; then
+              echo "No service changes detected, running basic validation only"
+              AFFECTED_SERVICES="shared"  # Always check shared as minimum
+            fi
+            
+            echo "=== EXECUTION PLAN ==="
             echo "Affected services: $AFFECTED_SERVICES"
             echo "Global changes: $GLOBAL_CHANGES"
+            echo "Infrastructure changes: $INFRASTRUCTURE_CHANGES"
+            echo "Skip expensive jobs: $SKIP_EXPENSIVE_JOBS"
+            echo "Skip Docker builds: $SKIP_DOCKER_BUILDS"
+            echo "Skip performance tests: $SKIP_PERFORMANCE_TESTS"
             
-            # Save to workspace
+            # Save to workspace for conditional execution
             mkdir -p /tmp/workspace
             echo "$AFFECTED_SERVICES" > /tmp/workspace/affected_services
             echo "$GLOBAL_CHANGES" > /tmp/workspace/global_changes
+            echo "$INFRASTRUCTURE_CHANGES" > /tmp/workspace/infrastructure_changes
+            echo "$SKIP_EXPENSIVE_JOBS" > /tmp/workspace/skip_expensive_jobs
+            echo "$SKIP_DOCKER_BUILDS" > /tmp/workspace/skip_docker_builds
+            echo "$SKIP_PERFORMANCE_TESTS" > /tmp/workspace/skip_performance_tests
             
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
             - affected_services
             - global_changes
+            - infrastructure_changes
+            - skip_expensive_jobs
+            - skip_docker_builds
+            - skip_performance_tests
             
       - notify-slack:
           status: "started"
@@ -681,12 +914,18 @@ jobs:
           docker_layer_caching: true
 
       - run:
-          name: Check if auth should be built
+          name: Check if auth should be built (Phase 7: Conditional Execution)
           command: |
             AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
-            if echo "$AFFECTED_SERVICES" | grep -q "auth"; then
-              echo "Building auth service..."
+            SKIP_DOCKER_BUILDS=$(cat /tmp/workspace/skip_docker_builds)
+            
+            # Check if service is affected and Docker builds are not skipped
+            if echo "$AFFECTED_SERVICES" | grep -q "auth" && [ "$SKIP_DOCKER_BUILDS" = "false" ]; then
+              echo "Building auth service (affected and Docker builds enabled)..."
               echo "true" > /tmp/should_build_auth
+            elif echo "$AFFECTED_SERVICES" | grep -q "auth" && [ "$SKIP_DOCKER_BUILDS" = "true" ]; then
+              echo "Skipping auth Docker build (service affected but Docker builds disabled for optimization)"
+              echo "false" > /tmp/should_build_auth
             else
               echo "Skipping auth service build (not affected)"
               echo "false" > /tmp/should_build_auth
@@ -785,7 +1024,7 @@ jobs:
           status: "passed"
           job_name: "Docker Optimization"
   
-  # Performance Testing Job
+  # Performance Testing Job (Phase 7: Conditional Execution)
   performance-testing:
     executor: xlarge-executor-php83  # Performance testing needs maximum resources
     steps:
@@ -794,26 +1033,47 @@ jobs:
           at: /tmp/workspace
           
       - run:
+          name: Check if performance tests should run
+          command: |
+            SKIP_PERFORMANCE_TESTS=$(cat /tmp/workspace/skip_performance_tests)
+            
+            if [ "$SKIP_PERFORMANCE_TESTS" = "true" ]; then
+              echo "Skipping performance tests (optimization enabled)"
+              echo "false" > /tmp/should_run_performance_tests
+            else
+              echo "Running performance tests (required for this change type)"
+              echo "true" > /tmp/should_run_performance_tests
+            fi
+            
+      - run:
           name: Install performance testing tools
           command: |
-            # Install k6 for load testing
-            sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-            echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-            sudo apt-get update
-            sudo apt-get install k6
+            if [ "$(cat /tmp/should_run_performance_tests)" = "true" ]; then
+              # Install k6 for load testing
+              sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+              echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+              sudo apt-get update
+              sudo apt-get install k6
+            else
+              echo "Skipping performance test tool installation"
+            fi
             
       - run:
           name: Run performance tests
           command: |
-            # Run load tests for affected services
-            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
-            
-            for service in $AFFECTED_SERVICES; do
-              if [ -f "tests/performance/$service-load-test.js" ]; then
-                echo "Running performance tests for $service..."
-                k6 run tests/performance/$service-load-test.js
-              fi
-            done
+            if [ "$(cat /tmp/should_run_performance_tests)" = "true" ]; then
+              # Run load tests for affected services
+              AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+              
+              for service in $AFFECTED_SERVICES; do
+                if [ -f "tests/performance/$service-load-test.js" ]; then
+                  echo "Running performance tests for $service..."
+                  k6 run tests/performance/$service-load-test.js
+                fi
+              done
+            else
+              echo "Performance tests skipped due to conditional execution optimization"
+            fi
             
       - store_artifacts:
           path: performance-results/
