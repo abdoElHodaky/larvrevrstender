@@ -84,7 +84,13 @@ jobs:
           
           # Get changed files
           if [ "${{ github.event_name }}" = "push" ]; then
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+            # Handle null SHA for first push to new branch
+            if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ] || [ -z "${{ github.event.before }}" ]; then
+              echo "First push to branch detected, using HEAD~1 comparison"
+              CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git show --name-only --pretty=format: HEAD)
+            else
+              CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} 2>/dev/null || git diff --name-only HEAD~1 HEAD)
+            fi
           elif [ "${{ github.event_name }}" = "pull_request" ]; then
             CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
           else
