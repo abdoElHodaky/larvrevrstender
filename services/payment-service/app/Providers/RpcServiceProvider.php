@@ -7,6 +7,8 @@ use Shared\Core\ProcedureEngine;
 use App\RPC\Procedures\PaymentProcedure;
 use App\Services\PaymentService;
 use App\Services\ReservationService;
+use App\Services\InvoiceService;
+use App\Services\EscrowService;
 
 /**
  * RPC Service Provider for Payment Service
@@ -27,7 +29,9 @@ class RpcServiceProvider extends ServiceProvider
         $this->app->singleton(PaymentProcedure::class, function ($app) {
             return new PaymentProcedure(
                 $app->make(PaymentService::class),
-                $app->make(ReservationService::class)
+                $app->make(ReservationService::class),
+                $app->make(InvoiceService::class),
+                $app->make(EscrowService::class)
             );
         });
     }
