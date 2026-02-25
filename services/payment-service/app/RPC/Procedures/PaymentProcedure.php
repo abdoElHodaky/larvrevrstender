@@ -8,6 +8,8 @@ use App\Models\Reservation;
 use App\Models\Transaction;
 use App\Services\PaymentService;
 use App\Services\ReservationService;
+use App\Services\InvoiceService;
+use App\Services\EscrowService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Exception;
@@ -21,11 +23,19 @@ class PaymentProcedure extends BaseProcedure
 {
     protected PaymentService $paymentService;
     protected ReservationService $reservationService;
+    protected InvoiceService $invoiceService;
+    protected EscrowService $escrowService;
     
-    public function __construct(PaymentService $paymentService, ReservationService $reservationService)
-    {
+    public function __construct(
+        PaymentService $paymentService, 
+        ReservationService $reservationService,
+        InvoiceService $invoiceService,
+        EscrowService $escrowService
+    ) {
         $this->paymentService = $paymentService;
         $this->reservationService = $reservationService;
+        $this->invoiceService = $invoiceService;
+        $this->escrowService = $escrowService;
     }
     
     /**
@@ -395,6 +405,315 @@ class PaymentProcedure extends BaseProcedure
             ]);
             
             return $this->errorResponse('Failed to calculate fees', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Create invoice from order data
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
+     */
+    public function createInvoice(array $params): array
+    {
+        try {
+            $validator = Validator::make($params, [
+                'invoice_data' => 'required|array',
+                'invoice_data.order_id' => 'required|integer|min:1',
+                'invoice_data.customer_id' => 'required|integer|min:1',
+                'invoice_data.merchant_id' => 'required|integer|min:1',
+                'invoice_data.subtotal' => 'required|numeric|min:0',
+                'invoice_data.currency' => 'string|size:3',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
+            }
+            
+            $invoice = $this->invoiceService->createInvoiceFromOrder($params['invoice_data']);
+            
+            return $this->successResponse([
+                'id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'order_id' => $invoice->order_id,
+                'customer_id' => $invoice->customer_id,
+                'merchant_id' => $invoice->merchant_id,
+                'subtotal' => $invoice->subtotal,
+                'total_amount' => $invoice->total_amount,
+                'currency' => $invoice->currency,
+                'status' => $invoice->status,
+                'invoice_date' => $invoice->invoice_date,
+                'due_date' => $invoice->due_date,
+                'created_at' => $invoice->created_at,
+            ]);
+            
+        } catch (Exception $e) {
+            Log::error('PaymentProcedure::createInvoice failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to create invoice', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Send invoice to customer
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
+     */
+    public function sendInvoice(array $params): array
+    {
+        try {
+            $validator = Validator::make($params, [
+                'invoice_id' => 'required|integer|min:1',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
+            }
+            
+            $invoice = $this->invoiceService->sendInvoice($params['invoice_id']);
+            
+            return $this->successResponse([
+                'id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'status' => $invoice->status,
+                'sent_at' => $invoice->sent_at,
+                'sent_to' => $invoice->sent_to,
+            ]);
+            
+        } catch (Exception $e) {
+            Log::error('PaymentProcedure::sendInvoice failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to send invoice', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get invoice by ID
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
+     */
+    public function getInvoice(array $params): array
+    {
+        try {
+            $validator = Validator::make($params, [
+                'invoice_id' => 'required|integer|min:1',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
+            }
+            
+            $invoice = $this->invoiceService->getInvoice($params['invoice_id']);
+            
+            return $this->successResponse([
+                'id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'order_id' => $invoice->order_id,
+                'customer_id' => $invoice->customer_id,
+                'merchant_id' => $invoice->merchant_id,
+                'subtotal' => $invoice->subtotal,
+                'total_amount' => $invoice->total_amount,
+                'currency' => $invoice->currency,
+                'status' => $invoice->status,
+                'invoice_date' => $invoice->invoice_date,
+                'due_date' => $invoice->due_date,
+                'sent_at' => $invoice->sent_at,
+                'paid_at' => $invoice->paid_at,
+                'created_at' => $invoice->created_at,
+                'updated_at' => $invoice->updated_at,
+            ]);
+            
+        } catch (Exception $e) {
+            Log::error('PaymentProcedure::getInvoice failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to get invoice', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Create escrow account
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
+     */
+    public function createEscrow(array $params): array
+    {
+        try {
+            $validator = Validator::make($params, [
+                'escrow_data' => 'required|array',
+                'escrow_data.order_id' => 'required|integer|min:1',
+                'escrow_data.buyer_id' => 'required|integer|min:1',
+                'escrow_data.seller_id' => 'required|integer|min:1',
+                'escrow_data.amount' => 'required|numeric|min:0.01',
+                'escrow_data.currency' => 'string|size:3',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
+            }
+            
+            $escrow = $this->escrowService->createEscrow($params['escrow_data']);
+            
+            return $this->successResponse([
+                'id' => $escrow->id,
+                'escrow_number' => $escrow->escrow_number,
+                'order_id' => $escrow->order_id,
+                'buyer_id' => $escrow->buyer_id,
+                'seller_id' => $escrow->seller_id,
+                'amount' => $escrow->amount,
+                'currency' => $escrow->currency,
+                'status' => $escrow->status,
+                'created_at' => $escrow->created_at,
+            ]);
+            
+        } catch (Exception $e) {
+            Log::error('PaymentProcedure::createEscrow failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to create escrow', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Fund escrow account
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
+     */
+    public function fundEscrow(array $params): array
+    {
+        try {
+            $validator = Validator::make($params, [
+                'escrow_id' => 'required|integer|min:1',
+                'payment_data' => 'required|array',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
+            }
+            
+            $escrow = $this->escrowService->fundEscrow($params['escrow_id']);
+            
+            return $this->successResponse([
+                'id' => $escrow->id,
+                'escrow_number' => $escrow->escrow_number,
+                'status' => $escrow->status,
+                'funded_at' => $escrow->funded_at,
+                'amount' => $escrow->amount,
+                'currency' => $escrow->currency,
+            ]);
+            
+        } catch (Exception $e) {
+            Log::error('PaymentProcedure::fundEscrow failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to fund escrow', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Release escrow funds
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
+     */
+    public function releaseEscrow(array $params): array
+    {
+        try {
+            $validator = Validator::make($params, [
+                'escrow_id' => 'required|integer|min:1',
+                'release_data' => 'array',
+                'release_data.reason' => 'string',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
+            }
+            
+            $reason = $params['release_data']['reason'] ?? 'Order completed';
+            $escrow = $this->escrowService->releaseEscrow($params['escrow_id'], $reason);
+            
+            return $this->successResponse([
+                'id' => $escrow->id,
+                'escrow_number' => $escrow->escrow_number,
+                'status' => $escrow->status,
+                'released_at' => $escrow->released_at,
+                'release_reason' => $escrow->release_reason,
+                'amount' => $escrow->amount,
+                'currency' => $escrow->currency,
+            ]);
+            
+        } catch (Exception $e) {
+            Log::error('PaymentProcedure::releaseEscrow failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to release escrow', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get escrow by order ID
+     *
+     * @param array $params RPC parameters
+     * @return array RPC response
+     */
+    public function getEscrowByOrderId(array $params): array
+    {
+        try {
+            $validator = Validator::make($params, [
+                'order_id' => 'required|integer|min:1',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', $validator->errors()->toArray(), 400);
+            }
+            
+            // Find escrow by order_id (assuming there's a method for this)
+            $escrow = $this->escrowService->getEscrowByOrderId($params['order_id']);
+            
+            if (!$escrow) {
+                return $this->errorResponse('Escrow not found', ['order_id' => $params['order_id']], 404);
+            }
+            
+            return $this->successResponse([
+                'id' => $escrow->id,
+                'escrow_number' => $escrow->escrow_number,
+                'order_id' => $escrow->order_id,
+                'buyer_id' => $escrow->buyer_id,
+                'seller_id' => $escrow->seller_id,
+                'amount' => $escrow->amount,
+                'currency' => $escrow->currency,
+                'status' => $escrow->status,
+                'funded_at' => $escrow->funded_at,
+                'released_at' => $escrow->released_at,
+                'created_at' => $escrow->created_at,
+                'updated_at' => $escrow->updated_at,
+            ]);
+            
+        } catch (Exception $e) {
+            Log::error('PaymentProcedure::getEscrowByOrderId failed', [
+                'params' => $params,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return $this->errorResponse('Failed to get escrow', ['error' => $e->getMessage()], 500);
         }
     }
 }

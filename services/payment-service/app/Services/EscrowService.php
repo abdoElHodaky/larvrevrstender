@@ -293,6 +293,16 @@ class EscrowService
     }
 
     /**
+     * Get escrow by order ID.
+     */
+    public function getEscrowByOrderId(int $orderId): ?Escrow
+    {
+        return Escrow::with(['payment', 'transactions', 'releaseConditions'])
+            ->where('order_id', $orderId)
+            ->first();
+    }
+
+    /**
      * Create default release conditions for an escrow.
      */
     private function createDefaultReleaseConditions(Escrow $escrow): void
@@ -315,4 +325,3 @@ class EscrowService
         }
     }
 }
-
