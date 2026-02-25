@@ -84,7 +84,13 @@ jobs:
           
           # Get changed files
           if [ "${{ github.event_name }}" = "push" ]; then
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+            # Handle null SHA for first push to new branch
+            if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ] || [ -z "${{ github.event.before }}" ]; then
+              echo "First push to branch detected, using HEAD~1 comparison"
+              CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git show --name-only --pretty=format: HEAD)
+            else
+              CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} 2>/dev/null || git diff --name-only HEAD~1 HEAD)
+            fi
           elif [ "${{ github.event_name }}" = "pull_request" ]; then
             CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
           else
@@ -739,47 +745,25 @@ jobs:
             OVERALL_STATUS="failure"
           fi
           
-          # Generate report
-          REPORT=$(cat << EOF
-          ## 🚀 **ENTERPRISE CI/CD PIPELINE REPORT**
+          # Generate report (simplified to avoid heredoc parsing issues)
+          echo "## 🚀 **ENTERPRISE CI/CD PIPELINE REPORT**" > /tmp/report.md
+          echo "" >> /tmp/report.md
+          echo "**Pipeline ID:** ${{ github.run_id }}" >> /tmp/report.md
+          echo "**Commit:** ${{ github.sha }}" >> /tmp/report.md
+          echo "**Branch:** ${{ github.ref_name }}" >> /tmp/report.md
+          echo "**Environment:** ${{ inputs.target_environment || 'staging' }}" >> /tmp/report.md
+          echo "" >> /tmp/report.md
+          echo "### 📊 **EXECUTION SUMMARY**" >> /tmp/report.md
+          echo "" >> /tmp/report.md
+          echo "**Overall Status:** $([ "$OVERALL_STATUS" = "success" ] && echo "✅ SUCCESS" || echo "❌ FAILURE")" >> /tmp/report.md
+          echo "**Risk Score:** ${{ needs.change-detection.outputs.risk_score }}/100" >> /tmp/report.md
+          echo "**Change Impact:** ${{ needs.change-detection.outputs.change_impact }}" >> /tmp/report.md
+          echo "**Deployment Strategy:** ${{ needs.change-detection.outputs.deployment_strategy }}" >> /tmp/report.md
+          echo "**Affected Services:** ${{ needs.change-detection.outputs.affected_services }}" >> /tmp/report.md
+          echo "" >> /tmp/report.md
+          echo "🚀 Enterprise CI/CD Pipeline - Production Ready!" >> /tmp/report.md
           
-          **Pipeline ID:** ${{ github.run_id }}
-          **Commit:** ${{ github.sha }}
-          **Branch:** ${{ github.ref_name }}
-          **Environment:** ${{ inputs.target_environment || 'staging' }}
-          
-          ### 📊 **EXECUTION SUMMARY**
-          
-          **Overall Status:** $([ "$OVERALL_STATUS" = "success" ] && echo "✅ SUCCESS" || echo "❌ FAILURE")
-          **Risk Score:** ${{ needs.change-detection.outputs.risk_score }}/100
-          **Change Impact:** ${{ needs.change-detection.outputs.change_impact }}
-          **Deployment Strategy:** ${{ needs.change-detection.outputs.deployment_strategy }}
-          **Affected Services:** ${{ needs.change-detection.outputs.affected_services }}
-          
-          ### 🔄 **PHASE RESULTS**
-          
-          - 🔍 **Change Detection:** ✅ Completed
-          - 🔒 **Security Scanning:** ${{ needs.security-scan.result == 'success' && '✅' || needs.security-scan.result == 'failure' && '❌' || '⏭️' }} ${{ needs.security-scan.result }}
-          - 🏗️ **Service Build:** ${{ needs.service-build.result == 'success' && '✅' || needs.service-build.result == 'failure' && '❌' || '⏭️' }} ${{ needs.service-build.result }}
-          - 🗄️ **Database Migration:** ${{ needs.database-migration.result == 'success' && '✅' || needs.database-migration.result == 'failure' && '❌' || '⏭️' }} ${{ needs.database-migration.result }}
-          - 🧪 **Comprehensive Testing:** ${{ needs.comprehensive-testing.result == 'success' && '✅' || needs.comprehensive-testing.result == 'failure' && '❌' || '⏭️' }} ${{ needs.comprehensive-testing.result }}
-          - 🔧 **Self-Healing:** ${{ needs.self-healing.result == 'success' && '✅' || needs.self-healing.result == 'failure' && '❌' || '⏭️' }} ${{ needs.self-healing.result }}
-          - 🚀 **Deployment:** ${{ needs.deployment.result == 'success' && '✅' || needs.deployment.result == 'failure' && '❌' || '⏭️' }} ${{ needs.deployment.result }}
-          - 📊 **Optimization:** ${{ needs.optimization.result == 'success' && '✅' || needs.optimization.result == 'failure' && '❌' || '⏭️' }} ${{ needs.optimization.result }}
-          
-          ### 🎯 **ENTERPRISE FEATURES ACTIVATED**
-          
-          - ✅ **Template Integration:** All templates properly integrated
-          - ✅ **Service Orchestration:** 11 microservices with dependency management
-          - ✅ **Environment Configuration:** Multi-environment support
-          - ✅ **Database Migration:** Automated migration pipeline
-          - ✅ **Security Scanning:** Comprehensive security validation
-          - ✅ **Self-Healing:** Intelligent recovery mechanisms
-          - ✅ **Blue-Green Deployment:** Zero-downtime deployments
-          
-          **🚀 Enterprise CI/CD Pipeline - Production Ready!**
-          EOF
-          )
+          REPORT=$(cat /tmp/report.md)
           
           echo "$REPORT"
           
