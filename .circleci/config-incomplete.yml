@@ -327,6 +327,138 @@ commands:
           paths:
             - "*"
 
+  # Dockerfile optimization analysis (Phase 9: Docker Optimization)
+  analyze-dockerfile:
+    description: "Analyze and optimize Dockerfile with best practices"
+    parameters:
+      service:
+        type: string
+    steps:
+      - run:
+          name: Dockerfile optimization analysis
+          command: |
+            cd << parameters.service >>
+            
+            if [ ! -f "Dockerfile" ]; then
+              echo "No Dockerfile found for << parameters.service >>"
+              exit 0
+            fi
+            
+            echo "=== DOCKERFILE ANALYSIS FOR << parameters.service >> ==="
+            
+            # Create analysis report
+            mkdir -p /tmp/dockerfile-analysis
+            REPORT_FILE="/tmp/dockerfile-analysis/<< parameters.service >>-dockerfile-analysis.md"
+            
+            echo "# Dockerfile Analysis: << parameters.service >>" > $REPORT_FILE
+            echo "Generated: $(date)" >> $REPORT_FILE
+            echo "" >> $REPORT_FILE
+            
+            # Basic Dockerfile metrics
+            LINES=$(wc -l < Dockerfile)
+            LAYERS=$(grep -c "^RUN\|^COPY\|^ADD" Dockerfile || echo "0")
+            echo "## Basic Metrics" >> $REPORT_FILE
+            echo "- **Total Lines**: $LINES" >> $REPORT_FILE
+            echo "- **Build Layers**: $LAYERS" >> $REPORT_FILE
+            echo "" >> $REPORT_FILE
+            
+            # Best practices analysis
+            echo "## Best Practices Analysis" >> $REPORT_FILE
+            
+            # Check base image
+            BASE_IMAGE=$(grep "^FROM" Dockerfile | head -1 | awk '{print $2}')
+            echo "- **Base Image**: $BASE_IMAGE" >> $REPORT_FILE
+            
+            if echo "$BASE_IMAGE" | grep -q ":latest"; then
+              echo "  - ⚠️ **Warning**: Using 'latest' tag is not recommended for production" >> $REPORT_FILE
+            else
+              echo "  - ✅ **Good**: Using specific version tag" >> $REPORT_FILE
+            fi
+            
+            # Check for multi-stage builds
+            if grep -q "^FROM.*AS" Dockerfile; then
+              echo "- ✅ **Multi-stage build detected** - Good for optimization" >> $REPORT_FILE
+            else
+              echo "- 💡 **Suggestion**: Consider using multi-stage builds for smaller images" >> $REPORT_FILE
+            fi
+            
+            # Check for USER directive
+            if grep -q "^USER" Dockerfile; then
+              echo "- ✅ **Security**: Non-root user specified" >> $REPORT_FILE
+            else
+              echo "- ⚠️ **Security**: Consider adding USER directive to run as non-root" >> $REPORT_FILE
+            fi
+            
+            # Check for HEALTHCHECK
+            if grep -q "^HEALTHCHECK" Dockerfile; then
+              echo "- ✅ **Monitoring**: Health check configured" >> $REPORT_FILE
+            else
+              echo "- 💡 **Suggestion**: Consider adding HEALTHCHECK for better monitoring" >> $REPORT_FILE
+            fi
+            
+            # Check for cache optimization
+            if grep -q "COPY.*package.*json" Dockerfile && grep -q "RUN.*npm install" Dockerfile; then
+              echo "- ✅ **Caching**: Package files copied before dependencies (good for caching)" >> $REPORT_FILE
+            fi
+            
+            if grep -q "COPY.*composer.*json" Dockerfile && grep -q "RUN.*composer install" Dockerfile; then
+              echo "- ✅ **Caching**: Composer files copied before dependencies (good for caching)" >> $REPORT_FILE
+            fi
+            
+            # Check for cleanup commands
+            if grep -q "apt-get.*clean\|rm -rf /var/lib/apt/lists" Dockerfile; then
+              echo "- ✅ **Size**: Package cache cleanup detected" >> $REPORT_FILE
+            elif grep -q "apt-get\|apk add" Dockerfile; then
+              echo "- 💡 **Size**: Consider cleaning package cache to reduce image size" >> $REPORT_FILE
+            fi
+            
+            # Check for .dockerignore
+            if [ -f ".dockerignore" ]; then
+              echo "- ✅ **Build Context**: .dockerignore file present" >> $REPORT_FILE
+              DOCKERIGNORE_LINES=$(wc -l < .dockerignore)
+              echo "  - **Entries**: $DOCKERIGNORE_LINES" >> $REPORT_FILE
+            else
+              echo "- 💡 **Build Context**: Consider adding .dockerignore to reduce build context" >> $REPORT_FILE
+            fi
+            
+            # Optimization recommendations
+            echo "" >> $REPORT_FILE
+            echo "## Optimization Recommendations" >> $REPORT_FILE
+            
+            # Layer consolidation
+            RUN_COUNT=$(grep -c "^RUN" Dockerfile || echo "0")
+            if [ "$RUN_COUNT" -gt 5 ]; then
+              echo "- **Layer Optimization**: Consider consolidating RUN commands (currently $RUN_COUNT)" >> $REPORT_FILE
+            fi
+            
+            # BuildKit recommendations
+            if ! grep -q "# syntax=docker/dockerfile" Dockerfile; then
+              echo "- **BuildKit**: Consider adding BuildKit syntax for advanced features:" >> $REPORT_FILE
+              echo "  \`\`\`dockerfile" >> $REPORT_FILE
+              echo "  # syntax=docker/dockerfile:1" >> $REPORT_FILE
+              echo "  \`\`\`" >> $REPORT_FILE
+            fi
+            
+            # Cache mount recommendations
+            if grep -q "npm install\|composer install\|pip install" Dockerfile && ! grep -q "--mount=type=cache" Dockerfile; then
+              echo "- **Cache Mounts**: Consider using BuildKit cache mounts for package managers:" >> $REPORT_FILE
+              echo "  \`\`\`dockerfile" >> $REPORT_FILE
+              echo "  RUN --mount=type=cache,target=/root/.npm npm install" >> $REPORT_FILE
+              echo "  \`\`\`" >> $REPORT_FILE
+            fi
+            
+            echo "" >> $REPORT_FILE
+            echo "---" >> $REPORT_FILE
+            echo "*Analysis completed at $(date)*" >> $REPORT_FILE
+            
+            # Display report
+            cat $REPORT_FILE
+            
+      - persist_to_workspace:
+          root: /tmp/dockerfile-analysis
+          paths:
+            - "*"
+
   # Run PHPUnit tests with coverage
   run-phpunit-tests:
     description: "Run PHPUnit tests with coverage reporting"
@@ -988,7 +1120,7 @@ jobs:
 # ADDITIONAL JOBS - Advanced features
 # ============================================================================
 
-  # Docker Optimization Job
+  # Advanced Docker Optimization (Phase 9: Docker Optimization)
   docker-optimization:
     executor: large-executor-php83  # Docker optimization needs large resources
     steps:
@@ -998,31 +1130,206 @@ jobs:
           
       - setup_remote_docker:
           docker_layer_caching: true
+          version: 20.10.14
           
       - run:
-          name: Optimize Docker images
+          name: Setup advanced Docker environment
+          command: |
+            # Enable BuildKit and experimental features
+            echo 'export DOCKER_BUILDKIT=1' >> $BASH_ENV
+            echo 'export BUILDKIT_PROGRESS=plain' >> $BASH_ENV
+            echo 'export DOCKER_CLI_EXPERIMENTAL=enabled' >> $BASH_ENV
+            source $BASH_ENV
+            
+            # Install Docker Buildx for advanced features
+            mkdir -p ~/.docker/cli-plugins
+            curl -L "https://github.com/docker/buildx/releases/download/v0.11.2/buildx-v0.11.2.linux-amd64" -o ~/.docker/cli-plugins/docker-buildx
+            chmod +x ~/.docker/cli-plugins/docker-buildx
+            
+            # Create and use advanced builder
+            docker buildx create --name advanced-builder --use --bootstrap || true
+            docker buildx inspect advanced-builder
+            
+      - run:
+          name: Install optimization tools
+          command: |
+            # Install dive for image layer analysis
+            curl -L "https://github.com/wagoodman/dive/releases/download/v0.10.0/dive_0.10.0_linux_amd64.deb" -o dive.deb
+            sudo dpkg -i dive.deb || sudo apt-get install -f -y
+            
+            # Install trivy for security scanning
+            sudo apt-get update
+            sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+            wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+            echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+            sudo apt-get update
+            sudo apt-get install trivy -y
+            
+      - run:
+          name: Advanced Docker image optimization
           command: |
             AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+            SKIP_DOCKER_BUILDS=$(cat /tmp/workspace/skip_docker_builds)
+            
+            # Create optimization report
+            mkdir -p /tmp/docker-optimization-reports
+            echo "# Docker Optimization Report" > /tmp/docker-optimization-reports/optimization-report.md
+            echo "Generated: $(date)" >> /tmp/docker-optimization-reports/optimization-report.md
+            echo "" >> /tmp/docker-optimization-reports/optimization-report.md
             
             for service in $AFFECTED_SERVICES; do
               if [ -d "services/$service" ]; then
-                echo "Optimizing $service Docker image..."
+                echo "=== OPTIMIZING $service DOCKER IMAGE ==="
                 cd services/$service
                 
-                # Analyze image size
-                docker build --target=production -t temp-$service .
-                docker images temp-$service --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+                # Check if Dockerfile exists
+                if [ ! -f "Dockerfile" ]; then
+                  echo "No Dockerfile found for $service, skipping..."
+                  cd ../..
+                  continue
+                fi
                 
-                # Security scan
-                trivy image temp-$service
+                # Build optimized image with advanced caching
+                echo "Building optimized image for $service..."
+                docker buildx build \
+                  --platform linux/amd64 \
+                  --cache-from=type=registry,ref=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/$service:cache \
+                  --cache-to=type=registry,ref=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/$service:cache,mode=max \
+                  --target=production \
+                  --tag=temp-$service:optimized \
+                  --build-arg BUILDKIT_INLINE_CACHE=1 \
+                  --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+                  --build-arg VCS_REF=${CIRCLE_SHA1} \
+                  --load \
+                  . || echo "Build failed for $service, continuing..."
+                
+                # Image size analysis
+                if docker images temp-$service:optimized --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep -q "temp-$service"; then
+                  echo "## $service Image Analysis" >> /tmp/docker-optimization-reports/optimization-report.md
+                  
+                  # Get image size
+                  IMAGE_SIZE=$(docker images temp-$service:optimized --format "{{.Size}}")
+                  echo "- **Image Size**: $IMAGE_SIZE" >> /tmp/docker-optimization-reports/optimization-report.md
+                  
+                  # Layer analysis with dive
+                  echo "Analyzing layers for $service..."
+                  dive temp-$service:optimized --ci --lowestEfficiency=0.95 --highestWastedBytes=20MB > /tmp/docker-optimization-reports/$service-dive-analysis.txt 2>&1 || true
+                  
+                  # Security scan with caching
+                  echo "Running security scan for $service..."
+                  trivy image --cache-dir /tmp/trivy-cache --format json --output /tmp/docker-optimization-reports/$service-security.json temp-$service:optimized || true
+                  trivy image --cache-dir /tmp/trivy-cache --format table temp-$service:optimized > /tmp/docker-optimization-reports/$service-security.txt || true
+                  
+                  # Count vulnerabilities
+                  if [ -f "/tmp/docker-optimization-reports/$service-security.json" ]; then
+                    CRITICAL_VULNS=$(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL") | .VulnerabilityID' /tmp/docker-optimization-reports/$service-security.json 2>/dev/null | wc -l || echo "0")
+                    HIGH_VULNS=$(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity=="HIGH") | .VulnerabilityID' /tmp/docker-optimization-reports/$service-security.json 2>/dev/null | wc -l || echo "0")
+                    echo "- **Critical Vulnerabilities**: $CRITICAL_VULNS" >> /tmp/docker-optimization-reports/optimization-report.md
+                    echo "- **High Vulnerabilities**: $HIGH_VULNS" >> /tmp/docker-optimization-reports/optimization-report.md
+                  fi
+                  
+                  # Dockerfile optimization suggestions
+                  echo "- **Optimization Suggestions**:" >> /tmp/docker-optimization-reports/optimization-report.md
+                  if grep -q "FROM.*:latest" Dockerfile; then
+                    echo "  - ⚠️ Use specific version tags instead of 'latest'" >> /tmp/docker-optimization-reports/optimization-report.md
+                  fi
+                  if ! grep -q "USER" Dockerfile; then
+                    echo "  - ⚠️ Consider adding non-root USER directive" >> /tmp/docker-optimization-reports/optimization-report.md
+                  fi
+                  if ! grep -q "HEALTHCHECK" Dockerfile; then
+                    echo "  - 💡 Consider adding HEALTHCHECK instruction" >> /tmp/docker-optimization-reports/optimization-report.md
+                  fi
+                  if grep -q "RUN.*apt-get update" Dockerfile && ! grep -q "apt-get clean" Dockerfile; then
+                    echo "  - 💡 Clean apt cache after installation to reduce image size" >> /tmp/docker-optimization-reports/optimization-report.md
+                  fi
+                  
+                  echo "" >> /tmp/docker-optimization-reports/optimization-report.md
+                  
+                  # Cleanup temporary image
+                  docker rmi temp-$service:optimized || true
+                else
+                  echo "Failed to build image for $service"
+                fi
                 
                 cd ../..
               fi
             done
             
+            # Generate summary
+            echo "## Optimization Summary" >> /tmp/docker-optimization-reports/optimization-report.md
+            echo "- **Services Analyzed**: $(echo $AFFECTED_SERVICES | wc -w)" >> /tmp/docker-optimization-reports/optimization-report.md
+            echo "- **Optimization Date**: $(date)" >> /tmp/docker-optimization-reports/optimization-report.md
+            echo "- **Branch**: ${CIRCLE_BRANCH}" >> /tmp/docker-optimization-reports/optimization-report.md
+            echo "- **Commit**: ${CIRCLE_SHA1}" >> /tmp/docker-optimization-reports/optimization-report.md
+            
+            # Display summary
+            echo "=== DOCKER OPTIMIZATION COMPLETE ==="
+            cat /tmp/docker-optimization-reports/optimization-report.md
+            
+      - store_artifacts:
+          path: /tmp/docker-optimization-reports
+          destination: docker-optimization
+          
+      - run:
+          name: Cleanup optimization environment
+          command: |
+            # Cleanup build cache and temporary files
+            docker buildx prune -f || true
+            docker system prune -f || true
+            rm -rf /tmp/trivy-cache || true
+            
       - notify-slack:
           status: "passed"
           job_name: "Docker Optimization"
+
+  # Dockerfile Analysis (Phase 9: Docker Optimization)
+  dockerfile-analysis:
+    executor: small-executor-php83
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Analyze Dockerfiles
+          command: |
+            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+            mkdir -p /tmp/dockerfile-reports
+            
+            for service in $AFFECTED_SERVICES; do
+              if [ -d "services/$service" ] && [ -f "services/$service/Dockerfile" ]; then
+                cd services/$service
+                echo "=== Analyzing $service Dockerfile ==="
+                
+                # Basic analysis
+                LINES=$(wc -l < Dockerfile)
+                LAYERS=$(grep -c "^RUN\|^COPY\|^ADD" Dockerfile || echo "0")
+                BASE_IMAGE=$(grep "^FROM" Dockerfile | head -1 | awk '{print $2}')
+                
+                # Create report
+                REPORT="/tmp/dockerfile-reports/$service-analysis.txt"
+                echo "Service: $service" > $REPORT
+                echo "Lines: $LINES" >> $REPORT
+                echo "Layers: $LAYERS" >> $REPORT
+                echo "Base: $BASE_IMAGE" >> $REPORT
+                
+                # Check issues
+                if echo "$BASE_IMAGE" | grep -q ":latest"; then
+                  echo "Issue: Using latest tag" >> $REPORT
+                fi
+                if ! grep -q "^USER" Dockerfile; then
+                  echo "Issue: No USER directive" >> $REPORT
+                fi
+                
+                cd ../..
+              fi
+            done
+            
+            echo "Dockerfile analysis complete"
+            ls -la /tmp/dockerfile-reports/
+            
+      - store_artifacts:
+          path: /tmp/dockerfile-reports
+          destination: dockerfile-analysis
   
   # Performance Testing Job (Phase 7: Conditional Execution)
   performance-testing:
@@ -1336,6 +1643,31 @@ workflows:
       - build-shared-service:
           requires:
             - test-shared-service
+          filters:
+            branches:
+              only: /.*/
+      
+      # Phase 4: Advanced Docker Optimization (Phase 9)
+      - dockerfile-analysis:
+          requires:
+            - change-detection
+          filters:
+            branches:
+              only: /.*/
+              
+      - docker-optimization:
+          requires:
+            - build-auth-service
+            - build-user-service
+            - build-auction-service
+            - build-bidding-service
+            - build-payment-service
+            - build-gateway-service
+            - build-order-service
+            - build-analytics-service
+            - build-notification-service
+            - build-vin-ocr-service
+            - build-shared-service
           filters:
             branches:
               only: /.*/
