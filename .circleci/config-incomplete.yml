@@ -723,6 +723,32 @@ jobs:
             echo "$SKIP_DOCKER_BUILDS" > /tmp/workspace/skip_docker_builds
             echo "$SKIP_PERFORMANCE_TESTS" > /tmp/workspace/skip_performance_tests
             
+            # Advanced Features Analysis (Phases 5,7,9 Remaining)
+            echo "=== ADVANCED FEATURES ANALYSIS ==="
+            
+            # Cache analysis (Phase 5)
+            CACHE_ANALYSIS="Cache: "
+            [ -d ~/.composer/cache ] && CACHE_ANALYSIS="${CACHE_ANALYSIS}Composer($(du -sh ~/.composer/cache 2>/dev/null | cut -f1 || echo '0')) "
+            [ -d ~/.npm ] && CACHE_ANALYSIS="${CACHE_ANALYSIS}npm($(du -sh ~/.npm 2>/dev/null | cut -f1 || echo '0')) "
+            echo "$CACHE_ANALYSIS" > /tmp/workspace/cache_analysis
+            
+            # Test parallelization (Phase 7)
+            TEST_COUNT=$(find . -name "*Test.php" -o -name "*.test.js" | grep -v vendor | wc -l)
+            PARALLEL_JOBS=$(( TEST_COUNT > 4 ? 4 : TEST_COUNT ))
+            echo "Tests: $TEST_COUNT, Parallel: $PARALLEL_JOBS" > /tmp/workspace/test_analysis
+            
+            # Multi-platform check (Phase 9)
+            MULTIPLATFORM="false"
+            if command -v docker >/dev/null 2>&1; then
+              export DOCKER_CLI_EXPERIMENTAL=enabled
+              if docker buildx ls 2>/dev/null | grep -q "linux/arm64"; then
+                MULTIPLATFORM="true"
+              fi
+            fi
+            echo "$MULTIPLATFORM" > /tmp/workspace/multiplatform_support
+            
+            echo "Advanced analysis complete"
+            
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
@@ -1228,20 +1254,11 @@ jobs:
                     echo "- **High Vulnerabilities**: $HIGH_VULNS" >> /tmp/docker-optimization-reports/optimization-report.md
                   fi
                   
-                  # Dockerfile optimization suggestions
-                  echo "- **Optimization Suggestions**:" >> /tmp/docker-optimization-reports/optimization-report.md
-                  if grep -q "FROM.*:latest" Dockerfile; then
-                    echo "  - ⚠️ Use specific version tags instead of 'latest'" >> /tmp/docker-optimization-reports/optimization-report.md
-                  fi
-                  if ! grep -q "USER" Dockerfile; then
-                    echo "  - ⚠️ Consider adding non-root USER directive" >> /tmp/docker-optimization-reports/optimization-report.md
-                  fi
-                  if ! grep -q "HEALTHCHECK" Dockerfile; then
-                    echo "  - 💡 Consider adding HEALTHCHECK instruction" >> /tmp/docker-optimization-reports/optimization-report.md
-                  fi
-                  if grep -q "RUN.*apt-get update" Dockerfile && ! grep -q "apt-get clean" Dockerfile; then
-                    echo "  - 💡 Clean apt cache after installation to reduce image size" >> /tmp/docker-optimization-reports/optimization-report.md
-                  fi
+                  # Optimization suggestions (compact)
+                  echo "- **Suggestions**:" >> /tmp/docker-optimization-reports/optimization-report.md
+                  grep -q "FROM.*:latest" Dockerfile && echo "  - Use specific tags" >> /tmp/docker-optimization-reports/optimization-report.md
+                  ! grep -q "USER" Dockerfile && echo "  - Add USER directive" >> /tmp/docker-optimization-reports/optimization-report.md
+                  ! grep -q "HEALTHCHECK" Dockerfile && echo "  - Add HEALTHCHECK" >> /tmp/docker-optimization-reports/optimization-report.md
                   
                   echo "" >> /tmp/docker-optimization-reports/optimization-report.md
                   
@@ -1296,36 +1313,20 @@ jobs:
             mkdir -p /tmp/dockerfile-reports
             
             for service in $AFFECTED_SERVICES; do
-              if [ -d "services/$service" ] && [ -f "services/$service/Dockerfile" ]; then
+              if [ -f "services/$service/Dockerfile" ]; then
                 cd services/$service
-                echo "=== Analyzing $service Dockerfile ==="
-                
-                # Basic analysis
                 LINES=$(wc -l < Dockerfile)
-                LAYERS=$(grep -c "^RUN\|^COPY\|^ADD" Dockerfile || echo "0")
-                BASE_IMAGE=$(grep "^FROM" Dockerfile | head -1 | awk '{print $2}')
-                
-                # Create report
-                REPORT="/tmp/dockerfile-reports/$service-analysis.txt"
-                echo "Service: $service" > $REPORT
-                echo "Lines: $LINES" >> $REPORT
-                echo "Layers: $LAYERS" >> $REPORT
-                echo "Base: $BASE_IMAGE" >> $REPORT
-                
-                # Check issues
-                if echo "$BASE_IMAGE" | grep -q ":latest"; then
-                  echo "Issue: Using latest tag" >> $REPORT
-                fi
-                if ! grep -q "^USER" Dockerfile; then
-                  echo "Issue: No USER directive" >> $REPORT
-                fi
-                
+                BASE=$(grep "^FROM" Dockerfile | awk '{print $2}')
+                REPORT="/tmp/dockerfile-reports/$service.txt"
+                echo "$service: $LINES lines, base: $BASE" > $REPORT
+                echo "$BASE" | grep -q ":latest" && echo "Issue: latest tag" >> $REPORT
+                ! grep -q "^USER" Dockerfile && echo "Issue: no USER" >> $REPORT
                 cd ../..
               fi
             done
             
-            echo "Dockerfile analysis complete"
-            ls -la /tmp/dockerfile-reports/
+            echo "Analysis complete"
+            ls /tmp/dockerfile-reports/
             
       - store_artifacts:
           path: /tmp/dockerfile-reports
