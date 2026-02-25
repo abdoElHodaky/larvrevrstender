@@ -186,14 +186,12 @@ jobs:
               
               # Create basic PHPStan config if not exists
               if [ ! -f "phpstan.neon" ]; then
-                cat > phpstan.neon << EOF
-parameters:
-    level: 5
-    paths:
-        - app
-    ignoreErrors:
-        - '#Call to an undefined method#'
-EOF
+                echo "parameters:" > phpstan.neon
+                echo "    level: 5" >> phpstan.neon
+                echo "    paths:" >> phpstan.neon
+                echo "        - app" >> phpstan.neon
+                echo "    ignoreErrors:" >> phpstan.neon
+                echo "        - '#Call to an undefined method#'" >> phpstan.neon
               fi
               
               # Run PHPStan analysis
@@ -332,4 +330,3 @@ EOF
           echo "**Total Issues:** ${{ steps.count-vulns.outputs.count }}" >> $GITHUB_STEP_SUMMARY
           echo "**Critical Issues:** ${{ steps.count-vulns.outputs.critical_count }}" >> $GITHUB_STEP_SUMMARY
           echo "**Overall Result:** ${{ steps.final-result.outputs.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
-
