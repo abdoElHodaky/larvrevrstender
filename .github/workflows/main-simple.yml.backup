@@ -1,0 +1,29 @@
+name: Main CI/CD Pipeline (Simplified)
+
+on:
+  push:
+    branches: [ main, develop, staging, v2 ]
+  pull_request:
+    branches: [ main, develop, v2 ]
+
+env:
+  NODE_VERSION: '18'
+  PHP_VERSION: '8.2'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test:
+    name: Simple Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Test PHP Syntax
+        run: |
+          echo "Testing PHP syntax..."
+          find . -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"
+          echo "PHP syntax check completed"
