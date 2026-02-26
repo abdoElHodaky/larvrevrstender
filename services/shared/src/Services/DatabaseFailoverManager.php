@@ -6,7 +6,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Shared\Contracts\DatabaseFailoverInterface;
+use Shared\Events\DatabaseFailoverEvent;
 use Carbon\Carbon;
 
 /**
@@ -178,6 +180,7 @@ class DatabaseFailoverManager implements DatabaseFailoverInterface
      */
     public function triggerFailover(?string $fromConnection = null): string
     {
+        $startTime = microtime(true);
         $fromConnection = $fromConnection ?? $this->currentConnection;
         
         Log::warning("Triggering database failover from {$fromConnection}");
@@ -213,11 +216,17 @@ class DatabaseFailoverManager implements DatabaseFailoverInterface
         $previousConnection = $this->currentConnection;
         $this->currentConnection = $newConnection;
 
+        // Calculate failover duration
+        $duration = microtime(true) - $startTime;
+
         // Update metrics
         $this->failoverMetrics['total_failovers']++;
         $this->failoverMetrics['last_failover'] = now();
 
-        // Fire failover event
+        // Get current health status for event
+        $healthStatus = $this->getAllConnectionHealth();
+
+        // Fire legacy failover event for backward compatibility
         $this->fireEvent('failover_triggered', [
             'from_connection' => $previousConnection,
             'to_connection' => $newConnection,
@@ -225,10 +234,26 @@ class DatabaseFailoverManager implements DatabaseFailoverInterface
             'failover_count' => $this->failoverMetrics['total_failovers']
         ]);
 
+        // Fire new DatabaseFailoverEvent for Telescope tracking
+        Event::dispatch(new DatabaseFailoverEvent(
+            fromConnection: $previousConnection,
+            toConnection: $newConnection,
+            reason: 'Manual failover triggered',
+            duration: $duration,
+            healthStatus: $healthStatus,
+            requestId: request()->header('X-Request-ID') ?? uniqid('req_'),
+            context: [
+                'failover_count' => $this->failoverMetrics['total_failovers'],
+                'trigger_method' => 'manual',
+                'user_agent' => request()->header('User-Agent'),
+                'ip_address' => request()->ip(),
+            ]
+        ));
+
         // Update Laravel's default database connection
         Config::set('database.default', $this->getDatabaseConnectionName($newConnection));
 
-        Log::info("Database failover completed: {$previousConnection} -> {$newConnection}");
+        Log::info("Database failover completed: {$previousConnection} -> {$newConnection} in " . round($duration * 1000, 2) . "ms");
 
         return $newConnection;
     }
@@ -310,6 +335,26 @@ class DatabaseFailoverManager implements DatabaseFailoverInterface
             'connection_health' => $this->connectionHealth,
             'uptime_duration' => now()->diffInSeconds($this->failoverMetrics['uptime_start']),
         ]);
+    }
+
+    /**
+     * Get health status of all connections for event tracking.
+     */
+    public function getAllConnectionHealth(): array
+    {
+        $healthStatus = [];
+        
+        foreach ($this->connections as $priority => $connectionName) {
+            $healthStatus[$connectionName] = [
+                'healthy' => $this->isConnectionHealthy($connectionName),
+                'response_time_ms' => $this->connectionHealth[$connectionName]['response_time'] ?? null,
+                'last_error' => $this->connectionHealth[$connectionName]['last_error'] ?? null,
+                'checked_at' => $this->connectionHealth[$connectionName]['last_check'] ?? null,
+                'priority' => $priority,
+            ];
+        }
+        
+        return $healthStatus;
     }
 
     /**
@@ -499,4 +544,3 @@ class DatabaseFailoverManager implements DatabaseFailoverInterface
         return $mapping[$failoverConnectionName] ?? $failoverConnectionName;
     }
 }
-
