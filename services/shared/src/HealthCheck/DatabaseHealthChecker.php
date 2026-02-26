@@ -307,11 +307,240 @@ class DatabaseHealthChecker
     private function performMongoDBChecks(string $connectionName, ConnectionHealthStatus $status): void
     {
         try {
-            // MongoDB health checks would be implemented here
-            // This is a placeholder for MongoDB-specific logic
+            // Get MongoDB connection configuration
+            $config = config("database.connections.{$connectionName}");
+            
+            if (!$config) {
+                $status->addError('config', "MongoDB connection configuration not found for {$connectionName}");
+                return;
+            }
+
+            // Check if MongoDB extension is available
+            if (!extension_loaded('mongodb')) {
+                $status->addError('extension', 'MongoDB PHP extension not loaded');
+                return;
+            }
+
+            // Build MongoDB connection string
+            $connectionString = $this->buildMongoConnectionString($config);
+            
+            // Create MongoDB client
+            $client = new \MongoDB\Client($connectionString, [
+                'connectTimeoutMS' => ($this->config['timeout'] ?? 5) * 1000,
+                'serverSelectionTimeoutMS' => ($this->config['timeout'] ?? 5) * 1000,
+            ]);
+
+            // Perform basic ping test
+            $startTime = microtime(true);
+            $pingResult = $client->selectDatabase($config['database'])->command(['ping' => 1]);
+            $pingTime = (microtime(true) - $startTime) * 1000;
+            
+            $status->addMetric('ping_time_ms', round($pingTime, 2));
             $status->addMetric('mongodb_status', 'connected');
+
+            // Check server status
+            $this->checkMongoDBServerStatus($client, $config['database'], $status);
+            
+            // Check replica set status if applicable
+            $this->checkMongoDBReplicaSet($client, $status);
+            
+            // Check database statistics
+            $this->checkMongoDBDatabaseStats($client, $config['database'], $status);
+
+        } catch (\MongoDB\Driver\Exception\ConnectionTimeoutException $e) {
+            $status->addError('connection_timeout', "MongoDB connection timeout: " . $e->getMessage());
+        } catch (\MongoDB\Driver\Exception\ServerSelectionException $e) {
+            $status->addError('server_selection', "MongoDB server selection failed: " . $e->getMessage());
+        } catch (\MongoDB\Driver\Exception\AuthenticationException $e) {
+            $status->addError('authentication', "MongoDB authentication failed: " . $e->getMessage());
         } catch (\Exception $e) {
-            $status->addWarning('mongodb_checks', $e->getMessage());
+            $status->addError('mongodb_checks', "MongoDB health check failed: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Build MongoDB connection string from configuration.
+     *
+     * @param array $config MongoDB connection configuration
+     * @return string MongoDB connection string
+     */
+    private function buildMongoConnectionString(array $config): string
+    {
+        $host = $config['host'] ?? 'localhost';
+        $port = $config['port'] ?? 27017;
+        $username = $config['username'] ?? null;
+        $password = $config['password'] ?? null;
+        $database = $config['database'] ?? 'test';
+        $authDatabase = $config['options']['database'] ?? 'admin';
+
+        if ($username && $password) {
+            return "mongodb://{$username}:{$password}@{$host}:{$port}/{$database}?authSource={$authDatabase}";
+        }
+
+        return "mongodb://{$host}:{$port}/{$database}";
+    }
+
+    /**
+     * Check MongoDB server status.
+     *
+     * @param \MongoDB\Client $client MongoDB client
+     * @param string $database Database name
+     * @param ConnectionHealthStatus $status Status object to update
+     * @return void
+     */
+    private function checkMongoDBServerStatus(\MongoDB\Client $client, string $database, ConnectionHealthStatus $status): void
+    {
+        try {
+            $serverStatus = $client->selectDatabase($database)->command(['serverStatus' => 1]);
+            $statusDoc = $serverStatus->toArray()[0];
+
+            // Add server metrics
+            if (isset($statusDoc->version)) {
+                $status->addMetric('mongodb_version', $statusDoc->version);
+            }
+
+            if (isset($statusDoc->uptime)) {
+                $status->addMetric('uptime_seconds', $statusDoc->uptime);
+            }
+
+            if (isset($statusDoc->connections)) {
+                $connections = $statusDoc->connections;
+                $status->addMetric('current_connections', $connections->current ?? 0);
+                $status->addMetric('available_connections', $connections->available ?? 0);
+                $status->addMetric('total_created_connections', $connections->totalCreated ?? 0);
+
+                // Warn if connection usage is high
+                $current = $connections->current ?? 0;
+                $available = $connections->available ?? 0;
+                $total = $current + $available;
+                
+                if ($total > 0) {
+                    $usagePercent = ($current / $total) * 100;
+                    $status->addMetric('connection_usage_percent', round($usagePercent, 2));
+                    
+                    if ($usagePercent > 80) {
+                        $status->addWarning('high_connection_usage', "MongoDB connection usage is high: {$usagePercent}%");
+                    }
+                }
+            }
+
+            if (isset($statusDoc->mem)) {
+                $mem = $statusDoc->mem;
+                $status->addMetric('memory_resident_mb', $mem->resident ?? 0);
+                $status->addMetric('memory_virtual_mb', $mem->virtual ?? 0);
+            }
+
+        } catch (\Exception $e) {
+            $status->addWarning('server_status', "Could not get MongoDB server status: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Check MongoDB replica set status.
+     *
+     * @param \MongoDB\Client $client MongoDB client
+     * @param ConnectionHealthStatus $status Status object to update
+     * @return void
+     */
+    private function checkMongoDBReplicaSet(\MongoDB\Client $client, ConnectionHealthStatus $status): void
+    {
+        try {
+            $replicaStatus = $client->selectDatabase('admin')->command(['replSetGetStatus' => 1]);
+            $statusDoc = $replicaStatus->toArray()[0];
+
+            if (isset($statusDoc->set)) {
+                $status->addMetric('replica_set_name', $statusDoc->set);
+                $status->addMetric('replica_set_state', $statusDoc->myState ?? 'unknown');
+
+                // Check member states
+                if (isset($statusDoc->members)) {
+                    $primaryCount = 0;
+                    $secondaryCount = 0;
+                    $maxLag = 0;
+
+                    foreach ($statusDoc->members as $member) {
+                        if ($member->state === 1) { // PRIMARY
+                            $primaryCount++;
+                        } elseif ($member->state === 2) { // SECONDARY
+                            $secondaryCount++;
+                            
+                            // Check replication lag
+                            if (isset($member->optimeDate) && isset($statusDoc->date)) {
+                                $lag = $statusDoc->date->toDateTime()->getTimestamp() - 
+                                       $member->optimeDate->toDateTime()->getTimestamp();
+                                $maxLag = max($maxLag, $lag);
+                            }
+                        }
+                    }
+
+                    $status->addMetric('replica_primary_count', $primaryCount);
+                    $status->addMetric('replica_secondary_count', $secondaryCount);
+                    $status->addMetric('replica_max_lag_seconds', $maxLag);
+
+                    // Warn about replica set issues
+                    if ($primaryCount === 0) {
+                        $status->addError('no_primary', 'MongoDB replica set has no primary member');
+                    } elseif ($primaryCount > 1) {
+                        $status->addError('multiple_primaries', 'MongoDB replica set has multiple primary members');
+                    }
+
+                    $maxAllowedLag = $this->config['max_replication_lag'] ?? 30;
+                    if ($maxLag > $maxAllowedLag) {
+                        $status->addWarning('replication_lag', "MongoDB replication lag ({$maxLag}s) exceeds threshold ({$maxAllowedLag}s)");
+                    }
+                }
+            }
+        } catch (\MongoDB\Driver\Exception\CommandException $e) {
+            // Not a replica set, which is fine
+            $status->addMetric('replica_set_status', 'not_configured');
+        } catch (\Exception $e) {
+            $status->addWarning('replica_set_check', "Could not check MongoDB replica set status: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Check MongoDB database statistics.
+     *
+     * @param \MongoDB\Client $client MongoDB client
+     * @param string $database Database name
+     * @param ConnectionHealthStatus $status Status object to update
+     * @return void
+     */
+    private function checkMongoDBDatabaseStats(\MongoDB\Client $client, string $database, ConnectionHealthStatus $status): void
+    {
+        try {
+            $dbStats = $client->selectDatabase($database)->command(['dbStats' => 1]);
+            $statsDoc = $dbStats->toArray()[0];
+
+            if (isset($statsDoc->collections)) {
+                $status->addMetric('collection_count', $statsDoc->collections);
+            }
+
+            if (isset($statsDoc->objects)) {
+                $status->addMetric('document_count', $statsDoc->objects);
+            }
+
+            if (isset($statsDoc->dataSize)) {
+                $status->addMetric('data_size_bytes', $statsDoc->dataSize);
+                $status->addMetric('data_size_mb', round($statsDoc->dataSize / (1024 * 1024), 2));
+            }
+
+            if (isset($statsDoc->storageSize)) {
+                $status->addMetric('storage_size_bytes', $statsDoc->storageSize);
+                $status->addMetric('storage_size_mb', round($statsDoc->storageSize / (1024 * 1024), 2));
+            }
+
+            if (isset($statsDoc->indexes)) {
+                $status->addMetric('index_count', $statsDoc->indexes);
+            }
+
+            if (isset($statsDoc->indexSize)) {
+                $status->addMetric('index_size_bytes', $statsDoc->indexSize);
+                $status->addMetric('index_size_mb', round($statsDoc->indexSize / (1024 * 1024), 2));
+            }
+
+        } catch (\Exception $e) {
+            $status->addWarning('database_stats', "Could not get MongoDB database statistics: " . $e->getMessage());
         }
     }
 
@@ -392,9 +621,28 @@ class DatabaseHealthChecker
      */
     private function performMongoHealthQuery(string $connectionName): array
     {
-        // Placeholder for MongoDB health query
-        // Actual implementation would depend on the MongoDB driver being used
-        return [['health_check' => 1]];
+        try {
+            $config = config("database.connections.{$connectionName}");
+            
+            if (!$config || !extension_loaded('mongodb')) {
+                return [['health_check' => 0, 'error' => 'MongoDB not available']];
+            }
+
+            $connectionString = $this->buildMongoConnectionString($config);
+            $client = new \MongoDB\Client($connectionString, [
+                'connectTimeoutMS' => 5000,
+                'serverSelectionTimeoutMS' => 5000,
+            ]);
+
+            // Perform ping command
+            $result = $client->selectDatabase($config['database'])->command(['ping' => 1]);
+            $pingResult = $result->toArray()[0];
+
+            return [['health_check' => $pingResult->ok ?? 0, 'ping' => 'success']];
+            
+        } catch (\Exception $e) {
+            return [['health_check' => 0, 'error' => $e->getMessage()]];
+        }
     }
 
     /**
