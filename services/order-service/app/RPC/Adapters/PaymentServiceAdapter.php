@@ -179,17 +179,16 @@ class PaymentServiceAdapter
     /**
      * Fund escrow account
      */
-    public function fundEscrow(int $escrowId, array $paymentData): array
+    public function fundEscrow(int $escrowId): array
     {
         $startTime = microtime(true);
         $correlationId = request()->header('X-Correlation-ID', uniqid('rpc_', true));
         
         try {
-            $this->logRpcCall('fundEscrow', ['escrow_id' => $escrowId, 'payment_data' => $paymentData], $correlationId);
+            $this->logRpcCall('fundEscrow', ['escrow_id' => $escrowId], $correlationId);
             
             $response = $this->paymentRpc->call('payment.fundEscrow', [
-                'escrow_id' => $escrowId,
-                'payment_data' => $paymentData
+                'escrow_id' => $escrowId
             ]);
             
             $duration = round((microtime(true) - $startTime) * 1000, 2);
