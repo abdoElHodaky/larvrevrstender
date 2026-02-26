@@ -1,8 +1,4 @@
-# Success Validation Workflow
-# Comprehensive validation of all projected benefits and improvements
-# Automated measurement and reporting of implementation success
-
-name: Success Validation
+name: Validation
 
 on:
   schedule:

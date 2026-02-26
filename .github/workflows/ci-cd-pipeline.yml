@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Reverse Tender Platform
+name: CI/CD Pipeline
 
 on:
   push:
@@ -49,7 +49,7 @@ jobs:
         extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, pgsql, redis, curl, zip, gd, json, dom, filter, sqlite3
         tools: composer:v2
         
-    - name: Enhanced Composer Cache (Phase 5: Advanced Caching)
+    - name: "Enhanced Composer Cache (Phase 5: Advanced Caching)"
       if: steps.check-services.outputs.exists == 'true'
       uses: actions/cache@v4
       with:
@@ -490,7 +490,7 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         
-    - name: Enhanced npm Cache (Phase 5: Advanced Caching)
+    - name: "Enhanced npm Cache (Phase 5: Advanced Caching)"
       if: steps.check-frontend.outputs.exists == 'true'
       uses: actions/cache@v4
       with:

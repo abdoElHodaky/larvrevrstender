@@ -1,6 +1,4 @@
-name: Backup CI/CD Pipeline
-# Backup pipeline for fallback and testing
-# Stable version for emergency rollback if needed
+name: Backup Pipeline
 
 on:
   push:

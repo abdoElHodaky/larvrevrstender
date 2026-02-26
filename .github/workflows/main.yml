@@ -1,6 +1,4 @@
-name: Main CI/CD Pipeline
-# Enterprise microservices pipeline with template integration
-# Features: Service orchestration, dependency management, template integration
+name: Main Pipeline
 
 on:
   push:
