@@ -60,6 +60,17 @@ class RpcServiceProvider extends ServiceProvider
         $procedureEngine->register('payment.getUserPaymentMethods', [$paymentProcedure, 'getUserPaymentMethods']);
         $procedureEngine->register('payment.calculateFees', [$paymentProcedure, 'calculateFees']);
         
+        // Register invoice-related procedures
+        $procedureEngine->register('payment.createInvoice', [$paymentProcedure, 'createInvoice']);
+        $procedureEngine->register('payment.sendInvoice', [$paymentProcedure, 'sendInvoice']);
+        $procedureEngine->register('payment.getInvoice', [$paymentProcedure, 'getInvoice']);
+        
+        // Register escrow-related procedures
+        $procedureEngine->register('payment.createEscrow', [$paymentProcedure, 'createEscrow']);
+        $procedureEngine->register('payment.fundEscrow', [$paymentProcedure, 'fundEscrow']);
+        $procedureEngine->register('payment.releaseEscrow', [$paymentProcedure, 'releaseEscrow']);
+        $procedureEngine->register('payment.getEscrowByOrderId', [$paymentProcedure, 'getEscrowByOrderId']);
+        
         // Register system procedures for health checks and monitoring
         $procedureEngine->register('health.check', function () {
             return [
@@ -88,6 +99,13 @@ class RpcServiceProvider extends ServiceProvider
                     'payment.getReservationStatus',
                     'payment.getUserPaymentMethods',
                     'payment.calculateFees',
+                    'payment.createInvoice',
+                    'payment.sendInvoice',
+                    'payment.getInvoice',
+                    'payment.createEscrow',
+                    'payment.fundEscrow',
+                    'payment.releaseEscrow',
+                    'payment.getEscrowByOrderId',
                     'health.check',
                     'system.info',
                     'system.metrics',
