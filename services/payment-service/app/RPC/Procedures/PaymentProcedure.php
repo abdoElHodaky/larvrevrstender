@@ -598,7 +598,6 @@ class PaymentProcedure extends BaseProcedure
         try {
             $validator = Validator::make($params, [
                 'escrow_id' => 'required|integer|min:1',
-                'payment_data' => 'required|array',
             ]);
             
             if ($validator->fails()) {
