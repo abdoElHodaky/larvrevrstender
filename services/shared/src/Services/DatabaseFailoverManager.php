@@ -463,6 +463,96 @@ class DatabaseFailoverManager implements DatabaseFailoverInterface
     }
 
     /**
+     * Check if the primary database connection is healthy
+     */
+    public function isPrimaryHealthy(): bool
+    {
+        return $this->isConnectionHealthy($this->connections['primary']);
+    }
+
+    /**
+     * Check if the secondary database connection is healthy
+     */
+    public function isSecondaryHealthy(): bool
+    {
+        return $this->isConnectionHealthy($this->connections['secondary']);
+    }
+
+    /**
+     * Switch to the secondary database connection
+     */
+    public function switchToSecondary(): bool
+    {
+        return $this->setActiveConnection($this->connections['secondary']);
+    }
+
+    /**
+     * Switch back to the primary database connection
+     */
+    public function switchToPrimary(): bool
+    {
+        return $this->setActiveConnection($this->connections['primary']);
+    }
+
+    /**
+     * Perform automatic failover if primary is unhealthy
+     */
+    public function performFailover(): bool
+    {
+        if (!$this->isPrimaryHealthy()) {
+            $newConnection = $this->triggerFailover($this->connections['primary']);
+            return $newConnection !== $this->connections['primary'];
+        }
+        return false;
+    }
+
+    /**
+     * Get failover status information
+     */
+    public function getFailoverStatus(): array
+    {
+        return $this->getFailoverMetrics();
+    }
+
+    /**
+     * Test database connection health
+     */
+    public function testConnection(string $connection): bool
+    {
+        return $this->isConnectionHealthy($connection);
+    }
+
+    /**
+     * Get connection health metrics
+     */
+    public function getConnectionMetrics(string $connection): array
+    {
+        return $this->connectionHealth[$connection] ?? [
+            'healthy' => false,
+            'last_check' => null,
+            'consecutive_failures' => 0,
+            'consecutive_successes' => 0,
+        ];
+    }
+
+    /**
+     * Enable or disable automatic failover
+     */
+    public function setAutoFailover(bool $enabled): void
+    {
+        $this->config['auto_failover_enabled'] = $enabled;
+        Config::set('database-failover.auto_failover_enabled', $enabled);
+    }
+
+    /**
+     * Check if automatic failover is enabled
+     */
+    public function isAutoFailoverEnabled(): bool
+    {
+        return $this->config['auto_failover_enabled'] ?? true;
+    }
+
+    /**
      * Initialize health status for all connections.
      */
     private function initializeHealthStatus(): void
