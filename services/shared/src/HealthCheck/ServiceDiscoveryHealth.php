@@ -1,6 +1,6 @@
 <?php
 
-namespace App\HealthCheck;
+namespace Shared\HealthCheck;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;

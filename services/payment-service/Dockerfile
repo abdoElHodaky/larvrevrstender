@@ -164,7 +164,7 @@ EXPOSE 8006
 
 # Health check for payment service
 HEALTHCHECK --interval=30s --timeout=15s --start-period=90s --retries=5 \
-    CMD curl -f http://localhost:8004/octane/health || exit 1
+    CMD curl -f http://localhost:8006/octane/health || exit 1
 
 # Labels for payment service
 LABEL maintainer="Reverse Tender Platform <dev@reversetender.com>"
