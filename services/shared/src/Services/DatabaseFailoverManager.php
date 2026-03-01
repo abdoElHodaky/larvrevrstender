@@ -118,17 +118,20 @@ class DatabaseFailoverManager implements DatabaseFailoverInterface
             $maxAttempts = $this->config['health_check']['retry_attempts'] ?? 3;
             $retryDelay = $this->config['health_check']['retry_delay'] ?? 1000;
 
+            // Map failover connection name to Laravel connection name
+            $laravelConnectionName = $this->getDatabaseConnectionName($connectionName);
+
             for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
                 try {
-                    // Test database connection
-                    $pdo = DB::connection($connectionName)->getPdo();
+                    // Test database connection using the correct Laravel connection name
+                    $pdo = DB::connection($laravelConnectionName)->getPdo();
                     
                     // Perform a simple query to verify functionality
                     if ($this->isDatabasePostgreSQL($connectionName)) {
-                        DB::connection($connectionName)->select('SELECT 1 as health_check');
+                        DB::connection($laravelConnectionName)->select('SELECT 1 as health_check');
                     } elseif ($this->isDatabaseMongoDB($connectionName)) {
                         // For MongoDB, we'll use a different approach
-                        $this->performMongoHealthCheck($connectionName);
+                        $this->performMongoHealthCheck($laravelConnectionName);
                     }
 
                     // If we reach here, the connection is healthy
