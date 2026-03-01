@@ -174,6 +174,256 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Alerting Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for database failover alerting and incident response.
+    |
+    */
+
+    'alerting' => [
+        'enabled' => env('DB_FAILOVER_ALERTING_ENABLED', true),
+        'suppression_window' => env('DB_ALERT_SUPPRESSION_WINDOW', 300), // 5 minutes
+        'dashboard_base_url' => env('DB_FAILOVER_DASHBOARD_URL', 'http://localhost:3000'),
+        'logs_base_url' => env('DB_FAILOVER_LOGS_URL', 'http://localhost:5601'),
+        
+        'channels' => [
+            [
+                'type' => 'slack',
+                'webhook_url' => env('SLACK_WEBHOOK_URL'),
+                'severities' => ['critical', 'high', 'medium'],
+                'enabled' => env('SLACK_ALERTS_ENABLED', false),
+            ],
+            [
+                'type' => 'pagerduty',
+                'integration_key' => env('PAGERDUTY_INTEGRATION_KEY'),
+                'severities' => ['critical', 'high'],
+                'enabled' => env('PAGERDUTY_ALERTS_ENABLED', false),
+            ],
+            [
+                'type' => 'email',
+                'recipients' => explode(',', env('ALERT_EMAIL_RECIPIENTS', '')),
+                'severities' => ['critical', 'high', 'medium'],
+                'enabled' => env('EMAIL_ALERTS_ENABLED', false),
+            ],
+            [
+                'type' => 'webhook',
+                'url' => env('ALERT_WEBHOOK_URL'),
+                'headers' => [
+                    'Authorization' => 'Bearer ' . env('ALERT_WEBHOOK_TOKEN'),
+                    'Content-Type' => 'application/json',
+                ],
+                'severities' => ['critical', 'high', 'medium', 'low'],
+                'enabled' => env('WEBHOOK_ALERTS_ENABLED', false),
+            ],
+            [
+                'type' => 'teams',
+                'webhook_url' => env('TEAMS_WEBHOOK_URL'),
+                'severities' => ['critical', 'high', 'medium'],
+                'enabled' => env('TEAMS_ALERTS_ENABLED', false),
+            ],
+        ],
+
+        'escalation' => [
+            'critical' => [
+                'delay' => env('CRITICAL_ESCALATION_DELAY', 300), // 5 minutes
+                'channels' => ['pagerduty', 'slack'],
+                'recipients' => explode(',', env('CRITICAL_ESCALATION_RECIPIENTS', '')),
+            ],
+            'high' => [
+                'delay' => env('HIGH_ESCALATION_DELAY', 900), // 15 minutes
+                'channels' => ['slack', 'email'],
+                'recipients' => explode(',', env('HIGH_ESCALATION_RECIPIENTS', '')),
+            ],
+            'medium' => [
+                'delay' => env('MEDIUM_ESCALATION_DELAY', 1800), // 30 minutes
+                'channels' => ['email'],
+                'recipients' => explode(',', env('MEDIUM_ESCALATION_RECIPIENTS', '')),
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Recovery Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for automatic recovery and failback to primary connections.
+    |
+    */
+
+    'recovery' => [
+        'enabled' => env('DB_RECOVERY_ENABLED', true),
+        'required_consecutive_successes' => env('DB_RECOVERY_REQUIRED_SUCCESSES', 3),
+        'soak_time_minutes' => env('DB_RECOVERY_SOAK_TIME', 10),
+        'check_interval_minutes' => env('DB_RECOVERY_CHECK_INTERVAL', 5),
+        'gradual_migration_delay' => env('DB_RECOVERY_MIGRATION_DELAY', 30), // seconds
+        
+        'strategies' => [
+            'primary' => env('DB_RECOVERY_PRIMARY_STRATEGY', 'validation_first'),
+            'secondary' => env('DB_RECOVERY_SECONDARY_STRATEGY', 'gradual'),
+            'fallback' => env('DB_RECOVERY_FALLBACK_STRATEGY', 'immediate'),
+            'default' => env('DB_RECOVERY_DEFAULT_STRATEGY', 'immediate'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Coordination Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for multi-service coordination during failover events.
+    |
+    */
+
+    'coordination' => [
+        'enabled' => env('DB_COORDINATION_ENABLED', true),
+        'notification_timeout' => env('DB_COORDINATION_NOTIFICATION_TIMEOUT', 10), // seconds
+        'acknowledgment_timeout' => env('DB_COORDINATION_ACK_TIMEOUT', 30), // seconds
+        'recovery_confirmation_timeout' => env('DB_COORDINATION_RECOVERY_TIMEOUT', 60), // seconds
+        'stage_delay' => env('DB_COORDINATION_STAGE_DELAY', 10), // seconds
+        
+        'services' => [
+            'auth-service' => [
+                'name' => 'auth-service',
+                'health_endpoint' => env('AUTH_SERVICE_HEALTH_ENDPOINT', 'http://localhost:8000/health'),
+                'coordination_endpoint' => env('AUTH_SERVICE_COORDINATION_ENDPOINT', 'http://localhost:8000/health/coordination'),
+                'connections' => ['neon_postgresql', 'cloud_postgresql'],
+                'recovery_priority' => 1, // Critical service
+                'dependencies' => [],
+            ],
+            'user-service' => [
+                'name' => 'user-service',
+                'health_endpoint' => env('USER_SERVICE_HEALTH_ENDPOINT', 'http://localhost:8001/health'),
+                'coordination_endpoint' => env('USER_SERVICE_COORDINATION_ENDPOINT', 'http://localhost:8001/health/coordination'),
+                'connections' => ['neon_postgresql', 'cloud_postgresql'],
+                'recovery_priority' => 2,
+                'dependencies' => ['auth-service'],
+            ],
+            'auction-service' => [
+                'name' => 'auction-service',
+                'health_endpoint' => env('AUCTION_SERVICE_HEALTH_ENDPOINT', 'http://localhost:8002/health'),
+                'coordination_endpoint' => env('AUCTION_SERVICE_COORDINATION_ENDPOINT', 'http://localhost:8002/health/coordination'),
+                'connections' => ['neon_postgresql', 'cloud_postgresql', 'mongodb_atlas'],
+                'recovery_priority' => 1, // Critical service
+                'dependencies' => ['auth-service', 'user-service'],
+            ],
+            'bidding-service' => [
+                'name' => 'bidding-service',
+                'health_endpoint' => env('BIDDING_SERVICE_HEALTH_ENDPOINT', 'http://localhost:8004/health'),
+                'coordination_endpoint' => env('BIDDING_SERVICE_COORDINATION_ENDPOINT', 'http://localhost:8004/health/coordination'),
+                'connections' => ['neon_postgresql', 'cloud_postgresql'],
+                'recovery_priority' => 1, // Critical service
+                'dependencies' => ['auction-service'],
+            ],
+            'payment-service' => [
+                'name' => 'payment-service',
+                'health_endpoint' => env('PAYMENT_SERVICE_HEALTH_ENDPOINT', 'http://localhost:8005/health'),
+                'coordination_endpoint' => env('PAYMENT_SERVICE_COORDINATION_ENDPOINT', 'http://localhost:8005/health/coordination'),
+                'connections' => ['neon_postgresql', 'cloud_postgresql'],
+                'recovery_priority' => 1, // Critical service
+                'dependencies' => ['auth-service'],
+            ],
+            'order-service' => [
+                'name' => 'order-service',
+                'health_endpoint' => env('ORDER_SERVICE_HEALTH_ENDPOINT', 'http://localhost:8006/health'),
+                'coordination_endpoint' => env('ORDER_SERVICE_COORDINATION_ENDPOINT', 'http://localhost:8006/health/coordination'),
+                'connections' => ['neon_postgresql', 'cloud_postgresql'],
+                'recovery_priority' => 2,
+                'dependencies' => ['payment-service', 'auction-service'],
+            ],
+            'notification-service' => [
+                'name' => 'notification-service',
+                'health_endpoint' => env('NOTIFICATION_SERVICE_HEALTH_ENDPOINT', 'http://localhost:8007/health'),
+                'coordination_endpoint' => env('NOTIFICATION_SERVICE_COORDINATION_ENDPOINT', 'http://localhost:8007/health/coordination'),
+                'connections' => ['neon_postgresql', 'cloud_postgresql', 'mongodb_atlas'],
+                'recovery_priority' => 3,
+                'dependencies' => [],
+            ],
+            'analytics-service' => [
+                'name' => 'analytics-service',
+                'health_endpoint' => env('ANALYTICS_SERVICE_HEALTH_ENDPOINT', 'http://localhost:8008/health'),
+                'coordination_endpoint' => env('ANALYTICS_SERVICE_COORDINATION_ENDPOINT', 'http://localhost:8008/health/coordination'),
+                'connections' => ['neon_postgresql', 'cloud_postgresql', 'mongodb_atlas'],
+                'recovery_priority' => 4, // Non-critical
+                'dependencies' => [],
+            ],
+            'vin-ocr-service' => [
+                'name' => 'vin-ocr-service',
+                'health_endpoint' => env('VIN_OCR_SERVICE_HEALTH_ENDPOINT', 'http://localhost:8009/health'),
+                'coordination_endpoint' => env('VIN_OCR_SERVICE_COORDINATION_ENDPOINT', 'http://localhost:8009/health/coordination'),
+                'connections' => ['neon_postgresql', 'cloud_postgresql'],
+                'recovery_priority' => 3,
+                'dependencies' => [],
+            ],
+            'gateway-service' => [
+                'name' => 'gateway-service',
+                'health_endpoint' => env('GATEWAY_SERVICE_HEALTH_ENDPOINT', 'http://localhost:8003/health'),
+                'coordination_endpoint' => env('GATEWAY_SERVICE_COORDINATION_ENDPOINT', 'http://localhost:8003/health/coordination'),
+                'connections' => ['neon_postgresql', 'cloud_postgresql'],
+                'recovery_priority' => 1, // Critical service
+                'dependencies' => [],
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Data Consistency Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for data consistency validation during failover scenarios.
+    |
+    */
+
+    'consistency' => [
+        'enabled' => env('DB_CONSISTENCY_VALIDATION_ENABLED', true),
+        'critical_tables' => [
+            'users',
+            'auctions', 
+            'bids',
+            'payments',
+            'orders',
+            'user_profiles',
+            'auction_items'
+        ],
+        'max_acceptable_lag' => env('DB_CONSISTENCY_MAX_LAG', 30), // seconds
+        'max_sequence_lag' => env('DB_CONSISTENCY_MAX_SEQUENCE_LAG', 100),
+        'validation_timeout' => env('DB_CONSISTENCY_VALIDATION_TIMEOUT', 300), // seconds
+        'sample_size' => env('DB_CONSISTENCY_SAMPLE_SIZE', 100),
+        'split_brain_check_interval' => env('DB_SPLIT_BRAIN_CHECK_INTERVAL', 60), // seconds
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Database-Specific Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for database-specific optimizations and health checks.
+    |
+    */
+
+    'database_specific' => [
+        'postgresql' => [
+            'max_replica_lag' => env('DB_POSTGRESQL_MAX_REPLICA_LAG', 30), // seconds
+            'max_locks' => env('DB_POSTGRESQL_MAX_LOCKS', 100),
+            'max_query_time' => env('DB_POSTGRESQL_MAX_QUERY_TIME', 1000), // milliseconds
+            'connection_pool_warning_threshold' => env('DB_POSTGRESQL_POOL_WARNING', 80), // percent
+        ],
+        'mongodb' => [
+            'max_query_time' => env('DB_MONGODB_MAX_QUERY_TIME', 2000), // milliseconds
+            'oplog_warning_threshold' => env('DB_MONGODB_OPLOG_WARNING', 80), // percent
+            'replica_set_required' => env('DB_MONGODB_REPLICA_SET_REQUIRED', true),
+            'write_concern_required' => env('DB_MONGODB_WRITE_CONCERN_REQUIRED', true),
+        ],
+        'mysql' => [
+            'max_replica_lag' => env('DB_MYSQL_MAX_REPLICA_LAG', 30), // seconds
+            'max_query_time' => env('DB_MYSQL_MAX_QUERY_TIME', 1000), // milliseconds
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Performance Optimization
     |--------------------------------------------------------------------------
     |
@@ -206,4 +456,3 @@ return [
         'mock_connections' => env('DB_MOCK_CONNECTIONS', false),
     ],
 ];
-
