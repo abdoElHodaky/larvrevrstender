@@ -79,6 +79,9 @@ jobs:
         id: analyze
         run: |
           echo "🔍 Analyzing changes and calculating risk..."
+          echo "Event: ${{ github.event_name }}"
+          echo "Before SHA: ${{ github.event.before }}"
+          echo "Current SHA: ${{ github.sha }}"
           
           # Get changed files
           if [ "${{ github.event_name }}" = "push" ]; then
@@ -187,6 +190,15 @@ jobs:
           echo "  Should Deploy: $SHOULD_DEPLOY"
           echo "  Risk Score: $RISK_SCORE/100"
           echo "  Services Matrix: $SERVICES_MATRIX"
+          
+          # Validate outputs
+          if [ -z "$AFFECTED_SERVICES" ] && [ "$SHOULD_DEPLOY" = "true" ]; then
+            echo "⚠️ Warning: No affected services detected but deployment is required"
+          fi
+          
+          if [ "$CHANGE_IMPACT" = "high" ] && [ "$RISK_SCORE" -lt 50 ]; then
+            echo "⚠️ Warning: High impact change with low risk score"
+          fi
 
   # Phase 2: Service Dependency & Environment Validation
   dependency-environment-validation:
@@ -608,9 +620,8 @@ jobs:
     name: 🧪 Comprehensive Testing
     needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, database-migration]
     if: |
-      always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
-      (needs.service-build.result == 'success' || needs.service-build.result == 'skipped') &&
+      needs.service-build.result == 'success' &&
       (needs.database-migration.result == 'success' || needs.database-migration.result == 'skipped')
     uses: ./.github/workflows/templates/test.yml
     with:
@@ -624,10 +635,9 @@ jobs:
     name: 🚀 Performance Testing
     needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, comprehensive-testing]
     if: |
-      always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
-      (needs.service-build.result == 'success' || needs.service-build.result == 'skipped') &&
-      (needs.comprehensive-testing.result == 'success' || needs.comprehensive-testing.result == 'skipped') &&
+      needs.service-build.result == 'success' &&
+      needs.comprehensive-testing.result == 'success' &&
       (needs.change-detection.outputs.change_impact == 'high' || contains(needs.change-detection.outputs.affected_services, 'auction') || contains(needs.change-detection.outputs.affected_services, 'gateway'))
     uses: ./.github/workflows/templates/performance.yml
     with:
@@ -643,10 +653,9 @@ jobs:
     name: 🔧 Self-Healing & Optimization
     needs: [change-detection, dependency-environment-validation, docker-optimization, comprehensive-testing, performance-testing]
     if: |
-      always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
-      (needs.comprehensive-testing.result == 'success' || needs.comprehensive-testing.result == 'skipped') &&
-      (needs.performance-testing.result == 'success' || needs.performance-testing.result == 'skipped' || needs.performance-testing.result == 'warning') &&
+      needs.comprehensive-testing.result == 'success' &&
+      (needs.performance-testing.result == 'success' || needs.performance-testing.result == 'skipped') &&
       env.SELF_HEALING_ENABLED == 'true'
     uses: ./.github/workflows/templates/healing.yml
     with:
@@ -660,8 +669,8 @@ jobs:
     name: 🛡️ Disaster Recovery Automation
     needs: [change-detection, dependency-environment-validation, docker-optimization, comprehensive-testing, performance-testing, self-healing]
     if: |
-      always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
+      (needs.self-healing.result == 'success' || needs.self-healing.result == 'skipped') &&
       (needs.change-detection.outputs.change_impact == 'high' || 
        contains(needs.change-detection.outputs.affected_services, 'shared') ||
        contains(needs.change-detection.outputs.affected_services, 'auth') ||
@@ -683,14 +692,13 @@ jobs:
     name: 🚀 Blue-Green Deployment (Dependency-Ordered)
     needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, comprehensive-testing, performance-testing, self-healing, disaster-recovery]
     if: |
-      always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
       needs.service-build.result == 'success' &&
       (needs.docker-optimization.result == 'success' || needs.docker-optimization.result == 'skipped') &&
-      (needs.comprehensive-testing.result == 'success' || needs.comprehensive-testing.result == 'skipped') &&
-      (needs.performance-testing.result == 'success' || needs.performance-testing.result == 'skipped' || needs.performance-testing.result == 'warning') &&
+      needs.comprehensive-testing.result == 'success' &&
+      (needs.performance-testing.result == 'success' || needs.performance-testing.result == 'skipped') &&
       (needs.self-healing.result == 'success' || needs.self-healing.result == 'skipped') &&
-      (needs.disaster-recovery.result == 'success' || needs.disaster-recovery.result == 'skipped' || needs.disaster-recovery.result == 'warning')
+      (needs.disaster-recovery.result == 'success' || needs.disaster-recovery.result == 'skipped')
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.change-detection.outputs.services_matrix) }}
@@ -712,7 +720,6 @@ jobs:
     name: 📊 Risk Scoring Optimization
     needs: [change-detection, dependency-environment-validation, docker-optimization, performance-testing, deployment]
     if: |
-      always() && 
       needs.deployment.result == 'success' &&
       needs.change-detection.outputs.change_impact == 'high'
     uses: ./.github/workflows/templates/optimize.yml
