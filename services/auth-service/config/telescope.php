@@ -135,7 +135,7 @@ return [
 
         Watchers\GateWatcher::class => env('TELESCOPE_GATE_WATCHER', true),
 
-        Watchers\ClientRequestWatcher::class => env('TELESCOPE_CLIENT_REQUEST_WATCHER', true),
+        // Watchers\HttpClientWatcher::class => env('TELESCOPE_HTTP_CLIENT_WATCHER', true), // Disabled - class doesn't exist
 
         Watchers\JobWatcher::class => env('TELESCOPE_JOB_WATCHER', true),
 

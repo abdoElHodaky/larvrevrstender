@@ -5,88 +5,75 @@ namespace Shared\Contracts;
 /**
  * Database Failover Interface
  * 
- * Defines the contract for database failover management services.
- * This interface ensures consistent failover behavior across all services.
+ * Defines the contract for database failover management across the 3-tier architecture:
+ * - Primary: Neon PostgreSQL
+ * - Secondary: Cloud Provider PostgreSQL  
+ * - Fallback: MongoDB Atlas
  */
 interface DatabaseFailoverInterface
 {
     /**
-     * Check if the primary database connection is healthy
-     *
-     * @return bool
+     * Get the currently healthy database connection name.
      */
-    public function isPrimaryHealthy(): bool;
+    public function getHealthyConnection(): string;
 
     /**
-     * Check if the secondary database connection is healthy
-     *
-     * @return bool
+     * Check if a specific database connection is healthy.
      */
-    public function isSecondaryHealthy(): bool;
+    public function isConnectionHealthy(string $connectionName): bool;
 
     /**
-     * Get the current active database connection name
-     *
-     * @return string
+     * Get health status of all database connections.
+     */
+    public function getAllConnectionsHealth(): array;
+
+    /**
+     * Trigger failover from one connection to another.
+     */
+    public function triggerFailover(?string $fromConnection = null): string;
+
+    /**
+     * Attempt to recover a failed connection.
+     */
+    public function attemptRecovery(string $connectionName): bool;
+
+    /**
+     * Get the current active connection name.
      */
     public function getCurrentConnection(): string;
 
     /**
-     * Switch to the secondary database connection
-     *
-     * @return bool Success status
+     * Set the active database connection.
      */
-    public function switchToSecondary(): bool;
+    public function setActiveConnection(string $connectionName): bool;
 
     /**
-     * Switch back to the primary database connection
-     *
-     * @return bool Success status
+     * Get failover metrics and statistics.
      */
-    public function switchToPrimary(): bool;
+    public function getFailoverMetrics(): array;
 
     /**
-     * Perform automatic failover if primary is unhealthy
-     *
-     * @return bool True if failover was performed
+     * Execute a callback with automatic failover handling.
      */
-    public function performFailover(): bool;
+    public function executeWithFailover(callable $callback, array $options = []);
 
     /**
-     * Get failover status information
-     *
-     * @return array
+     * Add an event listener for failover events.
      */
-    public function getFailoverStatus(): array;
+    public function addEventListener(string $event, callable $listener): void;
 
     /**
-     * Test database connection health
-     *
-     * @param string $connection Connection name
-     * @return bool
+     * Get the connection priority order.
      */
-    public function testConnection(string $connection): bool;
+    public function getConnectionPriority(): array;
 
     /**
-     * Get connection health metrics
-     *
-     * @param string $connection Connection name
-     * @return array
+     * Update the connection priority order.
      */
-    public function getConnectionMetrics(string $connection): array;
+    public function updateConnectionPriority(array $connections): bool;
 
     /**
-     * Enable or disable automatic failover
-     *
-     * @param bool $enabled
-     * @return void
+     * Check if graceful degradation is enabled for a service.
      */
-    public function setAutoFailover(bool $enabled): void;
-
-    /**
-     * Check if automatic failover is enabled
-     *
-     * @return bool
-     */
-    public function isAutoFailoverEnabled(): bool;
+    public function isGracefulDegradationEnabled(string $serviceName): bool;
 }
