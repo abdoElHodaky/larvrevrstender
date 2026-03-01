@@ -5,6 +5,10 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
 return Application::configure(basePath: dirname(__DIR__))
+    ->withProviders([
+        // Database Failover System Service Provider
+        \Shared\Providers\SharedServiceProvider::class,
+    ])
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
@@ -12,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Database Failover Middleware - CRITICAL for system reliability
+        $middleware->append(\Shared\Middleware\DatabaseFailoverMiddleware::class);
+
         // Global middleware for correlation tracking
         $middleware->append(\App\Http\Middleware\CorrelationMiddleware::class);
         
@@ -31,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
             'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+            'db.failover' => \Shared\Middleware\DatabaseFailoverMiddleware::class,
             'correlation' => \App\Http\Middleware\CorrelationMiddleware::class,
         ]);
     })
