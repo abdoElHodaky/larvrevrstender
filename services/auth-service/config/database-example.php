@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Str;
+
 /*
 |--------------------------------------------------------------------------
 | Database Configuration Example for Multi-Tier Failover
