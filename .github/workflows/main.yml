@@ -498,7 +498,7 @@ jobs:
       php_version: ${{ env.PHP_VERSION }}
       environment: ${{ inputs.target_environment || 'staging' }}
       registry: ${{ env.REGISTRY }}
-      image_name: ${{ env.IMAGE_NAME }}
+      image_name: abdoElHodaky/larvrevrstender
       dependency_graph: ${{ needs.dependency-environment-validation.outputs.dependency_graph }}
       deployment_order: ${{ needs.dependency-environment-validation.outputs.deployment_order }}
     secrets: inherit
