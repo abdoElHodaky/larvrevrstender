@@ -607,14 +607,23 @@ class DatabaseFailoverManager implements DatabaseFailoverInterface
      */
     private function performMongoHealthCheck(string $connectionName): bool
     {
-        // For MongoDB, we'll implement a basic ping operation
-        // This is a placeholder - actual implementation would depend on the MongoDB driver
         try {
-            // Assuming we have a MongoDB connection configured
             $connection = DB::connection($connectionName);
-            // Perform a simple operation to verify connectivity
-            return true;
+            
+            // Perform actual MongoDB health check using ping command
+            // This will throw an exception if MongoDB is unreachable or unhealthy
+            $result = $connection->getMongoClient()->selectDatabase(
+                $connection->getDatabaseName()
+            )->command(['ping' => 1]);
+            
+            // Check if ping was successful
+            return isset($result->toArray()[0]['ok']) && $result->toArray()[0]['ok'] == 1;
+            
+        } catch (\MongoDB\Driver\Exception\Exception $e) {
+            Log::warning("MongoDB health check failed for {$connectionName}: " . $e->getMessage());
+            return false;
         } catch (\Exception $e) {
+            Log::warning("MongoDB health check failed for {$connectionName}: " . $e->getMessage());
             return false;
         }
     }
