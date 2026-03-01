@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace Shared\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;

@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Console\Commands;
+namespace Shared\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Services\BlueGreenMigrationService;
+use Shared\Services\BlueGreenMigrationService;
 use Illuminate\Support\Facades\Log;
 
 /**
