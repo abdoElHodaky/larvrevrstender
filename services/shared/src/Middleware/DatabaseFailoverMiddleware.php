@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Config;
 use Shared\Services\DatabaseFailoverManager;
 use Shared\HealthCheck\DatabaseHealthChecker;
+use Shared\Facades\SharedLog;
 
 /**
  * Database Failover Middleware
@@ -77,10 +78,28 @@ class DatabaseFailoverMiddleware
 
             // If the healthy connection is different from current, switch
             if ($this->mapFailoverToLaravelConnection($healthyConnection) !== $currentConnection) {
+                // Log the proactive connection switch
+                SharedLog::databaseFailover('proactive_connection_switch', [
+                    'from_connection' => $currentConnection,
+                    'to_connection' => $healthyConnection,
+                    'reason' => 'proactive_health_check',
+                    'request_path' => $request->path(),
+                    'request_method' => $request->method()
+                ]);
+                
                 $this->switchToConnection($healthyConnection, $request);
             }
 
         } catch (\Exception $e) {
+            // Log to SharedLog for centralized monitoring
+            SharedLog::databaseFailover('connection_health_check_failed', [
+                'error_message' => $e->getMessage(),
+                'current_connection' => Config::get('database.default'),
+                'request_path' => $request->path(),
+                'request_method' => $request->method(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             Log::error("Failed to ensure healthy database connection: " . $e->getMessage());
             
             // If we can't get any healthy connection, we might need to handle graceful degradation
@@ -103,11 +122,31 @@ class DatabaseFailoverMiddleware
             throw $exception; // Re-throw non-database exceptions
         }
 
+        // Log database exception to SharedLog
+        SharedLog::databaseFailover('database_exception_detected', [
+            'exception_class' => get_class($exception),
+            'exception_message' => $exception->getMessage(),
+            'current_connection' => Config::get('database.default'),
+            'request_path' => $request->path(),
+            'request_method' => $request->method(),
+            'exception_code' => $exception->getCode()
+        ]);
+
         Log::warning("Database exception detected, attempting failover: " . $exception->getMessage());
 
         try {
             // Attempt failover
             $newConnection = $this->failoverManager->triggerFailover();
+            
+            // Log successful failover trigger
+            SharedLog::databaseFailover('failover_triggered_successfully', [
+                'new_connection' => $newConnection,
+                'previous_connection' => Config::get('database.default'),
+                'trigger_reason' => 'database_exception',
+                'request_path' => $request->path(),
+                'request_method' => $request->method()
+            ]);
+            
             $this->switchToConnection($newConnection, $request);
 
             Log::info("Failover successful, retrying request with connection: {$newConnection}");
@@ -116,6 +155,17 @@ class DatabaseFailoverMiddleware
             return $next($request);
 
         } catch (\Exception $failoverException) {
+            // Log failover failure
+            SharedLog::databaseFailover('failover_attempt_failed', [
+                'original_exception' => $exception->getMessage(),
+                'failover_exception' => $failoverException->getMessage(),
+                'current_connection' => Config::get('database.default'),
+                'request_path' => $request->path(),
+                'request_method' => $request->method(),
+                'original_trace' => $exception->getTraceAsString(),
+                'failover_trace' => $failoverException->getTraceAsString()
+            ]);
+
             Log::error("Failover attempt failed: " . $failoverException->getMessage());
 
             // If failover fails, check if graceful degradation is possible
@@ -165,6 +215,16 @@ class DatabaseFailoverMiddleware
         // Update the default database connection
         Config::set('database.default', $laravelConnectionName);
 
+        // Log the connection switch to SharedLog
+        SharedLog::databaseFailover('connection_switched', [
+            'previous_connection' => $previousConnection,
+            'new_connection' => $laravelConnectionName,
+            'failover_connection' => $failoverConnectionName,
+            'request_path' => $request->path(),
+            'request_method' => $request->method(),
+            'switch_timestamp' => now()->toISOString()
+        ]);
+
         // Log the connection switch
         Log::info("Database connection switched: {$previousConnection} -> {$laravelConnectionName}", [
             'failover_connection' => $failoverConnectionName,
@@ -192,6 +252,15 @@ class DatabaseFailoverMiddleware
         
         // Check if graceful degradation is enabled for this service
         if ($this->failoverManager->isGracefulDegradationEnabled($serviceName)) {
+            // Log graceful degradation activation
+            SharedLog::databaseFailover('graceful_degradation_activated', [
+                'service_name' => $serviceName,
+                'reason' => 'no_healthy_connections',
+                'exception_message' => $exception->getMessage(),
+                'request_path' => $request->path(),
+                'request_method' => $request->method()
+            ]);
+
             Log::warning("No healthy connections available, enabling graceful degradation for service: {$serviceName}");
             
             // Set a flag to indicate degraded mode
@@ -201,6 +270,15 @@ class DatabaseFailoverMiddleware
             // For example, switch to read-only mode, use cached data, etc.
             
         } else {
+            // Log graceful degradation unavailable
+            SharedLog::databaseFailover('graceful_degradation_unavailable', [
+                'service_name' => $serviceName,
+                'reason' => 'degradation_disabled',
+                'exception_message' => $exception->getMessage(),
+                'request_path' => $request->path(),
+                'request_method' => $request->method()
+            ]);
+
             // If graceful degradation is not enabled, throw the exception
             Log::error("No healthy connections available and graceful degradation disabled for service: {$serviceName}");
             throw $exception;
