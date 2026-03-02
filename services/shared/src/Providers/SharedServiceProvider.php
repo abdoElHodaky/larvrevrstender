@@ -7,6 +7,7 @@ use Shared\Core\ProcedureEngine;
 use Shared\Core\RestHandler;
 use Shared\Core\RpcHandler;
 use Shared\Services\DatabaseFailoverManager;
+use Shared\Services\SharedLoggingService;
 use Shared\HealthCheck\DatabaseHealthChecker;
 use Shared\Contracts\DatabaseFailoverInterface;
 
@@ -35,6 +36,11 @@ class SharedServiceProvider extends ServiceProvider
             return new RpcHandler();
         });
 
+        // Register shared logging service
+        $this->app->singleton(SharedLoggingService::class, function ($app) {
+            return new SharedLoggingService();
+        });
+
         // Register database failover services
         $this->app->singleton(DatabaseHealthChecker::class, function ($app) {
             return new DatabaseHealthChecker();
@@ -51,6 +57,7 @@ class SharedServiceProvider extends ServiceProvider
         $this->app->alias(ProcedureEngine::class, 'shared.procedure-engine');
         $this->app->alias(RestHandler::class, 'shared.rest-handler');
         $this->app->alias(RpcHandler::class, 'shared.rpc-handler');
+        $this->app->alias(SharedLoggingService::class, 'shared.logging');
         $this->app->alias(DatabaseFailoverManager::class, 'shared.database-failover');
         $this->app->alias(DatabaseHealthChecker::class, 'shared.database-health-checker');
     }
@@ -68,6 +75,11 @@ class SharedServiceProvider extends ServiceProvider
         // Load database failover configuration
         $this->mergeConfigFrom(
             __DIR__ . '/../../config/database-failover.php', 'database-failover'
+        );
+
+        // Load shared logging configuration
+        $this->mergeConfigFrom(
+            __DIR__ . '/../../config/logging.php', 'shared-logging'
         );
 
         // Load routes if they exist
@@ -92,12 +104,14 @@ class SharedServiceProvider extends ServiceProvider
             ProcedureEngine::class,
             RestHandler::class,
             RpcHandler::class,
+            SharedLoggingService::class,
             DatabaseFailoverManager::class,
             DatabaseHealthChecker::class,
             DatabaseFailoverInterface::class,
             'shared.procedure-engine',
             'shared.rest-handler',
             'shared.rpc-handler',
+            'shared.logging',
             'shared.database-failover',
             'shared.database-health-checker',
         ];

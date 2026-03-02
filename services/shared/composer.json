@@ -22,7 +22,9 @@
         "monolog/monolog": "^3.0",
         "ramsey/uuid": "^4.0",
         "league/fractal": "^0.20",
-        "vlucas/phpdotenv": "^5.0"
+        "vlucas/phpdotenv": "^5.0",
+        "ka4ivan/laravel-logger": "^2.0",
+        "opcodesio/log-viewer": "^3.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.5.50",
