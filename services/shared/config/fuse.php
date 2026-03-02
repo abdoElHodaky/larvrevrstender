@@ -232,6 +232,127 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Database Query Circuit Breaker Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure circuit breaker settings specifically for database queries.
+    | These settings provide protection at the query level to prevent
+    | cascading failures when database operations become unreliable.
+    |
+    */
+
+    'query_defaults' => [
+        'failure_threshold' => env('FUSE_QUERY_FAILURE_THRESHOLD', 5), // Number of failures before opening
+        'recovery_timeout' => env('FUSE_QUERY_RECOVERY_TIMEOUT', 30), // Seconds before attempting recovery
+        'expected_exceptions' => [
+            \Illuminate\Database\QueryException::class,
+            \PDOException::class,
+            \Illuminate\Database\ConnectionException::class,
+            \Illuminate\Database\DeadlockException::class,
+        ],
+        'success_threshold' => env('FUSE_QUERY_SUCCESS_THRESHOLD', 3), // Successes needed to close circuit
+        'timeout' => env('FUSE_QUERY_TIMEOUT', 10), // Query timeout in seconds
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Query Type Specific Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Different query types may have different failure tolerances and
+    | recovery requirements. Configure them individually here.
+    |
+    */
+
+    'query_types' => [
+        'select' => [
+            'failure_threshold' => env('FUSE_SELECT_FAILURE_THRESHOLD', 8), // More tolerant for reads
+            'recovery_timeout' => env('FUSE_SELECT_RECOVERY_TIMEOUT', 20),
+            'timeout' => env('FUSE_SELECT_TIMEOUT', 15),
+        ],
+        
+        'insert' => [
+            'failure_threshold' => env('FUSE_INSERT_FAILURE_THRESHOLD', 3), // Less tolerant for writes
+            'recovery_timeout' => env('FUSE_INSERT_RECOVERY_TIMEOUT', 45),
+            'timeout' => env('FUSE_INSERT_TIMEOUT', 10),
+        ],
+        
+        'update' => [
+            'failure_threshold' => env('FUSE_UPDATE_FAILURE_THRESHOLD', 3), // Less tolerant for writes
+            'recovery_timeout' => env('FUSE_UPDATE_RECOVERY_TIMEOUT', 45),
+            'timeout' => env('FUSE_UPDATE_TIMEOUT', 10),
+        ],
+        
+        'delete' => [
+            'failure_threshold' => env('FUSE_DELETE_FAILURE_THRESHOLD', 2), // Very sensitive for deletes
+            'recovery_timeout' => env('FUSE_DELETE_RECOVERY_TIMEOUT', 60),
+            'timeout' => env('FUSE_DELETE_TIMEOUT', 8),
+        ],
+        
+        'transaction' => [
+            'failure_threshold' => env('FUSE_TRANSACTION_FAILURE_THRESHOLD', 2), // Very sensitive for transactions
+            'recovery_timeout' => env('FUSE_TRANSACTION_RECOVERY_TIMEOUT', 60),
+            'timeout' => env('FUSE_TRANSACTION_TIMEOUT', 30),
+        ],
+        
+        'statement' => [
+            'failure_threshold' => env('FUSE_STATEMENT_FAILURE_THRESHOLD', 5),
+            'recovery_timeout' => env('FUSE_STATEMENT_RECOVERY_TIMEOUT', 30),
+            'timeout' => env('FUSE_STATEMENT_TIMEOUT', 15),
+        ],
+        
+        'eloquent' => [
+            'failure_threshold' => env('FUSE_ELOQUENT_FAILURE_THRESHOLD', 6),
+            'recovery_timeout' => env('FUSE_ELOQUENT_RECOVERY_TIMEOUT', 25),
+            'timeout' => env('FUSE_ELOQUENT_TIMEOUT', 12),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Connection-Specific Query Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure circuit breaker settings per database connection.
+    | Critical connections like payment databases should have stricter settings.
+    |
+    */
+
+    'query_connections' => [
+        'mysql' => [
+            'failure_threshold' => env('FUSE_MYSQL_QUERY_FAILURE_THRESHOLD', 5),
+            'recovery_timeout' => env('FUSE_MYSQL_QUERY_RECOVERY_TIMEOUT', 30),
+        ],
+        
+        'postgresql' => [
+            'failure_threshold' => env('FUSE_POSTGRESQL_QUERY_FAILURE_THRESHOLD', 5),
+            'recovery_timeout' => env('FUSE_POSTGRESQL_QUERY_RECOVERY_TIMEOUT', 30),
+        ],
+        
+        'mongodb' => [
+            'failure_threshold' => env('FUSE_MONGODB_QUERY_FAILURE_THRESHOLD', 8), // More tolerant for NoSQL
+            'recovery_timeout' => env('FUSE_MONGODB_QUERY_RECOVERY_TIMEOUT', 20),
+        ],
+        
+        'redis' => [
+            'failure_threshold' => env('FUSE_REDIS_QUERY_FAILURE_THRESHOLD', 10), // Very tolerant for cache
+            'recovery_timeout' => env('FUSE_REDIS_QUERY_RECOVERY_TIMEOUT', 15),
+        ],
+        
+        // Critical database connections
+        'payment_db' => [
+            'failure_threshold' => env('FUSE_PAYMENT_DB_FAILURE_THRESHOLD', 2), // Very strict
+            'recovery_timeout' => env('FUSE_PAYMENT_DB_RECOVERY_TIMEOUT', 60),
+        ],
+        
+        'audit_db' => [
+            'failure_threshold' => env('FUSE_AUDIT_DB_FAILURE_THRESHOLD', 3), // Strict for audit
+            'recovery_timeout' => env('FUSE_AUDIT_DB_RECOVERY_TIMEOUT', 45),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Circuit Breaker Events
     |--------------------------------------------------------------------------
     |
@@ -245,6 +366,7 @@ return [
         'dispatch_opened' => env('FUSE_DISPATCH_OPENED', true),
         'dispatch_half_open' => env('FUSE_DISPATCH_HALF_OPEN', true),
         'dispatch_closed' => env('FUSE_DISPATCH_CLOSED', true),
+        'dispatch_query_events' => env('FUSE_DISPATCH_QUERY_EVENTS', true), // Query-specific events
     ],
 
     /*
