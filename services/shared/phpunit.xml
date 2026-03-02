@@ -20,12 +20,15 @@
             <directory>./vendor</directory>
         </exclude>
     </source>
+    <!-- Coverage disabled for basic testing -->
+    <!--
     <coverage>
         <report>
             <html outputDirectory="coverage-html"/>
             <clover outputFile="coverage.xml"/>
         </report>
     </coverage>
+    -->
     <logging>
         <junit outputFile="test-results.xml"/>
     </logging>
