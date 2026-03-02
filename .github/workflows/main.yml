@@ -41,6 +41,9 @@ jobs:
     outputs:
       affected_services: ${{ steps.analyze.outputs.affected_services }}
       should_deploy: ${{ steps.analyze.outputs.should_deploy }}
+      change_impact: ${{ steps.analyze.outputs.change_impact }}
+      risk_score: ${{ steps.analyze.outputs.risk_score }}
+      services_matrix: ${{ steps.analyze.outputs.services_matrix }}
     
     steps:
       - name: Checkout Repository
@@ -73,13 +76,50 @@ jobs:
           echo "Changed files:"
           echo "$CHANGED_FILES"
           
-          # Simple service detection
+          # Initialize variables
           AFFECTED_SERVICES=""
-          for service in auth user auction bidding payment order notification analytics; do
-            if echo "$CHANGED_FILES" | grep -q "services/${service}/\|services/${service}-service/"; then
+          CHANGE_IMPACT="low"
+          RISK_SCORE=10
+          SERVICES_MATRIX="[]"
+          
+          # Simple service detection
+          for service in auth user auction bidding payment order notification analytics vin-ocr gateway shared; do
+            if echo "$CHANGED_FILES" | grep -q "services/${service}/\|services/${service}-service/\|${service}-service/"; then
               AFFECTED_SERVICES="${AFFECTED_SERVICES}${service},"
+              CHANGE_IMPACT="medium"
+              RISK_SCORE=30
             fi
           done
+          
+          # Check for high-impact changes
+          if echo "$CHANGED_FILES" | grep -q "shared/\|common/\|lib/\|database/migrations/"; then
+            CHANGE_IMPACT="high"
+            RISK_SCORE=70
+            # All services potentially affected
+            AFFECTED_SERVICES="auth,user,auction,bidding,payment,order,notification,analytics,vin-ocr,gateway,shared"
+          fi
+          
+          # Check for infrastructure changes
+          if echo "$CHANGED_FILES" | grep -q "deployment/\|docker/\|.github/workflows/\|docker-compose"; then
+            CHANGE_IMPACT="high"
+            RISK_SCORE=80
+          fi
+          
+          # Check for configuration changes
+          if echo "$CHANGED_FILES" | grep -q "config/\|.env\|package.json\|composer.json\|logging.php\|mail.php"; then
+            if [ "$CHANGE_IMPACT" = "low" ]; then
+              CHANGE_IMPACT="medium"
+              RISK_SCORE=40
+            fi
+          fi
+          
+          # Create services matrix JSON
+          if [ -n "$AFFECTED_SERVICES" ]; then
+            SERVICES_MATRIX=$(echo "$AFFECTED_SERVICES" | sed 's/,$//' | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
+          fi
+          
+          # Remove trailing comma from affected services
+          AFFECTED_SERVICES=$(echo "$AFFECTED_SERVICES" | sed 's/,$//')
           
           # Determine if deployment is needed
           SHOULD_DEPLOY="false"
@@ -88,12 +128,16 @@ jobs:
           fi
           
           # Output results
-          echo "affected_services=${AFFECTED_SERVICES%,}" >> $GITHUB_OUTPUT
+          echo "affected_services=${AFFECTED_SERVICES}" >> $GITHUB_OUTPUT
           echo "should_deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+          echo "change_impact=$CHANGE_IMPACT" >> $GITHUB_OUTPUT
+          echo "risk_score=$RISK_SCORE" >> $GITHUB_OUTPUT
+          echo "services_matrix=$SERVICES_MATRIX" >> $GITHUB_OUTPUT
           
           echo "📊 Analysis Results:"
-          echo "  Affected Services: ${AFFECTED_SERVICES%,}"
+          echo "  Affected Services: $AFFECTED_SERVICES"
           echo "  Should Deploy: $SHOULD_DEPLOY"
+          echo "  Change Impact: $CHANGE_IMPACT"
           echo "  Risk Score: $RISK_SCORE/100"
           echo "  Services Matrix: $SERVICES_MATRIX"
           
