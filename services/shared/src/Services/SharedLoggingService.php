@@ -177,7 +177,7 @@ class SharedLoggingService
     }
 
     /**
-     * Log database failover event.
+     * Log database failover event with email notification.
      */
     public function databaseFailover(string $event, array $context = []): void
     {
@@ -185,10 +185,17 @@ class SharedLoggingService
             'event_type' => 'database_failover',
             'failover_event' => $event,
             'timestamp' => Carbon::now()->toISOString(),
+            'service_name' => $this->getServiceName(),
+            'request_id' => $this->getRequestId(),
         ]);
 
-        $this->logToChannel('database_failover', 'warning', 
-            "Database Failover Event: {$event}", $failoverContext);
+        // Log to standard channels (file + mail)
+        $this->logToChannel('shared_stack', 'error', 
+            "🚨 CRITICAL: Database Failover Event - {$event}", $failoverContext);
+        
+        // Also log to mail channel specifically for immediate notification
+        $this->logToChannel('mail', 'error', 
+            "Database Failover Alert: {$event} in {$this->getServiceName()}", $failoverContext);
     }
 
     /**

@@ -45,7 +45,7 @@ return [
 
         'shared_stack' => [
             'driver' => 'stack',
-            'channels' => ['shared_daily', 'database_failover', 'telescope'],
+            'channels' => ['shared_daily', 'mail', 'telescope'],
             'ignore_exceptions' => false,
         ],
 
@@ -64,12 +64,14 @@ return [
             'replace_placeholders' => true,
         ],
 
-        'database_failover' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/database_failover.log'),
-            'level' => env('DB_FAILOVER_LOG_LEVEL', 'info'),
-            'days' => env('DB_FAILOVER_LOG_DAYS', 30),
-            'replace_placeholders' => true,
+        'mail' => [
+            'driver' => 'mail',
+            'to' => [
+                env('LOG_MAIL_TO', 'admin@reversetender.com'),
+                env('LOG_MAIL_TO_FAILOVER', 'failover@reversetender.com'),
+            ],
+            'subject' => env('LOG_MAIL_SUBJECT', 'Application Log Message'),
+            'level' => env('LOG_MAIL_LEVEL', 'error'),
         ],
 
         'request_correlation' => [
