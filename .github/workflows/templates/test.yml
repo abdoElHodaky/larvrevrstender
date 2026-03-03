@@ -165,6 +165,12 @@ jobs:
               php artisan key:generate --no-interaction --quiet || true
             elif [ "$IS_LIBRARY" = "true" ]; then
               echo "ℹ️ Skipping Laravel setup for library package: $service"
+              # For library packages, ensure we have a minimal APP_KEY if needed
+              if [ -f ".env" ] && ! grep -q "APP_KEY=" .env; then
+                echo "APP_KEY=base64:$(openssl rand -base64 32)" >> .env
+              elif [ -f ".env" ] && grep -q "APP_KEY=$" .env; then
+                sed -i "s/APP_KEY=$/APP_KEY=base64:$(openssl rand -base64 32)/" .env
+              fi
             fi
             
             # Run tests based on strategy

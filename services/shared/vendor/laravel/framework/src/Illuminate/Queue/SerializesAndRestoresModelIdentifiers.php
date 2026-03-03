@@ -59,8 +59,8 @@ trait SerializesAndRestoresModelIdentifiers
         }
 
         return is_array($value->id)
-            ? $this->restoreCollection($value)
-            : $this->restoreModel($value);
+                ? $this->restoreCollection($value)
+                : $this->restoreModel($value);
     }
 
     /**
@@ -106,8 +106,8 @@ trait SerializesAndRestoresModelIdentifiers
     public function restoreModel($value)
     {
         return $this->getQueryForModelRestoration(
-            (new ($value->getClass()))->setConnection($value->connection), $value->id
-        )->useWritePdo()->firstOrFail()->loadMissing($value->relations ?? []);
+            (new $value->class)->setConnection($value->connection), $value->id
+        )->useWritePdo()->firstOrFail()->load($value->relations ?? []);
     }
 
     /**
