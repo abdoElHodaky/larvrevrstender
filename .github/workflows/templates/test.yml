@@ -151,9 +151,20 @@ jobs:
               cp .env.example .env
             fi
             
-            # Generate application key if Laravel
-            if [ -f "artisan" ]; then
+            # Check if this is a library package
+            IS_LIBRARY=false
+            if [ -f "composer.json" ]; then
+              if grep -q '"type": "library"' composer.json; then
+                IS_LIBRARY=true
+                echo "📚 Detected library package: $service"
+              fi
+            fi
+            
+            # Generate application key if Laravel (but not for library packages)
+            if [ -f "artisan" ] && [ "$IS_LIBRARY" = "false" ]; then
               php artisan key:generate --no-interaction --quiet || true
+            elif [ "$IS_LIBRARY" = "true" ]; then
+              echo "ℹ️ Skipping Laravel setup for library package: $service"
             fi
             
             # Run tests based on strategy
@@ -317,4 +328,3 @@ jobs:
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Overall Result:** ${{ steps.test-result.outputs.result == 'success' && '✅ PASSED' || steps.test-result.outputs.result == 'skipped' && '⏭️ SKIPPED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
-
