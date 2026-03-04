@@ -6,6 +6,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 use Shared\Events\WriteOperationBufferedEvent;
+use Shared\Jobs\ReplayBufferedWriteOperationsJob;
 
 class HandleWriteOperationBuffered implements ShouldQueue
 {
@@ -87,6 +88,23 @@ class HandleWriteOperationBuffered implements ShouldQueue
                 'requires_immediate_action' => true,
             ]);
         }
+
+        // Schedule URGENT replay job for payment operations (shorter delay due to criticality)
+        ReplayBufferedWriteOperationsJob::dispatch('payment-service', 25)
+            ->delay(now()->addMinutes(1))
+            ->onQueue('write-operation-replay-urgent');
+
+        Log::critical('Payment Service: URGENT - Scheduled write operation replay job', [
+            'service' => 'payment-service',
+            'delay_minutes' => 1,
+            'batch_size' => 25,
+            'queue' => 'write-operation-replay-urgent',
+            'priority' => 'CRITICAL',
+        ]);
+
+        // Track replay job scheduling for monitoring
+        cache()->put('last_replay_job_scheduled', now()->toISOString(), 3600);
+        cache()->put('last_urgent_replay_job_scheduled', now()->toISOString(), 3600);
     }
 
     /**

@@ -6,6 +6,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 use Shared\Events\WriteOperationBufferedEvent;
+use Shared\Jobs\ReplayBufferedWriteOperationsJob;
 
 class HandleWriteOperationBuffered implements ShouldQueue
 {
@@ -55,5 +56,19 @@ class HandleWriteOperationBuffered implements ShouldQueue
                 'alert' => 'high_buffer_size',
             ]);
         }
+
+        // Schedule replay job with delay to allow for database recovery
+        ReplayBufferedWriteOperationsJob::dispatch('analytics-service', 50)
+            ->delay(now()->addMinutes(2))
+            ->onQueue('write-operation-replay');
+
+        Log::info('Analytics Service: Scheduled write operation replay job', [
+            'service' => 'analytics-service',
+            'delay_minutes' => 2,
+            'batch_size' => 50,
+        ]);
+
+        // Track replay job scheduling for monitoring
+        cache()->put('last_replay_job_scheduled', now()->toISOString(), 3600);
     }
 }
