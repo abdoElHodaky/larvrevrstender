@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Jobs;
+namespace Shared\Jobs;
 
 use Shared\Jobs\BaseQueueJob;
 use Carbon\Carbon;
@@ -461,4 +461,3 @@ class RotateApplicationLogsJob extends BaseQueueJob
         // broadcast(new \App\Events\Logs\LogRotationFailed(...));
     }
 }
-

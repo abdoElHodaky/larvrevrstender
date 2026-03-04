@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Jobs;
+namespace Shared\Jobs;
 
 use Shared\Jobs\BaseQueueJob;
 use Carbon\Carbon;

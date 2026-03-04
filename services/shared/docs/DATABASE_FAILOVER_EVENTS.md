@@ -205,20 +205,28 @@ event(new DatabaseFailoverEvent(
 │   Auth Service  │    │  Order Service  │    │  User Service   │
 │                 │    │                 │    │                 │
 │ EventProvider   │    │ EventProvider   │    │ EventProvider   │
-│ CustomListener  │    │ CustomListener  │    │ CustomListener  │
+│ (imports via    │    │ (imports via    │    │ (imports via    │
+│  use statements)│    │  use statements)│    │  use statements)│
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
                                  │
                     ┌─────────────────┐
-                    │ Shared Service  │
+                    │ Shared Library  │
+                    │ (src/ only)     │
                     │                 │
-                    │ DatabaseFailover│
-                    │ Event Dispatch  │
-                    │                 │
-                    │ Email Service   │
-                    │ SMTP2Go        │
+                    │ Events/         │
+                    │ Listeners/      │
+                    │ Jobs/           │
+                    │ Services/       │
+                    │ Mail/           │
                     └─────────────────┘
 ```
 
-Each service can implement its own custom listeners while benefiting from the centralized email notification system provided by the shared service.
+**Key Architecture Points:**
+- ✅ **Shared is a pure library** (src/ directory only, no app/)
+- ✅ **Services import via use statements** (Events, Listeners, Jobs, Mail)
+- ✅ **Services execute jobs** (shared provides job classes, services dispatch them)
+- ✅ **No artisan in shared** (jobs run in service contexts with their artisan)
+
+Each service imports shared components and executes them in their own application context.
