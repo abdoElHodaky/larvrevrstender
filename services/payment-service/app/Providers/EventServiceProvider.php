@@ -2,17 +2,7 @@
 
 namespace App\Providers;
 
-use App\Events\KYCVerificationCompleted;
-use App\Events\KYCVerificationSubmitted;
-use App\Events\UserProfileUpdated;
-use App\Listeners\BroadcastKYCVerificationCompleted;
-use App\Listeners\BroadcastKYCVerificationSubmitted;
-use App\Listeners\BroadcastUserProfileUpdated;
-use App\Listeners\HandleUserRegisteredFromAuth;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
-use Illuminate\Support\Facades\Event;
 use Shared\Events\DatabaseFailoverEvent;
 use Shared\Events\DatabaseFailoverSystemEvent;
 use Shared\Events\WriteOperationBufferedEvent;
@@ -38,7 +28,7 @@ class EventServiceProvider extends ServiceProvider
             'App\Listeners\HandleDatabaseFailoverSystem',
         ],
 
-        // Write Operation Events (User service has profile updates)
+        // Write Operation Events (CRITICAL for payment service - financial data)
         WriteOperationBufferedEvent::class => [
             'App\Listeners\HandleWriteOperationBuffered',
         ],
@@ -47,23 +37,30 @@ class EventServiceProvider extends ServiceProvider
             'App\Listeners\HandleWriteOperationReplayed',
         ],
 
-        // Laravel Auth Events
-        Registered::class => [
-            SendEmailVerificationNotification::class,
+        // Payment-specific events
+        'App\Events\PaymentProcessed' => [
+            'App\Listeners\ValidatePaymentProcessing',
+            'App\Listeners\NotifyPaymentProcessed',
+            'App\Listeners\LogPaymentActivity',
+            'App\Listeners\UpdatePaymentMetrics',
         ],
 
-        // User Profile Events
-        UserProfileUpdated::class => [
-            BroadcastUserProfileUpdated::class,
+        'App\Events\PaymentFailed' => [
+            'App\Listeners\HandlePaymentFailure',
+            'App\Listeners\NotifyPaymentFailure',
+            'App\Listeners\LogPaymentFailure',
         ],
 
-        // KYC Verification Events
-        KYCVerificationSubmitted::class => [
-            BroadcastKYCVerificationSubmitted::class,
+        'App\Events\RefundProcessed' => [
+            'App\Listeners\ValidateRefundProcessing',
+            'App\Listeners\NotifyRefundProcessed',
+            'App\Listeners\LogRefundActivity',
         ],
 
-        KYCVerificationCompleted::class => [
-            BroadcastKYCVerificationCompleted::class,
+        'App\Events\RefundFailed' => [
+            'App\Listeners\HandleRefundFailure',
+            'App\Listeners\NotifyRefundFailure',
+            'App\Listeners\LogRefundFailure',
         ],
     ];
 
@@ -72,8 +69,7 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Listen for external events from other services
-        Event::listen('external.user.registered', HandleUserRegisteredFromAuth::class);
+        parent::boot();
     }
 
     /**

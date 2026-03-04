@@ -2,17 +2,7 @@
 
 namespace App\Providers;
 
-use App\Events\KYCVerificationCompleted;
-use App\Events\KYCVerificationSubmitted;
-use App\Events\UserProfileUpdated;
-use App\Listeners\BroadcastKYCVerificationCompleted;
-use App\Listeners\BroadcastKYCVerificationSubmitted;
-use App\Listeners\BroadcastUserProfileUpdated;
-use App\Listeners\HandleUserRegisteredFromAuth;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
-use Illuminate\Support\Facades\Event;
 use Shared\Events\DatabaseFailoverEvent;
 use Shared\Events\DatabaseFailoverSystemEvent;
 use Shared\Events\WriteOperationBufferedEvent;
@@ -38,7 +28,7 @@ class EventServiceProvider extends ServiceProvider
             'App\Listeners\HandleDatabaseFailoverSystem',
         ],
 
-        // Write Operation Events (User service has profile updates)
+        // Write Operation Events (CRITICAL for auction service)
         WriteOperationBufferedEvent::class => [
             'App\Listeners\HandleWriteOperationBuffered',
         ],
@@ -47,23 +37,22 @@ class EventServiceProvider extends ServiceProvider
             'App\Listeners\HandleWriteOperationReplayed',
         ],
 
-        // Laravel Auth Events
-        Registered::class => [
-            SendEmailVerificationNotification::class,
+        // Auction-specific events
+        'App\Events\AuctionCreated' => [
+            'App\Listeners\NotifyAuctionCreated',
+            'App\Listeners\LogAuctionActivity',
         ],
 
-        // User Profile Events
-        UserProfileUpdated::class => [
-            BroadcastUserProfileUpdated::class,
+        'App\Events\BidPlaced' => [
+            'App\Listeners\NotifyBidPlaced',
+            'App\Listeners\UpdateAuctionMetrics',
+            'App\Listeners\LogBidActivity',
         ],
 
-        // KYC Verification Events
-        KYCVerificationSubmitted::class => [
-            BroadcastKYCVerificationSubmitted::class,
-        ],
-
-        KYCVerificationCompleted::class => [
-            BroadcastKYCVerificationCompleted::class,
+        'App\Events\AuctionEnded' => [
+            'App\Listeners\ProcessAuctionEnd',
+            'App\Listeners\NotifyAuctionEnd',
+            'App\Listeners\LogAuctionCompletion',
         ],
     ];
 
@@ -72,8 +61,7 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Listen for external events from other services
-        Event::listen('external.user.registered', HandleUserRegisteredFromAuth::class);
+        parent::boot();
     }
 
     /**

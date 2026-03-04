@@ -2,17 +2,7 @@
 
 namespace App\Providers;
 
-use App\Events\KYCVerificationCompleted;
-use App\Events\KYCVerificationSubmitted;
-use App\Events\UserProfileUpdated;
-use App\Listeners\BroadcastKYCVerificationCompleted;
-use App\Listeners\BroadcastKYCVerificationSubmitted;
-use App\Listeners\BroadcastUserProfileUpdated;
-use App\Listeners\HandleUserRegisteredFromAuth;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
-use Illuminate\Support\Facades\Event;
 use Shared\Events\DatabaseFailoverEvent;
 use Shared\Events\DatabaseFailoverSystemEvent;
 use Shared\Events\WriteOperationBufferedEvent;
@@ -38,7 +28,7 @@ class EventServiceProvider extends ServiceProvider
             'App\Listeners\HandleDatabaseFailoverSystem',
         ],
 
-        // Write Operation Events (User service has profile updates)
+        // Write Operation Events (Gateway has minimal writes, mainly routing logs)
         WriteOperationBufferedEvent::class => [
             'App\Listeners\HandleWriteOperationBuffered',
         ],
@@ -47,23 +37,20 @@ class EventServiceProvider extends ServiceProvider
             'App\Listeners\HandleWriteOperationReplayed',
         ],
 
-        // Laravel Auth Events
-        Registered::class => [
-            SendEmailVerificationNotification::class,
+        // Gateway-specific events
+        'App\Events\RequestRouted' => [
+            'App\Listeners\LogRequestRouting',
+            'App\Listeners\UpdateRoutingMetrics',
         ],
 
-        // User Profile Events
-        UserProfileUpdated::class => [
-            BroadcastUserProfileUpdated::class,
+        'App\Events\ServiceUnavailable' => [
+            'App\Listeners\HandleServiceUnavailable',
+            'App\Listeners\NotifyServiceFailure',
         ],
 
-        // KYC Verification Events
-        KYCVerificationSubmitted::class => [
-            BroadcastKYCVerificationSubmitted::class,
-        ],
-
-        KYCVerificationCompleted::class => [
-            BroadcastKYCVerificationCompleted::class,
+        'App\Events\RateLimitExceeded' => [
+            'App\Listeners\HandleRateLimitExceeded',
+            'App\Listeners\LogRateLimitViolation',
         ],
     ];
 
@@ -72,8 +59,7 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Listen for external events from other services
-        Event::listen('external.user.registered', HandleUserRegisteredFromAuth::class);
+        parent::boot();
     }
 
     /**

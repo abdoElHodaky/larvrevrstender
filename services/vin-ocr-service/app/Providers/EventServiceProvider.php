@@ -2,17 +2,7 @@
 
 namespace App\Providers;
 
-use App\Events\KYCVerificationCompleted;
-use App\Events\KYCVerificationSubmitted;
-use App\Events\UserProfileUpdated;
-use App\Listeners\BroadcastKYCVerificationCompleted;
-use App\Listeners\BroadcastKYCVerificationSubmitted;
-use App\Listeners\BroadcastUserProfileUpdated;
-use App\Listeners\HandleUserRegisteredFromAuth;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
-use Illuminate\Support\Facades\Event;
 use Shared\Events\DatabaseFailoverEvent;
 use Shared\Events\DatabaseFailoverSystemEvent;
 use Shared\Events\WriteOperationBufferedEvent;
@@ -38,7 +28,7 @@ class EventServiceProvider extends ServiceProvider
             'App\Listeners\HandleDatabaseFailoverSystem',
         ],
 
-        // Write Operation Events (User service has profile updates)
+        // Write Operation Events (VIN-OCR service stores processing results)
         WriteOperationBufferedEvent::class => [
             'App\Listeners\HandleWriteOperationBuffered',
         ],
@@ -47,23 +37,27 @@ class EventServiceProvider extends ServiceProvider
             'App\Listeners\HandleWriteOperationReplayed',
         ],
 
-        // Laravel Auth Events
-        Registered::class => [
-            SendEmailVerificationNotification::class,
+        // VIN-OCR specific events
+        'App\Events\VINProcessingStarted' => [
+            'App\Listeners\LogVINProcessingStart',
+            'App\Listeners\UpdateVINProcessingMetrics',
         ],
 
-        // User Profile Events
-        UserProfileUpdated::class => [
-            BroadcastUserProfileUpdated::class,
+        'App\Events\VINProcessingCompleted' => [
+            'App\Listeners\LogVINProcessingCompletion',
+            'App\Listeners\NotifyVINProcessingComplete',
+            'App\Listeners\UpdateVINProcessingMetrics',
         ],
 
-        // KYC Verification Events
-        KYCVerificationSubmitted::class => [
-            BroadcastKYCVerificationSubmitted::class,
+        'App\Events\VINProcessingFailed' => [
+            'App\Listeners\HandleVINProcessingFailure',
+            'App\Listeners\LogVINProcessingFailure',
+            'App\Listeners\RetryVINProcessing',
         ],
 
-        KYCVerificationCompleted::class => [
-            BroadcastKYCVerificationCompleted::class,
+        'App\Events\OCRConfidenceLow' => [
+            'App\Listeners\HandleLowOCRConfidence',
+            'App\Listeners\RequestManualReview',
         ],
     ];
 
@@ -72,8 +66,7 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Listen for external events from other services
-        Event::listen('external.user.registered', HandleUserRegisteredFromAuth::class);
+        parent::boot();
     }
 
     /**
