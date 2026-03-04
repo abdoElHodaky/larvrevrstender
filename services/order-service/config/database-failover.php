@@ -104,6 +104,57 @@ return [
             'database' => 'reverse_tender_orders',
             'allow_readonly_fallback' => true,
             'critical_operations' => ['order_creation', 'status_update'],
+            'write_buffer_config' => [
+                'queue_connection' => 'redis',
+                'queue_name' => 'order_write_operations',
+                'enable_encryption' => true,
+                'max_buffer_size' => 1000,
+                'buffer_ttl' => 3600, // 1 hour
+            ],
+            'operation_specific_rules' => [
+                'order_creation' => [
+                    'consistency_level' => 'strong',
+                    'max_delay_seconds' => 60,
+                    'enable_buffering' => true,
+                    'priority' => 'critical',
+                ],
+                'status_update' => [
+                    'consistency_level' => 'eventual',
+                    'max_delay_seconds' => 120,
+                    'enable_buffering' => true,
+                    'priority' => 'high',
+                ],
+                'order_cancellation' => [
+                    'consistency_level' => 'strong',
+                    'max_delay_seconds' => 30,
+                    'enable_buffering' => true,
+                    'priority' => 'high',
+                ],
+                'payment_update' => [
+                    'consistency_level' => 'strong',
+                    'max_delay_seconds' => 30,
+                    'enable_buffering' => true,
+                    'priority' => 'critical',
+                ],
+                'shipping_update' => [
+                    'consistency_level' => 'eventual',
+                    'max_delay_seconds' => 300,
+                    'enable_buffering' => true,
+                    'priority' => 'medium',
+                ],
+                'order_modification' => [
+                    'consistency_level' => 'strong',
+                    'max_delay_seconds' => 90,
+                    'enable_buffering' => true,
+                    'priority' => 'high',
+                ],
+                'refund_processing' => [
+                    'consistency_level' => 'strong',
+                    'max_delay_seconds' => 30,
+                    'enable_buffering' => true,
+                    'priority' => 'critical',
+                ],
+            ],
         ],
         'notification-service' => [
             'database' => 'reverse_tender_notifications',
@@ -206,4 +257,3 @@ return [
         'mock_connections' => env('DB_MOCK_CONNECTIONS', false),
     ],
 ];
-
