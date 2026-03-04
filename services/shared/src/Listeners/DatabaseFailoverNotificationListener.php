@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Listeners;
+namespace Shared\Listeners;
 
 use Shared\Events\DatabaseFailoverEvent;
 use Shared\Events\DatabaseFailoverSystemEvent;
@@ -14,6 +14,9 @@ use Shared\Facades\SharedLog;
  * 
  * Connects database failover events to the existing comprehensive
  * email notification infrastructure for cross-service event handling.
+ * 
+ * Import this listener in your service's EventServiceProvider:
+ * use Shared\Listeners\DatabaseFailoverNotificationListener;
  */
 class DatabaseFailoverNotificationListener implements ShouldQueue
 {

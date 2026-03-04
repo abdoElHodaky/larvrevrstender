@@ -17,7 +17,6 @@ use Shared\Services\DatabaseConsistencyValidator;
 use Shared\Services\DatabaseFailoverRecoveryManager;
 use Shared\HealthCheck\DatabaseHealthChecker;
 use Shared\Contracts\DatabaseFailoverInterface;
-use App\Providers\EventServiceProvider;
 
 /**
  * Shared Service Provider
@@ -119,9 +118,6 @@ class SharedServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Register EventServiceProvider for database failover event handling
-        $this->app->register(EventServiceProvider::class);
-        
         // Load configuration files
         $this->mergeConfigFrom(
             __DIR__ . '/../../config/shared.php', 'shared'

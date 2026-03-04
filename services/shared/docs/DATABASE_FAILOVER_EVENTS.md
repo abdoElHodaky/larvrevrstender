@@ -14,7 +14,7 @@ The shared service now provides comprehensive database failover event listening 
 
 ## How to Listen to Database Failover Events in Any Service
 
-### 1. Create an EventServiceProvider in Your Service
+### 1. Import Events and Listeners in Your Existing EventServiceProvider
 
 ```php
 <?php
@@ -25,17 +25,23 @@ namespace App\Providers;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Shared\Events\DatabaseFailoverEvent;
 use Shared\Events\DatabaseFailoverSystemEvent;
+use Shared\Listeners\DatabaseFailoverNotificationListener;
 use App\Listeners\YourCustomFailoverListener;
 
 class EventServiceProvider extends ServiceProvider
 {
     protected $listen = [
+        // Import shared database failover events
         DatabaseFailoverEvent::class => [
-            YourCustomFailoverListener::class,
+            DatabaseFailoverNotificationListener::class . '@handle',
+            YourCustomFailoverListener::class, // Optional: your custom logic
         ],
         DatabaseFailoverSystemEvent::class => [
-            YourCustomFailoverListener::class . '@handleSystemEvent',
+            DatabaseFailoverNotificationListener::class . '@handleSystemEvent',
+            YourCustomFailoverListener::class . '@handleSystemEvent', // Optional
         ],
+        
+        // Your existing events...
     ];
 }
 ```
@@ -101,9 +107,9 @@ class YourCustomFailoverListener implements ShouldQueue
 }
 ```
 
-### 3. Register Your EventServiceProvider
+### 3. EventServiceProvider Registration
 
-Add to your service's `bootstrap/app.php` or `config/app.php`:
+Your service's EventServiceProvider should already be registered in `bootstrap/app.php` or `config/app.php`. If not, add it:
 
 ```php
 // bootstrap/app.php (Laravel 11+)
