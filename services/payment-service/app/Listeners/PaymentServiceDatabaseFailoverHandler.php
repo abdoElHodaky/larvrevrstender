@@ -1,9 +1,10 @@
 <?php
 
-namespace Shared\Listeners;
+namespace App\Listeners;
 
 use Illuminate\Support\Facades\Log;
 use Shared\Events\DatabaseFailoverEvent;
+use Shared\Listeners\BaseDatabaseFailoverHandler;
 
 class PaymentServiceDatabaseFailoverHandler extends BaseDatabaseFailoverHandler
 {

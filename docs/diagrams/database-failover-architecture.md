@@ -142,49 +142,46 @@ graph LR
             BRH[BaseDatabaseRecoveryHandler<br/>429 lines]
             DRE[DatabaseRecoveryEvent<br/>45 lines]
         end
-        
-        subgraph "⚙️ Service Handlers (967 lines)"
-            OSH[OrderServiceHandler<br/>190 lines]
-            PSH[PaymentServiceHandler<br/>204 lines]
-            USH[UserServiceHandler<br/>191 lines]
-            ASH[AuthServiceHandler<br/>196 lines]
-            BSH[BiddingServiceHandler<br/>186 lines]
-        end
     end
     
     subgraph "📁 Individual Services"
         subgraph "🏆 Order Service"
-            OSL[HandleDatabaseFailover.php<br/>17 lines<br/>extends OrderServiceHandler]
+            OSL[OrderServiceDatabaseFailoverHandler.php<br/>190 lines<br/>extends BaseDatabaseFailoverHandler]
+            OSL2[HandleDatabaseFailover.php<br/>17 lines<br/>extends OrderServiceDatabaseFailoverHandler]
         end
         
         subgraph "💰 Payment Service"
-            PSL[HandleDatabaseFailover.php<br/>17 lines<br/>extends PaymentServiceHandler]
+            PSL[PaymentServiceDatabaseFailoverHandler.php<br/>204 lines<br/>extends BaseDatabaseFailoverHandler]
+            PSL2[HandleDatabaseFailover.php<br/>17 lines<br/>extends PaymentServiceDatabaseFailoverHandler]
         end
         
         subgraph "👤 User Service"
-            USL[HandleDatabaseFailover.php<br/>17 lines<br/>extends UserServiceHandler]
+            USL[UserServiceDatabaseFailoverHandler.php<br/>191 lines<br/>extends BaseDatabaseFailoverHandler]
+            USL2[HandleDatabaseFailover.php<br/>17 lines<br/>extends UserServiceDatabaseFailoverHandler]
         end
         
         subgraph "🔐 Auth Service"
-            ASL[HandleDatabaseFailover.php<br/>17 lines<br/>extends AuthServiceHandler]
+            ASL[AuthServiceDatabaseFailoverHandler.php<br/>196 lines<br/>extends BaseDatabaseFailoverHandler]
+            ASL2[HandleDatabaseFailover.php<br/>17 lines<br/>extends AuthServiceDatabaseFailoverHandler]
         end
         
         subgraph "🏷️ Bidding Service"
-            BSL[HandleDatabaseFailover.php<br/>17 lines<br/>extends BiddingServiceHandler]
+            BSL[BiddingServiceDatabaseFailoverHandler.php<br/>186 lines<br/>extends BaseDatabaseFailoverHandler]
+            BSL2[HandleDatabaseFailover.php<br/>17 lines<br/>extends BiddingServiceDatabaseFailoverHandler]
         end
     end
     
-    OSH --> OSL
-    PSH --> PSL
-    USH --> USL
-    ASH --> ASL
-    BSH --> BSL
+    BFH --> OSL
+    BFH --> PSL
+    BFH --> USL
+    BFH --> ASL
+    BFH --> BSL
     
-    BFH --> OSH
-    BFH --> PSH
-    BFH --> USH
-    BFH --> ASH
-    BFH --> BSH
+    OSL --> OSL2
+    PSL --> PSL2
+    USL --> USL2
+    ASL --> ASL2
+    BSL --> BSL2
 ```
 
 ## 📊 Code Reduction Visualization

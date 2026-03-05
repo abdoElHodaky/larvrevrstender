@@ -21,22 +21,34 @@
 ### Shared Library (services/shared/src/Listeners/)
 ```
 BaseDatabaseFailoverHandler.php (293 lines) - Common patterns
-OrderServiceDatabaseFailoverHandler.php (190 lines) - Order-specific logic
-PaymentServiceDatabaseFailoverHandler.php (204 lines) - Payment-specific logic
-UserServiceDatabaseFailoverHandler.php (191 lines) - User-specific logic
-AuthServiceDatabaseFailoverHandler.php (196 lines) - Auth-specific logic
-BiddingServiceDatabaseFailoverHandler.php (186 lines) - Bidding-specific logic
+BaseWriteOperationReplayedHandler.php (351 lines) - Replay monitoring
+BaseDatabaseRecoveryHandler.php (429 lines) - Recovery orchestration
 ```
 
 ### Service Implementation (services/{service}/app/Listeners/)
 ```php
+// Service-Local Handler: Order Service
 <?php
 namespace App\Listeners;
-use Shared\Listeners\OrderServiceDatabaseFailoverHandler;
+use Shared\Listeners\BaseDatabaseFailoverHandler;
+
+class OrderServiceDatabaseFailoverHandler extends BaseDatabaseFailoverHandler
+{
+    protected function getServiceName(): string
+    {
+        return 'Order Service';
+    }
+    // Service-specific configuration...
+}
+
+// Clean Listener
+<?php
+namespace App\Listeners;
 
 class HandleDatabaseFailover extends OrderServiceDatabaseFailoverHandler
 {
-    // All implementation inherited from shared library
+    // All implementation inherited from service-specific handler
+    // Base patterns inherited from shared library
 }
 ```
 

@@ -21,9 +21,9 @@ This document describes the **enterprise-grade database failover strategy** impl
 - **Analytics Service** - Eventual consistency (read-only fallback)
 - **Gateway Service** - Routing only (no database storage)
 
-## 🏗️ Shared Library Architecture
+## 🏗️ Distributed Service Architecture
 
-### Centralized Foundation (1,118 lines)
+### Shared Library Foundation (1,118 lines)
 
 ```
 services/shared/src/Listeners/
@@ -44,14 +44,22 @@ services/shared/src/Listeners/
     └── Cross-service communication
 ```
 
-### Service-Specific Handlers (967 lines)
+### Service-Specific Handlers (967 lines - Located in Services)
 
 ```
-services/shared/src/Listeners/
-├── OrderServiceDatabaseFailoverHandler.php (190 lines)
-├── PaymentServiceDatabaseFailoverHandler.php (204 lines)
-├── UserServiceDatabaseFailoverHandler.php (191 lines)
-├── AuthServiceDatabaseFailoverHandler.php (196 lines)
+services/order-service/app/Listeners/
+└── OrderServiceDatabaseFailoverHandler.php (190 lines)
+
+services/payment-service/app/Listeners/
+└── PaymentServiceDatabaseFailoverHandler.php (204 lines)
+
+services/user-service/app/Listeners/
+└── UserServiceDatabaseFailoverHandler.php (191 lines)
+
+services/auth-service/app/Listeners/
+└── AuthServiceDatabaseFailoverHandler.php (196 lines)
+
+services/bidding-service/app/Listeners/
 └── BiddingServiceDatabaseFailoverHandler.php (186 lines)
 ```
 
@@ -60,12 +68,13 @@ Each service-specific handler contains:
 - **Operation-specific rules** (6-8 rules per service)
 - **Stakeholder notification lists** (7-8 stakeholders per service)
 - **Service-specific configuration** (thresholds, delays, success rates)
+- **Clean inheritance** from shared base classes via `use` statements
 
 ## 🔄 Implementation Pattern
 
 ### Service-Level Listeners (Clean Inheritance)
 
-Each critical service has a simple listener that extends the shared handler:
+Each critical service has a simple listener that extends the service-local handler:
 
 ```php
 <?php
@@ -73,18 +82,35 @@ Each critical service has a simple listener that extends the shared handler:
 
 namespace App\Listeners;
 
-use Shared\Listeners\OrderServiceDatabaseFailoverHandler;
-
 /**
  * Order Service Database Failover Handler
  * 
- * Uses shared library implementation for consistent failover behavior.
- * All failover logic is centralized in the shared library.
+ * Uses service-local implementation that extends shared base classes.
+ * Service-specific configuration and business logic handled locally.
  */
 class HandleDatabaseFailover extends OrderServiceDatabaseFailoverHandler
 {
-    // All implementation inherited from shared library
-    // Service-specific configuration and business logic handled in shared handler
+    // All implementation inherited from service-specific handler
+    // Base patterns inherited from shared library via OrderServiceDatabaseFailoverHandler
+}
+```
+
+### Service-Specific Handler Pattern
+
+Each service owns its failover handler that extends shared base classes:
+
+```php
+<?php
+// services/order-service/app/Listeners/OrderServiceDatabaseFailoverHandler.php
+
+namespace App\Listeners;
+use Shared\Listeners\BaseDatabaseFailoverHandler;
+use Shared\Events\DatabaseFailoverEvent;
+
+class OrderServiceDatabaseFailoverHandler extends BaseDatabaseFailoverHandler
+{
+    // Service-specific configuration and business logic
+    // Base patterns inherited from shared library
 }
 ```
 

@@ -2,17 +2,14 @@
 
 namespace App\Listeners;
 
-use Shared\Listeners\UserServiceDatabaseFailoverHandler;
-
 /**
  * User Service Database Failover Handler
  * 
- * Uses shared library implementation for consistent failover behavior.
- * All failover logic is centralized in the shared library.
+ * Uses service-local implementation that extends shared base classes.
+ * Service-specific configuration and business logic handled locally.
  */
 class HandleDatabaseFailover extends UserServiceDatabaseFailoverHandler
 {
-    // All implementation inherited from shared library
-    // Service-specific configuration and business logic handled in shared handler
+    // All implementation inherited from service-specific handler
+    // Base patterns inherited from shared library via UserServiceDatabaseFailoverHandler
 }
-

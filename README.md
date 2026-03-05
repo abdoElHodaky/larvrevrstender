@@ -671,7 +671,7 @@ services:
 
 ### Enterprise-Grade Resilience Strategy
 
-Our platform implements **business-aware database failover** with centralized logic and service-specific configurations:
+Our platform implements **business-aware database failover** with distributed service ownership and shared base classes:
 
 #### 🔴 Critical Services (Complex Failover)
 - **Order Service** - Revenue protection (orders = money)
@@ -687,10 +687,10 @@ Our platform implements **business-aware database failover** with centralized lo
 - **Gateway Service** - Routing only
 
 ### Architecture Benefits
-- **94% Code Reduction** - Centralized shared library (2,085 lines)
+- **94% Code Reduction** - Shared base classes with service ownership (2,085 lines)
 - **Business-Aware Resilience** - Resources match business impact
-- **Single Source of Truth** - Update once, applies everywhere
-- **Service-Specific Configuration** - Tailored thresholds and stakeholders
+- **Service Autonomy** - Each service owns its failover handler
+- **Clean Inheritance** - Base patterns via `use` statements, no duplication
 
 📚 **[Complete Documentation](docs/DATABASE_FAILOVER_ARCHITECTURE.md)** | 📊 **[Architecture Diagrams](docs/diagrams/database-failover-architecture.md)**
 
