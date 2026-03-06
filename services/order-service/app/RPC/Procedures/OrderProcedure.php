@@ -478,7 +478,7 @@ class OrderProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('Order@createOrderFromBid', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->orderService->createOrderFromBid(
+            $result = $this->orderService->createOrderFromBidWithData(
                 $params['bid_id'],
                 $params['order_data'] ?? []
             );
@@ -550,7 +550,7 @@ class OrderProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('Order@updateOrderStatus', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->orderService->updateOrderStatus(
+            $result = $this->orderService->updateOrderStatusWithData(
                 $params['order_id'],
                 $params['new_status'],
                 $params['status_data'] ?? []
@@ -675,7 +675,7 @@ class OrderProcedure extends BaseProcedure
         ]);
 
         return $this->executeWithLogging('Order@cancelOrder', $this->sanitizeForLogging($params), function () use ($params) {
-            $result = $this->orderService->cancelOrder(
+            $result = $this->orderService->cancelOrderWithData(
                 $params['order_id'],
                 $params['reason'],
                 $params['cancelled_by']
