@@ -10,8 +10,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Shared\Services\FileUploadService;
+use Shared\Core\BaseService;
+use App\Services\Contracts\ProfileServiceInterface;
 
-class ProfileService
+class ProfileService extends BaseService implements ProfileServiceInterface
 {
     protected FileUploadService $fileUploadService;
 

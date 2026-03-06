@@ -6,8 +6,10 @@ use App\Events\InvoiceCreated;
 use App\Events\InvoiceStatusChanged;
 use App\Models\Invoice;
 use Illuminate\Support\Collection;
+use Shared\Core\BaseService;
+use App\Services\Contracts\InvoiceServiceInterface;
 
-class InvoiceService
+class InvoiceService extends BaseService implements InvoiceServiceInterface
 {
     /**
      * Get invoice by ID.
