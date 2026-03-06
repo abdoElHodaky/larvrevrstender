@@ -14,8 +14,10 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Shared\Core\BaseService;
+use App\Services\Contracts\OrderServiceInterface;
 
-class OrderService
+class OrderService extends BaseService implements OrderServiceInterface
 {
     /**
      * Get order by ID.

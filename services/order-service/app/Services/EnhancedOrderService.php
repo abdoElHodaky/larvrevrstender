@@ -13,8 +13,10 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Shared\Core\BaseService;
+use App\Services\Contracts\EnhancedOrderServiceInterface;
 
-class EnhancedOrderService
+class EnhancedOrderService extends BaseService implements EnhancedOrderServiceInterface
 {
     /**
      * Create order from winning bid with enhanced validation and data
@@ -843,5 +845,173 @@ class EnhancedOrderService
 
         // Clear analytics cache
         Cache::tags(['order_analytics'])->flush();
+    }
+
+    // Implementation of OrderServiceInterface methods
+    // These delegate to the regular OrderService for object-oriented operations
+
+    public function getOrder(int $orderId): Order
+    {
+        return Order::with(['partRequest', 'merchant', 'customer'])->findOrFail($orderId);
+    }
+
+    public function getOrderByNumber(string $orderNumber): Order
+    {
+        return Order::where('order_number', $orderNumber)->firstOrFail();
+    }
+
+    public function getCustomerOrders(int $customerId, array $filters = []): \Illuminate\Support\Collection
+    {
+        $query = Order::where('customer_id', $customerId);
+        
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+        
+        return $query->get();
+    }
+
+    public function getMerchantOrders(int $merchantId, array $filters = []): \Illuminate\Support\Collection
+    {
+        $query = Order::where('merchant_id', $merchantId);
+        
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+        
+        return $query->get();
+    }
+
+    public function createOrderFromBid(Bid $bid): Order
+    {
+        // Simple object-oriented version - delegates to enhanced method
+        $result = $this->createOrderFromBidWithData($bid->id);
+        
+        if (!$result['success']) {
+            throw new \Exception($result['message']);
+        }
+        
+        return Order::find($result['data']['order']['id']);
+    }
+
+    public function updateOrderStatus(int $orderId, string $newStatus, ?string $note = null): Order
+    {
+        $order = $this->getOrder($orderId);
+        $order->update(['status' => $newStatus]);
+        
+        if ($note) {
+            $statusHistory = $order->status_history ?? [];
+            $statusHistory[] = [
+                'status' => $newStatus,
+                'timestamp' => now()->toISOString(),
+                'note' => $note,
+                'updated_by' => 'system',
+            ];
+            $order->update(['status_history' => $statusHistory]);
+        }
+        
+        event(new OrderStatusChanged($order, $order->getOriginal('status'), $newStatus));
+        
+        return $order->fresh();
+    }
+
+    public function markAsPaid(int $orderId, array $paymentData = []): Order
+    {
+        $order = $this->getOrder($orderId);
+        $order->update([
+            'status' => Order::STATUS_PAYMENT_CONFIRMED,
+            'payment_confirmed_at' => now(),
+            'payment_data' => $paymentData
+        ]);
+        
+        return $order->fresh();
+    }
+
+    public function markAsShipped(int $orderId, array $shippingData = []): Order
+    {
+        $order = $this->getOrder($orderId);
+        $order->update([
+            'status' => Order::STATUS_SHIPPED,
+            'shipped_at' => now(),
+            'tracking_number' => $shippingData['tracking_number'] ?? null,
+            'estimated_delivery' => isset($shippingData['estimated_delivery']) 
+                ? new \DateTime($shippingData['estimated_delivery']) 
+                : null
+        ]);
+        
+        return $order->fresh();
+    }
+
+    public function markAsDelivered(int $orderId): Order
+    {
+        $order = $this->getOrder($orderId);
+        $order->update([
+            'status' => Order::STATUS_DELIVERED,
+            'delivered_at' => now()
+        ]);
+        
+        return $order->fresh();
+    }
+
+    public function completeOrder(int $orderId): Order
+    {
+        $order = $this->getOrder($orderId);
+        $order->update(['status' => Order::STATUS_COMPLETED]);
+        
+        event(new OrderCompleted($order));
+        
+        return $order->fresh();
+    }
+
+    public function cancelOrder(int $orderId, ?string $reason = null, ?int $userId = null): Order
+    {
+        $order = $this->getOrder($orderId);
+        
+        // Verify user can cancel the order
+        if ($userId && !in_array($userId, [$order->customer_id, $order->merchant_id])) {
+            throw new \Exception('Cannot cancel another user\'s order');
+        }
+        
+        $order->update([
+            'status' => Order::STATUS_CANCELLED,
+            'cancelled_at' => now(),
+            'cancellation_reason' => $reason
+        ]);
+        
+        event(new OrderCancelled($order));
+        
+        return $order->fresh();
+    }
+
+    public function addCustomerRating(int $orderId, int $customerId, int $rating, ?string $feedback = null): Order
+    {
+        $order = $this->getOrder($orderId);
+        
+        if ($order->customer_id !== $customerId) {
+            throw new \Exception('Cannot rate another customer\'s order');
+        }
+        
+        $order->update([
+            'customer_rating' => $rating,
+            'customer_feedback' => $feedback
+        ]);
+        
+        return $order->fresh();
+    }
+
+    public function addMerchantRating(int $orderId, int $merchantId, int $rating, ?string $feedback = null): Order
+    {
+        $order = $this->getOrder($orderId);
+        
+        if ($order->merchant_id !== $merchantId) {
+            throw new \Exception('Cannot rate another merchant\'s order');
+        }
+        
+        $order->update([
+            'merchant_rating' => $rating,
+            'merchant_feedback' => $feedback
+        ]);
+        
+        return $order->fresh();
     }
 }
