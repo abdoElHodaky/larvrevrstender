@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Exception;
+use Shared\Core\BaseService;
+use App\Services\Contracts\TelegramServiceInterface;
 
 /**
  * Telegram Service
@@ -13,7 +15,7 @@ use Exception;
  * Supports Telegram Bot API for sending messages via Telegram bots.
  * Works well in MENA region with reliable delivery.
  */
-class TelegramService
+class TelegramService extends BaseService implements TelegramServiceInterface
 {
     private string $botToken;
     private string $baseUrl;

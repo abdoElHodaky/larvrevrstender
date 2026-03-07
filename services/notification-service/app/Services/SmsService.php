@@ -4,13 +4,15 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
 use Exception;
+use Shared\Core\BaseService;
+use App\Services\Contracts\SmsServiceInterface;
 
 /**
  * SMS Service for Notification Service
  * 
  * Handles SMS notification sending and management.
  */
-class SmsService
+class SmsService extends BaseService implements SmsServiceInterface
 {
     /**
      * Send an SMS notification

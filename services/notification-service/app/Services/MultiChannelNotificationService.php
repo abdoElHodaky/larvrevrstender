@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Http;
 use Exception;
+use Shared\Core\BaseService;
+use App\Services\Contracts\MultiChannelNotificationServiceInterface;
 
 /**
  * Multi-Channel Notification Service
@@ -23,7 +25,7 @@ use Exception;
  * - Web Push
  * - In-app notifications
  */
-class MultiChannelNotificationService
+class MultiChannelNotificationService extends BaseService implements MultiChannelNotificationServiceInterface
 {
     private WhatsAppService $whatsAppService;
     private TelegramService $telegramService;

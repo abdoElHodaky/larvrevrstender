@@ -5,13 +5,15 @@ namespace App\Services;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Exception;
+use Shared\Core\BaseService;
+use App\Services\Contracts\EmailServiceInterface;
 
 /**
  * Email Service for Notification Service
  * 
  * Handles email notification sending and management.
  */
-class EmailService
+class EmailService extends BaseService implements EmailServiceInterface
 {
     /**
      * Send an email notification

@@ -8,8 +8,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Shared\Core\BaseService;
+use App\Services\Contracts\NotificationServiceInterface;
 
-class NotificationService
+class NotificationService extends BaseService implements NotificationServiceInterface
 {
     /**
      * Send a notification

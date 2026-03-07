@@ -4,13 +4,15 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
 use Exception;
+use Shared\Core\BaseService;
+use App\Services\Contracts\PushNotificationServiceInterface;
 
 /**
  * Push Notification Service for Notification Service
  * 
  * Handles push notification sending and management.
  */
-class PushNotificationService
+class PushNotificationService extends BaseService implements PushNotificationServiceInterface
 {
     /**
      * Send a push notification

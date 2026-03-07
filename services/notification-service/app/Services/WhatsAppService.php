@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Exception;
+use Shared\Core\BaseService;
+use App\Services\Contracts\WhatsAppServiceInterface;
 
 /**
  * WhatsApp Service
@@ -17,7 +19,7 @@ use Exception;
  * - Msegat (UAE-based)
  * - Oursms (Egypt-based)
  */
-class WhatsAppService
+class WhatsAppService extends BaseService implements WhatsAppServiceInterface
 {
     private string $provider;
     private array $config;

@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Process;
 use Exception;
+use Shared\Core\BaseService;
+use App\Services\Contracts\SignalServiceInterface;
 
 /**
  * Signal Service
@@ -19,7 +21,7 @@ use Exception;
  * Note: Signal doesn't have an official business API like WhatsApp,
  * so this uses community solutions and Signal CLI.
  */
-class SignalService
+class SignalService extends BaseService implements SignalServiceInterface
 {
     private string $method;
     private array $config;
