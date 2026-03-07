@@ -25,7 +25,7 @@ use App\Services\Contracts\MultiChannelNotificationServiceInterface;
  * - Web Push
  * - In-app notifications
  */
-class MultiChannelNotificationService extends BaseService implements MultiChannelNotificationServiceInterface
+class MultiChannelNotificationService extends BaseService
 {
     private WhatsAppService $whatsAppService;
     private TelegramService $telegramService;

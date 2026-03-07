@@ -12,7 +12,7 @@ use App\Services\Contracts\PushNotificationServiceInterface;
  * 
  * Handles push notification sending and management.
  */
-class PushNotificationService extends BaseService implements PushNotificationServiceInterface
+class PushNotificationService extends BaseService
 {
     /**
      * Send a push notification

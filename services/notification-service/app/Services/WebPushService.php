@@ -10,7 +10,7 @@ use NotificationChannels\WebPush\WebPushMessage;
 use Shared\Core\BaseService;
 use App\Services\Contracts\WebPushServiceInterface;
 
-class WebPushService extends BaseService implements WebPushServiceInterface
+class WebPushService extends BaseService
 {
     /**
      * Send web push notification to a specific user.

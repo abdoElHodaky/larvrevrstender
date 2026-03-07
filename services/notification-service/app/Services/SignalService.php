@@ -21,7 +21,7 @@ use App\Services\Contracts\SignalServiceInterface;
  * Note: Signal doesn't have an official business API like WhatsApp,
  * so this uses community solutions and Signal CLI.
  */
-class SignalService extends BaseService implements SignalServiceInterface
+class SignalService extends BaseService
 {
     private string $method;
     private array $config;

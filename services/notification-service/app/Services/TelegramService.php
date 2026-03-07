@@ -15,7 +15,7 @@ use App\Services\Contracts\TelegramServiceInterface;
  * Supports Telegram Bot API for sending messages via Telegram bots.
  * Works well in MENA region with reliable delivery.
  */
-class TelegramService extends BaseService implements TelegramServiceInterface
+class TelegramService extends BaseService
 {
     private string $botToken;
     private string $baseUrl;

@@ -19,7 +19,7 @@ use App\Services\Contracts\WhatsAppServiceInterface;
  * - Msegat (UAE-based)
  * - Oursms (Egypt-based)
  */
-class WhatsAppService extends BaseService implements WhatsAppServiceInterface
+class WhatsAppService extends BaseService
 {
     private string $provider;
     private array $config;
