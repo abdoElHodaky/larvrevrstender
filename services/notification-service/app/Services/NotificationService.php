@@ -745,6 +745,411 @@ class NotificationService extends BaseService implements NotificationServiceInte
     }
 
     /**
+     * Get notification by ID
+     */
+    public function getNotification(int $notificationId): array
+    {
+        try {
+            $notification = DB::table('notifications')->find($notificationId);
+
+            if (!$notification) {
+                return [
+                    'found' => false,
+                    'error' => 'Notification not found',
+                ];
+            }
+
+            return [
+                'found' => true,
+                'notification' => [
+                    'id' => $notification->id,
+                    'user_id' => $notification->user_id,
+                    'type' => $notification->type,
+                    'status' => $notification->status,
+                    'title' => $notification->title,
+                    'message' => $notification->message,
+                    'data' => json_decode($notification->data ?? '{}', true),
+                    'sent_at' => $notification->sent_at,
+                    'created_at' => $notification->created_at,
+                ],
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get notification', [
+                'error' => $e->getMessage(),
+                'notification_id' => $notificationId,
+            ]);
+
+            return [
+                'found' => false,
+                'error' => 'Failed to retrieve notification',
+            ];
+        }
+    }
+
+    /**
+     * Get user notifications
+     */
+    public function getUserNotifications(int $userId, array $filters = []): array
+    {
+        try {
+            $query = DB::table('notifications')->where('user_id', $userId);
+
+            // Apply filters
+            if (isset($filters['status'])) {
+                $query->where('status', $filters['status']);
+            }
+
+            if (isset($filters['type'])) {
+                $query->where('type', $filters['type']);
+            }
+
+            if (isset($filters['read'])) {
+                $query->where('read', $filters['read']);
+            }
+
+            if (isset($filters['limit'])) {
+                $query->limit($filters['limit']);
+            }
+
+            $notifications = $query->orderBy('created_at', 'desc')->get();
+
+            return [
+                'user_id' => $userId,
+                'notifications' => $notifications->toArray(),
+                'total' => $notifications->count(),
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get user notifications', [
+                'error' => $e->getMessage(),
+                'user_id' => $userId,
+            ]);
+
+            return [
+                'user_id' => $userId,
+                'notifications' => [],
+                'total' => 0,
+                'error' => 'Failed to retrieve notifications',
+            ];
+        }
+    }
+
+    /**
+     * Mark notification as read
+     */
+    public function markAsRead(int $notificationId): array
+    {
+        try {
+            $updated = DB::table('notifications')
+                ->where('id', $notificationId)
+                ->update([
+                    'read' => true,
+                    'read_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            if ($updated) {
+                return [
+                    'success' => true,
+                    'notification_id' => $notificationId,
+                    'marked_at' => now()->toISOString(),
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'error' => 'Notification not found',
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to mark notification as read', [
+                'error' => $e->getMessage(),
+                'notification_id' => $notificationId,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to mark notification as read',
+            ];
+        }
+    }
+
+    /**
+     * Mark multiple notifications as read
+     */
+    public function markMultipleAsRead(array $notificationIds): array
+    {
+        try {
+            $updated = DB::table('notifications')
+                ->whereIn('id', $notificationIds)
+                ->update([
+                    'read' => true,
+                    'read_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            return [
+                'success' => true,
+                'updated_count' => $updated,
+                'notification_ids' => $notificationIds,
+                'marked_at' => now()->toISOString(),
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Failed to mark multiple notifications as read', [
+                'error' => $e->getMessage(),
+                'notification_ids' => $notificationIds,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to mark notifications as read',
+            ];
+        }
+    }
+
+    /**
+     * Delete notification
+     */
+    public function deleteNotification(int $notificationId): array
+    {
+        try {
+            $deleted = DB::table('notifications')
+                ->where('id', $notificationId)
+                ->delete();
+
+            if ($deleted) {
+                // Also delete related events
+                DB::table('notification_events')
+                    ->where('notification_id', $notificationId)
+                    ->delete();
+
+                return [
+                    'success' => true,
+                    'notification_id' => $notificationId,
+                    'deleted_at' => now()->toISOString(),
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'error' => 'Notification not found',
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to delete notification', [
+                'error' => $e->getMessage(),
+                'notification_id' => $notificationId,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to delete notification',
+            ];
+        }
+    }
+
+    /**
+     * Get notification preferences (alias for getUserPreferences)
+     */
+    public function getNotificationPreferences(int $userId): array
+    {
+        return $this->getUserPreferences($userId);
+    }
+
+    /**
+     * Update notification preferences (alias for updatePreferences)
+     */
+    public function updateNotificationPreferences(int $userId, array $preferences): array
+    {
+        return $this->updatePreferences($userId, $preferences);
+    }
+
+    /**
+     * Get notification statistics
+     */
+    public function getNotificationStatistics(int $userId): array
+    {
+        try {
+            $stats = [
+                'user_id' => $userId,
+                'total_notifications' => DB::table('notifications')->where('user_id', $userId)->count(),
+                'unread_notifications' => DB::table('notifications')->where('user_id', $userId)->where('read', false)->count(),
+                'sent_notifications' => DB::table('notifications')->where('user_id', $userId)->where('status', 'sent')->count(),
+                'failed_notifications' => DB::table('notifications')->where('user_id', $userId)->where('status', 'failed')->count(),
+            ];
+
+            // Get statistics by type
+            $typeStats = DB::table('notifications')
+                ->where('user_id', $userId)
+                ->select('type', DB::raw('count(*) as count'))
+                ->groupBy('type')
+                ->get()
+                ->pluck('count', 'type')
+                ->toArray();
+
+            $stats['by_type'] = $typeStats;
+
+            // Get recent activity (last 30 days)
+            $recentActivity = DB::table('notifications')
+                ->where('user_id', $userId)
+                ->where('created_at', '>=', now()->subDays(30))
+                ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
+                ->groupBy(DB::raw('DATE(created_at)'))
+                ->orderBy('date', 'desc')
+                ->get()
+                ->toArray();
+
+            $stats['recent_activity'] = $recentActivity;
+
+            return $stats;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get notification statistics', [
+                'error' => $e->getMessage(),
+                'user_id' => $userId,
+            ]);
+
+            return [
+                'user_id' => $userId,
+                'error' => 'Failed to retrieve statistics',
+            ];
+        }
+    }
+
+    /**
+     * Schedule notification
+     */
+    public function scheduleNotification(array $notificationData, string $scheduledAt): array
+    {
+        try {
+            // Validate scheduled time
+            $scheduledTime = Carbon::parse($scheduledAt);
+            if ($scheduledTime->isPast()) {
+                return [
+                    'success' => false,
+                    'error' => 'Scheduled time cannot be in the past',
+                ];
+            }
+
+            // Create scheduled notification record
+            $notificationId = Str::uuid();
+            
+            DB::table('scheduled_notifications')->insert([
+                'id' => $notificationId,
+                'user_id' => $notificationData['user_id'],
+                'type' => $notificationData['type'],
+                'title' => $notificationData['title'],
+                'message' => $notificationData['message'],
+                'data' => json_encode($notificationData['data'] ?? []),
+                'scheduled_at' => $scheduledTime,
+                'status' => 'scheduled',
+                'created_at' => now(),
+            ]);
+
+            return [
+                'success' => true,
+                'notification_id' => $notificationId,
+                'scheduled_at' => $scheduledTime->toISOString(),
+                'status' => 'scheduled',
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Failed to schedule notification', [
+                'error' => $e->getMessage(),
+                'data' => $notificationData,
+                'scheduled_at' => $scheduledAt,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to schedule notification',
+            ];
+        }
+    }
+
+    /**
+     * Cancel scheduled notification
+     */
+    public function cancelScheduledNotification(int $notificationId): array
+    {
+        try {
+            $updated = DB::table('scheduled_notifications')
+                ->where('id', $notificationId)
+                ->where('status', 'scheduled')
+                ->update([
+                    'status' => 'cancelled',
+                    'cancelled_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            if ($updated) {
+                return [
+                    'success' => true,
+                    'notification_id' => $notificationId,
+                    'cancelled_at' => now()->toISOString(),
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'error' => 'Scheduled notification not found or already processed',
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to cancel scheduled notification', [
+                'error' => $e->getMessage(),
+                'notification_id' => $notificationId,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to cancel scheduled notification',
+            ];
+        }
+    }
+
+    /**
+     * Get notification templates
+     */
+    public function getNotificationTemplates(): array
+    {
+        try {
+            $templates = DB::table('notification_templates')
+                ->select('id', 'name', 'type', 'subject', 'body', 'variables', 'created_at')
+                ->orderBy('name')
+                ->get();
+
+            return [
+                'templates' => $templates->map(function ($template) {
+                    return [
+                        'id' => $template->id,
+                        'name' => $template->name,
+                        'type' => $template->type,
+                        'subject' => $template->subject,
+                        'body' => $template->body,
+                        'variables' => json_decode($template->variables ?? '[]', true),
+                        'created_at' => $template->created_at,
+                    ];
+                })->toArray(),
+                'total' => $templates->count(),
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get notification templates', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'templates' => [],
+                'total' => 0,
+                'error' => 'Failed to retrieve templates',
+            ];
+        }
+    }
+
+    /**
      * Get default notification preferences
      */
     private function getDefaultPreferences(): array
