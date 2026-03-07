@@ -13,7 +13,7 @@ use Shared\Procedures\Micro\CircuitBreakerProcedure;
 use Shared\Core\BaseService;
 use App\Services\Contracts\EscrowServiceInterface;
 
-class EscrowService extends BaseService implements EscrowServiceInterface
+class EscrowService extends BaseService
 {
     use CircuitBreakerProcedure;
 

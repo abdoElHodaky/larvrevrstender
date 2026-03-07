@@ -12,7 +12,7 @@ use App\Services\Contracts\AuctionServiceInterface;
  * 
  * Handles auction-related operations within the bidding context.
  */
-class AuctionService extends BaseService implements AuctionServiceInterface
+class AuctionService extends BaseService
 {
     /**
      * Get auction details

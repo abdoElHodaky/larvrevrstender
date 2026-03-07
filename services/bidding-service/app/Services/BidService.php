@@ -12,7 +12,7 @@ use App\Services\Contracts\BidServiceInterface;
  * 
  * Handles bid creation, validation, and management.
  */
-class BidService extends BaseService implements BidServiceInterface
+class BidService extends BaseService
 {
     /**
      * Create a new bid

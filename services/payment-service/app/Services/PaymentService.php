@@ -13,7 +13,7 @@ use Illuminate\Support\Collection;
 use Shared\Core\BaseService;
 use App\Services\Contracts\PaymentServiceInterface;
 
-class PaymentService extends BaseService implements PaymentServiceInterface
+class PaymentService extends BaseService
 {
     private InvoiceService $invoiceService;
 

@@ -15,7 +15,7 @@ use App\Services\Contracts\BidEvaluationServiceInterface;
  * 
  * Handles the scoring and evaluation of individual bids based on multiple criteria.
  */
-class BidEvaluationService extends BaseService implements BidEvaluationServiceInterface
+class BidEvaluationService extends BaseService
 {
     private UserServiceAdapter $userService;
 

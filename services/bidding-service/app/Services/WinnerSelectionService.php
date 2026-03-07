@@ -21,7 +21,7 @@ use App\Services\Contracts\WinnerSelectionServiceInterface;
  * Core service responsible for evaluating bids and selecting winners
  * using multi-criteria decision analysis.
  */
-class WinnerSelectionService extends BaseService implements WinnerSelectionServiceInterface
+class WinnerSelectionService extends BaseService
 {
     private UserServiceAdapter $userService;
     private NotificationServiceAdapter $notificationService;

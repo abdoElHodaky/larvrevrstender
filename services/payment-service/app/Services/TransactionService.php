@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Shared\Core\BaseService;
 use App\Services\Contracts\TransactionServiceInterface;
 
-class TransactionService extends BaseService implements TransactionServiceInterface
+class TransactionService extends BaseService
 {
     /**
      * Create a new transaction.

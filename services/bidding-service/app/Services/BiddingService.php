@@ -15,7 +15,7 @@ use Carbon\Carbon;
 use Shared\Core\BaseService;
 use App\Services\Contracts\BiddingServiceInterface;
 
-class BiddingService extends BaseService implements BiddingServiceInterface
+class BiddingService extends BaseService
 {
     private AuthServiceAdapter $authService;
     private UserServiceAdapter $userService;

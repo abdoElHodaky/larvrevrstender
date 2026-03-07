@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 use Shared\Core\BaseService;
 use App\Services\Contracts\InvoiceServiceInterface;
 
-class InvoiceService extends BaseService implements InvoiceServiceInterface
+class InvoiceService extends BaseService
 {
     /**
      * Get invoice by ID.
