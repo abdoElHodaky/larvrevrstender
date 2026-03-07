@@ -12,8 +12,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
+use Shared\Core\BaseService;
+use App\Services\Contracts\BiddingServiceInterface;
 
-class BiddingService
+class BiddingService extends BaseService implements BiddingServiceInterface
 {
     private AuthServiceAdapter $authService;
     private UserServiceAdapter $userService;
