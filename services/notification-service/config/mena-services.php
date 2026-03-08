@@ -7,7 +7,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Configuration for notification services that work well in the MENA region
-    | as alternatives to Twilio and other international providers.
+    | using regional providers like Unifonic, Msegat, Oursms, and Infobip.
     |
     */
 

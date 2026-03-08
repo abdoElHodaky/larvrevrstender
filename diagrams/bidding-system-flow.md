@@ -50,7 +50,7 @@ graph TB
     end
 
     subgraph "🌐 EXTERNAL INTEGRATIONS"
-        SMS["📲 SMS Gateway<br/>🚀 Twilio + Unifonic<br/>🌍 Global Coverage"]
+        SMS["📲 SMS Gateway<br/>🚀 MENA Providers<br/>🌍 Unifonic + Msegat + Oursms + Infobip"]
         Email["📧 Email Service<br/>🚀 SendGrid + AWS SES<br/>📬 Transactional Mail"]
     end
 
