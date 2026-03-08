@@ -2,7 +2,7 @@
 
 namespace App\RPC\Clients;
 
-use Shared\RPC\BaseRpcClient;
+use Shared\Clients\BaseRpcClient;
 
 /**
  * Notification Service RPC Client for Order Service
@@ -377,4 +377,3 @@ class NotificationServiceRpcClient extends BaseRpcClient
         ]);
     }
 }
-

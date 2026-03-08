@@ -2,7 +2,7 @@
 
 namespace App\RPC\Clients;
 
-use Shared\RPC\BaseRpcClient;
+use Shared\Clients\BaseRpcClient;
 
 /**
  * User Service RPC Client for Order Service
@@ -366,4 +366,3 @@ class UserServiceRpcClient extends BaseRpcClient
         ]);
     }
 }
-
