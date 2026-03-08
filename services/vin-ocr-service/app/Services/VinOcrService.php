@@ -9,8 +9,9 @@ use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 use Carbon\Carbon;
+use Shared\Core\BaseService;
 
-class VinOcrService
+class VinOcrService extends BaseService
 {
     private ImageManager $imageManager;
     private array $ocrConfig;

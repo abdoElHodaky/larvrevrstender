@@ -54,7 +54,7 @@ return array(
     'PhpOption\\' => array($vendorDir . '/phpoption/phpoption/src/PhpOption'),
     'Opcodes\\MailParser\\' => array($vendorDir . '/opcodesio/mail-parser/src'),
     'Opcodes\\LogViewer\\' => array($vendorDir . '/opcodesio/log-viewer/src'),
-    'Nette\\' => array($vendorDir . '/nette/utils/src', $vendorDir . '/nette/schema/src'),
+    'Nette\\' => array($vendorDir . '/nette/schema/src', $vendorDir . '/nette/utils/src'),
     'Monolog\\' => array($vendorDir . '/monolog/monolog/src/Monolog'),
     'Mockery\\' => array($vendorDir . '/mockery/mockery/library/Mockery'),
     'League\\Uri\\' => array($vendorDir . '/league/uri', $vendorDir . '/league/uri-interfaces'),

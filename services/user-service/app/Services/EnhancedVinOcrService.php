@@ -5,8 +5,9 @@ namespace App\Services;
 use App\Models\Vehicle;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
+use Shared\Core\BaseService;
 
-class EnhancedVinOcrService
+class EnhancedVinOcrService extends BaseService
 {
     private VinOcrService $baseVinService;
 
