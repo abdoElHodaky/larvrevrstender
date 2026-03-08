@@ -39,9 +39,10 @@
     35 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
     36 => 'Spatie\\MediaLibrary\\MediaLibraryServiceProvider',
     37 => 'Spatie\\Permission\\PermissionServiceProvider',
-    38 => 'App\\Providers\\AppServiceProvider',
-    39 => 'App\\Providers\\EventServiceProvider',
-    40 => 'App\\Providers\\RpcServiceProvider',
+    38 => 'Shared\\Providers\\SharedServiceProvider',
+    39 => 'App\\Providers\\AppServiceProvider',
+    40 => 'App\\Providers\\EventServiceProvider',
+    41 => 'App\\Providers\\RpcServiceProvider',
   ),
   'eager' => 
   array (
@@ -68,9 +69,10 @@
     20 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
     21 => 'Spatie\\MediaLibrary\\MediaLibraryServiceProvider',
     22 => 'Spatie\\Permission\\PermissionServiceProvider',
-    23 => 'App\\Providers\\AppServiceProvider',
-    24 => 'App\\Providers\\EventServiceProvider',
-    25 => 'App\\Providers\\RpcServiceProvider',
+    23 => 'Shared\\Providers\\SharedServiceProvider',
+    24 => 'App\\Providers\\AppServiceProvider',
+    25 => 'App\\Providers\\EventServiceProvider',
+    26 => 'App\\Providers\\RpcServiceProvider',
   ),
   'deferred' => 
   array (

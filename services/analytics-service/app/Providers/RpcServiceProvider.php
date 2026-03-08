@@ -71,6 +71,16 @@ class RpcServiceProvider extends ServiceProvider
             return new \App\RPC\Clients\PaymentServiceRpcClient();
         });
 
+        // Notification Service RPC Client
+        $this->app->singleton('NotificationRpc', function () {
+            return new \App\RPC\Clients\NotificationServiceRpcClient();
+        });
+
+        // VIN OCR Service RPC Client
+        $this->app->singleton('VinOcrRpc', function () {
+            return new \App\RPC\Clients\VinOcrServiceRpcClient();
+        });
+
         // Register RPC clients with interface bindings for dependency injection
         $this->app->bind(\App\RPC\Clients\UserServiceRpcClient::class, function () {
             return app('UserRpc');
@@ -86,6 +96,14 @@ class RpcServiceProvider extends ServiceProvider
 
         $this->app->bind(\App\RPC\Clients\PaymentServiceRpcClient::class, function () {
             return app('PaymentRpc');
+        });
+
+        $this->app->bind(\App\RPC\Clients\NotificationServiceRpcClient::class, function () {
+            return app('NotificationRpc');
+        });
+
+        $this->app->bind(\App\RPC\Clients\VinOcrServiceRpcClient::class, function () {
+            return app('VinOcrRpc');
         });
     }
 
