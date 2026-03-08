@@ -391,7 +391,7 @@ GET /api/queue-circuit-breaker/health?queue=default
     "circuit_states": {
       "stripe": "CLOSED",
       "mailgun": "OPEN",
-      "twilio": "HALF_OPEN"
+      "sms_providers": "HALF_OPEN"
     },
     "health_status": "degraded"
   }
