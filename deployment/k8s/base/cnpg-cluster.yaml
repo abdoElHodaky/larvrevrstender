@@ -1,0 +1,296 @@
+# Cloud-Native PostgreSQL (CNPG) Cluster Configuration
+# Defines the PostgreSQL cluster with automatic failover and replication
+# Updated for comprehensive database failover architecture v3.0
+
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: reverse-tender-postgres
+  namespace: default
+  labels:
+    app.kubernetes.io/name: reverse-tender-postgres
+    app.kubernetes.io/component: database-cluster
+    app.kubernetes.io/part-of: reverse-tender-platform
+    database.kubernetes.io/provider: cnpg
+    database.kubernetes.io/type: postgresql
+    database.kubernetes.io/role: secondary
+  annotations:
+    database.kubernetes.io/description: "CNPG PostgreSQL cluster for failover support"
+    database.kubernetes.io/failover-priority: "2"
+spec:
+  # Cluster Configuration
+  instances: 3
+  primaryUpdateStrategy: unsupervised
+  
+  # PostgreSQL Configuration
+  postgresql:
+    parameters:
+      # Connection Settings
+      max_connections: "200"
+      shared_buffers: "256MB"
+      effective_cache_size: "1GB"
+      maintenance_work_mem: "64MB"
+      checkpoint_completion_target: "0.9"
+      wal_buffers: "16MB"
+      default_statistics_target: "100"
+      random_page_cost: "1.1"
+      effective_io_concurrency: "200"
+      work_mem: "4MB"
+      min_wal_size: "1GB"
+      max_wal_size: "4GB"
+      
+      # Replication Settings
+      max_wal_senders: "10"
+      max_replication_slots: "10"
+      wal_level: "replica"
+      hot_standby: "on"
+      wal_log_hints: "on"
+      
+      # Logging Settings
+      log_destination: "stderr"
+      logging_collector: "on"
+      log_directory: "log"
+      log_filename: "postgresql-%Y-%m-%d_%H%M%S.log"
+      log_rotation_age: "1d"
+      log_rotation_size: "100MB"
+      log_min_duration_statement: "1000"
+      log_line_prefix: "%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h "
+      log_checkpoints: "on"
+      log_connections: "on"
+      log_disconnections: "on"
+      log_lock_waits: "on"
+      log_temp_files: "0"
+      
+      # Performance Settings
+      shared_preload_libraries: "pg_stat_statements"
+      track_activity_query_size: "2048"
+      pg_stat_statements.track: "all"
+      pg_stat_statements.max: "10000"
+      
+  # Bootstrap Configuration
+  bootstrap:
+    initdb:
+      database: reversetender
+      owner: app_user
+      secret:
+        name: cnpg-postgresql-secrets
+      dataChecksums: true
+      encoding: "UTF8"
+      localeCType: "C"
+      localeCollate: "C"
+  
+  # Storage Configuration
+  storage:
+    size: 100Gi
+    storageClass: fast-ssd
+    resizeInUseVolumes: true
+  
+  # Resource Configuration
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+  
+  # Monitoring Configuration
+  monitoring:
+    enabled: true
+    customQueriesConfigMap:
+    - name: cnpg-custom-queries
+      key: queries.yaml
+  
+  # Backup Configuration
+  backup:
+    retentionPolicy: "30d"
+    barmanObjectStore:
+      destinationPath: "s3://reverse-tender-backups/cnpg"
+      s3Credentials:
+        accessKeyId:
+          name: backup-credentials
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: backup-credentials
+          key: SECRET_ACCESS_KEY
+      wal:
+        retention: "7d"
+        maxParallel: 8
+      data:
+        compression: gzip
+        encryption: AES256
+        jobs: 2
+  
+  # Affinity and Anti-Affinity
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: reverse-tender-postgres
+          topologyKey: kubernetes.io/hostname
+  
+  # Node Selector
+  nodeSelector:
+    database: "true"
+  
+  # Tolerations
+  tolerations:
+  - key: "database"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+---
+# CNPG Backup Schedule
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: reverse-tender-postgres-backup
+  namespace: default
+  labels:
+    app.kubernetes.io/name: reverse-tender-postgres-backup
+    app.kubernetes.io/component: database-backup
+    database.kubernetes.io/provider: cnpg
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  backupOwnerReference: self
+  cluster:
+    name: reverse-tender-postgres
+  immediate: false
+  suspend: false
+
+---
+# CNPG Pooler for Connection Pooling
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: reverse-tender-postgres-pooler
+  namespace: default
+  labels:
+    app.kubernetes.io/name: reverse-tender-postgres-pooler
+    app.kubernetes.io/component: database-pooler
+    database.kubernetes.io/provider: cnpg
+spec:
+  cluster:
+    name: reverse-tender-postgres
+  instances: 3
+  type: rw
+  pgbouncer:
+    poolMode: transaction
+    parameters:
+      max_client_conn: "200"
+      default_pool_size: "25"
+      max_db_connections: "100"
+      max_user_connections: "100"
+      server_reset_query: "DISCARD ALL"
+      server_check_query: "SELECT 1"
+      server_check_delay: "30"
+      server_connect_timeout: "15"
+      server_login_retry: "15"
+      client_login_timeout: "60"
+      autodb_idle_timeout: "3600"
+      dns_max_ttl: "15"
+      dns_nxdomain_ttl: "15"
+      log_connections: "1"
+      log_disconnections: "1"
+      log_pooler_errors: "1"
+      stats_period: "60"
+  
+  # Monitoring
+  monitoring:
+    enabled: true
+  
+  # Resources
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+---
+# CNPG Custom Queries ConfigMap for Monitoring
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-custom-queries
+  namespace: default
+  labels:
+    app.kubernetes.io/name: cnpg-custom-queries
+    app.kubernetes.io/component: monitoring-config
+    database.kubernetes.io/provider: cnpg
+data:
+  queries.yaml: |
+    # Custom PostgreSQL monitoring queries for CNPG
+    pg_database_size:
+      query: "SELECT pg_database.datname, pg_database_size(pg_database.datname) as size FROM pg_database"
+      metrics:
+        - datname:
+            usage: "LABEL"
+            description: "Name of the database"
+        - size:
+            usage: "GAUGE"
+            description: "Size of the database in bytes"
+    
+    pg_stat_user_tables:
+      query: "SELECT schemaname, tablename, n_tup_ins, n_tup_upd, n_tup_del, n_live_tup, n_dead_tup FROM pg_stat_user_tables"
+      metrics:
+        - schemaname:
+            usage: "LABEL"
+            description: "Name of the schema"
+        - tablename:
+            usage: "LABEL"
+            description: "Name of the table"
+        - n_tup_ins:
+            usage: "COUNTER"
+            description: "Number of tuples inserted"
+        - n_tup_upd:
+            usage: "COUNTER"
+            description: "Number of tuples updated"
+        - n_tup_del:
+            usage: "COUNTER"
+            description: "Number of tuples deleted"
+        - n_live_tup:
+            usage: "GAUGE"
+            description: "Number of live tuples"
+        - n_dead_tup:
+            usage: "GAUGE"
+            description: "Number of dead tuples"
+    
+    pg_stat_statements:
+      query: "SELECT query, calls, total_time, mean_time FROM pg_stat_statements ORDER BY total_time DESC LIMIT 10"
+      metrics:
+        - query:
+            usage: "LABEL"
+            description: "Query text"
+        - calls:
+            usage: "COUNTER"
+            description: "Number of times executed"
+        - total_time:
+            usage: "COUNTER"
+            description: "Total time spent in the statement"
+        - mean_time:
+            usage: "GAUGE"
+            description: "Mean time per execution"
+
+---
+# Backup Credentials Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backup-credentials
+  namespace: default
+  labels:
+    app.kubernetes.io/name: backup-credentials
+    app.kubernetes.io/component: backup-secret
+    database.kubernetes.io/provider: cnpg
+type: Opaque
+stringData:
+  ACCESS_KEY_ID: "CHANGE_ME_backup_access_key"
+  SECRET_ACCESS_KEY: "CHANGE_ME_backup_secret_key"
+  BUCKET_NAME: "reverse-tender-backups"
+  REGION: "us-east-1"

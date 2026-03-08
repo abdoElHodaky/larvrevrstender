@@ -1,0 +1,242 @@
+# Database Failover Configuration for Reverse Tender Platform
+# Supports multi-database failover: Neon PostgreSQL, Cloud-Native PostgreSQL, MongoDB Atlas
+# Updated for comprehensive database failover architecture v3.0
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-failover-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: database-failover
+    app.kubernetes.io/part-of: reverse-tender-platform
+    database.kubernetes.io/type: multi-provider
+    version: v3.0
+  annotations:
+    config.kubernetes.io/description: "Database failover configuration for multi-provider setup"
+    database.kubernetes.io/providers: "neon-postgresql,cnpg-postgresql,mongodb-atlas"
+    database.kubernetes.io/failover-strategy: "primary-secondary-tertiary"
+data:
+  # Database Failover Strategy Configuration
+  DB_FAILOVER_ENABLED: "true"
+  DB_FAILOVER_STRATEGY: "primary-secondary-tertiary"
+  DB_FAILOVER_TIMEOUT: "30"
+  DB_FAILOVER_RETRY_ATTEMPTS: "3"
+  DB_FAILOVER_RETRY_DELAY: "5"
+  DB_FAILOVER_HEALTH_CHECK_INTERVAL: "10"
+  DB_FAILOVER_CIRCUIT_BREAKER_ENABLED: "true"
+  DB_FAILOVER_CIRCUIT_BREAKER_THRESHOLD: "5"
+  DB_FAILOVER_CIRCUIT_BREAKER_TIMEOUT: "60"
+  
+  # Primary Database: Neon PostgreSQL (Serverless)
+  DB_PRIMARY_PROVIDER: "neon"
+  DB_PRIMARY_TYPE: "postgresql"
+  DB_PRIMARY_CONNECTION: "pgsql"
+  DB_PRIMARY_PORT: "5432"
+  DB_PRIMARY_CHARSET: "utf8"
+  DB_PRIMARY_COLLATION: "utf8_unicode_ci"
+  DB_PRIMARY_SSLMODE: "require"
+  DB_PRIMARY_POOL_SIZE: "20"
+  DB_PRIMARY_POOL_TIMEOUT: "30"
+  DB_PRIMARY_IDLE_TIMEOUT: "300"
+  DB_PRIMARY_MAX_LIFETIME: "3600"
+  
+  # Secondary Database: Cloud-Native PostgreSQL (CNPG)
+  DB_SECONDARY_PROVIDER: "cnpg"
+  DB_SECONDARY_TYPE: "postgresql"
+  DB_SECONDARY_CONNECTION: "pgsql"
+  DB_SECONDARY_PORT: "5432"
+  DB_SECONDARY_CHARSET: "utf8"
+  DB_SECONDARY_COLLATION: "utf8_unicode_ci"
+  DB_SECONDARY_SSLMODE: "prefer"
+  DB_SECONDARY_POOL_SIZE: "15"
+  DB_SECONDARY_POOL_TIMEOUT: "30"
+  DB_SECONDARY_IDLE_TIMEOUT: "300"
+  DB_SECONDARY_MAX_LIFETIME: "3600"
+  
+  # Tertiary Database: MongoDB Atlas (NoSQL)
+  DB_TERTIARY_PROVIDER: "mongodb-atlas"
+  DB_TERTIARY_TYPE: "mongodb"
+  DB_TERTIARY_CONNECTION: "mongodb"
+  DB_TERTIARY_PORT: "27017"
+  DB_TERTIARY_AUTH_SOURCE: "admin"
+  DB_TERTIARY_REPLICA_SET: "atlas-replica-set"
+  DB_TERTIARY_SSL: "true"
+  DB_TERTIARY_POOL_SIZE: "10"
+  DB_TERTIARY_POOL_TIMEOUT: "30"
+  DB_TERTIARY_SERVER_SELECTION_TIMEOUT: "30000"
+  DB_TERTIARY_SOCKET_TIMEOUT: "30000"
+  
+  # Database Health Check Configuration
+  DB_HEALTH_CHECK_ENABLED: "true"
+  DB_HEALTH_CHECK_INTERVAL: "30"
+  DB_HEALTH_CHECK_TIMEOUT: "10"
+  DB_HEALTH_CHECK_RETRIES: "3"
+  DB_HEALTH_CHECK_ENDPOINT: "/health/database"
+  
+  # Connection Pool Configuration
+  DB_POOL_ENABLED: "true"
+  DB_POOL_MIN_CONNECTIONS: "5"
+  DB_POOL_MAX_CONNECTIONS: "50"
+  DB_POOL_ACQUIRE_TIMEOUT: "30000"
+  DB_POOL_CREATE_TIMEOUT: "30000"
+  DB_POOL_DESTROY_TIMEOUT: "5000"
+  DB_POOL_IDLE_TIMEOUT: "300000"
+  DB_POOL_REAP_INTERVAL: "1000"
+  
+  # Migration Configuration
+  DB_MIGRATION_ENABLED: "true"
+  DB_MIGRATION_TIMEOUT: "300"
+  DB_MIGRATION_LOCK_TIMEOUT: "60"
+  DB_MIGRATION_TABLE: "migrations"
+  
+  # Backup Configuration
+  DB_BACKUP_ENABLED: "true"
+  DB_BACKUP_SCHEDULE: "0 2 * * *"
+  DB_BACKUP_RETENTION_DAYS: "30"
+  DB_BACKUP_COMPRESSION: "gzip"
+  
+  # Monitoring and Logging
+  DB_MONITORING_ENABLED: "true"
+  DB_METRICS_ENABLED: "true"
+  DB_SLOW_QUERY_LOG: "true"
+  DB_SLOW_QUERY_THRESHOLD: "1000"
+  DB_CONNECTION_LOG: "true"
+  DB_ERROR_LOG: "true"
+  
+  # Cache Configuration for Database Queries
+  DB_CACHE_ENABLED: "true"
+  DB_CACHE_TTL: "300"
+  DB_CACHE_PREFIX: "db_cache"
+  DB_QUERY_CACHE_ENABLED: "true"
+  DB_QUERY_CACHE_TTL: "600"
+
+---
+# Neon PostgreSQL Specific Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: neon-postgresql-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: database-neon
+    database.kubernetes.io/provider: neon
+    database.kubernetes.io/type: postgresql
+data:
+  # Neon PostgreSQL Configuration
+  NEON_ENABLED: "true"
+  NEON_REGION: "us-east-1"
+  NEON_COMPUTE_SIZE: "0.25"
+  NEON_AUTOSCALING_ENABLED: "true"
+  NEON_MIN_COMPUTE_SIZE: "0.25"
+  NEON_MAX_COMPUTE_SIZE: "4"
+  NEON_SUSPEND_TIMEOUT: "300"
+  NEON_POOLER_ENABLED: "true"
+  NEON_POOLER_MODE: "transaction"
+  NEON_POOLER_SIZE: "25"
+  NEON_SSL_MODE: "require"
+  NEON_CONNECTION_LIMIT: "100"
+  
+  # Neon Branch Configuration
+  NEON_BRANCH_ENABLED: "true"
+  NEON_MAIN_BRANCH: "main"
+  NEON_DEV_BRANCH: "dev"
+  NEON_STAGING_BRANCH: "staging"
+  
+  # Neon Backup Configuration
+  NEON_BACKUP_ENABLED: "true"
+  NEON_POINT_IN_TIME_RECOVERY: "true"
+  NEON_BACKUP_RETENTION: "30"
+
+---
+# Cloud-Native PostgreSQL (CNPG) Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-postgresql-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: database-cnpg
+    database.kubernetes.io/provider: cnpg
+    database.kubernetes.io/type: postgresql
+data:
+  # CNPG Cluster Configuration
+  CNPG_ENABLED: "true"
+  CNPG_CLUSTER_NAME: "reverse-tender-postgres"
+  CNPG_INSTANCES: "3"
+  CNPG_PRIMARY_UPDATE_STRATEGY: "unsupervised"
+  CNPG_POSTGRESQL_VERSION: "16"
+  CNPG_STORAGE_CLASS: "fast-ssd"
+  CNPG_STORAGE_SIZE: "100Gi"
+  CNPG_MEMORY_REQUEST: "1Gi"
+  CNPG_MEMORY_LIMIT: "2Gi"
+  CNPG_CPU_REQUEST: "500m"
+  CNPG_CPU_LIMIT: "1000m"
+  
+  # CNPG Replication Configuration
+  CNPG_REPLICA_CLUSTER_ENABLED: "true"
+  CNPG_REPLICA_INSTANCES: "2"
+  CNPG_STREAMING_REPLICATION: "true"
+  CNPG_SYNCHRONOUS_REPLICATION: "false"
+  CNPG_MAX_REPLICATION_SLOTS: "10"
+  CNPG_MAX_WAL_SENDERS: "10"
+  
+  # CNPG Backup Configuration
+  CNPG_BACKUP_ENABLED: "true"
+  CNPG_BACKUP_SCHEDULE: "0 2 * * *"
+  CNPG_BACKUP_RETENTION_POLICY: "30d"
+  CNPG_WAL_RETENTION_POLICY: "7d"
+  CNPG_BACKUP_COMPRESSION: "gzip"
+  
+  # CNPG Monitoring Configuration
+  CNPG_MONITORING_ENABLED: "true"
+  CNPG_PROMETHEUS_ENABLED: "true"
+  CNPG_GRAFANA_ENABLED: "true"
+
+---
+# MongoDB Atlas Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongodb-atlas-config
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: database-mongodb
+    database.kubernetes.io/provider: mongodb-atlas
+    database.kubernetes.io/type: mongodb
+data:
+  # MongoDB Atlas Configuration
+  MONGODB_ATLAS_ENABLED: "true"
+  MONGODB_ATLAS_CLUSTER_NAME: "reverse-tender-cluster"
+  MONGODB_ATLAS_REGION: "US_EAST_1"
+  MONGODB_ATLAS_TIER: "M10"
+  MONGODB_ATLAS_VERSION: "7.0"
+  MONGODB_ATLAS_REPLICA_SET_ENABLED: "true"
+  MONGODB_ATLAS_REPLICA_SET_SIZE: "3"
+  MONGODB_ATLAS_BACKUP_ENABLED: "true"
+  MONGODB_ATLAS_BACKUP_POLICY: "DAILY"
+  MONGODB_ATLAS_BACKUP_RETENTION: "30"
+  
+  # MongoDB Connection Configuration
+  MONGODB_AUTH_SOURCE: "admin"
+  MONGODB_SSL_ENABLED: "true"
+  MONGODB_SSL_VALIDATE: "true"
+  MONGODB_RETRY_WRITES: "true"
+  MONGODB_RETRY_READS: "true"
+  MONGODB_READ_PREFERENCE: "primaryPreferred"
+  MONGODB_WRITE_CONCERN: "majority"
+  MONGODB_READ_CONCERN: "majority"
+  
+  # MongoDB Pool Configuration
+  MONGODB_MIN_POOL_SIZE: "5"
+  MONGODB_MAX_POOL_SIZE: "20"
+  MONGODB_MAX_IDLE_TIME: "300000"
+  MONGODB_WAIT_QUEUE_TIMEOUT: "30000"
+  MONGODB_SERVER_SELECTION_TIMEOUT: "30000"
+  MONGODB_SOCKET_TIMEOUT: "30000"
+  MONGODB_CONNECT_TIMEOUT: "30000"
+  
+  # MongoDB Atlas Monitoring
+  MONGODB_ATLAS_MONITORING_ENABLED: "true"
+  MONGODB_ATLAS_PROFILER_ENABLED: "true"
+  MONGODB_ATLAS_SLOW_QUERY_THRESHOLD: "1000"

@@ -1,0 +1,448 @@
+# Gateway API Policies for Database Failover
+# Updated for comprehensive database failover architecture v3.0
+# Includes circuit breaker, retry, and rate limiting policies
+
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: BackendTLSPolicy
+metadata:
+  name: database-failover-tls-policy
+  namespace: default
+  labels:
+    app.kubernetes.io/name: database-failover-tls-policy
+    app.kubernetes.io/component: tls-policy
+    database.kubernetes.io/failover-enabled: "true"
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: api-gateway-failover-route
+  validation:
+    caCertificateRefs:
+    - name: database-ca-certs
+      kind: ConfigMap
+    hostname: "*.reversetender.com"
+
+---
+# Circuit Breaker Policy for Database Failover
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HTTPRoute
+metadata:
+  name: database-circuit-breaker-policy
+  namespace: default
+  labels:
+    app.kubernetes.io/name: database-circuit-breaker-policy
+    app.kubernetes.io/component: circuit-breaker
+    database.kubernetes.io/failover-enabled: "true"
+  annotations:
+    gateway.kubernetes.io/policy: "circuit-breaker"
+    database.kubernetes.io/circuit-breaker-threshold: "5"
+    database.kubernetes.io/circuit-breaker-timeout: "60s"
+spec:
+  parentRefs:
+  - name: database-failover-gateway
+    sectionName: https
+  hostnames:
+  - "api.reversetender.com"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/v1/database-health
+    filters:
+    - type: ExtensionRef
+      extensionRef:
+        group: gateway.networking.k8s.io
+        kind: HTTPRouteFilter
+        name: circuit-breaker-filter
+    backendRefs:
+    - name: database-health-service
+      port: 8080
+      weight: 100
+
+---
+# Rate Limiting Policy for Database Operations
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HTTPRoute
+metadata:
+  name: database-rate-limit-policy
+  namespace: default
+  labels:
+    app.kubernetes.io/name: database-rate-limit-policy
+    app.kubernetes.io/component: rate-limiting
+    database.kubernetes.io/failover-enabled: "true"
+  annotations:
+    gateway.kubernetes.io/policy: "rate-limit"
+    database.kubernetes.io/rate-limit-requests: "100"
+    database.kubernetes.io/rate-limit-window: "60s"
+spec:
+  parentRefs:
+  - name: database-failover-gateway
+    sectionName: https
+  hostnames:
+  - "api.reversetender.com"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/v1
+    filters:
+    - type: ExtensionRef
+      extensionRef:
+        group: gateway.networking.k8s.io
+        kind: HTTPRouteFilter
+        name: rate-limit-filter
+    backendRefs:
+    - name: api-gateway
+      port: 8000
+      weight: 100
+
+---
+# Retry Policy for Database Failover
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HTTPRoute
+metadata:
+  name: database-retry-policy
+  namespace: default
+  labels:
+    app.kubernetes.io/name: database-retry-policy
+    app.kubernetes.io/component: retry-policy
+    database.kubernetes.io/failover-enabled: "true"
+  annotations:
+    gateway.kubernetes.io/policy: "retry"
+    database.kubernetes.io/retry-attempts: "3"
+    database.kubernetes.io/retry-backoff: "exponential"
+    database.kubernetes.io/retry-timeout: "30s"
+spec:
+  parentRefs:
+  - name: database-failover-gateway
+    sectionName: https
+  hostnames:
+  - "api.reversetender.com"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/v1
+    filters:
+    - type: ExtensionRef
+      extensionRef:
+        group: gateway.networking.k8s.io
+        kind: HTTPRouteFilter
+        name: retry-filter
+    backendRefs:
+    - name: api-gateway
+      port: 8000
+      weight: 100
+
+---
+# Database Health Check Policy
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HTTPRoute
+metadata:
+  name: database-health-check-policy
+  namespace: default
+  labels:
+    app.kubernetes.io/name: database-health-check-policy
+    app.kubernetes.io/component: health-check
+    database.kubernetes.io/failover-enabled: "true"
+  annotations:
+    gateway.kubernetes.io/policy: "health-check"
+    database.kubernetes.io/health-check-interval: "30s"
+    database.kubernetes.io/health-check-timeout: "10s"
+    database.kubernetes.io/health-check-retries: "3"
+spec:
+  parentRefs:
+  - name: database-failover-gateway
+    sectionName: database-health
+  hostnames:
+  - "health.reversetender.com"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /health
+    filters:
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        add:
+        - name: X-Health-Check
+          value: "database-failover"
+        - name: X-Check-Timestamp
+          value: "{{.timestamp}}"
+    backendRefs:
+    - name: database-health-service
+      port: 8080
+      weight: 100
+
+---
+# Database Failover Webhook Policy
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HTTPRoute
+metadata:
+  name: database-failover-webhook-policy
+  namespace: default
+  labels:
+    app.kubernetes.io/name: database-failover-webhook-policy
+    app.kubernetes.io/component: webhook-policy
+    database.kubernetes.io/failover-enabled: "true"
+  annotations:
+    gateway.kubernetes.io/policy: "webhook"
+    database.kubernetes.io/webhook-enabled: "true"
+spec:
+  parentRefs:
+  - name: database-failover-gateway
+    sectionName: https
+  hostnames:
+  - "webhooks.reversetender.com"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /webhooks/database-failover
+    filters:
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        add:
+        - name: X-Webhook-Type
+          value: "database-failover"
+        - name: X-Webhook-Source
+          value: "gateway-api"
+    backendRefs:
+    - name: database-failover-webhook-service
+      port: 8080
+      weight: 100
+
+---
+# Database Failover Webhook Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-failover-webhook-service
+  namespace: default
+  labels:
+    app.kubernetes.io/name: database-failover-webhook-service
+    app.kubernetes.io/component: webhook-service
+    database.kubernetes.io/failover-enabled: "true"
+spec:
+  selector:
+    app: database-failover-webhook
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Database Failover Webhook Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database-failover-webhook
+  namespace: default
+  labels:
+    app: database-failover-webhook
+    app.kubernetes.io/name: database-failover-webhook
+    app.kubernetes.io/component: webhook-handler
+    database.kubernetes.io/failover-enabled: "true"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: database-failover-webhook
+  template:
+    metadata:
+      labels:
+        app: database-failover-webhook
+      annotations:
+        database.kubernetes.io/failover-enabled: "true"
+        database.kubernetes.io/webhook-handler: "true"
+    spec:
+      containers:
+      - name: webhook-handler
+        image: nginx:alpine
+        ports:
+        - containerPort: 8080
+          name: http
+        
+        env:
+        # Webhook Configuration
+        - name: WEBHOOK_ENABLED
+          value: "true"
+        - name: WEBHOOK_PORT
+          value: "8080"
+        
+        # Database Failover Webhook URLs
+        - name: DB_FAILOVER_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: DB_FAILOVER_WEBHOOK_URL
+        - name: DB_FAILOVER_SLACK_WEBHOOK
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: DB_FAILOVER_SLACK_WEBHOOK
+        
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        
+        volumeMounts:
+        - name: webhook-config
+          mountPath: /etc/nginx/conf.d
+        - name: webhook-scripts
+          mountPath: /usr/share/nginx/html
+      
+      volumes:
+      - name: webhook-config
+        configMap:
+          name: webhook-nginx-config
+      - name: webhook-scripts
+        configMap:
+          name: webhook-scripts
+
+---
+# Webhook Nginx Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webhook-nginx-config
+  namespace: default
+  labels:
+    app.kubernetes.io/name: webhook-nginx-config
+    app.kubernetes.io/component: webhook-config
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name localhost;
+        
+        location /health {
+            return 200 '{"status":"healthy","service":"database-failover-webhook"}';
+            add_header Content-Type application/json;
+        }
+        
+        location /ready {
+            return 200 '{"status":"ready","service":"database-failover-webhook"}';
+            add_header Content-Type application/json;
+        }
+        
+        location /webhooks/database-failover {
+            proxy_pass http://localhost:8081/webhook;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+
+---
+# Webhook Scripts
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webhook-scripts
+  namespace: default
+  labels:
+    app.kubernetes.io/name: webhook-scripts
+    app.kubernetes.io/component: webhook-scripts
+data:
+  webhook-handler.sh: |
+    #!/bin/bash
+    # Database Failover Webhook Handler
+    
+    # Start simple webhook server
+    while true; do
+      echo -e "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"status\":\"received\",\"timestamp\":\"$(date -Iseconds)\"}" | nc -l -p 8081 -q 1
+    done
+
+---
+# Database CA Certificates ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-ca-certs
+  namespace: default
+  labels:
+    app.kubernetes.io/name: database-ca-certs
+    app.kubernetes.io/component: tls-certificates
+    database.kubernetes.io/failover-enabled: "true"
+data:
+  # Neon PostgreSQL CA Certificate
+  neon-ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    # Placeholder for Neon PostgreSQL CA certificate
+    # Replace with actual Neon CA certificate in production
+    -----END CERTIFICATE-----
+  
+  # CNPG PostgreSQL CA Certificate
+  cnpg-ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    # Placeholder for CNPG PostgreSQL CA certificate
+    # Replace with actual CNPG CA certificate in production
+    -----END CERTIFICATE-----
+  
+  # MongoDB Atlas CA Certificate
+  mongodb-ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    # Placeholder for MongoDB Atlas CA certificate
+    # Replace with actual MongoDB Atlas CA certificate in production
+    -----END CERTIFICATE-----
+
+---
+# Database Connection Timeout Policy
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: HTTPRoute
+metadata:
+  name: database-timeout-policy
+  namespace: default
+  labels:
+    app.kubernetes.io/name: database-timeout-policy
+    app.kubernetes.io/component: timeout-policy
+    database.kubernetes.io/failover-enabled: "true"
+  annotations:
+    gateway.kubernetes.io/policy: "timeout"
+    database.kubernetes.io/connection-timeout: "30s"
+    database.kubernetes.io/request-timeout: "60s"
+    database.kubernetes.io/idle-timeout: "300s"
+spec:
+  parentRefs:
+  - name: database-failover-gateway
+    sectionName: https
+  hostnames:
+  - "api.reversetender.com"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/v1
+    filters:
+    - type: ExtensionRef
+      extensionRef:
+        group: gateway.networking.k8s.io
+        kind: HTTPRouteFilter
+        name: timeout-filter
+    backendRefs:
+    - name: api-gateway
+      port: 8000
+      weight: 100
