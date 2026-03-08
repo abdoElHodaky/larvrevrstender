@@ -44,14 +44,14 @@ graph TB
     
     %% Notification Channels
     PUSH_WORKER["🔔 Push Notification Worker<br/>FCM/APNS Handler<br/>200px"]
-    SMS_WORKER["📱 SMS Worker<br/>Twilio/AWS SNS<br/>200px"]
+    SMS_WORKER["📱 SMS Worker<br/>MENA Providers<br/>200px"]
     EMAIL_WORKER["📧 Email Worker<br/>SendGrid/SES<br/>200px"]
     INAPP_WORKER["📱 In-App Worker<br/>WebSocket/Database<br/>200px"]
     
     %% External Providers
     FCM[🔥 Firebase Cloud Messaging<br/>Android Push]
     APNS[🍎 Apple Push Notification<br/>iOS Push]
-    TWILIO[📱 Twilio SMS<br/>SMS Provider]
+    SMS_PROVIDERS[📱 MENA SMS Providers<br/>Unifonic + Msegat + Oursms + Infobip]
     AWS_SNS[📱 AWS SNS<br/>SMS Provider]
     SENDGRID[📧 SendGrid<br/>Email Provider]
     AWS_SES[📧 AWS SES<br/>Email Provider]
@@ -87,7 +87,7 @@ graph TB
     %% Workers to External Providers
     PUSH_WORKER --> FCM
     PUSH_WORKER --> APNS
-    SMS_WORKER --> TWILIO
+    SMS_WORKER --> SMS_PROVIDERS
     SMS_WORKER --> AWS_SNS
     EMAIL_WORKER --> SENDGRID
     EMAIL_WORKER --> AWS_SES
@@ -114,7 +114,7 @@ graph TB
     
     class AUTH,ORDER,BIDDING,PAYMENT,USER,NOTIFICATION service
     class PUSH_WORKER,SMS_WORKER,EMAIL_WORKER,INAPP_WORKER worker
-    class FCM,APNS,TWILIO,AWS_SNS,SENDGRID,AWS_SES external
+    class FCM,APNS,SMS_PROVIDERS,AWS_SNS,SENDGRID,AWS_SES external
     class PWA_CLIENT,ADMIN_CLIENT,MOBILE_CLIENT client
     class DB,REDIS_CACHE,REDIS_QUEUE database
 ```
@@ -187,7 +187,7 @@ sequenceDiagram
     alt 📱 SMS notification enabled
         NS->>SMS: 🚀 Queue SMS notification
         activate SMS
-        SMS->>SMS: 💬 Send via Twilio/SNS
+        SMS->>SMS: 💬 Send via MENA Providers
         SMS->>Client: 💬 SMS delivered
         deactivate SMS
     end
@@ -338,10 +338,10 @@ class SMSWorker
         $user = $job->user;
         
         // Choose provider based on configuration
-        $provider = config('notifications.sms.provider'); // twilio or aws_sns
+        $provider = config('notifications.sms.provider'); // unifonic, msegat, oursms, infobip
         
-        if ($provider === 'twilio') {
-            $this->sendTwilioSMS($user->phone, $notification->message);
+        if ($provider === 'unifonic') {
+            $this->sendUnifonicSMS($user->phone, $notification->message);
         } else {
             $this->sendAWSSNS($user->phone, $notification->message);
         }
@@ -424,9 +424,9 @@ class NotificationPreference extends Model
 - **Desktop**: Electron app notifications
 
 ### **SMS Integration**
-- **Primary**: Twilio for international SMS
+- **Primary**: MENA SMS providers (Unifonic, Msegat, Oursms, Infobip)
 - **Backup**: AWS SNS for reliability
-- **Local Providers**: Saudi-specific SMS providers
+- **Regional Focus**: Optimized for MENA region delivery
 - **Delivery Tracking**: Read receipts and delivery confirmations
 
 ### **Email Notifications**
