@@ -23,6 +23,8 @@ class RpcCommandServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 GenerateRpcTokensCommand::class,
+                \App\Console\Commands\TestRpcAuthenticationCommand::class,
+                \App\Console\Commands\RotateRpcTokensCommand::class,
             ]);
         }
     }

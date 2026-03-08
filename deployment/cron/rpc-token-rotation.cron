@@ -1,0 +1,50 @@
+# RPC Token Rotation Cron Jobs
+# Add these entries to your production server's crontab
+
+# Monthly token rotation (1st day of each month at 2:00 AM)
+# This rotates all tokens that are older than 30 days
+0 2 1 * * /path/to/project/scripts/rpc-token-rotation.sh --backup --webhook="$RPC_ROTATION_WEBHOOK" >> /var/log/rpc-token-rotation-cron.log 2>&1
+
+# Weekly token health check (Sundays at 3:00 AM)
+# This runs a dry-run to check token status without making changes
+0 3 * * 0 /path/to/project/scripts/rpc-token-rotation.sh --dry-run >> /var/log/rpc-token-rotation-health.log 2>&1
+
+# Emergency token rotation (can be triggered manually)
+# Uncomment and modify as needed for emergency situations
+# 0 4 * * * /path/to/project/scripts/rpc-token-rotation.sh --force --backup --webhook="$RPC_ROTATION_WEBHOOK" >> /var/log/rpc-token-rotation-emergency.log 2>&1
+
+# Environment Variables for Cron Jobs
+# Add these to your crontab environment or system environment:
+#
+# RPC_ROTATION_WEBHOOK=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+# RPC_ROTATION_BACKUP=true
+# PATH=/usr/local/bin:/usr/bin:/bin
+# SHELL=/bin/bash
+
+# Example crontab installation:
+# 1. Edit crontab: crontab -e
+# 2. Add the desired cron jobs from above
+# 3. Save and exit
+#
+# To view current cron jobs: crontab -l
+# To remove all cron jobs: crontab -r
+
+# Production Deployment Notes:
+# 1. Update /path/to/project with actual project path
+# 2. Ensure log directories exist and are writable
+# 3. Set up log rotation for the log files
+# 4. Configure webhook URL for notifications
+# 5. Test the script manually before setting up cron jobs
+# 6. Monitor the first few automated runs
+
+# Log Rotation Configuration (add to /etc/logrotate.d/rpc-token-rotation):
+#
+# /var/log/rpc-token-rotation*.log {
+#     daily
+#     missingok
+#     rotate 30
+#     compress
+#     delaycompress
+#     notifempty
+#     create 644 www-data www-data
+# }
