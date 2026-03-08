@@ -95,10 +95,10 @@ return [
             'min_requests' => env('FUSE_SMS_MIN_REQUESTS', 8),
         ],
 
-        'twilio' => [
-            'threshold' => env('FUSE_TWILIO_THRESHOLD', 65),
-            'timeout' => env('FUSE_TWILIO_TIMEOUT', 45),
-            'min_requests' => env('FUSE_TWILIO_MIN_REQUESTS', 8),
+        'sms_providers' => [
+            'threshold' => env('FUSE_SMS_THRESHOLD', 65),
+            'timeout' => env('FUSE_SMS_TIMEOUT', 45),
+            'min_requests' => env('FUSE_SMS_MIN_REQUESTS', 8),
         ],
 
         'push' => [

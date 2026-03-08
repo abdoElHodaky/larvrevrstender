@@ -31,10 +31,31 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    'twilio' => [
-        'sid' => env('TWILIO_SID'),
-        'token' => env('TWILIO_TOKEN'),
-        'from' => env('TWILIO_FROM'),
+    'sms' => [
+        'provider' => env('SMS_PROVIDER', 'unifonic'),
+        'providers' => [
+            'unifonic' => [
+                'base_url' => 'https://api.unifonic.com',
+                'api_key' => env('UNIFONIC_API_KEY'),
+                'sender_id' => env('UNIFONIC_SENDER_ID', 'ReverseTender'),
+            ],
+            'msegat' => [
+                'base_url' => 'https://www.msegat.com',
+                'username' => env('MSEGAT_USERNAME'),
+                'api_key' => env('MSEGAT_API_KEY'),
+                'sender_id' => env('MSEGAT_SENDER_ID', 'ReverseTender'),
+            ],
+            'oursms' => [
+                'base_url' => 'https://oursms.net',
+                'api_key' => env('OURSMS_API_KEY'),
+                'sender_id' => env('OURSMS_SENDER_ID', 'ReverseTender'),
+            ],
+            'infobip' => [
+                'base_url' => 'https://api.infobip.com',
+                'api_key' => env('INFOBIP_API_KEY'),
+                'sender_id' => env('INFOBIP_SENDER_ID', 'ReverseTender'),
+            ],
+        ],
     ],
 
     'google' => [
