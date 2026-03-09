@@ -83,8 +83,8 @@ NAMESPACE="reverse-tender"
 TIMEOUT=600
 CANARY_NAME="database-failover-canary"
 FLAGGER_NAMESPACE="${FLAGGER_NAMESPACE:-flagger-system}"
-GRAFANA_URL="${GRAFANA_URL:-http://grafana.monitoring.svc.cluster.local:3000}"
-PROMETHEUS_URL="${PROMETHEUS_URL:-http://prometheus.monitoring.svc.cluster.local:9090}"
+GRAFANA_URL="${GRAFANA_URL:-http://flagger-grafana.flagger-system.svc.cluster.local:3000}"
+PROMETHEUS_URL="${PROMETHEUS_URL:-http://flagger-prometheus.flagger-system.svc.cluster.local:9090}"
 VERBOSE=false
 DRY_RUN=false
 
@@ -342,10 +342,10 @@ test_prometheus_metrics() {
         return 0
     fi
     
-    # Port forward to Prometheus if needed
+    # Port forward to Flagger Prometheus if needed
     local prometheus_port=9090
     if [[ "$PROMETHEUS_URL" == *"localhost"* ]]; then
-        kubectl port-forward service/prometheus -n monitoring $prometheus_port:9090 &
+        kubectl port-forward service/flagger-prometheus -n flagger-system $prometheus_port:9090 &
         local pf_pid=$!
         sleep 5
     fi
@@ -404,10 +404,10 @@ test_grafana_dashboard() {
         return 0
     fi
     
-    # Port forward to Grafana if needed
+    # Port forward to Flagger Grafana if needed
     local grafana_port=3000
     if [[ "$GRAFANA_URL" == *"localhost"* ]]; then
-        kubectl port-forward service/grafana -n monitoring $grafana_port:3000 &
+        kubectl port-forward service/flagger-grafana -n flagger-system $grafana_port:3000 &
         local pf_pid=$!
         sleep 5
         

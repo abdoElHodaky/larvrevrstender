@@ -70,7 +70,7 @@ spec:
           Database failover has been triggered in {{ $labels.namespace }}/{{ $labels.service }}.
           Active provider changed from {{ $labels.previous_provider }} to {{ $labels.current_provider }}.
           This indicates a potential issue with the primary database.
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-overview/database-failover-overview"
     
     - alert: AllDatabasesDown
       expr: |
@@ -88,7 +88,7 @@ spec:
           All configured database providers are currently unavailable for {{ $labels.namespace }}/{{ $labels.service }}.
           This is a critical outage affecting the entire application.
           Immediate action required.
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-overview/database-failover-overview"
     
     - alert: DatabaseProviderUnhealthy
       expr: |
@@ -104,7 +104,7 @@ spec:
           Database provider {{ $labels.provider }} in {{ $labels.namespace }}/{{ $labels.service }} 
           has been unhealthy for more than 2 minutes.
           Health check endpoint: {{ $labels.health_endpoint }}
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-overview/database-failover-overview"
     
     - alert: DatabaseCircuitBreakerOpen
       expr: |
@@ -121,7 +121,7 @@ spec:
           has been open for more than 1 minute.
           Failure threshold: {{ $labels.failure_threshold }}
           Current failures: {{ $labels.current_failures }}
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-overview/database-failover-overview"
     
     # Performance Alerts
     - alert: DatabaseHighQueryLatency
@@ -137,7 +137,7 @@ spec:
         description: |
           95th percentile query latency for {{ $labels.provider }} in {{ $labels.namespace }}/{{ $labels.service }} 
           is {{ $value }}s, which is above the 5s threshold.
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-overview/database-failover-overview"
     
     - alert: DatabaseHighErrorRate
       expr: |
@@ -152,7 +152,7 @@ spec:
         description: |
           Error rate for {{ $labels.provider }} in {{ $labels.namespace }}/{{ $labels.service }} 
           is {{ $value }}%, which is above the 5% threshold.
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-overview/database-failover-overview"
     
     - alert: DatabaseConnectionPoolExhausted
       expr: |
@@ -169,7 +169,7 @@ spec:
           is {{ $value }}%, which is above the 90% threshold.
           Active connections: {{ $labels.active_connections }}
           Max connections: {{ $labels.max_connections }}
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-overview/database-failover-overview"
     
     # Neon PostgreSQL Specific Alerts
     - alert: NeonComputeScalingEvent
@@ -186,7 +186,7 @@ spec:
         description: |
           Neon PostgreSQL compute size changed from {{ $labels.previous_size }} to {{ $labels.current_size }} 
           in {{ $labels.namespace }}/{{ $labels.service }}.
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-overview/database-failover-overview"
     
     - alert: NeonSuspendTimeout
       expr: |
@@ -205,7 +205,7 @@ spec:
           is approaching suspend timeout due to inactivity.
           Last activity: {{ $labels.last_activity }}
           Suspend timeout: {{ $labels.suspend_timeout }}s
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-overview/database-failover-overview"
     
     # CNPG PostgreSQL Specific Alerts
     - alert: CNPGClusterDegraded
@@ -223,7 +223,7 @@ spec:
           CNPG PostgreSQL cluster in {{ $labels.namespace }}/{{ $labels.service }} is degraded.
           Ready instances: {{ $labels.ready_instances }}
           Total instances: {{ $labels.total_instances }}
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-overview/database-failover-overview"
     
     - alert: CNPGBackupFailed
       expr: |
@@ -240,7 +240,7 @@ spec:
           CNPG PostgreSQL backup failed for {{ $labels.namespace }}/{{ $labels.service }}.
           Backup name: {{ $labels.backup_name }}
           Error: {{ $labels.error_message }}
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-overview/database-failover-overview"
     
     # MongoDB Atlas Specific Alerts
     - alert: MongoDBAtlasClusterDegraded
@@ -258,7 +258,7 @@ spec:
           MongoDB Atlas cluster in {{ $labels.namespace }}/{{ $labels.service }} is not in normal state.
           Current state: {{ $labels.cluster_state }}
           Cluster name: {{ $labels.cluster_name }}
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-overview/database-failover-overview"
     
     - alert: MongoDBAtlasHighOplogLag
       expr: |
@@ -275,7 +275,7 @@ spec:
           MongoDB Atlas oplog lag in {{ $labels.namespace }}/{{ $labels.service }} 
           is {{ $value }}s, which is above the 300s threshold.
           This may indicate replication issues.
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-overview/database-failover-overview"
 
   - name: database-failover.slo
     interval: 30s
@@ -325,4 +325,4 @@ spec:
           Current availability: {{ $labels.availability }}%
           Current latency success rate: {{ $labels.latency_success }}%
           This may exhaust the error budget quickly.
-        dashboard_url: "https://grafana.reversetender.com/d/database-failover-slo/database-failover-slo"
+        dashboard_url: "http://flagger-grafana.flagger-system.svc.cluster.local:3000/d/database-failover-slo/database-failover-slo"

@@ -158,7 +158,7 @@ metadata:
 spec:
   provider:
     type: prometheus
-    address: http://prometheus.monitoring.svc.cluster.local:9090
+    address: http://flagger-prometheus.flagger-system.svc.cluster.local:9090
   query: |
     (
       sum(database_failover:available_providers_count > 0) by (namespace, service) /
@@ -177,7 +177,7 @@ metadata:
 spec:
   provider:
     type: prometheus
-    address: http://prometheus.monitoring.svc.cluster.local:9090
+    address: http://flagger-prometheus.flagger-system.svc.cluster.local:9090
   query: |
     histogram_quantile(0.95, 
       sum(rate(database_failover_query_duration_seconds_bucket[1m])) by (le, namespace, service)
@@ -195,7 +195,7 @@ metadata:
 spec:
   provider:
     type: prometheus
-    address: http://prometheus.monitoring.svc.cluster.local:9090
+    address: http://flagger-prometheus.flagger-system.svc.cluster.local:9090
   query: |
     (
       sum(rate(database_failover_errors_total[1m])) by (namespace, service) /
@@ -214,7 +214,7 @@ metadata:
 spec:
   provider:
     type: prometheus
-    address: http://prometheus.monitoring.svc.cluster.local:9090
+    address: http://flagger-prometheus.flagger-system.svc.cluster.local:9090
   query: |
     increase(database_failover_events_total[1m])
 
@@ -230,7 +230,7 @@ metadata:
 spec:
   provider:
     type: prometheus
-    address: http://prometheus.monitoring.svc.cluster.local:9090
+    address: http://flagger-prometheus.flagger-system.svc.cluster.local:9090
   query: |
     (
       database_failover_connection_pool_active_connections /
