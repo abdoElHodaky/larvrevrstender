@@ -26,7 +26,7 @@ spec:
     protocol: TCP
     name: https
   selector:
-    app: gateway-service
+    app: api-gateway
 
 ---
 apiVersion: v1
@@ -288,4 +288,4 @@ spec:
     protocol: TCP
     name: https
   selector:
-    app: gateway-service
+    app: api-gateway

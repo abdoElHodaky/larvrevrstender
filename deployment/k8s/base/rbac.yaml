@@ -19,10 +19,31 @@ rules:
     resources: ["configmaps", "secrets"]
     verbs: ["get", "list", "watch"]
   
+  # Allow updating configmaps and secrets for database failover operations
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["update", "patch"]
+    resourceNames: ["database-failover-config", "database-failover-secrets"]
+  
+  # Allow reading status subresources
+  - apiGroups: [""]
+    resources: ["pods/status", "services/status"]
+    verbs: ["get", "list", "watch"]
+  
   # Allow creating events for logging
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["create", "patch"]
+  
+  # Allow reading Gateway API resources
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gateways", "httproutes", "gatewayclasses"]
+    verbs: ["get", "list", "watch"]
+  
+  # Allow reading external secrets for synchronization
+  - apiGroups: ["external-secrets.io"]
+    resources: ["externalsecrets", "secretstores"]
+    verbs: ["get", "list", "watch"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -127,6 +148,26 @@ rules:
   - apiGroups: ["policy"]
     resources: ["poddisruptionbudgets"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Allow managing Gateway API resources for deployment
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gateways", "httproutes", "gatewayclasses"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Allow managing Flagger canary deployments
+  - apiGroups: ["flagger.app"]
+    resources: ["canaries", "metrictemplates"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Allow managing external secrets
+  - apiGroups: ["external-secrets.io"]
+    resources: ["externalsecrets", "secretstores", "clustersecretstores"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Allow managing pods for deployment operations
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -145,3 +186,51 @@ roleRef:
   name: deployment-role
   apiGroup: rbac.authorization.k8s.io
 
+---
+# Database failover role for automated failover operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: database-failover-role
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: rbac
+rules:
+  # Allow managing database failover configmaps and secrets
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    resourceNames: ["database-failover-config", "database-failover-secrets", "database-primary-config", "database-replica-config"]
+  
+  # Allow reading and updating services for database endpoint switching
+  - apiGroups: [""]
+    resources: ["services", "endpoints"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+    resourceNames: ["database-service", "database-primary", "database-replica"]
+  
+  # Allow creating events for failover logging
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  
+  # Allow reading pods for database health checks
+  - apiGroups: [""]
+    resources: ["pods", "pods/status"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: database-failover-rolebinding
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: rbac
+subjects:
+  - kind: ServiceAccount
+    name: database-failover-sa
+    namespace: reverse-tender
+roleRef:
+  kind: Role
+  name: database-failover-role
+  apiGroup: rbac.authorization.k8s.io
