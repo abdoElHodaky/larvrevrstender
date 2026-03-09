@@ -439,7 +439,7 @@ jobs:
   # Phase 3: Security Scanning (Template Integration)
   security-scan:
     name: 🔒 Security Scanning
-    needs: [change-detection, dependency-environment-validation]
+    needs: [change-detection, basic-testing]
     if: needs.change-detection.outputs.should_deploy == 'true'
     uses: ./.github/workflows/templates/security.yml
     with:
@@ -450,7 +450,7 @@ jobs:
   # Phase 4: Service Build Matrix (Dependency-Ordered Orchestration)
   service-build:
     name: 🏗️ Service Build (Dependency-Ordered)
-    needs: [change-detection, dependency-environment-validation, security-scan]
+    needs: [change-detection, basic-testing, security-scan]
     if: needs.change-detection.outputs.should_deploy == 'true'
     strategy:
       fail-fast: false
@@ -462,14 +462,14 @@ jobs:
       environment: ${{ inputs.target_environment || 'staging' }}
       registry: ${{ env.REGISTRY }}
       image_name: abdoElHodaky/larvrevrstender
-      dependency_graph: ${{ needs.dependency-environment-validation.outputs.dependency_graph }}
-      deployment_order: ${{ needs.dependency-environment-validation.outputs.deployment_order }}
+      dependency_graph: ${{ needs.basic-testing.outputs.dependency_graph }}
+      deployment_order: ${{ needs.basic-testing.outputs.deployment_order }}
     secrets: inherit
 
   # Phase 4.5: Docker Image Optimization (NEW)
   docker-optimization:
     name: 🐳 Docker Image Optimization
-    needs: [change-detection, dependency-environment-validation, service-build]
+    needs: [change-detection, basic-testing, service-build]
     if: |
       always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
@@ -487,7 +487,7 @@ jobs:
   # Phase 5: Database Migration Integration
   database-migration:
     name: 🗄️ Database Migration
-    needs: [change-detection, dependency-environment-validation, docker-optimization]
+    needs: [change-detection, basic-testing, docker-optimization]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' && 
       (contains(needs.change-detection.outputs.affected_services, 'shared') || 
@@ -558,7 +558,7 @@ jobs:
   # Phase 6: Comprehensive Testing (Template Integration)
   comprehensive-testing:
     name: 🧪 Comprehensive Testing
-    needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, database-migration]
+    needs: [change-detection, basic-testing, service-build, docker-optimization, database-migration]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' &&
       needs.service-build.result == 'success' &&
@@ -573,7 +573,7 @@ jobs:
   # Phase 7: Performance Testing (NEW)
   performance-testing:
     name: 🚀 Performance Testing
-    needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, comprehensive-testing]
+    needs: [change-detection, basic-testing, service-build, docker-optimization, comprehensive-testing]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' &&
       needs.service-build.result == 'success' &&
@@ -591,7 +591,7 @@ jobs:
   # Phase 8: Self-Healing & Optimization (Template Integration)
   self-healing:
     name: 🔧 Self-Healing & Optimization
-    needs: [change-detection, dependency-environment-validation, docker-optimization, comprehensive-testing, performance-testing]
+    needs: [change-detection, basic-testing, docker-optimization, comprehensive-testing, performance-testing]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' &&
       needs.comprehensive-testing.result == 'success' &&
@@ -607,7 +607,7 @@ jobs:
   # Phase 8.5: Disaster Recovery Automation (NEW)
   disaster-recovery:
     name: 🛡️ Disaster Recovery Automation
-    needs: [change-detection, dependency-environment-validation, docker-optimization, comprehensive-testing, performance-testing, self-healing]
+    needs: [change-detection, basic-testing, docker-optimization, comprehensive-testing, performance-testing, self-healing]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' &&
       (needs.self-healing.result == 'success' || needs.self-healing.result == 'skipped') &&
@@ -630,7 +630,7 @@ jobs:
   # Phase 9: Blue-Green Deployment (Dependency-Ordered)
   deployment:
     name: 🚀 Blue-Green Deployment (Dependency-Ordered)
-    needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, comprehensive-testing, performance-testing, self-healing, disaster-recovery]
+    needs: [change-detection, basic-testing, service-build, docker-optimization, comprehensive-testing, performance-testing, self-healing, disaster-recovery]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' &&
       needs.service-build.result == 'success' &&
@@ -647,18 +647,18 @@ jobs:
       service_name: ${{ matrix.service }}
       environment: ${{ inputs.target_environment || 'staging' }}
       image_tag: ${{ github.sha }}
-      health_check_url: ${{ fromJson(needs.dependency-environment-validation.outputs.health_check_urls)[matrix.service] || format('https://{0}-{1}.larvrevrstender.com/health', matrix.service, inputs.target_environment || 'staging') }}
+      health_check_url: ${{ fromJson(needs.basic-testing.outputs.health_check_urls)[matrix.service] || format('https://{0}-{1}.larvrevrstender.com/health', matrix.service, inputs.target_environment || 'staging') }}
       deployment_strategy: ${{ needs.change-detection.outputs.deployment_strategy }}
       rollback_on_failure: true
-      dependency_graph: ${{ needs.dependency-environment-validation.outputs.dependency_graph }}
-      deployment_order: ${{ needs.dependency-environment-validation.outputs.deployment_order }}
-      environment_config: ${{ needs.dependency-environment-validation.outputs.environment_config }}
+      dependency_graph: ${{ needs.basic-testing.outputs.dependency_graph }}
+      deployment_order: ${{ needs.basic-testing.outputs.deployment_order }}
+      environment_config: ${{ needs.basic-testing.outputs.environment_config }}
     secrets: inherit
 
   # Phase 10: Risk Scoring Optimization (Template Integration)
   optimization:
     name: 📊 Risk Scoring Optimization
-    needs: [change-detection, dependency-environment-validation, docker-optimization, performance-testing, deployment]
+    needs: [change-detection, basic-testing, docker-optimization, performance-testing, deployment]
     if: |
       needs.deployment.result == 'success' &&
       needs.change-detection.outputs.change_impact == 'high'
