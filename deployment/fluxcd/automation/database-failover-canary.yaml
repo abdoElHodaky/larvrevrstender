@@ -19,8 +19,8 @@ spec:
   
   # Service configuration
   service:
-    name: api-gateway
-    port: 8000
+    name: gateway-service
+    port: 80
     targetPort: 8000
     portDiscovery: true
     gateways:
@@ -51,7 +51,7 @@ spec:
     - name: database-availability
       templateRef:
         name: database-availability
-        namespace: flagger-system
+        namespace: reverse-tender
       thresholdRange:
         min: 99.5
       interval: 30s
@@ -60,7 +60,7 @@ spec:
     - name: database-response-time
       templateRef:
         name: database-response-time
-        namespace: flagger-system
+        namespace: reverse-tender
       thresholdRange:
         max: 500
       interval: 30s
@@ -69,7 +69,7 @@ spec:
     - name: database-error-rate
       templateRef:
         name: database-error-rate
-        namespace: flagger-system
+        namespace: reverse-tender
       thresholdRange:
         max: 1
       interval: 30s
@@ -78,7 +78,7 @@ spec:
     - name: database-failover-events
       templateRef:
         name: database-failover-events
-        namespace: flagger-system
+        namespace: reverse-tender
       thresholdRange:
         max: 0
       interval: 30s
@@ -87,7 +87,7 @@ spec:
     - name: database-connection-pool-utilization
       templateRef:
         name: database-connection-pool-utilization
-        namespace: flagger-system
+        namespace: reverse-tender
       thresholdRange:
         max: 80
       interval: 30s
@@ -151,7 +151,7 @@ apiVersion: flagger.app/v1beta1
 kind: MetricTemplate
 metadata:
   name: database-availability
-  namespace: flagger-system
+  namespace: reverse-tender
   labels:
     app.kubernetes.io/name: database-availability-metric
     app.kubernetes.io/part-of: flagger
@@ -170,7 +170,7 @@ apiVersion: flagger.app/v1beta1
 kind: MetricTemplate
 metadata:
   name: database-response-time
-  namespace: flagger-system
+  namespace: reverse-tender
   labels:
     app.kubernetes.io/name: database-response-time-metric
     app.kubernetes.io/part-of: flagger
@@ -188,7 +188,7 @@ apiVersion: flagger.app/v1beta1
 kind: MetricTemplate
 metadata:
   name: database-error-rate
-  namespace: flagger-system
+  namespace: reverse-tender
   labels:
     app.kubernetes.io/name: database-error-rate-metric
     app.kubernetes.io/part-of: flagger
@@ -207,7 +207,7 @@ apiVersion: flagger.app/v1beta1
 kind: MetricTemplate
 metadata:
   name: database-failover-events
-  namespace: flagger-system
+  namespace: reverse-tender
   labels:
     app.kubernetes.io/name: database-failover-events-metric
     app.kubernetes.io/part-of: flagger
@@ -223,7 +223,7 @@ apiVersion: flagger.app/v1beta1
 kind: MetricTemplate
 metadata:
   name: database-connection-pool-utilization
-  namespace: flagger-system
+  namespace: reverse-tender
   labels:
     app.kubernetes.io/name: database-connection-pool-utilization-metric
     app.kubernetes.io/part-of: flagger
