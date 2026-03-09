@@ -36,9 +36,7 @@ spec:
               name: ingress-nginx
       ports:
         - protocol: TCP
-          port: 80
-        - protocol: TCP
-          port: 443
+          port: 8000
 
 ---
 # Allow inter-service communication
@@ -63,9 +61,27 @@ spec:
               app.kubernetes.io/name: reverse-tender
       ports:
         - protocol: TCP
-          port: 80
+          port: 8000  # api-gateway
         - protocol: TCP
-          port: 8080
+          port: 8001  # auth-service
+        - protocol: TCP
+          port: 8002  # auction-service
+        - protocol: TCP
+          port: 8003  # order-service
+        - protocol: TCP
+          port: 8004  # payment-service
+        - protocol: TCP
+          port: 8005  # notification-service
+        - protocol: TCP
+          port: 8006  # user-service
+        - protocol: TCP
+          port: 8007  # analytics-service
+        - protocol: TCP
+          port: 8008  # bidding-service
+        - protocol: TCP
+          port: 8009  # vin-ocr-service
+        - protocol: TCP
+          port: 8080  # bidding-service secondary port
   egress:
     - to:
         - podSelector:
@@ -73,9 +89,27 @@ spec:
               app.kubernetes.io/name: reverse-tender
       ports:
         - protocol: TCP
-          port: 80
+          port: 8000  # api-gateway
         - protocol: TCP
-          port: 8080
+          port: 8001  # auth-service
+        - protocol: TCP
+          port: 8002  # auction-service
+        - protocol: TCP
+          port: 8003  # order-service
+        - protocol: TCP
+          port: 8004  # payment-service
+        - protocol: TCP
+          port: 8005  # notification-service
+        - protocol: TCP
+          port: 8006  # user-service
+        - protocol: TCP
+          port: 8007  # analytics-service
+        - protocol: TCP
+          port: 8008  # bidding-service
+        - protocol: TCP
+          port: 8009  # vin-ocr-service
+        - protocol: TCP
+          port: 8080  # bidding-service secondary port
 
 ---
 # Allow database access
@@ -177,9 +211,25 @@ spec:
               app: grafana
       ports:
         - protocol: TCP
-          port: 9090
+          port: 8000  # api-gateway metrics
         - protocol: TCP
-          port: 8080
+          port: 8001  # auth-service metrics
+        - protocol: TCP
+          port: 8002  # auction-service metrics
+        - protocol: TCP
+          port: 8003  # order-service metrics
+        - protocol: TCP
+          port: 8004  # payment-service metrics
+        - protocol: TCP
+          port: 8005  # notification-service metrics
+        - protocol: TCP
+          port: 8006  # user-service metrics
+        - protocol: TCP
+          port: 8007  # analytics-service metrics
+        - protocol: TCP
+          port: 8008  # bidding-service metrics
+        - protocol: TCP
+          port: 8009  # vin-ocr-service metrics
 
 ---
 # WebSocket traffic policy
@@ -203,7 +253,6 @@ spec:
               name: ingress-nginx
       ports:
         - protocol: TCP
-          port: 80
+          port: 8008  # bidding-service primary port
         - protocol: TCP
-          port: 8080
-
+          port: 8080  # bidding-service WebSocket port
