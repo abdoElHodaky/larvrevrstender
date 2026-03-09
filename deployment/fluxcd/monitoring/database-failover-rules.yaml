@@ -1,0 +1,328 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: database-failover-rules
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: database-failover-rules
+    app.kubernetes.io/part-of: reverse-tender-platform
+    flagger.app/monitoring: "true"
+spec:
+  groups:
+  - name: database-failover.rules
+    interval: 30s
+    rules:
+    # Database Failover Status Recording Rules
+    - record: database_failover:active_provider
+      expr: |
+        label_replace(
+          database_failover_active_provider_info,
+          "provider", "$1", "provider", "(.*)"
+        )
+    
+    - record: database_failover:available_providers_count
+      expr: |
+        sum(database_failover_provider_health_status == 1) by (namespace, service)
+    
+    - record: database_failover:provider_health_ratio
+      expr: |
+        (
+          sum(database_failover_provider_health_status == 1) by (namespace, service, provider) /
+          sum(database_failover_provider_health_status) by (namespace, service, provider)
+        ) * 100
+    
+    - record: database_failover:connection_pool_utilization
+      expr: |
+        (
+          database_failover_connection_pool_active_connections /
+          database_failover_connection_pool_max_connections
+        ) * 100
+    
+    - record: database_failover:query_latency_p95
+      expr: |
+        histogram_quantile(0.95, 
+          sum(rate(database_failover_query_duration_seconds_bucket[5m])) by (le, provider, namespace, service)
+        )
+    
+    - record: database_failover:error_rate
+      expr: |
+        (
+          sum(rate(database_failover_errors_total[5m])) by (namespace, service, provider) /
+          sum(rate(database_failover_requests_total[5m])) by (namespace, service, provider)
+        ) * 100
+
+  - name: database-failover.alerts
+    interval: 30s
+    rules:
+    # Critical Alerts
+    - alert: DatabaseFailoverTriggered
+      expr: |
+        changes(database_failover_active_provider_info[5m]) > 0
+      for: 0s
+      labels:
+        severity: warning
+        component: database-failover
+        team: platform
+        runbook_url: "https://docs.reversetender.com/runbooks/database-failover"
+      annotations:
+        summary: "Database failover has been triggered"
+        description: |
+          Database failover has been triggered in {{ $labels.namespace }}/{{ $labels.service }}.
+          Active provider changed from {{ $labels.previous_provider }} to {{ $labels.current_provider }}.
+          This indicates a potential issue with the primary database.
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+    
+    - alert: AllDatabasesDown
+      expr: |
+        database_failover:available_providers_count == 0
+      for: 30s
+      labels:
+        severity: critical
+        component: database-failover
+        team: platform
+        pager: "true"
+        runbook_url: "https://docs.reversetender.com/runbooks/database-outage"
+      annotations:
+        summary: "All database providers are unavailable"
+        description: |
+          All configured database providers are currently unavailable for {{ $labels.namespace }}/{{ $labels.service }}.
+          This is a critical outage affecting the entire application.
+          Immediate action required.
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+    
+    - alert: DatabaseProviderUnhealthy
+      expr: |
+        database_failover_provider_health_status == 0
+      for: 2m
+      labels:
+        severity: warning
+        component: database-failover
+        team: platform
+      annotations:
+        summary: "Database provider {{ $labels.provider }} is unhealthy"
+        description: |
+          Database provider {{ $labels.provider }} in {{ $labels.namespace }}/{{ $labels.service }} 
+          has been unhealthy for more than 2 minutes.
+          Health check endpoint: {{ $labels.health_endpoint }}
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+    
+    - alert: DatabaseCircuitBreakerOpen
+      expr: |
+        database_failover_circuit_breaker_state == 2
+      for: 1m
+      labels:
+        severity: warning
+        component: database-failover
+        team: platform
+      annotations:
+        summary: "Database circuit breaker is open for {{ $labels.provider }}"
+        description: |
+          Circuit breaker for {{ $labels.provider }} in {{ $labels.namespace }}/{{ $labels.service }} 
+          has been open for more than 1 minute.
+          Failure threshold: {{ $labels.failure_threshold }}
+          Current failures: {{ $labels.current_failures }}
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+    
+    # Performance Alerts
+    - alert: DatabaseHighQueryLatency
+      expr: |
+        database_failover:query_latency_p95 > 5
+      for: 5m
+      labels:
+        severity: warning
+        component: database-failover
+        team: platform
+      annotations:
+        summary: "High database query latency detected"
+        description: |
+          95th percentile query latency for {{ $labels.provider }} in {{ $labels.namespace }}/{{ $labels.service }} 
+          is {{ $value }}s, which is above the 5s threshold.
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+    
+    - alert: DatabaseHighErrorRate
+      expr: |
+        database_failover:error_rate > 5
+      for: 3m
+      labels:
+        severity: warning
+        component: database-failover
+        team: platform
+      annotations:
+        summary: "High database error rate detected"
+        description: |
+          Error rate for {{ $labels.provider }} in {{ $labels.namespace }}/{{ $labels.service }} 
+          is {{ $value }}%, which is above the 5% threshold.
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+    
+    - alert: DatabaseConnectionPoolExhausted
+      expr: |
+        database_failover:connection_pool_utilization > 90
+      for: 2m
+      labels:
+        severity: warning
+        component: database-failover
+        team: platform
+      annotations:
+        summary: "Database connection pool nearly exhausted"
+        description: |
+          Connection pool utilization for {{ $labels.provider }} in {{ $labels.namespace }}/{{ $labels.service }} 
+          is {{ $value }}%, which is above the 90% threshold.
+          Active connections: {{ $labels.active_connections }}
+          Max connections: {{ $labels.max_connections }}
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+    
+    # Neon PostgreSQL Specific Alerts
+    - alert: NeonComputeScalingEvent
+      expr: |
+        changes(database_failover_neon_compute_size[5m]) > 0
+      for: 0s
+      labels:
+        severity: info
+        component: database-failover
+        team: platform
+        provider: neon
+      annotations:
+        summary: "Neon PostgreSQL compute scaling event"
+        description: |
+          Neon PostgreSQL compute size changed from {{ $labels.previous_size }} to {{ $labels.current_size }} 
+          in {{ $labels.namespace }}/{{ $labels.service }}.
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+    
+    - alert: NeonSuspendTimeout
+      expr: |
+        database_failover_neon_suspend_timeout_seconds > 0 and 
+        time() - database_failover_neon_last_activity_timestamp > database_failover_neon_suspend_timeout_seconds
+      for: 1m
+      labels:
+        severity: info
+        component: database-failover
+        team: platform
+        provider: neon
+      annotations:
+        summary: "Neon PostgreSQL approaching suspend timeout"
+        description: |
+          Neon PostgreSQL in {{ $labels.namespace }}/{{ $labels.service }} 
+          is approaching suspend timeout due to inactivity.
+          Last activity: {{ $labels.last_activity }}
+          Suspend timeout: {{ $labels.suspend_timeout }}s
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+    
+    # CNPG PostgreSQL Specific Alerts
+    - alert: CNPGClusterDegraded
+      expr: |
+        database_failover_cnpg_cluster_ready_instances < database_failover_cnpg_cluster_total_instances
+      for: 2m
+      labels:
+        severity: warning
+        component: database-failover
+        team: platform
+        provider: cnpg
+      annotations:
+        summary: "CNPG PostgreSQL cluster is degraded"
+        description: |
+          CNPG PostgreSQL cluster in {{ $labels.namespace }}/{{ $labels.service }} is degraded.
+          Ready instances: {{ $labels.ready_instances }}
+          Total instances: {{ $labels.total_instances }}
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+    
+    - alert: CNPGBackupFailed
+      expr: |
+        database_failover_cnpg_backup_status == 0
+      for: 0s
+      labels:
+        severity: warning
+        component: database-failover
+        team: platform
+        provider: cnpg
+      annotations:
+        summary: "CNPG PostgreSQL backup failed"
+        description: |
+          CNPG PostgreSQL backup failed for {{ $labels.namespace }}/{{ $labels.service }}.
+          Backup name: {{ $labels.backup_name }}
+          Error: {{ $labels.error_message }}
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+    
+    # MongoDB Atlas Specific Alerts
+    - alert: MongoDBAtlasClusterDegraded
+      expr: |
+        database_failover_mongodb_atlas_cluster_state != 1
+      for: 2m
+      labels:
+        severity: warning
+        component: database-failover
+        team: platform
+        provider: mongodb-atlas
+      annotations:
+        summary: "MongoDB Atlas cluster is not in normal state"
+        description: |
+          MongoDB Atlas cluster in {{ $labels.namespace }}/{{ $labels.service }} is not in normal state.
+          Current state: {{ $labels.cluster_state }}
+          Cluster name: {{ $labels.cluster_name }}
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+    
+    - alert: MongoDBAtlasHighOplogLag
+      expr: |
+        database_failover_mongodb_atlas_oplog_lag_seconds > 300
+      for: 5m
+      labels:
+        severity: warning
+        component: database-failover
+        team: platform
+        provider: mongodb-atlas
+      annotations:
+        summary: "MongoDB Atlas high oplog lag detected"
+        description: |
+          MongoDB Atlas oplog lag in {{ $labels.namespace }}/{{ $labels.service }} 
+          is {{ $value }}s, which is above the 300s threshold.
+          This may indicate replication issues.
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover/database-failover-overview"
+
+  - name: database-failover.slo
+    interval: 30s
+    rules:
+    # SLO Recording Rules for Database Failover
+    - record: database_failover:sli_availability
+      expr: |
+        (
+          sum(database_failover:available_providers_count > 0) by (namespace, service) /
+          sum(database_failover:available_providers_count >= 0) by (namespace, service)
+        ) * 100
+    
+    - record: database_failover:sli_latency_success
+      expr: |
+        (
+          sum(rate(database_failover_query_duration_seconds_bucket{le="1.0"}[5m])) by (namespace, service) /
+          sum(rate(database_failover_query_duration_seconds_count[5m])) by (namespace, service)
+        ) * 100
+    
+    - record: database_failover:sli_error_rate
+      expr: |
+        (
+          sum(rate(database_failover_errors_total[5m])) by (namespace, service) /
+          sum(rate(database_failover_requests_total[5m])) by (namespace, service)
+        ) * 100
+    
+    # SLO Burn Rate Alerts (following Google SRE practices)
+    - alert: DatabaseFailoverSLOBurnRateHigh
+      expr: |
+        (
+          database_failover:sli_availability < 99.9 and
+          rate(database_failover:sli_availability[1h]) < 99.9
+        ) or (
+          database_failover:sli_latency_success < 95 and
+          rate(database_failover:sli_latency_success[1h]) < 95
+        )
+      for: 2m
+      labels:
+        severity: critical
+        component: database-failover
+        team: platform
+        slo: "true"
+      annotations:
+        summary: "Database failover SLO burn rate is high"
+        description: |
+          Database failover SLO burn rate is high for {{ $labels.namespace }}/{{ $labels.service }}.
+          Current availability: {{ $labels.availability }}%
+          Current latency success rate: {{ $labels.latency_success }}%
+          This may exhaust the error budget quickly.
+        dashboard_url: "https://grafana.reversetender.com/d/database-failover-slo/database-failover-slo"

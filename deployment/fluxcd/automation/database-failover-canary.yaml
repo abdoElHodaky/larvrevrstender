@@ -1,0 +1,431 @@
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: database-failover-canary
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: database-failover-canary
+    app.kubernetes.io/part-of: reverse-tender-platform
+    flagger.app/canary: "true"
+spec:
+  # Target deployment for database failover testing
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+  
+  # Progressive delivery configuration
+  progressDeadlineSeconds: 600
+  
+  # Service configuration
+  service:
+    name: api-gateway
+    port: 8000
+    targetPort: 8000
+    portDiscovery: true
+    gateways:
+    - reverse-tender-gateway
+    hosts:
+    - api.reversetender.com
+    trafficPolicy:
+      tls:
+        mode: ISTIO_MUTUAL
+  
+  # Analysis configuration for database failover
+  analysis:
+    # Analysis interval
+    interval: 30s
+    
+    # Analysis threshold (success rate)
+    threshold: 5
+    
+    # Maximum weight for canary
+    maxWeight: 50
+    
+    # Step weight increment
+    stepWeight: 10
+    
+    # Metrics for database failover analysis
+    metrics:
+    # Database availability metric
+    - name: database-availability
+      templateRef:
+        name: database-availability
+        namespace: flagger-system
+      thresholdRange:
+        min: 99.5
+      interval: 30s
+    
+    # Database response time metric
+    - name: database-response-time
+      templateRef:
+        name: database-response-time
+        namespace: flagger-system
+      thresholdRange:
+        max: 500
+      interval: 30s
+    
+    # Database error rate metric
+    - name: database-error-rate
+      templateRef:
+        name: database-error-rate
+        namespace: flagger-system
+      thresholdRange:
+        max: 1
+      interval: 30s
+    
+    # Database failover events metric
+    - name: database-failover-events
+      templateRef:
+        name: database-failover-events
+        namespace: flagger-system
+      thresholdRange:
+        max: 0
+      interval: 30s
+    
+    # Connection pool utilization metric
+    - name: database-connection-pool-utilization
+      templateRef:
+        name: database-connection-pool-utilization
+        namespace: flagger-system
+      thresholdRange:
+        max: 80
+      interval: 30s
+    
+    # Webhooks for database failover testing
+    webhooks:
+    # Pre-rollout webhook to prepare database failover test
+    - name: database-failover-pre-rollout
+      type: pre-rollout
+      url: http://database-failover-webhook.reverse-tender.svc.cluster.local:8080/pre-rollout
+      timeout: 30s
+      metadata:
+        type: "database-failover-test"
+        action: "prepare"
+        providers: "neon,cnpg,mongodb"
+    
+    # Load testing webhook during canary analysis
+    - name: database-failover-load-test
+      type: rollout
+      url: http://database-failover-webhook.reverse-tender.svc.cluster.local:8080/load-test
+      timeout: 60s
+      metadata:
+        type: "database-load-test"
+        duration: "60s"
+        concurrent_users: "10"
+        test_scenarios: "read,write,failover"
+    
+    # Database failover simulation webhook
+    - name: database-failover-simulation
+      type: rollout
+      url: http://database-failover-webhook.reverse-tender.svc.cluster.local:8080/simulate-failover
+      timeout: 30s
+      metadata:
+        type: "database-failover-simulation"
+        provider: "neon"
+        duration: "30s"
+        recovery: "auto"
+    
+    # Post-rollout webhook to cleanup and report
+    - name: database-failover-post-rollout
+      type: post-rollout
+      url: http://database-failover-webhook.reverse-tender.svc.cluster.local:8080/post-rollout
+      timeout: 30s
+      metadata:
+        type: "database-failover-cleanup"
+        action: "cleanup"
+        report: "true"
+    
+    # Rollback webhook in case of failure
+    - name: database-failover-rollback
+      type: rollback
+      url: http://database-failover-webhook.reverse-tender.svc.cluster.local:8080/rollback
+      timeout: 30s
+      metadata:
+        type: "database-failover-rollback"
+        action: "restore"
+        providers: "all"
+
+---
+apiVersion: flagger.app/v1beta1
+kind: MetricTemplate
+metadata:
+  name: database-availability
+  namespace: flagger-system
+  labels:
+    app.kubernetes.io/name: database-availability-metric
+    app.kubernetes.io/part-of: flagger
+spec:
+  provider:
+    type: prometheus
+    address: http://prometheus.monitoring.svc.cluster.local:9090
+  query: |
+    (
+      sum(database_failover:available_providers_count > 0) by (namespace, service) /
+      sum(database_failover:available_providers_count >= 0) by (namespace, service)
+    ) * 100
+
+---
+apiVersion: flagger.app/v1beta1
+kind: MetricTemplate
+metadata:
+  name: database-response-time
+  namespace: flagger-system
+  labels:
+    app.kubernetes.io/name: database-response-time-metric
+    app.kubernetes.io/part-of: flagger
+spec:
+  provider:
+    type: prometheus
+    address: http://prometheus.monitoring.svc.cluster.local:9090
+  query: |
+    histogram_quantile(0.95, 
+      sum(rate(database_failover_query_duration_seconds_bucket[1m])) by (le, namespace, service)
+    ) * 1000
+
+---
+apiVersion: flagger.app/v1beta1
+kind: MetricTemplate
+metadata:
+  name: database-error-rate
+  namespace: flagger-system
+  labels:
+    app.kubernetes.io/name: database-error-rate-metric
+    app.kubernetes.io/part-of: flagger
+spec:
+  provider:
+    type: prometheus
+    address: http://prometheus.monitoring.svc.cluster.local:9090
+  query: |
+    (
+      sum(rate(database_failover_errors_total[1m])) by (namespace, service) /
+      sum(rate(database_failover_requests_total[1m])) by (namespace, service)
+    ) * 100
+
+---
+apiVersion: flagger.app/v1beta1
+kind: MetricTemplate
+metadata:
+  name: database-failover-events
+  namespace: flagger-system
+  labels:
+    app.kubernetes.io/name: database-failover-events-metric
+    app.kubernetes.io/part-of: flagger
+spec:
+  provider:
+    type: prometheus
+    address: http://prometheus.monitoring.svc.cluster.local:9090
+  query: |
+    increase(database_failover_events_total[1m])
+
+---
+apiVersion: flagger.app/v1beta1
+kind: MetricTemplate
+metadata:
+  name: database-connection-pool-utilization
+  namespace: flagger-system
+  labels:
+    app.kubernetes.io/name: database-connection-pool-utilization-metric
+    app.kubernetes.io/part-of: flagger
+spec:
+  provider:
+    type: prometheus
+    address: http://prometheus.monitoring.svc.cluster.local:9090
+  query: |
+    (
+      database_failover_connection_pool_active_connections /
+      database_failover_connection_pool_max_connections
+    ) * 100
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-failover-test-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: database-failover-test-config
+    app.kubernetes.io/part-of: reverse-tender-platform
+    flagger.app/canary: "true"
+data:
+  test-scenarios.yaml: |
+    scenarios:
+      - name: "database-read-test"
+        description: "Test database read operations during failover"
+        duration: "60s"
+        concurrent_users: 5
+        endpoints:
+          - path: "/api/v1/tenders"
+            method: "GET"
+            expected_status: 200
+          - path: "/api/v1/users/profile"
+            method: "GET"
+            expected_status: 200
+        database_operations:
+          - type: "read"
+            table: "tenders"
+            expected_latency_ms: 100
+          - type: "read"
+            table: "users"
+            expected_latency_ms: 50
+      
+      - name: "database-write-test"
+        description: "Test database write operations during failover"
+        duration: "30s"
+        concurrent_users: 3
+        endpoints:
+          - path: "/api/v1/tenders"
+            method: "POST"
+            expected_status: 201
+          - path: "/api/v1/bids"
+            method: "POST"
+            expected_status: 201
+        database_operations:
+          - type: "write"
+            table: "tenders"
+            expected_latency_ms: 200
+          - type: "write"
+            table: "bids"
+            expected_latency_ms: 150
+      
+      - name: "database-failover-simulation"
+        description: "Simulate database failover scenarios"
+        duration: "120s"
+        steps:
+          - name: "baseline-measurement"
+            duration: "30s"
+            action: "measure_baseline"
+          - name: "primary-failure-simulation"
+            duration: "30s"
+            action: "disable_primary"
+            provider: "neon"
+          - name: "failover-verification"
+            duration: "30s"
+            action: "verify_failover"
+            expected_provider: "cnpg"
+          - name: "recovery-test"
+            duration: "30s"
+            action: "enable_primary"
+            provider: "neon"
+        success_criteria:
+          - metric: "availability"
+            threshold: 99.5
+          - metric: "failover_time"
+            threshold: 30
+          - metric: "data_consistency"
+            threshold: 100
+  
+  webhook-handlers.sh: |
+    #!/bin/bash
+    # Database Failover Webhook Handlers for Flagger Canary Testing
+    
+    set -euo pipefail
+    
+    # Logging function
+    log() {
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" >&2
+    }
+    
+    # Pre-rollout handler
+    handle_pre_rollout() {
+        log "Starting database failover pre-rollout preparation"
+        
+        # Verify all database providers are healthy
+        kubectl get pods -l database.kubernetes.io/failover-enabled=true -n reverse-tender
+        
+        # Check database health endpoints
+        curl -f http://database-health-service:8080/health/neon || exit 1
+        curl -f http://database-health-service:8080/health/cnpg || exit 1
+        curl -f http://database-health-service:8080/health/mongodb || exit 1
+        
+        log "Pre-rollout preparation completed successfully"
+    }
+    
+    # Load test handler
+    handle_load_test() {
+        log "Starting database failover load test"
+        
+        # Run load test scenarios
+        kubectl apply -f /config/test-scenarios.yaml
+        
+        # Wait for load test completion
+        sleep 60
+        
+        log "Load test completed"
+    }
+    
+    # Failover simulation handler
+    handle_failover_simulation() {
+        log "Starting database failover simulation"
+        
+        # Simulate primary database failure
+        kubectl patch configmap database-failover-config -p '{"data":{"NEON_ENABLED":"false"}}'
+        
+        # Wait for failover to complete
+        sleep 30
+        
+        # Verify failover to secondary
+        active_db=$(kubectl exec deployment/api-gateway -- cat /shared/active-database)
+        if [[ "$active_db" != "cnpg" ]]; then
+            log "ERROR: Failover did not switch to CNPG as expected"
+            exit 1
+        fi
+        
+        # Restore primary database
+        kubectl patch configmap database-failover-config -p '{"data":{"NEON_ENABLED":"true"}}'
+        
+        log "Failover simulation completed successfully"
+    }
+    
+    # Post-rollout handler
+    handle_post_rollout() {
+        log "Starting database failover post-rollout cleanup"
+        
+        # Ensure all databases are restored
+        kubectl patch configmap database-failover-config -p '{"data":{"NEON_ENABLED":"true","CNPG_ENABLED":"true","MONGODB_ATLAS_ENABLED":"true"}}'
+        
+        # Generate test report
+        kubectl create configmap database-failover-test-report \
+            --from-literal=timestamp="$(date -Iseconds)" \
+            --from-literal=status="success" \
+            --from-literal=active_provider="$(kubectl exec deployment/api-gateway -- cat /shared/active-database)" \
+            -n reverse-tender
+        
+        log "Post-rollout cleanup completed"
+    }
+    
+    # Rollback handler
+    handle_rollback() {
+        log "Starting database failover rollback"
+        
+        # Restore all database providers
+        kubectl patch configmap database-failover-config -p '{"data":{"NEON_ENABLED":"true","CNPG_ENABLED":"true","MONGODB_ATLAS_ENABLED":"true"}}'
+        
+        # Wait for stabilization
+        sleep 30
+        
+        log "Rollback completed"
+    }
+    
+    # Main handler based on webhook type
+    case "${WEBHOOK_TYPE:-}" in
+        "pre-rollout")
+            handle_pre_rollout
+            ;;
+        "load-test")
+            handle_load_test
+            ;;
+        "simulate-failover")
+            handle_failover_simulation
+            ;;
+        "post-rollout")
+            handle_post_rollout
+            ;;
+        "rollback")
+            handle_rollback
+            ;;
+        *)
+            log "Unknown webhook type: ${WEBHOOK_TYPE:-}"
+            exit 1
+            ;;
+    esac
