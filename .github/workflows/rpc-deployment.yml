@@ -30,8 +30,10 @@ jobs:
   # Test RPC Services
   test-rpc-services:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # Add timeout to prevent hanging jobs
     strategy:
       fail-fast: false
+      max-parallel: 3  # Limit parallel jobs to avoid resource contention
       matrix:
         service: [
           auth-service,
