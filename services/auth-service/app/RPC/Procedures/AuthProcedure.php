@@ -779,4 +779,407 @@ class AuthProcedure extends BaseProcedure
             $this->handleError($e, __METHOD__, $params);
         }
     }
+
+    /**
+     * Handle role creation notification from user-service.
+     */
+    public function roleCreated(array $params): array
+    {
+        $startTime = microtime(true);
+
+        try {
+            $this->validate($params, [
+                'role_id' => 'required|integer',
+                'name' => 'required|string',
+                'display_name' => 'required|string',
+                'permissions' => 'sometimes|array'
+            ]);
+
+            $roleId = $params['role_id'];
+            $name = $params['name'];
+            $displayName = $params['display_name'];
+            $permissions = $params['permissions'] ?? [];
+
+            Log::info('Role creation notification received via RPC', [
+                'role_id' => $roleId,
+                'name' => $name,
+                'permissions' => $permissions
+            ]);
+
+            // Store role reference for auth operations
+            $authRole = \DB::table('auth_roles')->updateOrInsert(
+                ['role_id' => $roleId],
+                [
+                    'role_id' => $roleId,
+                    'name' => $name,
+                    'display_name' => $displayName,
+                    'permissions' => json_encode($permissions),
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]
+            );
+
+            $result = [
+                'success' => true,
+                'message' => 'Role creation notification processed',
+                'role_id' => $roleId,
+                'auth_role_created' => $authRole
+            ];
+
+            $this->logPerformance(__METHOD__, $params, $result, $startTime);
+            return $result;
+
+        } catch (\Exception $e) {
+            $this->handleError($e, __METHOD__, $params);
+        }
+    }
+
+    /**
+     * Handle role update synchronization from user-service.
+     */
+    public function roleSync(array $params): array
+    {
+        $startTime = microtime(true);
+
+        try {
+            $this->validate($params, [
+                'role_id' => 'required|integer',
+                'changes' => 'required|array'
+            ]);
+
+            $roleId = $params['role_id'];
+            $changes = $params['changes'];
+
+            Log::info('Role sync notification received via RPC', [
+                'role_id' => $roleId,
+                'changes' => $changes
+            ]);
+
+            // Update auth role record
+            $updated = \DB::table('auth_roles')
+                ->where('role_id', $roleId)
+                ->update(array_merge($changes, ['updated_at' => now()]));
+
+            $result = [
+                'success' => true,
+                'message' => 'Role sync completed',
+                'role_id' => $roleId,
+                'updated' => $updated
+            ];
+
+            $this->logPerformance(__METHOD__, $params, $result, $startTime);
+            return $result;
+
+        } catch (\Exception $e) {
+            $this->handleError($e, __METHOD__, $params);
+        }
+    }
+
+    /**
+     * Handle role deletion notification from user-service.
+     */
+    public function roleDeleted(array $params): array
+    {
+        $startTime = microtime(true);
+
+        try {
+            $this->validate($params, [
+                'role_id' => 'required|integer',
+                'role_name' => 'required|string'
+            ]);
+
+            $roleId = $params['role_id'];
+            $roleName = $params['role_name'];
+
+            Log::info('Role deletion notification received via RPC', [
+                'role_id' => $roleId,
+                'role_name' => $roleName
+            ]);
+
+            // Remove role from auth system
+            $deleted = \DB::table('auth_roles')->where('role_id', $roleId)->delete();
+
+            // Invalidate tokens for users who had this role
+            $usersWithRole = \DB::table('auth_user_roles')->where('role_id', $roleId)->get();
+            foreach ($usersWithRole as $userRole) {
+                $this->invalidateUserTokens([
+                    'user_id' => $userRole->user_id,
+                    'reason' => 'role_deleted',
+                    'timestamp' => now()->toISOString()
+                ]);
+            }
+
+            // Remove role assignments
+            \DB::table('auth_user_roles')->where('role_id', $roleId)->delete();
+
+            $result = [
+                'success' => true,
+                'message' => 'Role deletion processed',
+                'role_id' => $roleId,
+                'deleted' => $deleted,
+                'affected_users' => count($usersWithRole)
+            ];
+
+            $this->logPerformance(__METHOD__, $params, $result, $startTime);
+            return $result;
+
+        } catch (\Exception $e) {
+            $this->handleError($e, __METHOD__, $params);
+        }
+    }
+
+    /**
+     * Handle role permissions synchronization from user-service.
+     */
+    public function rolePermissionsSync(array $params): array
+    {
+        $startTime = microtime(true);
+
+        try {
+            $this->validate($params, [
+                'role_id' => 'required|integer',
+                'action' => 'required|string|in:assign,revoke,sync',
+                'permissions' => 'required|array'
+            ]);
+
+            $roleId = $params['role_id'];
+            $action = $params['action'];
+            $permissions = $params['permissions'];
+
+            Log::info('Role permissions sync notification received via RPC', [
+                'role_id' => $roleId,
+                'action' => $action,
+                'permissions' => $permissions
+            ]);
+
+            // Update role permissions in auth system
+            if ($action === 'sync') {
+                // Replace all permissions
+                \DB::table('auth_roles')
+                    ->where('role_id', $roleId)
+                    ->update([
+                        'permissions' => json_encode($permissions),
+                        'updated_at' => now()
+                    ]);
+            } else {
+                // Get current permissions and modify
+                $currentRole = \DB::table('auth_roles')->where('role_id', $roleId)->first();
+                $currentPermissions = $currentRole ? json_decode($currentRole->permissions, true) : [];
+
+                if ($action === 'assign') {
+                    $newPermissions = array_unique(array_merge($currentPermissions, $permissions));
+                } else { // revoke
+                    $newPermissions = array_diff($currentPermissions, $permissions);
+                }
+
+                \DB::table('auth_roles')
+                    ->where('role_id', $roleId)
+                    ->update([
+                        'permissions' => json_encode($newPermissions),
+                        'updated_at' => now()
+                    ]);
+            }
+
+            // Invalidate tokens for users with this role
+            $usersWithRole = \DB::table('auth_user_roles')->where('role_id', $roleId)->get();
+            foreach ($usersWithRole as $userRole) {
+                $this->invalidateUserTokens([
+                    'user_id' => $userRole->user_id,
+                    'reason' => 'role_permissions_changed',
+                    'timestamp' => now()->toISOString()
+                ]);
+            }
+
+            $result = [
+                'success' => true,
+                'message' => 'Role permissions sync completed',
+                'role_id' => $roleId,
+                'action' => $action,
+                'affected_users' => count($usersWithRole)
+            ];
+
+            $this->logPerformance(__METHOD__, $params, $result, $startTime);
+            return $result;
+
+        } catch (\Exception $e) {
+            $this->handleError($e, __METHOD__, $params);
+        }
+    }
+
+    /**
+     * Handle permission creation notification from user-service.
+     */
+    public function permissionCreated(array $params): array
+    {
+        $startTime = microtime(true);
+
+        try {
+            $this->validate($params, [
+                'permission_id' => 'required|integer',
+                'name' => 'required|string',
+                'display_name' => 'required|string',
+                'category' => 'sometimes|string'
+            ]);
+
+            $permissionId = $params['permission_id'];
+            $name = $params['name'];
+            $displayName = $params['display_name'];
+            $category = $params['category'] ?? null;
+
+            Log::info('Permission creation notification received via RPC', [
+                'permission_id' => $permissionId,
+                'name' => $name,
+                'category' => $category
+            ]);
+
+            // Store permission reference for auth operations
+            $authPermission = \DB::table('auth_permissions')->updateOrInsert(
+                ['permission_id' => $permissionId],
+                [
+                    'permission_id' => $permissionId,
+                    'name' => $name,
+                    'display_name' => $displayName,
+                    'category' => $category,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]
+            );
+
+            $result = [
+                'success' => true,
+                'message' => 'Permission creation notification processed',
+                'permission_id' => $permissionId,
+                'auth_permission_created' => $authPermission
+            ];
+
+            $this->logPerformance(__METHOD__, $params, $result, $startTime);
+            return $result;
+
+        } catch (\Exception $e) {
+            $this->handleError($e, __METHOD__, $params);
+        }
+    }
+
+    /**
+     * Handle permission deletion notification from user-service.
+     */
+    public function permissionDeleted(array $params): array
+    {
+        $startTime = microtime(true);
+
+        try {
+            $this->validate($params, [
+                'permission_id' => 'required|integer',
+                'permission_name' => 'required|string'
+            ]);
+
+            $permissionId = $params['permission_id'];
+            $permissionName = $params['permission_name'];
+
+            Log::info('Permission deletion notification received via RPC', [
+                'permission_id' => $permissionId,
+                'permission_name' => $permissionName
+            ]);
+
+            // Remove permission from auth system
+            $deleted = \DB::table('auth_permissions')->where('permission_id', $permissionId)->delete();
+
+            // Update roles that had this permission
+            $rolesWithPermission = \DB::table('auth_roles')->get();
+            $affectedRoles = 0;
+            $affectedUsers = 0;
+
+            foreach ($rolesWithPermission as $role) {
+                $permissions = json_decode($role->permissions, true) ?? [];
+                if (in_array($permissionName, $permissions)) {
+                    $newPermissions = array_diff($permissions, [$permissionName]);
+                    \DB::table('auth_roles')
+                        ->where('id', $role->id)
+                        ->update([
+                            'permissions' => json_encode($newPermissions),
+                            'updated_at' => now()
+                        ]);
+                    $affectedRoles++;
+
+                    // Invalidate tokens for users with this role
+                    $usersWithRole = \DB::table('auth_user_roles')->where('role_id', $role->role_id)->get();
+                    foreach ($usersWithRole as $userRole) {
+                        $this->invalidateUserTokens([
+                            'user_id' => $userRole->user_id,
+                            'reason' => 'permission_deleted',
+                            'timestamp' => now()->toISOString()
+                        ]);
+                        $affectedUsers++;
+                    }
+                }
+            }
+
+            $result = [
+                'success' => true,
+                'message' => 'Permission deletion processed',
+                'permission_id' => $permissionId,
+                'deleted' => $deleted,
+                'affected_roles' => $affectedRoles,
+                'affected_users' => $affectedUsers
+            ];
+
+            $this->logPerformance(__METHOD__, $params, $result, $startTime);
+            return $result;
+
+        } catch (\Exception $e) {
+            $this->handleError($e, __METHOD__, $params);
+        }
+    }
+
+    /**
+     * Check user permissions via RPC.
+     */
+    public function checkUserPermissions(array $params): array
+    {
+        $startTime = microtime(true);
+
+        try {
+            $this->validate($params, [
+                'user_id' => 'required|integer',
+                'permissions' => 'required|array'
+            ]);
+
+            $userId = $params['user_id'];
+            $permissionsToCheck = $params['permissions'];
+
+            // Get user's roles
+            $userRoles = \DB::table('auth_user_roles')->where('user_id', $userId)->get();
+            $userPermissions = [];
+
+            // Collect permissions from all roles
+            foreach ($userRoles as $userRole) {
+                $role = \DB::table('auth_roles')->where('role_id', $userRole->role_id)->first();
+                if ($role) {
+                    $rolePermissions = json_decode($role->permissions, true) ?? [];
+                    $userPermissions = array_merge($userPermissions, $rolePermissions);
+                }
+            }
+
+            $userPermissions = array_unique($userPermissions);
+
+            // Check each permission
+            $permissionResults = [];
+            foreach ($permissionsToCheck as $permission) {
+                $permissionResults[$permission] = in_array($permission, $userPermissions);
+            }
+
+            $result = [
+                'success' => true,
+                'user_id' => $userId,
+                'permissions' => $permissionResults,
+                'all_user_permissions' => $userPermissions
+            ];
+
+            $this->logPerformance(__METHOD__, $params, $result, $startTime);
+            return $result;
+
+        } catch (\Exception $e) {
+            $this->handleError($e, __METHOD__, $params);
+        }
+    }
 }
