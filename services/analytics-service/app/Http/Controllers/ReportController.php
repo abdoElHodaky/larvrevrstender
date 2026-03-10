@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AnalyticsReport;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,53 +36,50 @@ class ReportController extends Controller
                 ], 422);
             }
 
-            $query = DB::table('analytics_reports')
+            // Use Eloquent with query scopes (Laravel 12)
+            $query = AnalyticsReport::query()
                 ->select([
-                    'id',
-                    'type',
-                    'title',
-                    'status',
-                    'parameters',
-                    'file_path',
-                    'file_size',
-                    'created_at',
-                    'updated_at',
-                    'completed_at'
+                    'id', 'type', 'title', 'status', 'parameters',
+                    'file_path', 'file_size', 'created_at', 'updated_at', 'completed_at'
                 ])
-                ->orderBy('created_at', 'desc');
+                ->latest('created_at');
 
-            // Apply filters
-            if ($request->filled('type')) {
-                $query->where('type', $request->type);
-            }
+            // Apply filters using conditional methods (PHP 8.3 + Laravel 12)
+            $query->when($request->filled('type'), 
+                fn($q) => $q->ofType($request->type)
+            );
 
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
-            }
+            $query->when($request->filled('status'), 
+                fn($q) => $q->withStatus($request->status)
+            );
 
-            if ($request->filled('date_from')) {
-                $query->where('created_at', '>=', $request->date_from);
-            }
+            $query->when($request->filled('date_from'), 
+                fn($q) => $q->where('created_at', '>=', $request->date_from)
+            );
 
-            if ($request->filled('date_to')) {
-                $query->where('created_at', '<=', $request->date_to);
-            }
+            $query->when($request->filled('date_to'), 
+                fn($q) => $q->where('created_at', '<=', $request->date_to)
+            );
 
+            // Use Laravel 12 pagination instead of manual offset/limit
             $limit = $request->get('limit', 20);
             $offset = $request->get('offset', 0);
+            $page = intval($offset / $limit) + 1;
 
-            $reports = $query->limit($limit)->offset($offset)->get();
-            $total = $query->count();
+            $reports = $query->paginate($limit, ['*'], 'page', $page);
+            $total = $reports->total();
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'reports' => $reports,
+                    'reports' => $reports->items(),
                     'pagination' => [
                         'total' => $total,
                         'limit' => $limit,
                         'offset' => $offset,
-                        'has_more' => ($offset + $limit) < $total,
+                        'current_page' => $reports->currentPage(),
+                        'last_page' => $reports->lastPage(),
+                        'has_more' => $reports->hasMorePages(),
                     ],
                 ],
                 'message' => 'Reports retrieved successfully',
@@ -136,25 +134,21 @@ class ReportController extends Controller
                 ], 422);
             }
 
-            // Create report record
-            $reportId = DB::table('analytics_reports')->insertGetId([
+            // Create report record using Eloquent (Laravel 12)
+            $report = AnalyticsReport::create([
                 'type' => $request->type,
                 'title' => $request->title ?? $this->generateReportTitle($request->type, $dateFrom, $dateTo),
                 'status' => 'pending',
-                'parameters' => json_encode([
+                'parameters' => [
                     'date_from' => $request->date_from,
                     'date_to' => $request->date_to,
                     'filters' => $request->filters ?? [],
                     'format' => $request->format ?? 'json',
-                ]),
-                'created_at' => now(),
-                'updated_at' => now(),
+                ],
             ]);
 
             // Queue report generation (in a real implementation, this would be a job)
-            $this->processReport($reportId, $request->all());
-
-            $report = DB::table('analytics_reports')->find($reportId);
+            $this->processReport($report->id, $request->all());
 
             return response()->json([
                 'success' => true,
@@ -185,7 +179,8 @@ class ReportController extends Controller
     public function show(int $reportId): JsonResponse
     {
         try {
-            $report = DB::table('analytics_reports')->find($reportId);
+            // Use Eloquent model (Laravel 12)
+            $report = AnalyticsReport::find($reportId);
 
             if (!$report) {
                 return response()->json([
@@ -230,7 +225,8 @@ class ReportController extends Controller
     public function download(int $reportId): Response
     {
         try {
-            $report = DB::table('analytics_reports')->find($reportId);
+            // Use Eloquent model (Laravel 12)
+            $report = AnalyticsReport::find($reportId);
 
             if (!$report) {
                 return response()->json([
@@ -239,7 +235,7 @@ class ReportController extends Controller
                 ], 404);
             }
 
-            if ($report->status !== 'completed' || !$report->file_path) {
+            if (!$report->isCompleted() || !$report->file_path) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Report is not ready for download',
@@ -255,8 +251,8 @@ class ReportController extends Controller
                 ], 404);
             }
 
-            $parameters = json_decode($report->parameters, true);
-            $format = $parameters['format'] ?? 'json';
+            // Use automatic casting instead of manual JSON decode (Laravel 12)
+            $format = $report->parameters['format'] ?? 'json';
             
             $mimeTypes = [
                 'json' => 'application/json',
@@ -319,13 +315,11 @@ class ReportController extends Controller
     private function processReport(int $reportId, array $parameters): void
     {
         try {
+            // Use Eloquent model (Laravel 12)
+            $report = AnalyticsReport::find($reportId);
+            
             // Update status to processing
-            DB::table('analytics_reports')
-                ->where('id', $reportId)
-                ->update([
-                    'status' => 'processing',
-                    'updated_at' => now(),
-                ]);
+            $report->update(['status' => 'processing']);
 
             // Generate report data based on type
             $data = $this->generateReportData($parameters);
@@ -334,25 +328,19 @@ class ReportController extends Controller
             $filePath = $this->saveReportData($reportId, $data, $parameters['format'] ?? 'json');
 
             // Update report as completed
-            DB::table('analytics_reports')
-                ->where('id', $reportId)
-                ->update([
-                    'status' => 'completed',
-                    'file_path' => $filePath,
-                    'file_size' => file_exists(storage_path('app/' . $filePath)) ? filesize(storage_path('app/' . $filePath)) : 0,
-                    'completed_at' => now(),
-                    'updated_at' => now(),
-                ]);
+            $report->update([
+                'status' => 'completed',
+                'file_path' => $filePath,
+                'file_size' => file_exists(storage_path('app/' . $filePath)) ? filesize(storage_path('app/' . $filePath)) : 0,
+                'completed_at' => now(),
+            ]);
 
         } catch (\Exception $e) {
-            // Update report as failed
-            DB::table('analytics_reports')
-                ->where('id', $reportId)
-                ->update([
-                    'status' => 'failed',
-                    'error_message' => $e->getMessage(),
-                    'updated_at' => now(),
-                ]);
+            // Update report as failed using Eloquent (Laravel 12)
+            AnalyticsReport::where('id', $reportId)->update([
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+            ]);
 
             Log::error('Report generation failed', [
                 'report_id' => $reportId,
@@ -523,18 +511,15 @@ class ReportController extends Controller
             if (is_array($firstRow)) {
                 fputcsv($file, array_keys($firstRow));
                 
-                // Write data rows
-                foreach ($data as $row) {
-                    if (is_array($row)) {
-                        fputcsv($file, $row);
-                    }
-                }
+                // Write data rows using collection methods (PHP 8.3)
+                collect($data)
+                    ->filter(fn($row) => is_array($row))
+                    ->each(fn($row) => fputcsv($file, $row));
             } else {
-                // Simple key-value data
+                // Simple key-value data using collection methods (PHP 8.3)
                 fputcsv($file, ['Key', 'Value']);
-                foreach ($data as $key => $value) {
-                    fputcsv($file, [$key, is_array($value) ? json_encode($value) : $value]);
-                }
+                collect($data)
+                    ->each(fn($value, $key) => fputcsv($file, [$key, is_array($value) ? json_encode($value) : $value]));
             }
         }
         
@@ -556,8 +541,8 @@ class ReportController extends Controller
             return null;
         }
 
-        $parameters = json_decode($report->parameters, true);
-        $format = $parameters['format'] ?? 'json';
+        // Use automatic casting instead of manual JSON decode (Laravel 12)
+        $format = $report->parameters['format'] ?? 'json';
 
         if ($format === 'json') {
             $content = file_get_contents($filePath);
