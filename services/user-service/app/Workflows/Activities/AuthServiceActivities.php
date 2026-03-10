@@ -2,61 +2,74 @@
 
 namespace App\Workflows\Activities;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Shared\Procedures\CrossServiceProcedure;
+use Shared\Core\RpcHandler;
+use Shared\Core\ProcedureEngine;
 use Workflow\Activity;
 
 class AuthServiceActivities extends Activity
 {
-    private string $authServiceUrl;
+    private RpcHandler $rpcHandler;
+    private CrossServiceProcedure $crossService;
 
     public function __construct()
     {
-        $this->authServiceUrl = config('services.auth_service.url', 'http://auth-service:8001');
+        $engine = new ProcedureEngine();
+        $this->rpcHandler = new RpcHandler($engine, [
+            'protocol' => 'json-rpc',
+            'timeout' => 30,
+            'enable_circuit_breaker' => true,
+            'enable_service_discovery' => true
+        ]);
+        $this->crossService = new CrossServiceProcedure();
     }
 
     /**
-     * Notify auth-service about new user creation.
+     * Notify auth-service about new user creation via RPC.
      */
     public function notifyUserCreated(array $userData): array
     {
         try {
-            $response = Http::timeout(30)
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . config('services.auth_service.token'),
-                    'Content-Type' => 'application/json',
-                    'X-Service-Name' => 'user-service'
-                ])
-                ->post("{$this->authServiceUrl}/api/internal/users/created", $userData);
+            $rpcRequest = [
+                'jsonrpc' => '2.0',
+                'method' => 'auth.user.created',
+                'params' => $userData,
+                'id' => uniqid('user_created_', true)
+            ];
 
-            if ($response->successful()) {
-                Log::info('Auth service notified of user creation', [
+            $response = $this->rpcHandler->handle($rpcRequest, [
+                'service' => 'auth-service',
+                'caller' => 'user-service',
+                'trace_id' => uniqid('trace_', true)
+            ]);
+
+            if (isset($response['result'])) {
+                Log::info('Auth service notified of user creation via RPC', [
                     'user_id' => $userData['user_id'],
-                    'response' => $response->json()
+                    'response' => $response['result']
                 ]);
 
                 return [
                     'success' => true,
-                    'data' => $response->json(),
-                    'message' => 'Auth service notified successfully'
+                    'data' => $response['result'],
+                    'message' => 'Auth service notified successfully via RPC'
                 ];
             }
 
-            Log::warning('Auth service notification failed', [
+            Log::warning('Auth service RPC notification failed', [
                 'user_id' => $userData['user_id'],
-                'status' => $response->status(),
-                'response' => $response->body()
+                'error' => $response['error'] ?? 'Unknown RPC error'
             ]);
 
             return [
                 'success' => false,
-                'error' => 'Auth service notification failed',
-                'status' => $response->status(),
-                'response' => $response->body()
+                'error' => 'RPC notification failed',
+                'rpc_error' => $response['error'] ?? 'Unknown error'
             ];
 
         } catch (\Exception $e) {
-            Log::error('Auth service communication error', [
+            Log::error('Auth service RPC communication error', [
                 'user_id' => $userData['user_id'],
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -64,110 +77,119 @@ class AuthServiceActivities extends Activity
 
             return [
                 'success' => false,
-                'error' => 'Communication error: ' . $e->getMessage()
+                'error' => 'RPC communication error: ' . $e->getMessage()
             ];
         }
     }
 
     /**
-     * Sync user updates with auth-service.
+     * Sync user updates with auth-service via RPC.
      */
     public function syncUserUpdate(array $updateData): array
     {
         try {
-            $response = Http::timeout(30)
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . config('services.auth_service.token'),
-                    'Content-Type' => 'application/json',
-                    'X-Service-Name' => 'user-service'
-                ])
-                ->put("{$this->authServiceUrl}/api/internal/users/{$updateData['user_id']}/sync", $updateData);
+            $rpcRequest = [
+                'jsonrpc' => '2.0',
+                'method' => 'auth.user.sync',
+                'params' => $updateData,
+                'id' => uniqid('user_sync_', true)
+            ];
 
-            if ($response->successful()) {
-                Log::info('Auth service synced user update', [
+            $response = $this->rpcHandler->handle($rpcRequest, [
+                'service' => 'auth-service',
+                'caller' => 'user-service',
+                'trace_id' => uniqid('trace_', true)
+            ]);
+
+            if (isset($response['result'])) {
+                Log::info('Auth service synced user update via RPC', [
                     'user_id' => $updateData['user_id'],
-                    'response' => $response->json()
+                    'response' => $response['result']
                 ]);
 
                 return [
                     'success' => true,
-                    'data' => $response->json(),
-                    'message' => 'Auth service synced successfully'
+                    'data' => $response['result'],
+                    'message' => 'Auth service synced successfully via RPC'
                 ];
             }
 
-            Log::warning('Auth service sync failed', [
+            Log::warning('Auth service RPC sync failed', [
                 'user_id' => $updateData['user_id'],
-                'status' => $response->status(),
-                'response' => $response->body()
+                'error' => $response['error'] ?? 'Unknown RPC error'
             ]);
 
             return [
                 'success' => false,
-                'error' => 'Auth service sync failed',
-                'status' => $response->status()
+                'error' => 'RPC sync failed',
+                'rpc_error' => $response['error'] ?? 'Unknown error'
             ];
 
         } catch (\Exception $e) {
-            Log::error('Auth service sync error', [
+            Log::error('Auth service RPC sync error', [
                 'user_id' => $updateData['user_id'],
                 'error' => $e->getMessage()
             ]);
 
             return [
                 'success' => false,
-                'error' => 'Sync error: ' . $e->getMessage()
+                'error' => 'RPC sync error: ' . $e->getMessage()
             ];
         }
     }
 
     /**
-     * Revoke all user tokens in auth-service.
+     * Revoke all user tokens in auth-service via RPC.
      */
     public function revokeAllUserTokens(int $userId): array
     {
         try {
-            $response = Http::timeout(30)
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . config('services.auth_service.token'),
-                    'Content-Type' => 'application/json',
-                    'X-Service-Name' => 'user-service'
-                ])
-                ->delete("{$this->authServiceUrl}/api/internal/users/{$userId}/tokens");
+            $rpcRequest = [
+                'jsonrpc' => '2.0',
+                'method' => 'auth.tokens.revokeAll',
+                'params' => ['user_id' => $userId],
+                'id' => uniqid('revoke_tokens_', true)
+            ];
 
-            if ($response->successful()) {
-                Log::info('All user tokens revoked', [
+            $response = $this->rpcHandler->handle($rpcRequest, [
+                'service' => 'auth-service',
+                'caller' => 'user-service',
+                'trace_id' => uniqid('trace_', true)
+            ]);
+
+            if (isset($response['result'])) {
+                Log::info('All user tokens revoked via RPC', [
                     'user_id' => $userId,
-                    'response' => $response->json()
+                    'response' => $response['result']
                 ]);
 
                 return [
                     'success' => true,
-                    'data' => $response->json(),
-                    'message' => 'All tokens revoked successfully'
+                    'data' => $response['result'],
+                    'message' => 'All tokens revoked successfully via RPC'
                 ];
             }
 
-            Log::warning('Token revocation failed', [
+            Log::warning('RPC token revocation failed', [
                 'user_id' => $userId,
-                'status' => $response->status()
+                'error' => $response['error'] ?? 'Unknown RPC error'
             ]);
 
             return [
                 'success' => false,
-                'error' => 'Token revocation failed',
-                'status' => $response->status()
+                'error' => 'RPC token revocation failed',
+                'rpc_error' => $response['error'] ?? 'Unknown error'
             ];
 
         } catch (\Exception $e) {
-            Log::error('Token revocation error', [
+            Log::error('RPC token revocation error', [
                 'user_id' => $userId,
                 'error' => $e->getMessage()
             ]);
 
             return [
                 'success' => false,
-                'error' => 'Token revocation error: ' . $e->getMessage()
+                'error' => 'RPC token revocation error: ' . $e->getMessage()
             ];
         }
     }
@@ -219,44 +241,56 @@ class AuthServiceActivities extends Activity
     }
 
     /**
-     * Invalidate user tokens due to permission/role changes.
+     * Invalidate user tokens due to permission/role changes via RPC.
      */
     public function invalidateUserTokens(int $userId, string $reason): array
     {
         try {
-            $response = Http::timeout(30)
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . config('services.auth_service.token'),
-                    'Content-Type' => 'application/json',
-                    'X-Service-Name' => 'user-service'
-                ])
-                ->post("{$this->authServiceUrl}/api/internal/users/{$userId}/tokens/invalidate", [
-                    'reason' => $reason,
-                    'timestamp' => now()->toISOString()
-                ]);
-
-            if ($response->successful()) {
-                Log::info('User tokens invalidated', [
+            $rpcRequest = [
+                'jsonrpc' => '2.0',
+                'method' => 'auth.tokens.invalidate',
+                'params' => [
                     'user_id' => $userId,
                     'reason' => $reason,
-                    'response' => $response->json()
+                    'timestamp' => now()->toISOString()
+                ],
+                'id' => uniqid('invalidate_tokens_', true)
+            ];
+
+            $response = $this->rpcHandler->handle($rpcRequest, [
+                'service' => 'auth-service',
+                'caller' => 'user-service',
+                'trace_id' => uniqid('trace_', true)
+            ]);
+
+            if (isset($response['result'])) {
+                Log::info('User tokens invalidated via RPC', [
+                    'user_id' => $userId,
+                    'reason' => $reason,
+                    'response' => $response['result']
                 ]);
 
                 return [
                     'success' => true,
-                    'data' => $response->json(),
-                    'message' => 'Tokens invalidated successfully'
+                    'data' => $response['result'],
+                    'message' => 'Tokens invalidated successfully via RPC'
                 ];
             }
 
+            Log::warning('RPC token invalidation failed', [
+                'user_id' => $userId,
+                'reason' => $reason,
+                'error' => $response['error'] ?? 'Unknown RPC error'
+            ]);
+
             return [
                 'success' => false,
-                'error' => 'Token invalidation failed',
-                'status' => $response->status()
+                'error' => 'RPC token invalidation failed',
+                'rpc_error' => $response['error'] ?? 'Unknown error'
             ];
 
         } catch (\Exception $e) {
-            Log::error('Token invalidation error', [
+            Log::error('RPC token invalidation error', [
                 'user_id' => $userId,
                 'reason' => $reason,
                 'error' => $e->getMessage()
@@ -264,7 +298,7 @@ class AuthServiceActivities extends Activity
 
             return [
                 'success' => false,
-                'error' => 'Token invalidation error: ' . $e->getMessage()
+                'error' => 'RPC token invalidation error: ' . $e->getMessage()
             ];
         }
     }
