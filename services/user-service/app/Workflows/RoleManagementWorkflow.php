@@ -22,30 +22,19 @@ class RoleManagementWorkflow extends Workflow
     {
         $action = $input['action'] ?? 'unknown';
 
-        switch ($action) {
-            case 'list':
-                return $this->listRolesWorkflow($input);
-            case 'create':
-                return $this->createRoleWorkflow($input);
-            case 'show':
-                return $this->showRoleWorkflow($input);
-            case 'update':
-                return $this->updateRoleWorkflow($input);
-            case 'delete':
-                return $this->deleteRoleWorkflow($input);
-            case 'getPermissions':
-                return $this->getRolePermissionsWorkflow($input);
-            case 'assignPermissions':
-                return $this->assignPermissionsWorkflow($input);
-            case 'revokePermissions':
-                return $this->revokePermissionsWorkflow($input);
-            case 'syncPermissions':
-                return $this->syncPermissionsWorkflow($input);
-            case 'getUsers':
-                return $this->getRoleUsersWorkflow($input);
-            default:
-                throw new \InvalidArgumentException("Unknown action: {$action}");
-        }
+        return match ($action) {
+            'list' => $this->listRolesWorkflow($input),
+            'create' => $this->createRoleWorkflow($input),
+            'show' => $this->showRoleWorkflow($input),
+            'update' => $this->updateRoleWorkflow($input),
+            'delete' => $this->deleteRoleWorkflow($input),
+            'getPermissions' => $this->getRolePermissionsWorkflow($input),
+            'assignPermissions' => $this->assignPermissionsWorkflow($input),
+            'revokePermissions' => $this->revokePermissionsWorkflow($input),
+            'syncPermissions' => $this->syncPermissionsWorkflow($input),
+            'getUsers' => $this->getRoleUsersWorkflow($input),
+            default => throw new \InvalidArgumentException("Unknown action: {$action}")
+        };
     }
 
     /**

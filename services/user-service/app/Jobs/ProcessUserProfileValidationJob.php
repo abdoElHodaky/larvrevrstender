@@ -153,21 +153,18 @@ class ProcessUserProfileValidationJob extends BaseQueueJob
                 
                 $results['processed']++;
                 
-                switch ($validationResult['status']) {
-                    case 'validated':
-                        $results['validated']++;
-                        break;
-                    case 'requires_review':
-                        $results['requires_review']++;
-                        break;
-                    case 'failed':
-                        $results['failed']++;
+                match ($validationResult['status']) {
+                    'validated' => $results['validated']++,
+                    'requires_review' => $results['requires_review']++,
+                    'failed' => [
+                        $results['failed']++,
                         $results['errors'][] = [
                             'user_id' => $user->id,
                             'error' => $validationResult['message'] ?? 'Validation failed'
-                        ];
-                        break;
-                }
+                        ]
+                    ],
+                    default => null
+                };
 
             } catch (\Exception $e) {
                 $results['processed']++;

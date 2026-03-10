@@ -19,24 +19,16 @@ class UserManagementWorkflow extends Workflow
     {
         $action = $input['action'];
 
-        switch ($action) {
-            case 'create':
-                return $this->createUserWorkflow($input);
-            case 'update':
-                return $this->updateUserWorkflow($input);
-            case 'delete':
-                return $this->deleteUserWorkflow($input);
-            case 'assign_permissions':
-                return $this->assignPermissionsWorkflow($input);
-            case 'revoke_permissions':
-                return $this->revokePermissionsWorkflow($input);
-            case 'assign_roles':
-                return $this->assignRolesWorkflow($input);
-            case 'revoke_roles':
-                return $this->revokeRolesWorkflow($input);
-            default:
-                throw new \InvalidArgumentException("Unknown action: {$action}");
-        }
+        return match ($action) {
+            'create' => $this->createUserWorkflow($input),
+            'update' => $this->updateUserWorkflow($input),
+            'delete' => $this->deleteUserWorkflow($input),
+            'assign_permissions' => $this->assignPermissionsWorkflow($input),
+            'revoke_permissions' => $this->revokePermissionsWorkflow($input),
+            'assign_roles' => $this->assignRolesWorkflow($input),
+            'revoke_roles' => $this->revokeRolesWorkflow($input),
+            default => throw new \InvalidArgumentException("Unknown action: {$action}")
+        };
     }
 
     /**
