@@ -136,4 +136,23 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{paymentMethod}', [App\Http\Controllers\PaymentMethodController::class, 'destroy']);
         Route::post('/{paymentMethod}/set-default', [App\Http\Controllers\PaymentMethodController::class, 'setDefault']);
     });
+
+    // RBAC Management Routes (User Management with Gates & Policies)
+    Route::prefix('users')->group(function () {
+        Route::get('/', [App\Http\Controllers\UserController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\UserController::class, 'store']);
+        Route::get('/{user}', [App\Http\Controllers\UserController::class, 'show']);
+        Route::put('/{user}', [App\Http\Controllers\UserController::class, 'update']);
+        Route::delete('/{user}', [App\Http\Controllers\UserController::class, 'destroy']);
+
+        // User permissions management
+        Route::get('/{user}/permissions', [App\Http\Controllers\UserController::class, 'getPermissions']);
+        Route::post('/{user}/permissions', [App\Http\Controllers\UserController::class, 'assignPermissions']);
+        Route::delete('/{user}/permissions', [App\Http\Controllers\UserController::class, 'revokePermissions']);
+
+        // User roles management
+        Route::get('/{user}/roles', [App\Http\Controllers\UserController::class, 'getRoles']);
+        Route::post('/{user}/roles', [App\Http\Controllers\UserController::class, 'assignRoles']);
+        Route::delete('/{user}/roles', [App\Http\Controllers\UserController::class, 'revokeRoles']);
+    });
 });

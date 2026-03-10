@@ -6,9 +6,10 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use App\Workflows\UserManagementWorkflow;
 
 class UserController extends Controller
 {
@@ -17,6 +18,8 @@ class UserController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        Gate::authorize('viewAny', User::class);
+
         $query = User::query();
 
         // Apply filters
@@ -49,10 +52,51 @@ class UserController extends Controller
     }
 
     /**
+     * Store a newly created user.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        Gate::authorize('create', User::class);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+            'phone' => 'nullable|string|max:20',
+            'status' => 'nullable|in:active,inactive,suspended',
+            'roles' => 'nullable|array',
+            'roles.*' => 'exists:roles,name'
+        ]);
+
+        $userData = $request->only(['name', 'email', 'phone', 'status']);
+        $userData['password'] = Hash::make($request->password);
+        $userData['status'] = $userData['status'] ?? 'active';
+
+        // Start user creation workflow
+        $workflow = UserManagementWorkflow::start([
+            'action' => 'create',
+            'user_data' => $userData,
+            'roles' => $request->roles ?? [],
+            'created_by' => auth()->id()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'workflow_id' => $workflow->id(),
+                'message' => 'User creation workflow started'
+            ],
+            'message' => 'User creation initiated successfully'
+        ], 202);
+    }
+
+    /**
      * Display the specified user.
      */
     public function show(User $user): JsonResponse
     {
+        Gate::authorize('view', $user);
+
         $user->load(['roles', 'permissions', 'activities' => function ($query) {
             $query->latest()->limit(10);
         }]);
@@ -69,6 +113,8 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user): JsonResponse
     {
+        Gate::authorize('update', $user);
+
         $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id,
@@ -84,20 +130,22 @@ class UserController extends Controller
             $data['password'] = Hash::make($request->password);
         }
 
-        $user->update($data);
-
-        // Log activity
-        activity()
-            ->performedOn($user)
-            ->causedBy(auth()->user())
-            ->withProperties(['updated_fields' => array_keys($data)])
-            ->log('User updated');
+        // Start user update workflow
+        $workflow = UserManagementWorkflow::start([
+            'action' => 'update',
+            'user_id' => $user->id,
+            'user_data' => $data,
+            'updated_by' => auth()->id()
+        ]);
 
         return response()->json([
             'success' => true,
-            'data' => $user->fresh(['roles', 'permissions']),
-            'message' => 'User updated successfully'
-        ]);
+            'data' => [
+                'workflow_id' => $workflow->id(),
+                'message' => 'User update workflow started'
+            ],
+            'message' => 'User update initiated successfully'
+        ], 202);
     }
 
     /**
@@ -105,6 +153,8 @@ class UserController extends Controller
      */
     public function destroy(User $user): JsonResponse
     {
+        Gate::authorize('delete', $user);
+
         // Prevent self-deletion
         if ($user->id === auth()->id()) {
             return response()->json([
@@ -113,19 +163,21 @@ class UserController extends Controller
             ], 403);
         }
 
-        // Log activity before deletion
-        activity()
-            ->performedOn($user)
-            ->causedBy(auth()->user())
-            ->withProperties(['deleted_user' => $user->toArray()])
-            ->log('User deleted');
-
-        $user->delete();
+        // Start user deletion workflow
+        $workflow = UserManagementWorkflow::start([
+            'action' => 'delete',
+            'user_id' => $user->id,
+            'deleted_by' => auth()->id()
+        ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'User deleted successfully'
-        ]);
+            'data' => [
+                'workflow_id' => $workflow->id(),
+                'message' => 'User deletion workflow started'
+            ],
+            'message' => 'User deletion initiated successfully'
+        ], 202);
     }
 
     /**
@@ -133,6 +185,8 @@ class UserController extends Controller
      */
     public function getPermissions(User $user): JsonResponse
     {
+        Gate::authorize('view', $user);
+
         $permissions = $user->getAllPermissions();
 
         return response()->json([
@@ -151,26 +205,29 @@ class UserController extends Controller
      */
     public function assignPermissions(Request $request, User $user): JsonResponse
     {
+        Gate::authorize('assignPermissions', $user);
+
         $request->validate([
             'permissions' => 'required|array',
             'permissions.*' => 'exists:permissions,name'
         ]);
 
-        $permissions = Permission::whereIn('name', $request->permissions)->get();
-        $user->givePermissionTo($permissions);
-
-        // Log activity
-        activity()
-            ->performedOn($user)
-            ->causedBy(auth()->user())
-            ->withProperties(['assigned_permissions' => $request->permissions])
-            ->log('Permissions assigned to user');
+        // Start permission assignment workflow
+        $workflow = UserManagementWorkflow::start([
+            'action' => 'assign_permissions',
+            'user_id' => $user->id,
+            'permissions' => $request->permissions,
+            'assigned_by' => auth()->id()
+        ]);
 
         return response()->json([
             'success' => true,
-            'data' => $user->fresh(['permissions']),
-            'message' => 'Permissions assigned successfully'
-        ]);
+            'data' => [
+                'workflow_id' => $workflow->id(),
+                'message' => 'Permission assignment workflow started'
+            ],
+            'message' => 'Permission assignment initiated successfully'
+        ], 202);
     }
 
     /**
@@ -178,26 +235,29 @@ class UserController extends Controller
      */
     public function revokePermissions(Request $request, User $user): JsonResponse
     {
+        Gate::authorize('revokePermissions', $user);
+
         $request->validate([
             'permissions' => 'required|array',
             'permissions.*' => 'exists:permissions,name'
         ]);
 
-        $permissions = Permission::whereIn('name', $request->permissions)->get();
-        $user->revokePermissionTo($permissions);
-
-        // Log activity
-        activity()
-            ->performedOn($user)
-            ->causedBy(auth()->user())
-            ->withProperties(['revoked_permissions' => $request->permissions])
-            ->log('Permissions revoked from user');
+        // Start permission revocation workflow
+        $workflow = UserManagementWorkflow::start([
+            'action' => 'revoke_permissions',
+            'user_id' => $user->id,
+            'permissions' => $request->permissions,
+            'revoked_by' => auth()->id()
+        ]);
 
         return response()->json([
             'success' => true,
-            'data' => $user->fresh(['permissions']),
-            'message' => 'Permissions revoked successfully'
-        ]);
+            'data' => [
+                'workflow_id' => $workflow->id(),
+                'message' => 'Permission revocation workflow started'
+            ],
+            'message' => 'Permission revocation initiated successfully'
+        ], 202);
     }
 
     /**
@@ -205,6 +265,8 @@ class UserController extends Controller
      */
     public function getRoles(User $user): JsonResponse
     {
+        Gate::authorize('view', $user);
+
         $roles = $user->roles()->with('permissions')->get();
 
         return response()->json([
@@ -219,26 +281,29 @@ class UserController extends Controller
      */
     public function assignRoles(Request $request, User $user): JsonResponse
     {
+        Gate::authorize('assignRoles', $user);
+
         $request->validate([
             'roles' => 'required|array',
             'roles.*' => 'exists:roles,name'
         ]);
 
-        $roles = Role::whereIn('name', $request->roles)->get();
-        $user->assignRole($roles);
-
-        // Log activity
-        activity()
-            ->performedOn($user)
-            ->causedBy(auth()->user())
-            ->withProperties(['assigned_roles' => $request->roles])
-            ->log('Roles assigned to user');
+        // Start role assignment workflow
+        $workflow = UserManagementWorkflow::start([
+            'action' => 'assign_roles',
+            'user_id' => $user->id,
+            'roles' => $request->roles,
+            'assigned_by' => auth()->id()
+        ]);
 
         return response()->json([
             'success' => true,
-            'data' => $user->fresh(['roles']),
-            'message' => 'Roles assigned successfully'
-        ]);
+            'data' => [
+                'workflow_id' => $workflow->id(),
+                'message' => 'Role assignment workflow started'
+            ],
+            'message' => 'Role assignment initiated successfully'
+        ], 202);
     }
 
     /**
@@ -246,25 +311,28 @@ class UserController extends Controller
      */
     public function revokeRoles(Request $request, User $user): JsonResponse
     {
+        Gate::authorize('revokeRoles', $user);
+
         $request->validate([
             'roles' => 'required|array',
             'roles.*' => 'exists:roles,name'
         ]);
 
-        $roles = Role::whereIn('name', $request->roles)->get();
-        $user->removeRole($roles);
-
-        // Log activity
-        activity()
-            ->performedOn($user)
-            ->causedBy(auth()->user())
-            ->withProperties(['revoked_roles' => $request->roles])
-            ->log('Roles revoked from user');
+        // Start role revocation workflow
+        $workflow = UserManagementWorkflow::start([
+            'action' => 'revoke_roles',
+            'user_id' => $user->id,
+            'roles' => $request->roles,
+            'revoked_by' => auth()->id()
+        ]);
 
         return response()->json([
             'success' => true,
-            'data' => $user->fresh(['roles']),
-            'message' => 'Roles revoked successfully'
-        ]);
+            'data' => [
+                'workflow_id' => $workflow->id(),
+                'message' => 'Role revocation workflow started'
+            ],
+            'message' => 'Role revocation initiated successfully'
+        ], 202);
     }
 }
