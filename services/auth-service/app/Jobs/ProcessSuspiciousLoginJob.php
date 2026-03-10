@@ -2,6 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Models\LoginLog;
+use App\Models\SuspiciousActivity;
+use App\Models\User;
 use Shared\Jobs\BaseQueueJob;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -224,32 +227,19 @@ class ProcessSuspiciousLoginJob extends BaseQueueJob
      */
     private function performAnalysisType(array $attempt, string $analysisType): array
     {
-        switch ($analysisType) {
-            case 'ip_reputation':
-                return $this->analyzeIpReputation($attempt);
-            
-            case 'geolocation_anomaly':
-                return $this->analyzeGeolocationAnomaly($attempt);
-            
-            case 'device_fingerprint':
-                return $this->analyzeDeviceFingerprint($attempt);
-            
-            case 'login_frequency':
-                return $this->analyzeLoginFrequency($attempt);
-            
-            case 'failed_attempts':
-                return $this->analyzeFailedAttempts($attempt);
-            
-            case 'time_pattern':
-                return $this->analyzeTimePattern($attempt);
-            
-            default:
-                return [
-                    'suspicious' => false,
-                    'factor' => "Unknown analysis type: {$analysisType}",
-                    'risk_score' => 0
-                ];
-        }
+        return match ($analysisType) {
+            'ip_reputation' => $this->analyzeIpReputation($attempt),
+            'geolocation_anomaly' => $this->analyzeGeolocationAnomaly($attempt),
+            'device_fingerprint' => $this->analyzeDeviceFingerprint($attempt),
+            'login_frequency' => $this->analyzeLoginFrequency($attempt),
+            'failed_attempts' => $this->analyzeFailedAttempts($attempt),
+            'time_pattern' => $this->analyzeTimePattern($attempt),
+            default => [
+                'suspicious' => false,
+                'factor' => "Unknown analysis type: {$analysisType}",
+                'risk_score' => 0
+            ]
+        };
     }
 
     /**
@@ -391,10 +381,9 @@ class ProcessSuspiciousLoginJob extends BaseQueueJob
     private function getUserRecentLocations(int $userId): array
     {
         // Get user's recent login locations from database
-        return DB::table('login_logs')
-            ->where('user_id', $userId)
-            ->where('created_at', '>=', now()->subDays(30))
-            ->where('status', 'success')
+        return LoginLog::byUser($userId)
+            ->recent(now()->subDays(30))
+            ->successful()
             ->pluck('location')
             ->unique()
             ->toArray();
@@ -408,10 +397,9 @@ class ProcessSuspiciousLoginJob extends BaseQueueJob
 
     private function getUserKnownDevices(int $userId): array
     {
-        return DB::table('login_logs')
-            ->where('user_id', $userId)
-            ->where('created_at', '>=', now()->subDays(90))
-            ->where('status', 'success')
+        return LoginLog::byUser($userId)
+            ->recent(now()->subDays(90))
+            ->successful()
             ->pluck('device_fingerprint')
             ->unique()
             ->filter()
@@ -420,18 +408,16 @@ class ProcessSuspiciousLoginJob extends BaseQueueJob
 
     private function getUserRecentLogins(int $userId, int $minutes): array
     {
-        return DB::table('login_logs')
-            ->where('user_id', $userId)
-            ->where('created_at', '>=', now()->subMinutes($minutes))
+        return LoginLog::byUser($userId)
+            ->recent(now()->subMinutes($minutes))
             ->get()
             ->toArray();
     }
 
     private function getRecentFailedAttempts(?int $userId, ?string $ipAddress): int
     {
-        $query = DB::table('login_logs')
-            ->where('status', 'failed')
-            ->where('created_at', '>=', now()->subHours(1));
+        $query = LoginLog::failed()
+            ->recent(now()->subHours(1));
         
         if ($userId) {
             $query->where('user_id', $userId);
@@ -446,14 +432,20 @@ class ProcessSuspiciousLoginJob extends BaseQueueJob
 
     private function logSuspiciousActivity(array $attempt, array $factors, int $riskScore): void
     {
-        DB::table('suspicious_activities')->insert([
+        SuspiciousActivity::create([
             'user_id' => $attempt['user_id'] ?? null,
             'ip_address' => $attempt['ip_address'] ?? null,
-            'suspicious_factors' => json_encode($factors),
-            'risk_score' => $riskScore,
-            'attempt_data' => json_encode($attempt),
-            'created_at' => now(),
-            'updated_at' => now()
+            'activity_type' => SuspiciousActivity::TYPE_MULTIPLE_FAILED_LOGINS,
+            'severity' => $riskScore >= 80 ? SuspiciousActivity::SEVERITY_CRITICAL : 
+                         ($riskScore >= 60 ? SuspiciousActivity::SEVERITY_HIGH : SuspiciousActivity::SEVERITY_MEDIUM),
+            'description' => 'Suspicious login activity detected',
+            'metadata' => [
+                'suspicious_factors' => $factors,
+                'risk_score' => $riskScore,
+                'attempt_data' => $attempt
+            ],
+            'detected_at' => now(),
+            'status' => SuspiciousActivity::STATUS_PENDING
         ]);
     }
 
@@ -496,8 +488,7 @@ class ProcessSuspiciousLoginJob extends BaseQueueJob
 
     private function blockUserAccount(int $userId): void
     {
-        DB::table('users')
-            ->where('id', $userId)
+        User::where('id', $userId)
             ->update([
                 'status' => 'blocked',
                 'blocked_at' => now(),
@@ -507,8 +498,7 @@ class ProcessSuspiciousLoginJob extends BaseQueueJob
 
     private function flagUserAccount(int $userId): void
     {
-        DB::table('users')
-            ->where('id', $userId)
+        User::where('id', $userId)
             ->update([
                 'security_flag' => true,
                 'flagged_at' => now(),
@@ -581,4 +571,3 @@ class ProcessSuspiciousLoginJob extends BaseQueueJob
         ]);
     }
 }
-
