@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Models\PersonalAccessToken;
-use App\Models\Session;
 use Shared\Jobs\BaseQueueJob;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -242,9 +241,15 @@ class CleanupExpiredTokensJob extends BaseQueueJob
         $totalDeleted = 0;
         $batchCount = 0;
 
-        // Use Session model cleanup method (PHP 8.3 + Laravel 12)
+        // Use Laravel's built-in session cleanup (PHP 8.3 + Laravel 12)
+        $sessionLifetime = config('session.lifetime', 120);
+        $expiredThreshold = now()->subMinutes($sessionLifetime)->timestamp;
+        
         do {
-            $deleted = Session::cleanupExpired();
+            $deleted = DB::table('sessions')
+                ->where('last_activity', '<', $expiredThreshold)
+                ->limit($this->batchSize)
+                ->delete();
             
             $totalDeleted += $deleted;
             $batchCount++;
