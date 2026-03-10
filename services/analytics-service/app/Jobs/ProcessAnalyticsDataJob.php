@@ -124,26 +124,17 @@ class ProcessAnalyticsDataJob extends BaseQueueJob
             'aggregation_type' => $this->aggregationType
         ]);
 
-        switch ($metricType) {
-            case 'user_events':
-                return $this->aggregateUserEvents($startDate, $endDate);
-            
-            case 'active_users':
-                return $this->aggregateActiveUsers($startDate, $endDate);
-            
-            case 'session_metrics':
-                return $this->aggregateSessionMetrics($startDate, $endDate);
-            
-            case 'conversion_funnel':
-                return $this->aggregateConversionMetrics($startDate, $endDate);
-            
-            case 'event_types':
-                return $this->aggregateEventTypes($startDate, $endDate);
-            
-            default:
+        return match ($metricType) {
+            'user_events' => $this->aggregateUserEvents($startDate, $endDate),
+            'active_users' => $this->aggregateActiveUsers($startDate, $endDate),
+            'session_metrics' => $this->aggregateSessionMetrics($startDate, $endDate),
+            'conversion_funnel' => $this->aggregateConversionMetrics($startDate, $endDate),
+            'event_types' => $this->aggregateEventTypes($startDate, $endDate),
+            default => (function() use ($metricType) {
                 Log::warning('Unknown metric type', ['metric_type' => $metricType]);
                 return ['records_processed' => 0, 'metrics_created' => 0];
-        }
+            })()
+        };
     }
 
     /**
@@ -405,18 +396,12 @@ class ProcessAnalyticsDataJob extends BaseQueueJob
      */
     private function getStartDateForAggregation(): Carbon
     {
-        switch ($this->aggregationType) {
-            case 'hourly':
-                return $this->targetDate->startOfDay();
-            case 'daily':
-                return $this->targetDate->startOfDay();
-            case 'weekly':
-                return $this->targetDate->startOfWeek();
-            case 'monthly':
-                return $this->targetDate->startOfMonth();
-            default:
-                return $this->targetDate->startOfDay();
-        }
+        return match ($this->aggregationType) {
+            'hourly', 'daily' => $this->targetDate->startOfDay(),
+            'weekly' => $this->targetDate->startOfWeek(),
+            'monthly' => $this->targetDate->startOfMonth(),
+            default => $this->targetDate->startOfDay()
+        };
     }
 
     /**
@@ -424,18 +409,12 @@ class ProcessAnalyticsDataJob extends BaseQueueJob
      */
     private function getEndDateForAggregation(): Carbon
     {
-        switch ($this->aggregationType) {
-            case 'hourly':
-                return $this->targetDate->endOfDay();
-            case 'daily':
-                return $this->targetDate->endOfDay();
-            case 'weekly':
-                return $this->targetDate->endOfWeek();
-            case 'monthly':
-                return $this->targetDate->endOfMonth();
-            default:
-                return $this->targetDate->endOfDay();
-        }
+        return match ($this->aggregationType) {
+            'hourly', 'daily' => $this->targetDate->endOfDay(),
+            'weekly' => $this->targetDate->endOfWeek(),
+            'monthly' => $this->targetDate->endOfMonth(),
+            default => $this->targetDate->endOfDay()
+        };
     }
 
     /**
