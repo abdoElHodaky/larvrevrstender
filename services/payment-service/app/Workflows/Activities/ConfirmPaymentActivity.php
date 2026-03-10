@@ -161,27 +161,20 @@ class ConfirmPaymentActivity extends BaseRpcActivity
         }
 
         // Special handling for different payment methods
-        switch ($paymentMethod) {
-            case 'bank_transfer':
-                // Bank transfers need to be pending or processing to be confirmed
-                if (!in_array($currentStatus, [Payment::STATUS_PENDING, Payment::STATUS_PROCESSING])) {
-                    return [
-                        'confirm' => false,
-                        'reason' => "Bank transfers can only be confirmed from pending or processing status"
-                    ];
-                }
-                break;
-                
-            case 'credit_card':
-            case 'debit_card':
-                // Card payments can be confirmed from authorized status (capture)
-                if ($currentStatus === Payment::STATUS_AUTHORIZED) {
-                    return [
-                        'confirm' => true,
-                        'reason' => "Capturing authorized card payment"
-                    ];
-                }
-                break;
+        $specialHandling = match ($paymentMethod) {
+            'bank_transfer' => !in_array($currentStatus, [Payment::STATUS_PENDING, Payment::STATUS_PROCESSING]) ? [
+                'confirm' => false,
+                'reason' => "Bank transfers can only be confirmed from pending or processing status"
+            ] : null,
+            'credit_card', 'debit_card' => $currentStatus === Payment::STATUS_AUTHORIZED ? [
+                'confirm' => true,
+                'reason' => "Capturing authorized card payment"
+            ] : null,
+            default => null
+        };
+
+        if ($specialHandling !== null) {
+            return $specialHandling;
         }
 
         return [

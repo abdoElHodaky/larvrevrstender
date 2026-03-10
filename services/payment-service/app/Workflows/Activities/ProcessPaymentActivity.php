@@ -118,23 +118,13 @@ class ProcessPaymentActivity extends BaseRpcActivity
         try {
             $method = $paymentData['payment_method'];
             
-            switch ($method) {
-                case 'credit_card':
-                case 'debit_card':
-                    return $this->processCreditCardPayment($paymentData);
-                    
-                case 'paypal':
-                    return $this->processPayPalPayment($paymentData);
-                    
-                case 'stripe':
-                    return $this->processStripePayment($paymentData);
-                    
-                case 'bank_transfer':
-                    return $this->processBankTransferPayment($paymentData);
-                    
-                default:
-                    throw new Exception("Unsupported payment method: {$method}");
-            }
+            return match ($method) {
+                'credit_card', 'debit_card' => $this->processCreditCardPayment($paymentData),
+                'paypal' => $this->processPayPalPayment($paymentData),
+                'stripe' => $this->processStripePayment($paymentData),
+                'bank_transfer' => $this->processBankTransferPayment($paymentData),
+                default => throw new Exception("Unsupported payment method: {$method}")
+            };
             
         } catch (Exception $e) {
             return [

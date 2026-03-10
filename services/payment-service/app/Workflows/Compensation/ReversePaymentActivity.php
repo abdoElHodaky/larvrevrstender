@@ -239,19 +239,11 @@ class ReversePaymentActivity extends BaseRpcActivity
      */
     private function determineReversalMethod(Payment $payment): string
     {
-        switch ($payment->status) {
-            case Payment::STATUS_AUTHORIZED:
-                return 'void'; // Void authorized payments
-                
-            case Payment::STATUS_COMPLETED:
-                return 'refund'; // Refund completed payments
-                
-            case Payment::STATUS_PENDING:
-            case Payment::STATUS_PROCESSING:
-                return 'cancel'; // Cancel pending payments
-                
-            default:
-                return 'refund';
-        }
+        return match ($payment->status) {
+            Payment::STATUS_AUTHORIZED => 'void', // Void authorized payments
+            Payment::STATUS_COMPLETED => 'refund', // Refund completed payments
+            Payment::STATUS_PENDING, Payment::STATUS_PROCESSING => 'cancel', // Cancel pending payments
+            default => 'refund'
+        };
     }
 }

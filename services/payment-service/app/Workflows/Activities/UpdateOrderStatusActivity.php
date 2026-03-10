@@ -122,33 +122,23 @@ class UpdateOrderStatusActivity extends BaseRpcActivity
         $orderStatus = $statusMapping[$paymentStatus] ?? 'payment_unknown';
 
         // Special handling for different payment methods
-        switch ($paymentMethod) {
-            case 'bank_transfer':
-                // Bank transfers might need different order status handling
-                if ($paymentStatus === 'pending') {
-                    $orderStatus = 'awaiting_bank_transfer';
-                } elseif ($paymentStatus === 'completed') {
-                    $orderStatus = 'paid';
-                }
-                break;
-                
-            case 'credit_card':
-            case 'debit_card':
-                // Card payments that are authorized but not captured
-                if ($paymentStatus === 'authorized') {
-                    $orderStatus = 'payment_authorized';
-                } elseif ($paymentStatus === 'completed') {
-                    $orderStatus = 'paid';
-                }
-                break;
-                
-            case 'paypal':
-            case 'stripe':
-                // These gateways typically complete immediately
-                if ($paymentStatus === 'completed') {
-                    $orderStatus = 'paid';
-                }
-                break;
+        $statusOverride = match ($paymentMethod) {
+            'bank_transfer' => match ($paymentStatus) {
+                'pending' => 'awaiting_bank_transfer',
+                'completed' => 'paid',
+                default => null
+            },
+            'credit_card', 'debit_card' => match ($paymentStatus) {
+                'authorized' => 'payment_authorized',
+                'completed' => 'paid',
+                default => null
+            },
+            'paypal', 'stripe' => $paymentStatus === 'completed' ? 'paid' : null,
+            default => null
+        };
+
+        if ($statusOverride !== null) {
+            $orderStatus = $statusOverride;
         }
 
         return $orderStatus;

@@ -106,38 +106,27 @@ class ValidatePaymentDataActivity extends BaseRpcActivity
      */
     private function validatePaymentDetails(string $method, array $details): void
     {
-        switch ($method) {
-            case 'credit_card':
-            case 'debit_card':
+        match ($method) {
+            'credit_card', 'debit_card' => (function() use ($details) {
                 $required = ['card_number', 'expiry_month', 'expiry_year', 'cvv', 'cardholder_name'];
                 foreach ($required as $field) {
                     if (empty($details[$field])) {
                         throw new Exception("Missing required card field: {$field}");
                     }
                 }
-                break;
-
-            case 'paypal':
-                if (empty($details['paypal_email'])) {
-                    throw new Exception('PayPal email is required');
-                }
-                break;
-
-            case 'stripe':
-                if (empty($details['stripe_token'])) {
-                    throw new Exception('Stripe token is required');
-                }
-                break;
-
-            case 'bank_transfer':
+            })(),
+            'paypal' => empty($details['paypal_email']) ? throw new Exception('PayPal email is required') : null,
+            'stripe' => empty($details['stripe_token']) ? throw new Exception('Stripe token is required') : null,
+            'bank_transfer' => (function() use ($details) {
                 $required = ['bank_account', 'routing_number', 'account_holder_name'];
                 foreach ($required as $field) {
                     if (empty($details[$field])) {
                         throw new Exception("Missing required bank field: {$field}");
                     }
                 }
-                break;
-        }
+            })(),
+            default => null
+        };
     }
 
     /**
