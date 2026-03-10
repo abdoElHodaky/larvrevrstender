@@ -22,11 +22,11 @@ final class ExceptionTest extends TestCase
         ));
 
         $middleware = collect($exception->middleware())
-            ->map(static fn ($middleware) => is_object($middleware) ? get_class($middleware) : $middleware)
             ->values();
 
         $this->assertCount(1, $middleware);
-        $this->assertSame([WithoutOverlappingMiddleware::class], $middleware->all());
+        $this->assertSame(WithoutOverlappingMiddleware::class, get_class($middleware[0]));
+        $this->assertSame(15, $middleware[0]->expiresAfter);
     }
 
     public function testExceptionWorkflowRunning(): void
@@ -42,5 +42,38 @@ final class ExceptionTest extends TestCase
         $exception->handle();
 
         $this->assertSame(WorkflowRunningStatus::class, $workflow->status());
+    }
+
+    public function testSkipsWriteWhenSiblingExceptionLogExists(): void
+    {
+        $workflow = WorkflowStub::load(WorkflowStub::make(TestWorkflow::class)->id());
+        $storedWorkflow = StoredWorkflow::findOrFail($workflow->id());
+        $storedWorkflow->update([
+            'arguments' => Serializer::serialize([]),
+            'status' => WorkflowRunningStatus::$name,
+        ]);
+
+        $storedWorkflow->logs()
+            ->create([
+                'index' => 0,
+                'now' => now()
+                    ->toDateTimeString(),
+                'class' => Exception::class,
+                'result' => Serializer::serialize([
+                    'class' => \Exception::class,
+                    'message' => 'first child failed',
+                    'code' => 0,
+                ]),
+            ]);
+
+        $exception = new Exception(1, now()->toDateTimeString(), $storedWorkflow, [
+            'class' => \Exception::class,
+            'message' => 'second child failed',
+            'code' => 0,
+        ]);
+        $exception->handle();
+
+        $this->assertFalse($storedWorkflow->hasLogByIndex(1));
+        $this->assertSame(1, $storedWorkflow->logs()->count());
     }
 }
