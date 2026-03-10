@@ -175,26 +175,17 @@ class WorkflowAlertingService
         $condition = $rule['condition'] ?? '';
         $type = $rule['type'] ?? '';
 
-        switch ($type) {
-            case 'dlq_threshold':
-                return $this->evaluateDlqThreshold($rule);
-                
-            case 'failure_rate':
-                return $this->evaluateFailureRate($rule);
-                
-            case 'response_time':
-                return $this->evaluateResponseTime($rule);
-                
-            case 'queue_depth':
-                return $this->evaluateQueueDepth($rule);
-                
-            case 'resource_usage':
-                return $this->evaluateResourceUsage($rule);
-                
-            default:
+        return match ($type) {
+            'dlq_threshold' => $this->evaluateDlqThreshold($rule),
+            'failure_rate' => $this->evaluateFailureRate($rule),
+            'response_time' => $this->evaluateResponseTime($rule),
+            'queue_depth' => $this->evaluateQueueDepth($rule),
+            'resource_usage' => $this->evaluateResourceUsage($rule),
+            default => (function() use ($type) {
                 Log::warning('Unknown alert rule type', ['type' => $type]);
                 return false;
-        }
+            })()
+        };
     }
 
     /**
@@ -301,30 +292,14 @@ class WorkflowAlertingService
     {
         foreach ($channels as $channel) {
             try {
-                switch ($channel) {
-                    case 'slack':
-                        $this->sendSlackAlert($alertData);
-                        break;
-                        
-                    case 'email':
-                        $this->sendEmailAlert($alertData);
-                        break;
-                        
-                    case 'pagerduty':
-                        $this->sendPagerDutyAlert($alertData);
-                        break;
-                        
-                    case 'sms':
-                        $this->sendSmsAlert($alertData);
-                        break;
-                        
-                    case 'webhook':
-                        $this->sendWebhookAlert($alertData);
-                        break;
-                        
-                    default:
-                        Log::warning('Unknown alert channel', ['channel' => $channel]);
-                }
+                match ($channel) {
+                    'slack' => $this->sendSlackAlert($alertData),
+                    'email' => $this->sendEmailAlert($alertData),
+                    'pagerduty' => $this->sendPagerDutyAlert($alertData),
+                    'sms' => $this->sendSmsAlert($alertData),
+                    'webhook' => $this->sendWebhookAlert($alertData),
+                    default => Log::warning('Unknown alert channel', ['channel' => $channel])
+                };
             } catch (\Exception $e) {
                 Log::error('Failed to send alert', [
                     'channel' => $channel,
@@ -408,31 +383,28 @@ class WorkflowAlertingService
     {
         $type = $rule['type'] ?? '';
         
-        switch ($type) {
-            case 'dlq_threshold':
-                return [
-                    'pending_retries' => Cache::get('dlq.metrics.pending_retries', 0),
-                    'manual_interventions' => Cache::get('dlq.metrics.manual_interventions', 0),
-                ];
-                
-            case 'failure_rate':
+        return match ($type) {
+            'dlq_threshold' => [
+                'pending_retries' => Cache::get('dlq.metrics.pending_retries', 0),
+                'manual_interventions' => Cache::get('dlq.metrics.manual_interventions', 0),
+            ],
+            'failure_rate' => (function() use ($rule) {
                 $timeframe = $rule['timeframe'] ?? '1h';
                 return [
                     'successful' => Cache::get("workflow.metrics.performance.{$timeframe}.workflow.successful", 0),
                     'failed' => Cache::get("workflow.metrics.performance.{$timeframe}.workflow.failed", 0),
                     'timeframe' => $timeframe,
                 ];
-                
-            case 'response_time':
+            })(),
+            'response_time' => (function() use ($rule) {
                 $timeframe = $rule['timeframe'] ?? '5m';
                 return [
                     'avg_response_time' => Cache::get("correlation.metrics.{$timeframe}.avg_duration", 0),
                     'timeframe' => $timeframe,
                 ];
-                
-            default:
-                return [];
-        }
+            })(),
+            default => []
+        };
     }
 
     /**

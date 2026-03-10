@@ -67,26 +67,13 @@ class ProcessWorkflowSignal extends BaseQueueJob
 
         // Execute with circuit breaker protection
         $this->executeWithCircuitBreaker(function() use ($signalHandler) {
-            switch ($this->signalType) {
-                case 'pause':
-                    $this->handlePauseSignal($signalHandler);
-                    break;
-                    
-                case 'resume':
-                    $this->handleResumeSignal($signalHandler);
-                    break;
-                    
-                case 'manual_intervention':
-                    $this->handleManualInterventionSignal($signalHandler);
-                    break;
-                    
-                case 'external_signal':
-                    $this->handleExternalSignal($signalHandler);
-                    break;
-                    
-                default:
-                    throw new \InvalidArgumentException("Unknown signal type: {$this->signalType}");
-            }
+            match ($this->signalType) {
+                'pause' => $this->handlePauseSignal($signalHandler),
+                'resume' => $this->handleResumeSignal($signalHandler),
+                'manual_intervention' => $this->handleManualInterventionSignal($signalHandler),
+                'external_signal' => $this->handleExternalSignal($signalHandler),
+                default => throw new \InvalidArgumentException("Unknown signal type: {$this->signalType}")
+            };
 
             Log::info('Workflow signal processed successfully', [
                 'workflow_id' => $this->workflowId,

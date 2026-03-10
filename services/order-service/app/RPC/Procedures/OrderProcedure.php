@@ -865,21 +865,14 @@ class OrderProcedure extends BaseProcedure
 
             // Filter orders that actually require action
             $ordersRequiringAction = collect($result['orders'])->filter(function ($order) use ($params) {
-                switch ($order->status) {
-                    case 'pending_payment':
-                        return $params['user_type'] === 'customer';
-                    case 'payment_confirmed':
-                    case 'processing':
-                        return $params['user_type'] === 'merchant';
-                    case 'shipped':
-                        return $params['user_type'] === 'customer';
-                    case 'delivered':
-                        return true; // Both can rate/complete
-                    case 'disputed':
-                        return true; // Both can respond
-                    default:
-                        return false;
-                }
+                return match ($order->status) {
+                    'pending_payment' => $params['user_type'] === 'customer',
+                    'payment_confirmed', 'processing' => $params['user_type'] === 'merchant',
+                    'shipped' => $params['user_type'] === 'customer',
+                    'delivered' => true, // Both can rate/complete
+                    'disputed' => true, // Both can respond
+                    default => false
+                };
             })->values();
 
             return [

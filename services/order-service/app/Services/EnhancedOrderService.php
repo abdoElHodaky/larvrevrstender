@@ -209,29 +209,20 @@ class EnhancedOrderService
             ];
 
             // Handle status-specific updates
-            switch ($newStatus) {
-                case Order::STATUS_PAYMENT_CONFIRMED:
-                    $updateData['paid_at'] = now();
-                    $updateData['payment_reference'] = $statusData['payment_reference'] ?? null;
-                    break;
-
-                case Order::STATUS_SHIPPED:
-                    $updateData['tracking_number'] = $statusData['tracking_number'] ?? null;
-                    break;
-
-                case Order::STATUS_DELIVERED:
-                    $updateData['actual_delivery'] = $statusData['delivery_date'] ?? now();
-                    break;
-
-                case Order::STATUS_COMPLETED:
-                    $updateData['completed_at'] = now();
-                    break;
-
-                case Order::STATUS_CANCELLED:
-                    $updateData['cancelled_at'] = now();
-                    $updateData['cancellation_reason'] = $statusData['cancellation_reason'] ?? null;
-                    break;
-            }
+            match ($newStatus) {
+                Order::STATUS_PAYMENT_CONFIRMED => [
+                    $updateData['paid_at'] = now(),
+                    $updateData['payment_reference'] = $statusData['payment_reference'] ?? null
+                ],
+                Order::STATUS_SHIPPED => $updateData['tracking_number'] = $statusData['tracking_number'] ?? null,
+                Order::STATUS_DELIVERED => $updateData['actual_delivery'] = $statusData['delivery_date'] ?? now(),
+                Order::STATUS_COMPLETED => $updateData['completed_at'] = now(),
+                Order::STATUS_CANCELLED => [
+                    $updateData['cancelled_at'] = now(),
+                    $updateData['cancellation_reason'] = $statusData['cancellation_reason'] ?? null
+                ],
+                default => null
+            };
 
             $order->update($updateData);
 
@@ -323,18 +314,13 @@ class EnhancedOrderService
             }
 
             if (isset($criteria['payment_status'])) {
-                switch ($criteria['payment_status']) {
-                    case 'paid':
-                        $query->whereNotNull('paid_at');
-                        break;
-                    case 'unpaid':
-                        $query->whereNull('paid_at');
-                        break;
-                    case 'overdue':
-                        $query->whereNull('paid_at')
-                            ->where('payment_due_at', '<', now());
-                        break;
-                }
+                match ($criteria['payment_status']) {
+                    'paid' => $query->whereNotNull('paid_at'),
+                    'unpaid' => $query->whereNull('paid_at'),
+                    'overdue' => $query->whereNull('paid_at')
+                        ->where('payment_due_at', '<', now()),
+                    default => null
+                };
             }
 
             if (isset($criteria['delivery_method'])) {
@@ -748,37 +734,31 @@ class EnhancedOrderService
     {
         $actions = [];
 
-        switch ($order->status) {
-            case Order::STATUS_PENDING_PAYMENT:
-                $actions[] = 'make_payment';
-                $actions[] = 'cancel_order';
-                break;
-
-            case Order::STATUS_PAYMENT_CONFIRMED:
-                $actions[] = 'start_processing';
-                $actions[] = 'cancel_order';
-                break;
-
-            case Order::STATUS_PROCESSING:
-                $actions[] = 'mark_shipped';
-                $actions[] = 'cancel_order';
-                break;
-
-            case Order::STATUS_SHIPPED:
-                $actions[] = 'mark_delivered';
-                $actions[] = 'track_shipment';
-                break;
-
-            case Order::STATUS_DELIVERED:
-                $actions[] = 'mark_completed';
-                $actions[] = 'dispute_order';
-                $actions[] = 'rate_merchant';
-                break;
-
-            case Order::STATUS_COMPLETED:
-                $actions[] = 'view_receipt';
-                break;
-        }
+        match ($order->status) {
+            Order::STATUS_PENDING_PAYMENT => [
+                $actions[] = 'make_payment',
+                $actions[] = 'cancel_order'
+            ],
+            Order::STATUS_PAYMENT_CONFIRMED => [
+                $actions[] = 'start_processing',
+                $actions[] = 'cancel_order'
+            ],
+            Order::STATUS_PROCESSING => [
+                $actions[] = 'mark_shipped',
+                $actions[] = 'cancel_order'
+            ],
+            Order::STATUS_SHIPPED => [
+                $actions[] = 'mark_delivered',
+                $actions[] = 'track_shipment'
+            ],
+            Order::STATUS_DELIVERED => [
+                $actions[] = 'mark_completed',
+                $actions[] = 'dispute_order',
+                $actions[] = 'rate_merchant'
+            ],
+            Order::STATUS_COMPLETED => $actions[] = 'view_receipt',
+            default => null
+        };
 
         return $actions;
     }
