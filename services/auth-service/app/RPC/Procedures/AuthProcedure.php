@@ -12,6 +12,9 @@ use App\RPC\Procedures\Micro\SessionSecurityProcedure;
 use App\RPC\Procedures\Micro\SessionValidationProcedure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Models\AuthUser;
+use App\Models\AuthRole;
+use App\Models\AuthUserRole;
 
 class AuthProcedure extends BaseProcedure
 {
@@ -363,7 +366,7 @@ class AuthProcedure extends BaseProcedure
     }
 
     /**
-     * Handle user creation notification from user-service.
+     * Handle user creation notification from user-service (PHP 8.3 + Laravel 12 optimized).
      */
     public function userCreated(array $params): array
     {
@@ -377,37 +380,27 @@ class AuthProcedure extends BaseProcedure
                 'status' => 'sometimes|string'
             ]);
 
-            $userId = $params['user_id'];
-            $email = $params['email'];
-            $name = $params['name'];
-            $status = $params['status'] ?? 'active';
+            // Extract with named arguments (PHP 8.3)
+            $userData = [
+                'user_id' => $params['user_id'],
+                'email' => $params['email'],
+                'name' => $params['name'],
+                'status' => $params['status'] ?? 'active'
+            ];
 
-            // Log the user creation notification
-            Log::info('User creation notification received via RPC', [
-                'user_id' => $userId,
-                'email' => $email,
-                'name' => $name,
-                'status' => $status
-            ]);
+            Log::info('User creation notification received via RPC', $userData);
 
-            // Store user reference for auth operations
-            $authUser = \DB::table('auth_users')->updateOrInsert(
-                ['user_id' => $userId],
-                [
-                    'user_id' => $userId,
-                    'email' => $email,
-                    'name' => $name,
-                    'status' => $status,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]
+            // Use Eloquent instead of DB::table (Laravel 12)
+            $authUser = \App\Models\AuthUser::updateOrCreate(
+                ['user_id' => $userData['user_id']],
+                $userData
             );
 
             $result = [
                 'success' => true,
                 'message' => 'User creation notification processed',
-                'user_id' => $userId,
-                'auth_user_created' => $authUser
+                'user_id' => $userData['user_id'],
+                'auth_user_created' => $authUser->wasRecentlyCreated
             ];
 
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
@@ -929,7 +922,7 @@ class AuthProcedure extends BaseProcedure
     }
 
     /**
-     * Handle role permissions synchronization from user-service.
+     * Handle role permissions synchronization from user-service (PHP 8.3 + Laravel 12 optimized).
      */
     public function rolePermissionsSync(array $params): array
     {
@@ -942,60 +935,27 @@ class AuthProcedure extends BaseProcedure
                 'permissions' => 'required|array'
             ]);
 
-            $roleId = $params['role_id'];
-            $action = $params['action'];
-            $permissions = $params['permissions'];
+            // Extract parameters with destructuring (PHP 8.3)
+            ['role_id' => $roleId, 'action' => $action, 'permissions' => $permissions] = $params;
 
-            Log::info('Role permissions sync notification received via RPC', [
-                'role_id' => $roleId,
-                'action' => $action,
-                'permissions' => $permissions
-            ]);
+            Log::info('Role permissions sync notification received via RPC', compact('roleId', 'action', 'permissions'));
 
-            // Update role permissions in auth system
-            if ($action === 'sync') {
-                // Replace all permissions
-                \DB::table('auth_roles')
-                    ->where('role_id', $roleId)
-                    ->update([
-                        'permissions' => json_encode($permissions),
-                        'updated_at' => now()
-                    ]);
-            } else {
-                // Get current permissions and modify
-                $currentRole = \DB::table('auth_roles')->where('role_id', $roleId)->first();
-                $currentPermissions = $currentRole ? json_decode($currentRole->permissions, true) : [];
+            // Use Eloquent model instead of DB::table (Laravel 12)
+            $authRole = \App\Models\AuthRole::where('role_id', $roleId)->firstOrFail();
+            
+            // Use model method with match expression (PHP 8.3)
+            $newPermissions = $authRole->updatePermissions($action, $permissions);
 
-                if ($action === 'assign') {
-                    $newPermissions = array_unique(array_merge($currentPermissions, $permissions));
-                } else { // revoke
-                    $newPermissions = array_diff($currentPermissions, $permissions);
-                }
-
-                \DB::table('auth_roles')
-                    ->where('role_id', $roleId)
-                    ->update([
-                        'permissions' => json_encode($newPermissions),
-                        'updated_at' => now()
-                    ]);
-            }
-
-            // Invalidate tokens for users with this role
-            $usersWithRole = \DB::table('auth_user_roles')->where('role_id', $roleId)->get();
-            foreach ($usersWithRole as $userRole) {
-                $this->invalidateUserTokens([
-                    'user_id' => $userRole->user_id,
-                    'reason' => 'role_permissions_changed',
-                    'timestamp' => now()->toISOString()
-                ]);
-            }
+            // Bulk invalidate tokens using model method (PHP 8.3 + Laravel 12)
+            $affectedUsers = $authRole->invalidateUserTokens('role_permissions_changed');
 
             $result = [
                 'success' => true,
                 'message' => 'Role permissions sync completed',
                 'role_id' => $roleId,
                 'action' => $action,
-                'affected_users' => count($usersWithRole)
+                'new_permissions' => $newPermissions,
+                'affected_users' => $affectedUsers
             ];
 
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
@@ -1132,7 +1092,7 @@ class AuthProcedure extends BaseProcedure
     }
 
     /**
-     * Check user permissions via RPC.
+     * Check user permissions via RPC (PHP 8.3 + Laravel 12 optimized).
      */
     public function checkUserPermissions(array $params): array
     {
@@ -1144,35 +1104,29 @@ class AuthProcedure extends BaseProcedure
                 'permissions' => 'required|array'
             ]);
 
-            $userId = $params['user_id'];
-            $permissionsToCheck = $params['permissions'];
+            // Extract with destructuring (PHP 8.3)
+            ['user_id' => $userId, 'permissions' => $permissionsToCheck] = $params;
 
-            // Get user's roles
-            $userRoles = \DB::table('auth_user_roles')->where('user_id', $userId)->get();
-            $userPermissions = [];
-
-            // Collect permissions from all roles
-            foreach ($userRoles as $userRole) {
-                $role = \DB::table('auth_roles')->where('role_id', $userRole->role_id)->first();
-                if ($role) {
-                    $rolePermissions = json_decode($role->permissions, true) ?? [];
-                    $userPermissions = array_merge($userPermissions, $rolePermissions);
-                }
+            // Use Eloquent model instead of DB::table + foreach (Laravel 12 + PHP 8.3)
+            $authUser = \App\Models\AuthUser::where('user_id', $userId)->first();
+            
+            if (!$authUser) {
+                return [
+                    'success' => false,
+                    'error' => 'User not found in auth system',
+                    'user_id' => $userId
+                ];
             }
 
-            $userPermissions = array_unique($userPermissions);
-
-            // Check each permission
-            $permissionResults = [];
-            foreach ($permissionsToCheck as $permission) {
-                $permissionResults[$permission] = in_array($permission, $userPermissions);
-            }
+            // Use model method instead of manual foreach loops (PHP 8.3)
+            $permissionResults = $authUser->hasPermissions($permissionsToCheck);
+            $allUserPermissions = $authUser->getAllPermissions();
 
             $result = [
                 'success' => true,
                 'user_id' => $userId,
                 'permissions' => $permissionResults,
-                'all_user_permissions' => $userPermissions
+                'all_user_permissions' => $allUserPermissions
             ];
 
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
