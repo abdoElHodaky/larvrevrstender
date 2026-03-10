@@ -288,29 +288,20 @@ class PaymentService
         // Process webhook based on type
         $webhookType = $webhookData['type'] ?? $webhookData['event_type'] ?? 'unknown';
 
-        switch ($webhookType) {
-            case 'payment.succeeded':
-            case 'charge.succeeded':
-                if ($payment->isPending()) {
-                    $payment->markAsCompleted($webhookData);
-                    event(new PaymentCompleted($payment));
-                }
-                break;
-
-            case 'payment.failed':
-            case 'charge.failed':
-                if ($payment->isPending()) {
-                    $payment->markAsFailed(
-                        $webhookData['failure_reason'] ?? 'Payment failed',
-                        $webhookData['failure_code'] ?? null,
-                        $webhookData['failure_message'] ?? null
-                    );
-                    event(new PaymentFailed($payment, $webhookData));
-                }
-                break;
-
-            case 'payment.refunded':
-            case 'charge.refunded':
+        match ($webhookType) {
+            'payment.succeeded', 'charge.succeeded' => $payment->isPending() ? [
+                $payment->markAsCompleted($webhookData),
+                event(new PaymentCompleted($payment))
+            ] : null,
+            'payment.failed', 'charge.failed' => $payment->isPending() ? [
+                $payment->markAsFailed(
+                    $webhookData['failure_reason'] ?? 'Payment failed',
+                    $webhookData['failure_code'] ?? null,
+                    $webhookData['failure_message'] ?? null
+                ),
+                event(new PaymentFailed($payment, $webhookData))
+            ] : null,
+            'payment.refunded', 'charge.refunded' => (function() use ($payment, $webhookData) {
                 // Handle refund webhook
                 $refundAmount = $webhookData['refund_amount'] ?? $payment->amount;
                 $refundReason = $webhookData['refund_reason'] ?? 'Refunded via webhook';
@@ -319,8 +310,9 @@ class PaymentService
                     $refund = $payment->processRefund($refundAmount, $refundReason);
                     event(new PaymentRefunded($payment, $refund, $refundAmount, $refundReason));
                 }
-                break;
-        }
+            })(),
+            default => null
+        };
 
         return $payment->fresh();
     }

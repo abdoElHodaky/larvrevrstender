@@ -296,22 +296,17 @@ class PaymentGatewayService
      */
     public function processRefund(Payment $payment, float $amount, string $reason): array
     {
-        switch ($payment->payment_provider) {
-            case 'stripe':
-                return $this->processStripeRefund($payment, $amount, $reason);
-            case 'paypal':
-                return $this->processPayPalRefund($payment, $amount, $reason);
-            case 'mada':
-                return $this->processMadaRefund($payment, $amount, $reason);
-            case 'stc_pay':
-                return $this->processStcPayRefund($payment, $amount, $reason);
-            default:
-                return [
-                    'success' => false,
-                    'error_code' => 'unsupported_provider',
-                    'error_message' => 'Refund not supported for this payment provider',
-                ];
-        }
+        return match ($payment->payment_provider) {
+            'stripe' => $this->processStripeRefund($payment, $amount, $reason),
+            'paypal' => $this->processPayPalRefund($payment, $amount, $reason),
+            'mada' => $this->processMadaRefund($payment, $amount, $reason),
+            'stc_pay' => $this->processStcPayRefund($payment, $amount, $reason),
+            default => [
+                'success' => false,
+                'error_code' => 'unsupported_provider',
+                'error_message' => 'Refund not supported for this payment provider',
+            ]
+        };
     }
 
     /**

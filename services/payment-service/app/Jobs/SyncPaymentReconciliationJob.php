@@ -181,25 +181,14 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
      */
     private function performReconciliationType(string $gateway, string $reconciliationType): array
     {
-        switch ($reconciliationType) {
-            case 'transaction_status':
-                return $this->reconcileTransactionStatus($gateway);
-            
-            case 'settlement_amounts':
-                return $this->reconcileSettlementAmounts($gateway);
-            
-            case 'refund_status':
-                return $this->reconcileRefundStatus($gateway);
-            
-            case 'chargeback_status':
-                return $this->reconcileChargebackStatus($gateway);
-            
-            case 'fee_reconciliation':
-                return $this->reconcileFees($gateway);
-            
-            default:
-                throw new \InvalidArgumentException("Unknown reconciliation type: {$reconciliationType}");
-        }
+        return match ($reconciliationType) {
+            'transaction_status' => $this->reconcileTransactionStatus($gateway),
+            'settlement_amounts' => $this->reconcileSettlementAmounts($gateway),
+            'refund_status' => $this->reconcileRefundStatus($gateway),
+            'chargeback_status' => $this->reconcileChargebackStatus($gateway),
+            'fee_reconciliation' => $this->reconcileFees($gateway),
+            default => throw new \InvalidArgumentException("Unknown reconciliation type: {$reconciliationType}")
+        };
     }
 
     /**
@@ -736,4 +725,3 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
         // broadcast(new \App\Events\Payments\ReconciliationFailed(...));
     }
 }
-

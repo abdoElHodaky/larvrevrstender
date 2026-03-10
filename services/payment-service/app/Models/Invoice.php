@@ -325,19 +325,12 @@ class Invoice extends Model
         ];
 
         // Set timestamps based on status
-        switch ($newStatus) {
-            case self::STATUS_SENT:
-                $updateData['sent_at'] = now();
-                break;
-            case self::STATUS_VIEWED:
-                if (! $this->viewed_at) {
-                    $updateData['viewed_at'] = now();
-                }
-                break;
-            case self::STATUS_PAID:
-                $updateData['paid_at'] = now();
-                break;
-        }
+        match ($newStatus) {
+            self::STATUS_SENT => $updateData['sent_at'] = now(),
+            self::STATUS_VIEWED => ! $this->viewed_at ? $updateData['viewed_at'] = now() : null,
+            self::STATUS_PAID => $updateData['paid_at'] = now(),
+            default => null
+        };
 
         $this->update($updateData);
     }

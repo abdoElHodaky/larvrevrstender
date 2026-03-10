@@ -393,22 +393,13 @@ class GatewayController extends Controller
             $healthMetrics = [];
 
             // Perform basic connectivity check based on gateway type
-            switch ($gateway->name) {
-                case 'stripe':
-                    $healthStatus = $this->checkStripeHealth();
-                    break;
-                case 'paypal':
-                    $healthStatus = $this->checkPayPalHealth();
-                    break;
-                case 'mada':
-                    $healthStatus = $this->checkMadaHealth();
-                    break;
-                case 'stc_pay':
-                    $healthStatus = $this->checkStcPayHealth();
-                    break;
-                default:
-                    $healthStatus = 'unknown';
-            }
+            $healthStatus = match ($gateway->name) {
+                'stripe' => $this->checkStripeHealth(),
+                'paypal' => $this->checkPayPalHealth(),
+                'mada' => $this->checkMadaHealth(),
+                'stc_pay' => $this->checkStcPayHealth(),
+                default => 'unknown'
+            };
 
             $responseTime = (microtime(true) - $startTime) * 1000; // Convert to milliseconds
 
