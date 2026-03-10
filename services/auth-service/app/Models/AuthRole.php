@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Models\TokenInvalidation;
 
 /**
  * Auth Role Model for RPC-based RBAC
@@ -100,12 +101,15 @@ class AuthRole extends Model
         return collect($userIds)
             ->map(fn(int $userId) => [
                 'user_id' => $userId,
+                'token_type' => 'role_change',
                 'reason' => $reason,
-                'timestamp' => now()->toISOString()
+                'invalidated_at' => now(),
+                'metadata' => ['method' => 'invalidateUserTokens']
             ])
             ->pipe(function($tokenInvalidations) {
-                // Bulk insert invalidation records
-                return \DB::table('token_invalidations')->insert($tokenInvalidations->toArray());
+                // Bulk insert invalidation records using Eloquent
+                TokenInvalidation::insert($tokenInvalidations->toArray());
+                return $tokenInvalidations->count();
             });
     }
 }
