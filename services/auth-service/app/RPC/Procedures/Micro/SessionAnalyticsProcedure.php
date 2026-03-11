@@ -391,6 +391,11 @@ trait SessionAnalyticsProcedure
     private function getSecurityIncidents(int $userId, Carbon $startDate): array
     {
         try {
+            // Check if session_security_logs table exists before querying
+            if (!DB::getSchemaBuilder()->hasTable('session_security_logs')) {
+                return [];
+            }
+            
             $incidents = DB::table('session_security_logs')
                 ->where('user_id', $userId)
                 ->where('created_at', '>=', $startDate)
@@ -539,6 +544,11 @@ trait SessionAnalyticsProcedure
     private function getSystemSecurityIncidents(Carbon $startDate): array
     {
         try {
+            // Check if session_security_logs table exists before querying
+            if (!DB::getSchemaBuilder()->hasTable('session_security_logs')) {
+                return [];
+            }
+            
             return DB::table('session_security_logs')
                 ->where('created_at', '>=', $startDate)
                 ->selectRaw('risk_level, COUNT(*) as count')
@@ -546,6 +556,7 @@ trait SessionAnalyticsProcedure
                 ->pluck('count', 'risk_level')
                 ->toArray();
         } catch (\Exception $e) {
+            Log::warning('Failed to fetch security incidents', ['error' => $e->getMessage()]);
             return [];
         }
     }
