@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\PersonalAccessToken;
 use Shared\Jobs\BaseQueueJob;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -139,7 +140,7 @@ class CleanupExpiredTokensJob extends BaseQueueJob
     }
 
     /**
-     * Cleanup expired personal access tokens
+     * Cleanup expired personal access tokens using Eloquent (Laravel 12)
      */
     private function cleanupPersonalAccessTokens(): array
     {
@@ -147,13 +148,9 @@ class CleanupExpiredTokensJob extends BaseQueueJob
         $totalDeleted = 0;
         $batchCount = 0;
 
-        // Delete tokens that have explicit expiration dates and are expired
+        // Delete expired tokens using model method (PHP 8.3 + Laravel 12)
         do {
-            $deleted = DB::table('personal_access_tokens')
-                ->whereNotNull('expires_at')
-                ->where('expires_at', '<', now())
-                ->limit($this->batchSize)
-                ->delete();
+            $deleted = PersonalAccessToken::cleanupExpired($this->batchSize);
             
             $totalDeleted += $deleted;
             $batchCount++;
@@ -167,20 +164,11 @@ class CleanupExpiredTokensJob extends BaseQueueJob
             }
         } while ($deleted > 0);
 
-        // Delete tokens that haven't been used in the retention period
-        $retentionDate = now()->subDays($this->retentionPeriods['personal_access_tokens']);
+        // Delete unused tokens using model method (PHP 8.3 + Laravel 12)
+        $retentionDays = $this->retentionPeriods['personal_access_tokens'];
         
         do {
-            $deleted = DB::table('personal_access_tokens')
-                ->where(function($query) use ($retentionDate) {
-                    $query->where('last_used_at', '<', $retentionDate)
-                          ->orWhere(function($q) use ($retentionDate) {
-                              $q->whereNull('last_used_at')
-                                ->where('created_at', '<', $retentionDate);
-                          });
-                })
-                ->limit($this->batchSize)
-                ->delete();
+            $deleted = PersonalAccessToken::cleanupUnused($retentionDays, $this->batchSize);
             
             $totalDeleted += $deleted;
             $batchCount++;
@@ -190,7 +178,7 @@ class CleanupExpiredTokensJob extends BaseQueueJob
                     'batch' => $batchCount,
                     'deleted_in_batch' => $deleted,
                     'total_deleted' => $totalDeleted,
-                    'retention_date' => $retentionDate->toDateString()
+                    'retention_days' => $retentionDays
                 ]);
             }
         } while ($deleted > 0);
@@ -245,7 +233,7 @@ class CleanupExpiredTokensJob extends BaseQueueJob
     }
 
     /**
-     * Cleanup expired sessions (Laravel's session table uses last_activity as timestamp)
+     * Cleanup expired sessions using Eloquent (Laravel 12)
      */
     private function cleanupExpiredSessions(): array
     {
@@ -253,13 +241,13 @@ class CleanupExpiredTokensJob extends BaseQueueJob
         $totalDeleted = 0;
         $batchCount = 0;
 
-        // Sessions are expired based on session lifetime (typically 2 hours = 7200 seconds)
-        $sessionLifetime = config('session.lifetime', 120) * 60; // Convert minutes to seconds
-        $expirationTimestamp = now()->timestamp - $sessionLifetime;
-
+        // Use Laravel's built-in session cleanup (PHP 8.3 + Laravel 12)
+        $sessionLifetime = config('session.lifetime', 120);
+        $expiredThreshold = now()->subMinutes($sessionLifetime)->timestamp;
+        
         do {
             $deleted = DB::table('sessions')
-                ->where('last_activity', '<', $expirationTimestamp)
+                ->where('last_activity', '<', $expiredThreshold)
                 ->limit($this->batchSize)
                 ->delete();
             
@@ -271,8 +259,7 @@ class CleanupExpiredTokensJob extends BaseQueueJob
                     'batch' => $batchCount,
                     'deleted_in_batch' => $deleted,
                     'total_deleted' => $totalDeleted,
-                    'expiration_timestamp' => $expirationTimestamp,
-                    'session_lifetime_seconds' => $sessionLifetime
+                    'session_lifetime_minutes' => config('session.lifetime', 120)
                 ]);
             }
         } while ($deleted > 0);

@@ -117,9 +117,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.services == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 25  # Add timeout to prevent hanging jobs
     strategy:
       fail-fast: false
-      max-parallel: 5  # Optimization: Limit parallel jobs to avoid resource contention
+      max-parallel: 3  # Optimization: Limit parallel jobs to avoid resource contention
       matrix:
         service: [
           auth-service,

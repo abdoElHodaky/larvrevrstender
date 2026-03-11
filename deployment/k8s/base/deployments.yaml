@@ -189,6 +189,13 @@ spec:
             port: 8001
           initialDelaySeconds: 5
           periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
 
 ---
 apiVersion: apps/v1
@@ -214,7 +221,7 @@ spec:
       - name: bidding-service
         image: reversetender/bidding-service:latest
         ports:
-        - containerPort: 8002
+        - containerPort: 8008
           name: http
         - containerPort: 8080
           name: websocket
@@ -264,13 +271,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8002
+            port: 8008
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /ready
-            port: 8002
+            port: 8008
           initialDelaySeconds: 5
           periodSeconds: 5
         resources:
@@ -305,7 +312,7 @@ spec:
       - name: user-service
         image: reversetender/user-service:latest
         ports:
-        - containerPort: 8003
+        - containerPort: 8006
           name: http
         env:
         - name: APP_ENV
@@ -344,15 +351,22 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8003
+            port: 8006
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /ready
-            port: 8003
+            port: 8006
           initialDelaySeconds: 5
           periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
 
 ---
 apiVersion: apps/v1
@@ -378,7 +392,7 @@ spec:
       - name: order-service
         image: reversetender/order-service:latest
         ports:
-        - containerPort: 8004
+        - containerPort: 8003
           name: http
         env:
         - name: APP_ENV
@@ -412,15 +426,22 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8004
+            port: 8003
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /ready
-            port: 8004
+            port: 8003
           initialDelaySeconds: 5
           periodSeconds: 5
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
 
 ---
 apiVersion: apps/v1
@@ -473,6 +494,13 @@ spec:
             port: 8005
           initialDelaySeconds: 5
           periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
 
 ---
 apiVersion: apps/v1
@@ -498,7 +526,7 @@ spec:
       - name: payment-service
         image: reversetender/payment-service:latest
         ports:
-        - containerPort: 8006
+        - containerPort: 8004
           name: http
         env:
         - name: APP_ENV
@@ -516,15 +544,22 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8006
+            port: 8004
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /ready
-            port: 8006
+            port: 8004
           initialDelaySeconds: 5
           periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
 
 ---
 apiVersion: apps/v1
@@ -593,6 +628,13 @@ spec:
             port: 8007
           initialDelaySeconds: 5
           periodSeconds: 5
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
 
 ---
 apiVersion: apps/v1
@@ -618,7 +660,7 @@ spec:
       - name: vin-ocr-service
         image: reversetender/vin-ocr-service:latest
         ports:
-        - containerPort: 8008
+        - containerPort: 8009
           name: http
         env:
         - name: APP_ENV
@@ -633,13 +675,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8008
+            port: 8009
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /ready
-            port: 8008
+            port: 8009
           initialDelaySeconds: 5
           periodSeconds: 5
         resources:

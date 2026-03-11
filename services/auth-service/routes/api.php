@@ -69,46 +69,17 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    // User management routes
-    Route::prefix('users')->group(function () {
-        Route::get('/', [App\Http\Controllers\UserController::class, 'index']);
-        Route::get('/{user}', [App\Http\Controllers\UserController::class, 'show']);
-        Route::put('/{user}', [App\Http\Controllers\UserController::class, 'update']);
-        Route::delete('/{user}', [App\Http\Controllers\UserController::class, 'destroy']);
-
-        // User permissions
-        Route::get('/{user}/permissions', [App\Http\Controllers\UserController::class, 'getPermissions']);
-        Route::post('/{user}/permissions', [App\Http\Controllers\UserController::class, 'assignPermissions']);
-        Route::delete('/{user}/permissions', [App\Http\Controllers\UserController::class, 'revokePermissions']);
-
-        // User roles
-        Route::get('/{user}/roles', [App\Http\Controllers\UserController::class, 'getRoles']);
-        Route::post('/{user}/roles', [App\Http\Controllers\UserController::class, 'assignRoles']);
-        Route::delete('/{user}/roles', [App\Http\Controllers\UserController::class, 'revokeRoles']);
+    // Token management routes
+    Route::prefix('tokens')->group(function () {
+        Route::get('/', [App\Http\Controllers\AuthController::class, 'getTokens']);
+        Route::delete('/{tokenId}', [App\Http\Controllers\AuthController::class, 'revokeToken']);
+        Route::delete('/', [App\Http\Controllers\AuthController::class, 'revokeAllTokens']);
     });
 
-    // Activity logs
-    Route::prefix('activities')->group(function () {
-        Route::get('/', [App\Http\Controllers\ActivityController::class, 'index']);
-        Route::get('/{activity}', [App\Http\Controllers\ActivityController::class, 'show']);
-        Route::get('/user/{userId}', [App\Http\Controllers\ActivityController::class, 'getUserActivities']);
-    });
-
-    // Permissions management
-    Route::prefix('permissions')->group(function () {
-        Route::get('/', [App\Http\Controllers\PermissionController::class, 'index']);
-        Route::post('/', [App\Http\Controllers\PermissionController::class, 'store']);
-        Route::get('/{permission}', [App\Http\Controllers\PermissionController::class, 'show']);
-        Route::put('/{permission}', [App\Http\Controllers\PermissionController::class, 'update']);
-        Route::delete('/{permission}', [App\Http\Controllers\PermissionController::class, 'destroy']);
-    });
-
-    // Roles management
-    Route::prefix('roles')->group(function () {
-        Route::get('/', [App\Http\Controllers\RoleController::class, 'index']);
-        Route::post('/', [App\Http\Controllers\RoleController::class, 'store']);
-        Route::get('/{role}', [App\Http\Controllers\RoleController::class, 'show']);
-        Route::put('/{role}', [App\Http\Controllers\RoleController::class, 'update']);
-        Route::delete('/{role}', [App\Http\Controllers\RoleController::class, 'destroy']);
+    // Session management
+    Route::prefix('sessions')->group(function () {
+        Route::get('/', [App\Http\Controllers\AuthController::class, 'getSessions']);
+        Route::delete('/{sessionId}', [App\Http\Controllers\AuthController::class, 'revokeSession']);
+        Route::delete('/', [App\Http\Controllers\AuthController::class, 'revokeAllSessions']);
     });
 });

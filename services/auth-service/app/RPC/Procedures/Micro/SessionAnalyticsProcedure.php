@@ -2,6 +2,7 @@
 
 namespace App\RPC\Procedures\Micro;
 
+use App\Models\AuthUser;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -20,10 +21,10 @@ trait SessionAnalyticsProcedure
     public function getSessionStats(array $params): array
     {
         try {
-            $userId = $params['user_id'] ?? null;
-            $days = $params['days'] ?? 30;
+            // Array destructuring (PHP 8.3)
+            ['user_id' => $userId, 'days' => $days] = $params + ['days' => 30];
 
-            if (! $userId) {
+            if (!$userId) {
                 return [
                     'success' => false,
                     'message' => 'User ID is required',
@@ -31,18 +32,48 @@ trait SessionAnalyticsProcedure
                 ];
             }
 
-            $startDate = now()->subDays($days)->startOfDay();
+            // Use Laravel's built-in session table with modern PHP 8.3 features
+            $startDate = now()->subDays($days)->timestamp;
+            
+            // Get session data using collection methods (PHP 8.3)
+            $sessions = collect(DB::table('sessions')
+                ->where('user_id', $userId)
+                ->where('last_activity', '>=', $startDate)
+                ->get());
 
-            // Get session statistics
+            // Calculate analytics using collection methods instead of loops (PHP 8.3)
             $stats = [
-                'total_sessions' => $this->getTotalSessions($userId, $startDate),
-                'active_sessions' => $this->getActiveSessionsCount($userId),
-                'average_session_duration' => $this->getAverageSessionDuration($userId, $startDate),
-                'most_used_devices' => $this->getMostUsedDevices($userId, $startDate),
-                'login_frequency' => $this->getLoginFrequency($userId, $startDate),
-                'security_incidents' => $this->getSecurityIncidents($userId, $startDate),
-                'geographic_distribution' => $this->getGeographicDistribution($userId, $startDate),
+                'total_sessions' => $sessions->count(),
+                'unique_ips' => $sessions->pluck('ip_address')->unique()->count(),
+                'browsers' => $sessions->groupBy(fn($session) => $this->getBrowserFromUserAgent($session->user_agent))
+                    ->map(fn($group) => $group->count())
+                    ->toArray(),
+                'daily_activity' => $sessions->groupBy(fn($session) => 
+                    Carbon::createFromTimestamp($session->last_activity)->format('Y-m-d')
+                )->map(fn($group) => $group->count())->toArray()
             ];
+
+            // Add additional stats using modern query building (PHP 8.3 + Laravel 12)
+            $sessionLifetime = config('session.lifetime', 120);
+            $activeThreshold = now()->subMinutes($sessionLifetime)->timestamp;
+            
+            $additionalStats = [
+                'active_sessions' => DB::table('sessions')
+                    ->where('user_id', $userId)
+                    ->where('last_activity', '>', $activeThreshold)
+                    ->count(),
+                'recent_sessions' => DB::table('sessions')
+                    ->where('user_id', $userId)
+                    ->where('last_activity', '>', now()->subHour()->timestamp)
+                    ->count(),
+                'unique_ips_last_week' => DB::table('sessions')
+                    ->where('user_id', $userId)
+                    ->where('last_activity', '>', now()->subWeek()->timestamp)
+                    ->distinct('ip_address')
+                    ->count(),
+            ];
+
+            $stats = [...$stats, ...$additionalStats]; // Spread operator (PHP 8.3)
 
             return [
                 'success' => true,
@@ -91,38 +122,33 @@ trait SessionAnalyticsProcedure
 
             $startDate = now()->subDays($days)->timestamp;
 
-            // Get login history from sessions
-            $loginHistory = DB::table('sessions')
+            // Use Laravel's built-in session table with pagination (Laravel 12)
+            $totalCount = DB::table('sessions')
+                ->where('user_id', $userId)
+                ->where('last_activity', '>=', $startDate)
+                ->count();
+
+            $sessions = collect(DB::table('sessions')
                 ->where('user_id', $userId)
                 ->where('last_activity', '>=', $startDate)
                 ->orderBy('last_activity', 'desc')
                 ->limit($limit)
                 ->offset($offset)
-                ->get()
-                ->map(function ($session) {
-                    $payload = unserialize(base64_decode($session->payload));
-                    $deviceInfo = $payload['device_info'] ?? [];
+                ->get());
 
-                    return [
-                        'session_id' => $session->id,
-                        'login_time' => isset($payload['login_time'])
-                            ? Carbon::createFromTimestamp($payload['login_time'])->toISOString()
-                            : Carbon::createFromTimestamp($session->last_activity)->toISOString(),
-                        'ip_address' => $session->ip_address,
-                        'user_agent' => $session->user_agent,
-                        'device_type' => $deviceInfo['device_type'] ?? 'unknown',
-                        'platform' => $deviceInfo['platform'] ?? 'unknown',
-                        'browser' => $deviceInfo['browser'] ?? 'unknown',
-                        'last_activity' => Carbon::createFromTimestamp($session->last_activity)->toISOString(),
-                        'is_active' => $this->isSessionActive($session->last_activity),
-                    ];
-                });
-
-            // Get total count for pagination
-            $totalCount = DB::table('sessions')
-                ->where('user_id', $userId)
-                ->where('last_activity', '>=', $startDate)
-                ->count();
+            // Transform sessions using collection methods and arrow functions (PHP 8.3)
+            $sessionLifetime = config('session.lifetime', 120);
+            $activeThreshold = now()->subMinutes($sessionLifetime)->timestamp;
+            
+            $loginHistory = $sessions->map(fn($session) => [
+                'session_id' => $session->id,
+                'login_time' => Carbon::createFromTimestamp($session->last_activity)->toISOString(),
+                'ip_address' => $session->ip_address,
+                'user_agent' => $session->user_agent,
+                'browser' => $this->getBrowserFromUserAgent($session->user_agent),
+                'last_activity' => Carbon::createFromTimestamp($session->last_activity)->diffForHumans(),
+                'is_active' => $session->last_activity > $activeThreshold,
+            ]);
 
             return [
                 'success' => true,
@@ -365,6 +391,11 @@ trait SessionAnalyticsProcedure
     private function getSecurityIncidents(int $userId, Carbon $startDate): array
     {
         try {
+            // Check if session_security_logs table exists before querying
+            if (!DB::getSchemaBuilder()->hasTable('session_security_logs')) {
+                return [];
+            }
+            
             $incidents = DB::table('session_security_logs')
                 ->where('user_id', $userId)
                 ->where('created_at', '>=', $startDate)
@@ -513,6 +544,11 @@ trait SessionAnalyticsProcedure
     private function getSystemSecurityIncidents(Carbon $startDate): array
     {
         try {
+            // Check if session_security_logs table exists before querying
+            if (!DB::getSchemaBuilder()->hasTable('session_security_logs')) {
+                return [];
+            }
+            
             return DB::table('session_security_logs')
                 ->where('created_at', '>=', $startDate)
                 ->selectRaw('risk_level, COUNT(*) as count')
@@ -520,6 +556,7 @@ trait SessionAnalyticsProcedure
                 ->pluck('count', 'risk_level')
                 ->toArray();
         } catch (\Exception $e) {
+            Log::warning('Failed to fetch security incidents', ['error' => $e->getMessage()]);
             return [];
         }
     }
@@ -653,5 +690,20 @@ trait SessionAnalyticsProcedure
                 'total_records' => DB::table('sessions')->count(),
             ];
         }
+    }
+
+    /**
+     * Extract browser from user agent using PHP 8.3 match expression
+     */
+    private function getBrowserFromUserAgent(string $userAgent): string
+    {
+        return match(true) {
+            str_contains($userAgent, 'Chrome') => 'Chrome',
+            str_contains($userAgent, 'Firefox') => 'Firefox',
+            str_contains($userAgent, 'Safari') => 'Safari',
+            str_contains($userAgent, 'Edge') => 'Edge',
+            str_contains($userAgent, 'Opera') => 'Opera',
+            default => 'Other'
+        };
     }
 }

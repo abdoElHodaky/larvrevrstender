@@ -26,7 +26,7 @@ spec:
     protocol: TCP
     name: https
   selector:
-    app: gateway-service
+    app: api-gateway
 
 ---
 apiVersion: v1
@@ -97,7 +97,7 @@ spec:
   type: ClusterIP
   ports:
   - port: 80
-    targetPort: 8003
+    targetPort: 8008
     protocol: TCP
     name: rpc-http
   - port: 8080
@@ -201,7 +201,7 @@ spec:
   type: ClusterIP
   ports:
   - port: 80
-    targetPort: 8007
+    targetPort: 8004
     protocol: TCP
     name: rpc-http
   selector:
@@ -226,7 +226,7 @@ spec:
   type: ClusterIP
   ports:
   - port: 80
-    targetPort: 8008
+    targetPort: 8007
     protocol: TCP
     name: rpc-http
   selector:
@@ -288,4 +288,4 @@ spec:
     protocol: TCP
     name: https
   selector:
-    app: gateway-service
+    app: api-gateway
