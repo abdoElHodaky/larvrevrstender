@@ -448,7 +448,11 @@ trait CacheManagementProcedure
                     $result = Redis::del($key);
                     return ['success' => $result > 0];
                 })(),
-                'memcached', 'file', default => (function() use ($key) {
+                'memcached', 'file' => (function() use ($key) {
+                    $result = Cache::forget($key);
+                    return ['success' => $result];
+                })(),
+                default => (function() use ($key) {
                     $result = Cache::forget($key);
                     return ['success' => $result];
                 })()
