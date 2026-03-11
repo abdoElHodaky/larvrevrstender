@@ -52,12 +52,9 @@ class DataCollectionClient extends BaseServiceClient
             'vin_ocr' => config('services.vin_ocr_service.url'),
         ];
 
-        $metrics = [];
-        foreach ($services as $name => $url) {
-            $metrics[$name] = $this->collectFromService($url, '/health');
-        }
-
-        return $metrics;
+        return collect($services)
+            ->map(fn($url, $name) => $this->collectFromService($url, '/health'))
+            ->toArray();
     }
 
     /**
@@ -75,12 +72,9 @@ class DataCollectionClient extends BaseServiceClient
             'vin_ocr' => config('services.vin_ocr_service.url'),
         ];
 
-        $info = [];
-        foreach ($services as $name => $url) {
-            $info[$name] = $this->collectFromService($url, '/info');
-        }
-
-        return $info;
+        return collect($services)
+            ->map(fn($url, $name) => $this->collectFromService($url, '/info'))
+            ->toArray();
     }
 
     /**

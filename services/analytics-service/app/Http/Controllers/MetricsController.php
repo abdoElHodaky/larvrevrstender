@@ -509,13 +509,8 @@ class MetricsController extends Controller
         $healthyServices = 0;
         $degradedServices = 0;
 
-        foreach ($performance as $service) {
-            if ($service['status'] === 'healthy') {
-                $healthyServices++;
-            } else {
-                $degradedServices++;
-            }
-        }
+        $healthyServices = collect($performance)->where('status', 'healthy')->count();
+        $degradedServices = collect($performance)->where('status', '!=', 'healthy')->count();
 
         $healthPercentage = $totalServices > 0 ? ($healthyServices / $totalServices) * 100 : 100;
 
@@ -533,32 +528,28 @@ class MetricsController extends Controller
      */
     private function generateAlerts(array $performance): array
     {
-        $alerts = [];
+        $serviceAlerts = collect($performance)
+            ->filter(fn($service) => $service['status'] !== 'healthy')
+            ->map(fn($service) => [
+                'service' => $service['service_name'],
+                'severity' => 'warning',
+                'message' => "Service {$service['service_name']} is experiencing degraded performance",
+                'timestamp' => now()->toISOString(),
+            ]);
 
-        foreach ($performance as $service) {
-            if ($service['status'] !== 'healthy') {
-                $alerts[] = [
-                    'service' => $service['service_name'],
-                    'severity' => 'warning',
-                    'message' => "Service {$service['service_name']} is experiencing degraded performance",
-                    'timestamp' => now()->toISOString(),
-                ];
-            }
-
-            // Check specific metrics for alerts
-            foreach ($service['metrics'] as $metricName => $metricData) {
-                if (isset($metricData['status']) && $metricData['status'] === 'critical') {
-                    $alerts[] = [
+        $metricAlerts = collect($performance)
+            ->flatMap(fn($service) => 
+                collect($service['metrics'])
+                    ->filter(fn($metricData) => isset($metricData['status']) && $metricData['status'] === 'critical')
+                    ->map(fn($metricData, $metricName) => [
                         'service' => $service['service_name'],
                         'metric' => $metricName,
                         'severity' => 'critical',
                         'message' => "Critical threshold exceeded for {$metricName} in {$service['service_name']}",
                         'timestamp' => now()->toISOString(),
-                    ];
-                }
-            }
-        }
+                    ])
+            );
 
-        return $alerts;
+        return $serviceAlerts->concat($metricAlerts)->toArray();
     }
 }

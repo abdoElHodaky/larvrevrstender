@@ -91,7 +91,7 @@ class GenerateBusinessReportsJob extends BaseQueueJob
                 'errors' => []
             ];
 
-            foreach ($this->reportTypes as $reportType) {
+            collect($this->reportTypes)->each(function($reportType) use (&$results, $analyticsService) {
                 try {
                     $reportResult = $this->generateReport($reportType, $analyticsService);
                     
@@ -121,7 +121,7 @@ class GenerateBusinessReportsJob extends BaseQueueJob
                         'trace' => $e->getTraceAsString()
                     ]);
                 }
-            }
+            });
 
             Log::info('Business report generation completed successfully', [
                 'reports_generated' => $results['reports_generated'],
@@ -295,26 +295,24 @@ class GenerateBusinessReportsJob extends BaseQueueJob
 
         // Funnel steps analysis
         $funnelSteps = ['page_view', 'signup_started', 'signup_completed', 'first_action', 'conversion'];
-        $funnelData = [];
         
-        foreach ($funnelSteps as $step) {
+        $funnelData = collect($funnelSteps)->map(function($step) use (&$dataPoints) {
             $stepMetrics = BusinessMetric::where('metric_type', "conversion_{$step}_daily")
                 ->whereBetween('metric_date', [$this->startDate, $this->endDate])
                 ->get();
             
             $totalUsers = $stepMetrics->sum('value');
-            $funnelData[] = [
+            $dataPoints += $stepMetrics->count() + 1;
+            
+            return [
                 'step' => $step,
                 'users' => $totalUsers,
-                'daily_breakdown' => $stepMetrics->map(function($metric) {
-                    return [
-                        'date' => $metric->metric_date->toDateString(),
-                        'users' => (int) $metric->value
-                    ];
-                })->toArray()
+                'daily_breakdown' => $stepMetrics->map(fn($metric) => [
+                    'date' => $metric->metric_date->toDateString(),
+                    'users' => (int) $metric->value
+                ])->toArray()
             ];
-            $dataPoints += $stepMetrics->count() + 1;
-        }
+        })->toArray();
 
         // Calculate conversion rates
         for ($i = 1; $i < count($funnelData); $i++) {
