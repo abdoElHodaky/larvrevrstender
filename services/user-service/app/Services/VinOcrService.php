@@ -478,18 +478,13 @@ class VinOcrService
         $imagePath = $this->storeImage($image);
 
         try {
-            switch ($engine) {
-                case 'google_vision':
-                    return $this->processWithGoogleVision($imagePath);
-                case 'aws_textract':
-                    return $this->processWithAWSTextract($imagePath);
-                case 'azure_vision':
-                    return $this->processWithAzureVision($imagePath);
-                case 'tesseract':
-                    return $this->processWithTesseract($imagePath);
-                default:
-                    throw new \InvalidArgumentException("Unknown OCR engine: {$engine}");
-            }
+            return match ($engine) {
+                'google_vision' => $this->processWithGoogleVision($imagePath),
+                'aws_textract' => $this->processWithAWSTextract($imagePath),
+                'azure_vision' => $this->processWithAzureVision($imagePath),
+                'tesseract' => $this->processWithTesseract($imagePath),
+                default => throw new \InvalidArgumentException("Unknown OCR engine: {$engine}")
+            };
         } finally {
             // Clean up stored image
             Storage::delete($imagePath);

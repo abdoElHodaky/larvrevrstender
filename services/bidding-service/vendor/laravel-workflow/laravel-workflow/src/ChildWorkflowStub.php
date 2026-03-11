@@ -8,6 +8,9 @@ use function React\Promise\all;
 use React\Promise\Deferred;
 use React\Promise\PromiseInterface;
 use function React\Promise\resolve;
+use RuntimeException;
+use Throwable;
+use Workflow\Exceptions\TransitionNotFound;
 use Workflow\Serializers\Serializer;
 
 final class ChildWorkflowStub
@@ -21,9 +24,7 @@ final class ChildWorkflowStub
     {
         $context = WorkflowStub::getContext();
 
-        $log = $context->storedWorkflow->logs()
-            ->whereIndex($context->index)
-            ->first();
+        $log = $context->storedWorkflow->findLogByIndex($context->index);
 
         if (WorkflowStub::faked()) {
             $mocks = WorkflowStub::mocks();
@@ -31,15 +32,14 @@ final class ChildWorkflowStub
             if (! $log && array_key_exists($workflow, $mocks)) {
                 $result = $mocks[$workflow];
 
-                $log = $context->storedWorkflow->logs()
-                    ->create([
-                        'index' => $context->index,
-                        'now' => $context->now,
-                        'class' => $workflow,
-                        'result' => Serializer::serialize(
-                            is_callable($result) ? $result($context, ...$arguments) : $result
-                        ),
-                    ]);
+                $log = $context->storedWorkflow->createLog([
+                    'index' => $context->index,
+                    'now' => $context->now,
+                    'class' => $workflow,
+                    'result' => Serializer::serialize(
+                        is_callable($result) ? $result($context, ...$arguments) : $result
+                    ),
+                ]);
 
                 WorkflowStub::recordDispatched($workflow, $arguments);
             }
@@ -48,7 +48,24 @@ final class ChildWorkflowStub
         if ($log) {
             ++$context->index;
             WorkflowStub::setContext($context);
-            return resolve(Serializer::unserialize($log->result));
+            $result = Serializer::unserialize($log->result);
+            if (
+                is_array($result)
+                && array_key_exists('class', $result)
+                && is_subclass_of($result['class'], Throwable::class)
+            ) {
+                try {
+                    $throwable = new $result['class']($result['message'] ?? '', (int) ($result['code'] ?? 0));
+                } catch (Throwable $throwable) {
+                    throw new RuntimeException(
+                        sprintf('[%s] %s', $result['class'], (string) ($result['message'] ?? '')),
+                        (int) ($result['code'] ?? 0),
+                        $throwable
+                    );
+                }
+                throw $throwable;
+            }
+            return resolve($result);
         }
 
         if (! $context->replaying) {
@@ -58,10 +75,21 @@ final class ChildWorkflowStub
 
             $childWorkflow = $storedChildWorkflow ? $storedChildWorkflow->toWorkflow() : WorkflowStub::make($workflow);
 
+            $hasOptions = collect($arguments)
+                ->contains(static fn ($argument): bool => $argument instanceof WorkflowOptions);
+
+            if (! $hasOptions) {
+                $options = $context->storedWorkflow->workflowOptions();
+
+                if ($options->connection !== null || $options->queue !== null) {
+                    $arguments[] = $options;
+                }
+            }
+
             if ($childWorkflow->running() && ! $childWorkflow->created()) {
                 try {
                     $childWorkflow->resume();
-                } catch (\Spatie\ModelStates\Exceptions\TransitionNotFound) {
+                } catch (TransitionNotFound) {
                     // already running
                 }
             } elseif (! $childWorkflow->completed()) {

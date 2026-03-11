@@ -139,18 +139,10 @@ class RestoreOrderStatusActivity extends BaseRpcActivity
         // Default restoration statuses based on payment failure context
         $paymentStatus = $data['status'] ?? null;
         
-        switch ($paymentStatus) {
-            case 'failed':
-            case 'cancelled':
-                return 'payment_failed';
-                
-            case 'pending':
-            case 'processing':
-                return 'pending'; // Restore to pending if payment was still processing
-                
-            default:
-                // Safe default - restore to a status that indicates payment issues
-                return 'payment_failed';
-        }
+        return match ($paymentStatus) {
+            'failed', 'cancelled' => 'payment_failed',
+            'pending', 'processing' => 'pending', // Restore to pending if payment was still processing
+            default => 'payment_failed' // Safe default - restore to a status that indicates payment issues
+        };
     }
 }

@@ -337,43 +337,25 @@ class WebhookService
     {
         $errors = [];
         
-        switch ($provider) {
-            case 'stripe':
-                if (!isset($payload['type'])) {
-                    $errors[] = 'Missing event type';
-                }
-                if (!isset($payload['data']['object'])) {
-                    $errors[] = 'Missing event data object';
-                }
-                break;
-                
-            case 'paypal':
-                if (!isset($payload['event_type'])) {
-                    $errors[] = 'Missing event type';
-                }
-                if (!isset($payload['resource'])) {
-                    $errors[] = 'Missing resource data';
-                }
-                break;
-                
-            case 'razorpay':
-                if (!isset($payload['event'])) {
-                    $errors[] = 'Missing event type';
-                }
-                if (!isset($payload['payload'])) {
-                    $errors[] = 'Missing payload data';
-                }
-                break;
-                
-            case 'square':
-                if (!isset($payload['type'])) {
-                    $errors[] = 'Missing event type';
-                }
-                if (!isset($payload['data'])) {
-                    $errors[] = 'Missing event data';
-                }
-                break;
-        }
+        match ($provider) {
+            'stripe' => [
+                !isset($payload['type']) ? $errors[] = 'Missing event type' : null,
+                !isset($payload['data']['object']) ? $errors[] = 'Missing event data object' : null
+            ],
+            'paypal' => [
+                !isset($payload['event_type']) ? $errors[] = 'Missing event type' : null,
+                !isset($payload['resource']) ? $errors[] = 'Missing resource data' : null
+            ],
+            'razorpay' => [
+                !isset($payload['event']) ? $errors[] = 'Missing event type' : null,
+                !isset($payload['payload']) ? $errors[] = 'Missing payload data' : null
+            ],
+            'square' => [
+                !isset($payload['type']) ? $errors[] = 'Missing event type' : null,
+                !isset($payload['data']) ? $errors[] = 'Missing event data' : null
+            ],
+            default => null
+        };
 
         return [
             'valid' => empty($errors),

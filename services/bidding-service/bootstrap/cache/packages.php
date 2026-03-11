@@ -49,6 +49,13 @@
       0 => 'Laravel\\Sanctum\\SanctumServiceProvider',
     ),
   ),
+  'laravel/sentinel' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Laravel\\Sentinel\\SentinelServiceProvider',
+    ),
+  ),
   'laravel/telescope' => 
   array (
     'providers' => 
@@ -104,20 +111,6 @@
     'providers' => 
     array (
       0 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
-    ),
-  ),
-  'spatie/laravel-model-states' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
-    ),
-  ),
-  'spatie/php-structure-discoverer' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
     ),
   ),
 );

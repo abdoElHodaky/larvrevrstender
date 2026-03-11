@@ -60,18 +60,13 @@ class EnhancedVinOcrService
      */
     private function processWithEngine(UploadedFile $image, string $engine): array
     {
-        switch ($engine) {
-            case 'google_vision':
-                return $this->processWithGoogleVision($image);
-            case 'aws_textract':
-                return $this->processWithAwsTextract($image);
-            case 'azure_vision':
-                return $this->processWithAzureVision($image);
-            case 'tesseract':
-                return $this->processWithTesseract($image);
-            default:
-                throw new \Exception("Unknown OCR engine: {$engine}");
-        }
+        return match ($engine) {
+            'google_vision' => $this->processWithGoogleVision($image),
+            'aws_textract' => $this->processWithAwsTextract($image),
+            'azure_vision' => $this->processWithAzureVision($image),
+            'tesseract' => $this->processWithTesseract($image),
+            default => throw new \Exception("Unknown OCR engine: {$engine}")
+        };
     }
 
     /**

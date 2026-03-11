@@ -412,33 +412,29 @@ class WebhookController extends Controller
             $eventType = $eventData['type'];
             $actions = [];
 
-            switch ($eventType) {
-                case 'payment_intent.succeeded':
-                case 'charge.succeeded':
-                    $result = $this->handlePaymentSucceeded($webhook, $eventData, 'stripe');
-                    $actions[] = 'payment_completed';
-                    break;
-
-                case 'payment_intent.payment_failed':
-                case 'charge.failed':
-                    $result = $this->handlePaymentFailed($webhook, $eventData, 'stripe');
-                    $actions[] = 'payment_failed';
-                    break;
-
-                case 'charge.refunded':
-                    $result = $this->handleRefundProcessed($webhook, $eventData, 'stripe');
-                    $actions[] = 'refund_processed';
-                    break;
-
-                case 'payment_intent.requires_action':
-                    $result = $this->handlePaymentRequiresAction($webhook, $eventData, 'stripe');
-                    $actions[] = 'action_required';
-                    break;
-
-                default:
-                    $result = ['success' => true, 'message' => 'Event type not handled'];
-                    $actions[] = 'ignored';
-            }
+            [$result, $action] = match ($eventType) {
+                'payment_intent.succeeded', 'charge.succeeded' => [
+                    $this->handlePaymentSucceeded($webhook, $eventData, 'stripe'),
+                    'payment_completed'
+                ],
+                'payment_intent.payment_failed', 'charge.failed' => [
+                    $this->handlePaymentFailed($webhook, $eventData, 'stripe'),
+                    'payment_failed'
+                ],
+                'charge.refunded' => [
+                    $this->handleRefundProcessed($webhook, $eventData, 'stripe'),
+                    'refund_processed'
+                ],
+                'payment_intent.requires_action' => [
+                    $this->handlePaymentRequiresAction($webhook, $eventData, 'stripe'),
+                    'action_required'
+                ],
+                default => [
+                    ['success' => true, 'message' => 'Event type not handled'],
+                    'ignored'
+                ]
+            };
+            $actions[] = $action;
 
             return array_merge($result, ['actions' => $actions]);
 
@@ -466,28 +462,25 @@ class WebhookController extends Controller
             $eventType = $eventData['event_type'];
             $actions = [];
 
-            switch ($eventType) {
-                case 'CHECKOUT.ORDER.APPROVED':
-                case 'PAYMENT.CAPTURE.COMPLETED':
-                    $result = $this->handlePaymentSucceeded($webhook, $eventData, 'paypal');
-                    $actions[] = 'payment_completed';
-                    break;
-
-                case 'PAYMENT.CAPTURE.DENIED':
-                case 'CHECKOUT.ORDER.VOIDED':
-                    $result = $this->handlePaymentFailed($webhook, $eventData, 'paypal');
-                    $actions[] = 'payment_failed';
-                    break;
-
-                case 'PAYMENT.CAPTURE.REFUNDED':
-                    $result = $this->handleRefundProcessed($webhook, $eventData, 'paypal');
-                    $actions[] = 'refund_processed';
-                    break;
-
-                default:
-                    $result = ['success' => true, 'message' => 'Event type not handled'];
-                    $actions[] = 'ignored';
-            }
+            [$result, $action] = match ($eventType) {
+                'CHECKOUT.ORDER.APPROVED', 'PAYMENT.CAPTURE.COMPLETED' => [
+                    $this->handlePaymentSucceeded($webhook, $eventData, 'paypal'),
+                    'payment_completed'
+                ],
+                'PAYMENT.CAPTURE.DENIED', 'CHECKOUT.ORDER.VOIDED' => [
+                    $this->handlePaymentFailed($webhook, $eventData, 'paypal'),
+                    'payment_failed'
+                ],
+                'PAYMENT.CAPTURE.REFUNDED' => [
+                    $this->handleRefundProcessed($webhook, $eventData, 'paypal'),
+                    'refund_processed'
+                ],
+                default => [
+                    ['success' => true, 'message' => 'Event type not handled'],
+                    'ignored'
+                ]
+            };
+            $actions[] = $action;
 
             return array_merge($result, ['actions' => $actions]);
 
@@ -515,27 +508,25 @@ class WebhookController extends Controller
             $eventType = $eventData['event'];
             $actions = [];
 
-            switch ($eventType) {
-                case 'payment.captured':
-                case 'payment.authorized':
-                    $result = $this->handlePaymentSucceeded($webhook, $eventData, 'razorpay');
-                    $actions[] = 'payment_completed';
-                    break;
-
-                case 'payment.failed':
-                    $result = $this->handlePaymentFailed($webhook, $eventData, 'razorpay');
-                    $actions[] = 'payment_failed';
-                    break;
-
-                case 'refund.processed':
-                    $result = $this->handleRefundProcessed($webhook, $eventData, 'razorpay');
-                    $actions[] = 'refund_processed';
-                    break;
-
-                default:
-                    $result = ['success' => true, 'message' => 'Event type not handled'];
-                    $actions[] = 'ignored';
-            }
+            [$result, $action] = match ($eventType) {
+                'payment.captured', 'payment.authorized' => [
+                    $this->handlePaymentSucceeded($webhook, $eventData, 'razorpay'),
+                    'payment_completed'
+                ],
+                'payment.failed' => [
+                    $this->handlePaymentFailed($webhook, $eventData, 'razorpay'),
+                    'payment_failed'
+                ],
+                'refund.processed' => [
+                    $this->handleRefundProcessed($webhook, $eventData, 'razorpay'),
+                    'refund_processed'
+                ],
+                default => [
+                    ['success' => true, 'message' => 'Event type not handled'],
+                    'ignored'
+                ]
+            };
+            $actions[] = $action;
 
             return array_merge($result, ['actions' => $actions]);
 
@@ -563,34 +554,42 @@ class WebhookController extends Controller
             $eventType = $eventData['type'];
             $actions = [];
 
-            switch ($eventType) {
-                case 'payment.updated':
+            [$result, $action] = match ($eventType) {
+                'payment.updated' => (function() use ($webhook, $eventData) {
                     // Check if payment was completed
                     $paymentStatus = $eventData['data']['object']['status'] ?? null;
                     if ($paymentStatus === 'COMPLETED') {
-                        $result = $this->handlePaymentSucceeded($webhook, $eventData, 'square');
-                        $actions[] = 'payment_completed';
+                        return [
+                            $this->handlePaymentSucceeded($webhook, $eventData, 'square'),
+                            'payment_completed'
+                        ];
                     } else {
-                        $result = ['success' => true, 'message' => 'Payment status updated'];
-                        $actions[] = 'status_updated';
+                        return [
+                            ['success' => true, 'message' => 'Payment status updated'],
+                            'status_updated'
+                        ];
                     }
-                    break;
-
-                case 'refund.updated':
+                })(),
+                'refund.updated' => (function() use ($webhook, $eventData) {
                     $refundStatus = $eventData['data']['object']['status'] ?? null;
                     if ($refundStatus === 'COMPLETED') {
-                        $result = $this->handleRefundProcessed($webhook, $eventData, 'square');
-                        $actions[] = 'refund_processed';
+                        return [
+                            $this->handleRefundProcessed($webhook, $eventData, 'square'),
+                            'refund_processed'
+                        ];
                     } else {
-                        $result = ['success' => true, 'message' => 'Refund status updated'];
-                        $actions[] = 'status_updated';
+                        return [
+                            ['success' => true, 'message' => 'Refund status updated'],
+                            'status_updated'
+                        ];
                     }
-                    break;
-
-                default:
-                    $result = ['success' => true, 'message' => 'Event type not handled'];
-                    $actions[] = 'ignored';
-            }
+                })(),
+                default => [
+                    ['success' => true, 'message' => 'Event type not handled'],
+                    'ignored'
+                ]
+            };
+            $actions[] = $action;
 
             return array_merge($result, ['actions' => $actions]);
 

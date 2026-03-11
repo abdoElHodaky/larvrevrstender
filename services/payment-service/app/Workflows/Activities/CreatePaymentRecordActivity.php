@@ -173,29 +173,15 @@ class CreatePaymentRecordActivity extends BaseRpcActivity
         $status = $statusMapping[$gatewayStatus] ?? Payment::STATUS_PENDING;
 
         // Special handling for different payment methods
-        switch ($paymentMethod) {
-            case 'bank_transfer':
-                // Bank transfers are typically pending initially
-                if ($gatewayStatus === 'pending') {
-                    $status = Payment::STATUS_PENDING;
-                }
-                break;
-                
-            case 'credit_card':
-            case 'debit_card':
-                // Card payments can be authorized first, then captured
-                if ($gatewayStatus === 'authorized') {
-                    $status = Payment::STATUS_AUTHORIZED;
-                }
-                break;
-                
-            case 'paypal':
-            case 'stripe':
-                // These gateways typically complete immediately
-                if (in_array($gatewayStatus, ['succeeded', 'completed'])) {
-                    $status = Payment::STATUS_COMPLETED;
-                }
-                break;
+        $statusOverride = match ($paymentMethod) {
+            'bank_transfer' => $gatewayStatus === 'pending' ? Payment::STATUS_PENDING : null,
+            'credit_card', 'debit_card' => $gatewayStatus === 'authorized' ? Payment::STATUS_AUTHORIZED : null,
+            'paypal', 'stripe' => in_array($gatewayStatus, ['succeeded', 'completed']) ? Payment::STATUS_COMPLETED : null,
+            default => null
+        };
+
+        if ($statusOverride !== null) {
+            $status = $statusOverride;
         }
 
         return $status;

@@ -215,33 +215,27 @@ class PaymentMethodService
         ];
 
         // Type-specific validation rules
-        switch ($data['type'] ?? null) {
-            case 'card':
-                $rules = array_merge($rules, [
-                    'card_number' => 'required_without:provider_method_id|string|min:13|max:19',
-                    'card_exp_month' => 'required|integer|between:1,12',
-                    'card_exp_year' => 'required|integer|min:' . date('Y'),
-                    'card_cvv' => 'required_without:provider_method_id|string|min:3|max:4',
-                    'card_holder_name' => 'required|string|max:255',
-                ]);
-                break;
-
-            case 'bank_account':
-                $rules = array_merge($rules, [
-                    'bank_account_number' => 'required_without:provider_method_id|string',
-                    'bank_routing_number' => 'required|string',
-                    'bank_account_type' => 'required|string|in:checking,savings',
-                    'bank_account_holder_name' => 'required|string|max:255',
-                ]);
-                break;
-
-            case 'wallet':
-                $rules = array_merge($rules, [
-                    'wallet_type' => 'required|string|in:apple_pay,google_pay,samsung_pay,paypal,stc_pay',
-                    'wallet_account_id' => 'required_without:provider_method_id|string',
-                ]);
-                break;
-        }
+        $typeSpecificRules = match ($data['type'] ?? null) {
+            'card' => [
+                'card_number' => 'required_without:provider_method_id|string|min:13|max:19',
+                'card_exp_month' => 'required|integer|between:1,12',
+                'card_exp_year' => 'required|integer|min:' . date('Y'),
+                'card_cvv' => 'required_without:provider_method_id|string|min:3|max:4',
+                'card_holder_name' => 'required|string|max:255',
+            ],
+            'bank_account' => [
+                'bank_account_number' => 'required_without:provider_method_id|string',
+                'bank_routing_number' => 'required|string',
+                'bank_account_type' => 'required|string|in:checking,savings',
+                'bank_account_holder_name' => 'required|string|max:255',
+            ],
+            'wallet' => [
+                'wallet_type' => 'required|string|in:apple_pay,google_pay,samsung_pay,paypal,stc_pay',
+                'wallet_account_id' => 'required_without:provider_method_id|string',
+            ],
+            default => []
+        };
+        $rules = array_merge($rules, $typeSpecificRules);
 
         // Billing address validation
         $rules = array_merge($rules, [
@@ -268,8 +262,8 @@ class PaymentMethodService
                               ->byType($data['type'])
                               ->byProvider($data['provider']);
 
-        switch ($data['type']) {
-            case 'card':
+        match ($data['type']) {
+            'card' => (function() use ($query, $data) {
                 if (isset($data['card_fingerprint'])) {
                     $query->where('card_fingerprint', $data['card_fingerprint']);
                 } elseif (isset($data['card_number'])) {
@@ -278,22 +272,21 @@ class PaymentMethodService
                           ->where('card_exp_month', $data['card_exp_month'])
                           ->where('card_exp_year', $data['card_exp_year']);
                 }
-                break;
-
-            case 'bank_account':
+            })(),
+            'bank_account' => (function() use ($query, $data) {
                 if (isset($data['bank_account_number'])) {
                     $lastFour = substr($data['bank_account_number'], -4);
                     $query->where('bank_account_last_four', $lastFour)
                           ->where('bank_routing_number', $data['bank_routing_number']);
                 }
-                break;
-
-            case 'wallet':
+            })(),
+            'wallet' => (function() use ($query, $data) {
                 if (isset($data['wallet_account_id'])) {
                     $query->where('wallet_account_id', $data['wallet_account_id']);
                 }
-                break;
-        }
+            })(),
+            default => null
+        };
 
         return $query->exists();
     }
@@ -322,37 +315,31 @@ class PaymentMethodService
         ];
 
         // Add type-specific data
-        switch ($data['type']) {
-            case 'card':
-                $paymentMethodData = array_merge($paymentMethodData, [
-                    'card_last_four' => isset($data['card_number']) ? substr($data['card_number'], -4) : null,
-                    'card_brand' => $data['card_brand'] ?? $this->detectCardBrand($data['card_number'] ?? ''),
-                    'card_type' => $data['card_type'] ?? 'credit',
-                    'card_country' => $data['card_country'] ?? null,
-                    'card_fingerprint' => $data['card_fingerprint'] ?? null,
-                    'card_exp_month' => $data['card_exp_month'],
-                    'card_exp_year' => $data['card_exp_year'],
-                    'expires_at' => $this->calculateCardExpiration($data['card_exp_month'], $data['card_exp_year']),
-                ]);
-                break;
-
-            case 'bank_account':
-                $paymentMethodData = array_merge($paymentMethodData, [
-                    'bank_name' => $data['bank_name'] ?? null,
-                    'bank_account_type' => $data['bank_account_type'],
-                    'bank_account_last_four' => isset($data['bank_account_number']) ? substr($data['bank_account_number'], -4) : null,
-                    'bank_routing_number' => $data['bank_routing_number'],
-                    'bank_country' => $data['bank_country'] ?? $data['billing_country'],
-                ]);
-                break;
-
-            case 'wallet':
-                $paymentMethodData = array_merge($paymentMethodData, [
-                    'wallet_type' => $data['wallet_type'],
-                    'wallet_account_id' => $data['wallet_account_id'] ?? null,
-                ]);
-                break;
-        }
+        $typeSpecificData = match ($data['type']) {
+            'card' => [
+                'card_last_four' => isset($data['card_number']) ? substr($data['card_number'], -4) : null,
+                'card_brand' => $data['card_brand'] ?? $this->detectCardBrand($data['card_number'] ?? ''),
+                'card_type' => $data['card_type'] ?? 'credit',
+                'card_country' => $data['card_country'] ?? null,
+                'card_fingerprint' => $data['card_fingerprint'] ?? null,
+                'card_exp_month' => $data['card_exp_month'],
+                'card_exp_year' => $data['card_exp_year'],
+                'expires_at' => $this->calculateCardExpiration($data['card_exp_month'], $data['card_exp_year']),
+            ],
+            'bank_account' => [
+                'bank_name' => $data['bank_name'] ?? null,
+                'bank_account_type' => $data['bank_account_type'],
+                'bank_account_last_four' => isset($data['bank_account_number']) ? substr($data['bank_account_number'], -4) : null,
+                'bank_routing_number' => $data['bank_routing_number'],
+                'bank_country' => $data['bank_country'] ?? $data['billing_country'],
+            ],
+            'wallet' => [
+                'wallet_type' => $data['wallet_type'],
+                'wallet_account_id' => $data['wallet_account_id'] ?? null,
+            ],
+            default => []
+        };
+        $paymentMethodData = array_merge($paymentMethodData, $typeSpecificData);
 
         return $paymentMethodData;
     }

@@ -15,7 +15,7 @@ class HealthController extends Controller
     {
         $health = [
             'status' => 'healthy',
-            'service' => 'auth-service',
+            'service' => 'order-service',
             'timestamp' => now()->toISOString(),
             'version' => config('app.version', '1.0.0'),
             'environment' => config('app.env'),
@@ -95,14 +95,12 @@ class HealthController extends Controller
         $last = strtolower($limit[strlen($limit) - 1]);
         $limit = (int) $limit;
 
-        switch ($last) {
-            case 'g':
-                $limit *= 1024;
-            case 'm':
-                $limit *= 1024;
-            case 'k':
-                $limit *= 1024;
-        }
+        $limit *= match ($last) {
+            'g' => 1024 * 1024 * 1024,
+            'm' => 1024 * 1024,
+            'k' => 1024,
+            default => 1
+        };
 
         return $limit;
     }

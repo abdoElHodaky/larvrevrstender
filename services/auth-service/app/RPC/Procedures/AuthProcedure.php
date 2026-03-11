@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Log;
 use App\Models\AuthUser;
 use App\Models\AuthRole;
 use App\Models\AuthUserRole;
+use App\Models\AuthPermission;
+use App\Models\TokenInvalidation;
 
 class AuthProcedure extends BaseProcedure
 {
@@ -433,8 +435,7 @@ class AuthProcedure extends BaseProcedure
             ]);
 
             // Update auth user record
-            $updated = \DB::table('auth_users')
-                ->where('user_id', $userId)
+            $updated = AuthUser::where('user_id', $userId)
                 ->update(array_merge($changes, ['updated_at' => now()]));
 
             // If email changed, invalidate all tokens for security
@@ -520,7 +521,7 @@ class AuthProcedure extends BaseProcedure
             $revokedCount = \DB::table('sessions')->where('user_id', $userId)->delete();
 
             // Also clear any remember tokens
-            \DB::table('auth_users')->where('user_id', $userId)->update([
+            AuthUser::where('user_id', $userId)->update([
                 'remember_token' => null,
                 'updated_at' => now()
             ]);
@@ -573,12 +574,15 @@ class AuthProcedure extends BaseProcedure
                 ]);
 
             // Log the invalidation reason
-            \DB::table('token_invalidations')->insert([
+            TokenInvalidation::create([
                 'user_id' => $userId,
+                'token_type' => 'personal_access_token',
                 'reason' => $reason,
-                'invalidated_tokens' => $invalidatedCount,
-                'timestamp' => $timestamp,
-                'created_at' => now()
+                'invalidated_at' => $timestamp,
+                'metadata' => [
+                    'invalidated_tokens' => $invalidatedCount,
+                    'method' => 'invalidateUserTokens'
+                ]
             ]);
 
             $result = [
@@ -614,7 +618,7 @@ class AuthProcedure extends BaseProcedure
             $token = $params['token'] ?? null;
 
             // Check if user exists in auth system
-            $authUser = \DB::table('auth_users')->where('user_id', $userId)->first();
+            $authUser = AuthUser::where('user_id', $userId)->first();
 
             if (!$authUser) {
                 return [
@@ -746,7 +750,7 @@ class AuthProcedure extends BaseProcedure
             ]);
 
             // Update auth user status
-            \DB::table('auth_users')->where('user_id', $userId)->update([
+            AuthUser::where('user_id', $userId)->update([
                 'status' => $newStatus,
                 'updated_at' => now()
             ]);
@@ -800,15 +804,12 @@ class AuthProcedure extends BaseProcedure
             ]);
 
             // Store role reference for auth operations
-            $authRole = \DB::table('auth_roles')->updateOrInsert(
+            $authRole = AuthRole::updateOrCreate(
                 ['role_id' => $roleId],
                 [
-                    'role_id' => $roleId,
                     'name' => $name,
                     'display_name' => $displayName,
-                    'permissions' => json_encode($permissions),
-                    'created_at' => now(),
-                    'updated_at' => now()
+                    'permissions' => $permissions,
                 ]
             );
 
@@ -849,8 +850,7 @@ class AuthProcedure extends BaseProcedure
             ]);
 
             // Update auth role record
-            $updated = \DB::table('auth_roles')
-                ->where('role_id', $roleId)
+            $updated = AuthRole::where('role_id', $roleId)
                 ->update(array_merge($changes, ['updated_at' => now()]));
 
             $result = [
@@ -890,10 +890,10 @@ class AuthProcedure extends BaseProcedure
             ]);
 
             // Remove role from auth system
-            $deleted = \DB::table('auth_roles')->where('role_id', $roleId)->delete();
+            $deleted = AuthRole::where('role_id', $roleId)->delete();
 
             // Invalidate tokens for users who had this role
-            $usersWithRole = \DB::table('auth_user_roles')->where('role_id', $roleId)->get();
+            $usersWithRole = AuthUserRole::where('role_id', $roleId)->get();
             foreach ($usersWithRole as $userRole) {
                 $this->invalidateUserTokens([
                     'user_id' => $userRole->user_id,
@@ -903,7 +903,7 @@ class AuthProcedure extends BaseProcedure
             }
 
             // Remove role assignments
-            \DB::table('auth_user_roles')->where('role_id', $roleId)->delete();
+            AuthUserRole::where('role_id', $roleId)->delete();
 
             $result = [
                 'success' => true,
@@ -993,15 +993,12 @@ class AuthProcedure extends BaseProcedure
             ]);
 
             // Store permission reference for auth operations
-            $authPermission = \DB::table('auth_permissions')->updateOrInsert(
+            $authPermission = AuthPermission::updateOrCreate(
                 ['permission_id' => $permissionId],
                 [
-                    'permission_id' => $permissionId,
-                    'name' => $name,
-                    'display_name' => $displayName,
+                    'permission_name' => $name,
+                    'description' => $displayName,
                     'category' => $category,
-                    'created_at' => now(),
-                    'updated_at' => now()
                 ]
             );
 
@@ -1042,27 +1039,26 @@ class AuthProcedure extends BaseProcedure
             ]);
 
             // Remove permission from auth system
-            $deleted = \DB::table('auth_permissions')->where('permission_id', $permissionId)->delete();
+            $deleted = AuthPermission::where('permission_id', $permissionId)->delete();
 
             // Update roles that had this permission
-            $rolesWithPermission = \DB::table('auth_roles')->get();
+            $rolesWithPermission = AuthRole::get();
             $affectedRoles = 0;
             $affectedUsers = 0;
 
             foreach ($rolesWithPermission as $role) {
-                $permissions = json_decode($role->permissions, true) ?? [];
+                $permissions = $role->permissions ?? [];
                 if (in_array($permissionName, $permissions)) {
                     $newPermissions = array_diff($permissions, [$permissionName]);
-                    \DB::table('auth_roles')
-                        ->where('id', $role->id)
+                    AuthRole::where('id', $role->id)
                         ->update([
-                            'permissions' => json_encode($newPermissions),
+                            'permissions' => $newPermissions,
                             'updated_at' => now()
                         ]);
                     $affectedRoles++;
 
                     // Invalidate tokens for users with this role
-                    $usersWithRole = \DB::table('auth_user_roles')->where('role_id', $role->role_id)->get();
+                    $usersWithRole = AuthUserRole::where('role_id', $role->role_id)->get();
                     foreach ($usersWithRole as $userRole) {
                         $this->invalidateUserTokens([
                             'user_id' => $userRole->user_id,

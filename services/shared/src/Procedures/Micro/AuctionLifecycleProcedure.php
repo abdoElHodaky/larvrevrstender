@@ -308,27 +308,14 @@ class AuctionLifecycleProcedure
                 'additional_data' => $additionalData
             ];
 
-            switch ($eventType) {
-                case 'auction_started':
-                    $this->sendAuctionStartedNotifications($notificationData);
-                    break;
-                
-                case 'auction_ending_soon':
-                    $this->sendAuctionEndingSoonNotifications($notificationData);
-                    break;
-                
-                case 'auction_ended':
-                    $this->sendAuctionEndedNotifications($notificationData, $additionalData);
-                    break;
-                
-                case 'auction_won':
-                    $this->sendAuctionWonNotifications($notificationData, $additionalData);
-                    break;
-                
-                case 'auction_settlement_completed':
-                    $this->sendSettlementCompletedNotifications($notificationData, $additionalData);
-                    break;
-            }
+            match ($eventType) {
+                'auction_started' => $this->sendAuctionStartedNotifications($notificationData),
+                'auction_ending_soon' => $this->sendAuctionEndingSoonNotifications($notificationData),
+                'auction_ended' => $this->sendAuctionEndedNotifications($notificationData, $additionalData),
+                'auction_won' => $this->sendAuctionWonNotifications($notificationData, $additionalData),
+                'auction_settlement_completed' => $this->sendSettlementCompletedNotifications($notificationData, $additionalData),
+                default => null
+            };
 
             return [
                 'success' => true,

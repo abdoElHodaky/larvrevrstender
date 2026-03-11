@@ -312,21 +312,14 @@ class MetricsController extends Controller
                 'error_rate' => rand(0, 5) . '%',
             ];
 
-            // Increment based on groupBy
-            switch ($groupBy) {
-                case 'hour':
-                    $current->addHour();
-                    break;
-                case 'day':
-                    $current->addDay();
-                    break;
-                case 'week':
-                    $current->addWeek();
-                    break;
-                case 'month':
-                    $current->addMonth();
-                    break;
-            }
+            // Increment based on groupBy (PHP 8.3 match expression)
+            match ($groupBy) {
+                'hour' => $current->addHour(),
+                'day' => $current->addDay(),
+                'week' => $current->addWeek(),
+                'month' => $current->addMonth(),
+                default => throw new \InvalidArgumentException("Invalid groupBy value: {$groupBy}")
+            };
         }
 
         return $summary;
@@ -349,21 +342,14 @@ class MetricsController extends Controller
                 'formatted_value' => $this->formatMetricValue($metricName, $value),
             ];
 
-            // Increment based on interval
-            switch ($interval) {
-                case 'hour':
-                    $current->addHour();
-                    break;
-                case 'day':
-                    $current->addDay();
-                    break;
-                case 'week':
-                    $current->addWeek();
-                    break;
-                case 'month':
-                    $current->addMonth();
-                    break;
-            }
+            // Increment based on interval (PHP 8.3 match expression)
+            match ($interval) {
+                'hour' => $current->addHour(),
+                'day' => $current->addDay(),
+                'week' => $current->addWeek(),
+                'month' => $current->addMonth(),
+                default => throw new \InvalidArgumentException("Invalid interval value: {$interval}")
+            };
         }
 
         return $trends;
@@ -375,21 +361,15 @@ class MetricsController extends Controller
     private function generatePerformanceData(?string $serviceName, Carbon $dateFrom, Carbon $dateTo, array $metrics): array
     {
         $services = $serviceName ? [$serviceName] : ['auth', 'auction', 'payment', 'notification', 'user', 'order', 'analytics'];
-        $performance = [];
-
-        foreach ($services as $service) {
-            $serviceData = [
-                'service_name' => $service,
-                'status' => rand(0, 100) > 5 ? 'healthy' : 'degraded', // 95% healthy
-                'metrics' => [],
-            ];
-
-            foreach ($metrics as $metric) {
-                $serviceData['metrics'][$metric] = $this->generatePerformanceMetric($metric);
-            }
-
-            $performance[] = $serviceData;
-        }
+        
+        // Modern PHP 8.3 collection approach
+        $performance = collect($services)->map(fn($service) => [
+            'service_name' => $service,
+            'status' => rand(0, 100) > 5 ? 'healthy' : 'degraded', // 95% healthy
+            'metrics' => collect($metrics)->mapWithKeys(fn($metric) => [
+                $metric => $this->generatePerformanceMetric($metric)
+            ])->toArray(),
+        ])->toArray();
 
         return [
             'services' => $performance,
@@ -403,28 +383,18 @@ class MetricsController extends Controller
      */
     private function generateMetricValue(string $metricName): float
     {
-        switch ($metricName) {
-            case 'total_users':
-                return rand(1000, 10000);
-            case 'active_users':
-                return rand(500, 5000);
-            case 'new_registrations':
-                return rand(10, 100);
-            case 'total_auctions':
-                return rand(50, 500);
-            case 'completed_auctions':
-                return rand(40, 450);
-            case 'total_revenue':
-                return rand(5000, 50000);
-            case 'api_response_time':
-                return rand(50, 500) / 1000; // in seconds
-            case 'error_rate':
-                return rand(0, 10) / 100; // as percentage
-            case 'system_uptime':
-                return rand(95, 100) / 100; // as percentage
-            default:
-                return rand(1, 1000);
-        }
+        return match ($metricName) {
+            'total_users' => rand(1000, 10000),
+            'active_users' => rand(500, 5000),
+            'new_registrations' => rand(10, 100),
+            'total_auctions' => rand(50, 500),
+            'completed_auctions' => rand(40, 450),
+            'total_revenue' => rand(5000, 50000),
+            'api_response_time' => rand(50, 500) / 1000, // in seconds
+            'error_rate' => rand(0, 10) / 100, // as percentage
+            'system_uptime' => rand(95, 100) / 100, // as percentage
+            default => rand(1, 1000)
+        };
     }
 
     /**
@@ -432,17 +402,12 @@ class MetricsController extends Controller
      */
     private function formatMetricValue(string $metricName, float $value): string
     {
-        switch ($metricName) {
-            case 'api_response_time':
-                return number_format($value * 1000, 2) . 'ms';
-            case 'error_rate':
-            case 'system_uptime':
-                return number_format($value * 100, 2) . '%';
-            case 'total_revenue':
-                return '$' . number_format($value, 2);
-            default:
-                return number_format($value);
-        }
+        return match ($metricName) {
+            'api_response_time' => number_format($value * 1000, 2) . 'ms',
+            'error_rate', 'system_uptime' => number_format($value * 100, 2) . '%',
+            'total_revenue' => '$' . number_format($value, 2),
+            default => number_format($value)
+        };
     }
 
     /**
@@ -450,8 +415,8 @@ class MetricsController extends Controller
      */
     private function generatePerformanceMetric(string $metric): array
     {
-        switch ($metric) {
-            case 'response_time':
+        return match ($metric) {
+            'response_time' => (function() {
                 $value = rand(50, 500);
                 return [
                     'current' => $value,
@@ -461,7 +426,8 @@ class MetricsController extends Controller
                     'unit' => 'ms',
                     'status' => $value < 300 ? 'good' : ($value < 500 ? 'warning' : 'critical'),
                 ];
-            case 'error_rate':
+            })(),
+            'error_rate' => (function() {
                 $value = rand(0, 10) / 100;
                 return [
                     'current' => $value,
@@ -469,7 +435,8 @@ class MetricsController extends Controller
                     'unit' => '%',
                     'status' => $value < 0.01 ? 'good' : ($value < 0.05 ? 'warning' : 'critical'),
                 ];
-            case 'throughput':
+            })(),
+            'throughput' => (function() {
                 $value = rand(100, 1000);
                 return [
                     'current' => $value,
@@ -478,7 +445,8 @@ class MetricsController extends Controller
                     'unit' => 'req/min',
                     'status' => 'good',
                 ];
-            case 'availability':
+            })(),
+            'availability' => (function() {
                 $value = rand(95, 100) / 100;
                 return [
                     'current' => $value,
@@ -486,13 +454,13 @@ class MetricsController extends Controller
                     'unit' => '%',
                     'status' => $value > 0.99 ? 'good' : ($value > 0.95 ? 'warning' : 'critical'),
                 ];
-            default:
-                return [
-                    'current' => rand(1, 100),
-                    'unit' => 'units',
-                    'status' => 'good',
-                ];
-        }
+            })(),
+            default => [
+                'current' => rand(1, 100),
+                'unit' => 'units',
+                'status' => 'good',
+            ]
+        };
     }
 
     /**

@@ -133,30 +133,21 @@ class GatewayController extends Controller
     {
         $context = $this->buildContext($request);
 
-        switch ($operation) {
-            case 'set':
-                $result = $this->gateway->cacheSet($request->all(), $context);
-                break;
-            case 'get':
-                $result = $this->gateway->cacheGet($request->all(), $context);
-                break;
-            case 'delete':
-                $result = $this->gateway->cacheDelete($request->all(), $context);
-                break;
-            case 'exists':
-                $result = $this->gateway->cacheExists($request->all(), $context);
-                break;
-            case 'stats':
-                $result = $this->gateway->cacheStats($request->all(), $context);
-                break;
-            case 'flush':
-                $result = $this->gateway->cacheFlush($request->all(), $context);
-                break;
-            default:
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid cache operation',
-                ], 400);
+        $result = match ($operation) {
+            'set' => $this->gateway->cacheSet($request->all(), $context),
+            'get' => $this->gateway->cacheGet($request->all(), $context),
+            'delete' => $this->gateway->cacheDelete($request->all(), $context),
+            'exists' => $this->gateway->cacheExists($request->all(), $context),
+            'stats' => $this->gateway->cacheStats($request->all(), $context),
+            'flush' => $this->gateway->cacheFlush($request->all(), $context),
+            default => null
+        };
+
+        if ($result === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid cache operation',
+            ], 400);
         }
 
         return $this->formatResponse($result);

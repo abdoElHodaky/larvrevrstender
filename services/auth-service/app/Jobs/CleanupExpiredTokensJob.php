@@ -3,6 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\PersonalAccessToken;
+use App\Models\PasswordResetToken;
+use App\Models\ActivityLog;
 use Shared\Jobs\BaseQueueJob;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -117,26 +119,17 @@ class CleanupExpiredTokensJob extends BaseQueueJob
             'retention_period' => $this->retentionPeriods[$cleanupType] ?? 'default'
         ]);
 
-        switch ($cleanupType) {
-            case 'personal_access_tokens':
-                return $this->cleanupPersonalAccessTokens();
-            
-            case 'password_reset_tokens':
-                return $this->cleanupPasswordResetTokens();
-            
-            case 'expired_sessions':
-                return $this->cleanupExpiredSessions();
-            
-            case 'inactive_sessions':
-                return $this->cleanupInactiveSessions();
-            
-            case 'activity_logs':
-                return $this->cleanupOldActivityLogs();
-            
-            default:
+        return match ($cleanupType) {
+            'personal_access_tokens' => $this->cleanupPersonalAccessTokens(),
+            'password_reset_tokens' => $this->cleanupPasswordResetTokens(),
+            'expired_sessions' => $this->cleanupExpiredSessions(),
+            'inactive_sessions' => $this->cleanupInactiveSessions(),
+            'activity_logs' => $this->cleanupOldActivityLogs(),
+            default => (function() use ($cleanupType) {
                 Log::warning('Unknown cleanup type', ['cleanup_type' => $cleanupType]);
                 return ['deleted' => 0, 'batches' => 0, 'duration_ms' => 0];
-        }
+            })()
+        };
     }
 
     /**
@@ -205,8 +198,7 @@ class CleanupExpiredTokensJob extends BaseQueueJob
         $expirationTime = now()->subHours($this->retentionPeriods['password_reset_tokens']);
 
         do {
-            $deleted = DB::table('password_reset_tokens')
-                ->where('created_at', '<', $expirationTime)
+            $deleted = PasswordResetToken::expired($expirationTime)
                 ->limit($this->batchSize)
                 ->delete();
             
@@ -326,8 +318,7 @@ class CleanupExpiredTokensJob extends BaseQueueJob
         $retentionDate = now()->subDays($this->retentionPeriods['activity_logs']);
 
         do {
-            $deleted = DB::table('activity_logs')
-                ->where('created_at', '<', $retentionDate)
+            $deleted = ActivityLog::where('created_at', '<', $retentionDate)
                 ->limit($this->batchSize)
                 ->delete();
             

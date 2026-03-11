@@ -228,33 +228,18 @@ class TemplateManager
      */
     private function applyChannelFormatting(string $content, string $channel): string
     {
-        switch ($channel) {
-            case 'email':
-                // Convert line breaks to HTML
-                $content = nl2br($content);
-                break;
-                
-            case 'sms':
+        $content = match ($channel) {
+            'email' => nl2br($content), // Convert line breaks to HTML
+            'sms' => (function() use ($content) {
                 // Limit length and remove HTML
                 $content = strip_tags($content);
-                $content = substr($content, 0, 160);
-                break;
-                
-            case 'whatsapp':
-                // Keep emojis and formatting
-                $content = $this->preserveWhatsAppFormatting($content);
-                break;
-                
-            case 'telegram':
-                // Keep HTML formatting
-                $content = $this->preserveTelegramFormatting($content);
-                break;
-                
-            case 'push':
-                // Limit title and body length
-                $content = $this->formatPushNotification($content);
-                break;
-        }
+                return substr($content, 0, 160);
+            })(),
+            'whatsapp' => $this->preserveWhatsAppFormatting($content), // Keep emojis and formatting
+            'telegram' => $this->preserveTelegramFormatting($content), // Keep HTML formatting
+            'push' => $this->formatPushNotification($content), // Limit title and body length
+            default => $content
+        };
         
         return $content;
     }

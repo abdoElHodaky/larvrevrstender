@@ -216,18 +216,13 @@ class RestHandler
      */
     private function mapHttpMethodToProcedureMethod(string $httpMethod, string $baseMethod): string
     {
-        switch ($httpMethod) {
-            case 'GET':
-                return 'get' . ucfirst($baseMethod);
-            case 'POST':
-                return 'create' . ucfirst($baseMethod);
-            case 'PUT':
-                return 'update' . ucfirst($baseMethod);
-            case 'DELETE':
-                return 'delete' . ucfirst($baseMethod);
-            default:
-                return $baseMethod;
-        }
+        return match ($httpMethod) {
+            'GET' => 'get' . ucfirst($baseMethod),
+            'POST' => 'create' . ucfirst($baseMethod),
+            'PUT' => 'update' . ucfirst($baseMethod),
+            'DELETE' => 'delete' . ucfirst($baseMethod),
+            default => $baseMethod
+        };
     }
 
     /**

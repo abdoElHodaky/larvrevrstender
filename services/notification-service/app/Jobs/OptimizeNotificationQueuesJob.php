@@ -194,28 +194,15 @@ class OptimizeNotificationQueuesJob extends BaseQueueJob
      */
     private function performOptimizationType(string $queueName, string $optimizationType): array
     {
-        switch ($optimizationType) {
-            case 'cleanup_failed_jobs':
-                return $this->cleanupFailedJobs($queueName);
-            
-            case 'requeue_stuck_jobs':
-                return $this->requeueStuckJobs($queueName);
-            
-            case 'remove_duplicate_jobs':
-                return $this->removeDuplicateJobs($queueName);
-            
-            case 'optimize_job_priorities':
-                return $this->optimizeJobPriorities($queueName);
-            
-            case 'balance_queue_load':
-                return $this->balanceQueueLoad($queueName);
-            
-            case 'cleanup_expired_jobs':
-                return $this->cleanupExpiredJobs($queueName);
-            
-            default:
-                throw new \InvalidArgumentException("Unknown optimization type: {$optimizationType}");
-        }
+        return match ($optimizationType) {
+            'cleanup_failed_jobs' => $this->cleanupFailedJobs($queueName),
+            'requeue_stuck_jobs' => $this->requeueStuckJobs($queueName),
+            'remove_duplicate_jobs' => $this->removeDuplicateJobs($queueName),
+            'optimize_job_priorities' => $this->optimizeJobPriorities($queueName),
+            'balance_queue_load' => $this->balanceQueueLoad($queueName),
+            'cleanup_expired_jobs' => $this->cleanupExpiredJobs($queueName),
+            default => throw new \InvalidArgumentException("Unknown optimization type: {$optimizationType}")
+        };
     }
 
     /**
@@ -665,4 +652,3 @@ class OptimizeNotificationQueuesJob extends BaseQueueJob
         // broadcast(new \App\Events\Notifications\QueueOptimizationFailed(...));
     }
 }
-

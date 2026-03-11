@@ -360,18 +360,13 @@ class ReportController extends Controller
         $dateTo = $parameters['date_to'];
         $filters = $parameters['filters'] ?? [];
 
-        switch ($type) {
-            case 'user_activity':
-                return $this->generateUserActivityData($dateFrom, $dateTo, $filters);
-            case 'auction_performance':
-                return $this->generateAuctionPerformanceData($dateFrom, $dateTo, $filters);
-            case 'revenue':
-                return $this->generateRevenueData($dateFrom, $dateTo, $filters);
-            case 'system_health':
-                return $this->generateSystemHealthData($dateFrom, $dateTo, $filters);
-            default:
-                return ['error' => 'Unknown report type'];
-        }
+        return match ($type) {
+            'user_activity' => $this->generateUserActivityData($dateFrom, $dateTo, $filters),
+            'auction_performance' => $this->generateAuctionPerformanceData($dateFrom, $dateTo, $filters),
+            'revenue' => $this->generateRevenueData($dateFrom, $dateTo, $filters),
+            'system_health' => $this->generateSystemHealthData($dateFrom, $dateTo, $filters),
+            default => ['error' => 'Unknown report type']
+        };
     }
 
     /**
@@ -475,25 +470,18 @@ class ReportController extends Controller
             mkdir(storage_path('app/' . $directory), 0755, true);
         }
 
-        switch ($format) {
-            case 'json':
-                file_put_contents(
-                    storage_path('app/' . $filePath),
-                    json_encode($data, JSON_PRETTY_PRINT)
-                );
-                break;
-            case 'csv':
-                $this->saveAsCsv(storage_path('app/' . $filePath), $data);
-                break;
-            case 'pdf':
-                // For PDF, we'd use a library like TCPDF or DomPDF
-                // For now, save as JSON with PDF extension
-                file_put_contents(
-                    storage_path('app/' . $filePath),
-                    json_encode($data, JSON_PRETTY_PRINT)
-                );
-                break;
-        }
+        match ($format) {
+            'json' => file_put_contents(
+                storage_path('app/' . $filePath),
+                json_encode($data, JSON_PRETTY_PRINT)
+            ),
+            'csv' => $this->saveAsCsv(storage_path('app/' . $filePath), $data),
+            'pdf' => file_put_contents(
+                storage_path('app/' . $filePath),
+                json_encode($data, JSON_PRETTY_PRINT) // For PDF, we'd use a library like TCPDF or DomPDF
+            ),
+            default => throw new \InvalidArgumentException("Unsupported format: {$format}")
+        };
 
         return $filePath;
     }

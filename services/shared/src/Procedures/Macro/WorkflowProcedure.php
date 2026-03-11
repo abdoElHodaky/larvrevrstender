@@ -230,24 +230,24 @@ trait WorkflowProcedure
             ]);
             
             // Simple step execution logic
-            switch ($stepType) {
-                case 'delay':
+            return match ($stepType) {
+                'delay' => (function() use ($step) {
                     $seconds = $step['seconds'] ?? 1;
                     sleep($seconds);
                     return [
                         'success' => true,
                         'message' => "Delayed for {$seconds} seconds"
                     ];
-                    
-                case 'log':
+                })(),
+                'log' => (function() use ($step, $data) {
                     $message = $step['message'] ?? 'Workflow step executed';
                     Log::info($message, ['step_data' => $data]);
                     return [
                         'success' => true,
                         'message' => 'Log entry created'
                     ];
-                    
-                case 'validate':
+                })(),
+                'validate' => (function() use ($step, $data) {
                     $required = $step['required_fields'] ?? [];
                     foreach ($required as $field) {
                         if (!isset($data[$field])) {
@@ -261,13 +261,12 @@ trait WorkflowProcedure
                         'success' => true,
                         'message' => 'Validation passed'
                     ];
-                    
-                default:
-                    return [
-                        'success' => true,
-                        'message' => "Generic step '{$stepName}' executed"
-                    ];
-            }
+                })(),
+                default => [
+                    'success' => true,
+                    'message' => "Generic step '{$stepName}' executed"
+                ]
+            };
             
         } catch (Exception $e) {
             return [

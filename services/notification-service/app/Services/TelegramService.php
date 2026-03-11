@@ -529,20 +529,13 @@ class TelegramService
         foreach ($entities as $entity) {
             $entityText = substr($text, $entity['offset'], $entity['length']);
             
-            switch ($entity['type']) {
-                case 'mention':
-                    $parsed['mentions'][] = $entityText;
-                    break;
-                case 'hashtag':
-                    $parsed['hashtags'][] = $entityText;
-                    break;
-                case 'url':
-                    $parsed['urls'][] = $entityText;
-                    break;
-                case 'bot_command':
-                    $parsed['bot_commands'][] = $entityText;
-                    break;
-            }
+            match ($entity['type']) {
+                'mention' => $parsed['mentions'][] = $entityText,
+                'hashtag' => $parsed['hashtags'][] = $entityText,
+                'url' => $parsed['urls'][] = $entityText,
+                'bot_command' => $parsed['bot_commands'][] = $entityText,
+                default => null
+            };
         }
 
         return $parsed;

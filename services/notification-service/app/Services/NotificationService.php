@@ -467,21 +467,16 @@ class NotificationService
             ];
         }
 
-        switch ($data['type']) {
-            case 'email':
-                return $this->sendEmailNotification($notificationId, $data);
-            case 'sms':
-                return $this->sendSmsNotification($notificationId, $data);
-            case 'push':
-                return $this->sendPushNotification($notificationId, $data);
-            case 'in_app':
-                return $this->sendInAppNotification($notificationId, $data);
-            default:
-                return [
-                    'success' => false,
-                    'reason' => 'Unknown notification type',
-                ];
-        }
+        return match ($data['type']) {
+            'email' => $this->sendEmailNotification($notificationId, $data),
+            'sms' => $this->sendSmsNotification($notificationId, $data),
+            'push' => $this->sendPushNotification($notificationId, $data),
+            'in_app' => $this->sendInAppNotification($notificationId, $data),
+            default => [
+                'success' => false,
+                'reason' => 'Unknown notification type',
+            ]
+        };
     }
 
     /**

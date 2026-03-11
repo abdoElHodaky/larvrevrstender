@@ -420,24 +420,23 @@ class PaymentMethod extends Model
         ];
 
         // Add type-specific data for fingerprinting
-        switch ($this->type) {
-            case self::TYPE_CARD:
-                $data['card_fingerprint'] = $this->card_fingerprint;
-                $data['card_last_four'] = $this->card_last_four;
-                $data['card_exp_month'] = $this->card_exp_month;
-                $data['card_exp_year'] = $this->card_exp_year;
-                break;
-                
-            case self::TYPE_BANK_ACCOUNT:
-                $data['bank_account_last_four'] = $this->bank_account_last_four;
-                $data['bank_routing_number'] = $this->bank_routing_number;
-                break;
-                
-            case self::TYPE_WALLET:
-                $data['wallet_type'] = $this->wallet_type;
-                $data['wallet_account_id'] = $this->wallet_account_id;
-                break;
-        }
+        match ($this->type) {
+            self::TYPE_CARD => [
+                $data['card_fingerprint'] = $this->card_fingerprint,
+                $data['card_last_four'] = $this->card_last_four,
+                $data['card_exp_month'] = $this->card_exp_month,
+                $data['card_exp_year'] = $this->card_exp_year
+            ],
+            self::TYPE_BANK_ACCOUNT => [
+                $data['bank_account_last_four'] = $this->bank_account_last_four,
+                $data['bank_routing_number'] = $this->bank_routing_number
+            ],
+            self::TYPE_WALLET => [
+                $data['wallet_type'] = $this->wallet_type,
+                $data['wallet_account_id'] = $this->wallet_account_id
+            ],
+            default => null
+        };
 
         return hash('sha256', json_encode($data));
     }

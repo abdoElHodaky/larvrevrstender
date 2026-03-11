@@ -366,22 +366,13 @@ class AnalyticsService
         try {
             $reportData = [];
 
-            switch ($reportType) {
-                case 'user_activity':
-                    $reportData = $this->generateUserActivityReport($startDate, $endDate, $filters);
-                    break;
-                case 'event_summary':
-                    $reportData = $this->generateEventSummaryReport($startDate, $endDate, $filters);
-                    break;
-                case 'business_metrics':
-                    $reportData = $this->generateBusinessMetricsReport($startDate, $endDate, $filters);
-                    break;
-                case 'conversion_analysis':
-                    $reportData = $this->generateConversionAnalysisReport($startDate, $endDate, $filters);
-                    break;
-                default:
-                    throw new \InvalidArgumentException("Unsupported report type: {$reportType}");
-            }
+            $reportData = match ($reportType) {
+                'user_activity' => $this->generateUserActivityReport($startDate, $endDate, $filters),
+                'event_summary' => $this->generateEventSummaryReport($startDate, $endDate, $filters),
+                'business_metrics' => $this->generateBusinessMetricsReport($startDate, $endDate, $filters),
+                'conversion_analysis' => $this->generateConversionAnalysisReport($startDate, $endDate, $filters),
+                default => throw new \InvalidArgumentException("Unsupported report type: {$reportType}")
+            };
 
             $report = [
                 'report_type' => $reportType,
@@ -436,20 +427,14 @@ class AnalyticsService
     private function groupMetricsByPeriod($metrics, string $groupBy): array
     {
         return $metrics->groupBy(function ($metric) use ($groupBy) {
-            switch ($groupBy) {
-                case 'hour':
-                    return $metric->metric_date->format('Y-m-d H:00');
-                case 'day':
-                    return $metric->metric_date->format('Y-m-d');
-                case 'week':
-                    return $metric->metric_date->startOfWeek()->format('Y-m-d');
-                case 'month':
-                    return $metric->metric_date->format('Y-m');
-                case 'year':
-                    return $metric->metric_date->format('Y');
-                default:
-                    return $metric->metric_date->format('Y-m-d');
-            }
+            return match ($groupBy) {
+                'hour' => $metric->metric_date->format('Y-m-d H:00'),
+                'day' => $metric->metric_date->format('Y-m-d'),
+                'week' => $metric->metric_date->startOfWeek()->format('Y-m-d'),
+                'month' => $metric->metric_date->format('Y-m'),
+                'year' => $metric->metric_date->format('Y'),
+                default => $metric->metric_date->format('Y-m-d')
+            };
         })->map(function ($periodMetrics, $period) {
             return [
                 'period' => $period,

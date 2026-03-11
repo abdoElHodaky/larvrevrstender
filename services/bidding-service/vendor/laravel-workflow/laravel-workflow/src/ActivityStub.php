@@ -9,6 +9,7 @@ use function React\Promise\all;
 use React\Promise\Deferred;
 use React\Promise\PromiseInterface;
 use function React\Promise\resolve;
+use RuntimeException;
 use Throwable;
 use Workflow\Serializers\Serializer;
 
@@ -28,9 +29,7 @@ final class ActivityStub
     {
         $context = WorkflowStub::getContext();
 
-        $log = $context->storedWorkflow->logs()
-            ->whereIndex($context->index)
-            ->first();
+        $log = $context->storedWorkflow->findLogByIndex($context->index);
 
         if (WorkflowStub::faked()) {
             $mocks = WorkflowStub::mocks();
@@ -38,15 +37,14 @@ final class ActivityStub
             if (! $log && array_key_exists($activity, $mocks)) {
                 $result = $mocks[$activity];
 
-                $log = $context->storedWorkflow->logs()
-                    ->create([
-                        'index' => $context->index,
-                        'now' => $context->now,
-                        'class' => $activity,
-                        'result' => Serializer::serialize(
-                            is_callable($result) ? $result($context, ...$arguments) : $result
-                        ),
-                    ]);
+                $log = $context->storedWorkflow->createLog([
+                    'index' => $context->index,
+                    'now' => $context->now,
+                    'class' => $activity,
+                    'result' => Serializer::serialize(
+                        is_callable($result) ? $result($context, ...$arguments) : $result
+                    ),
+                ]);
 
                 WorkflowStub::recordDispatched($activity, $arguments);
             }
@@ -61,7 +59,17 @@ final class ActivityStub
                 array_key_exists('class', $result) &&
                 is_subclass_of($result['class'], Throwable::class)
             ) {
-                throw new $result['class']($result['message'], (int) $result['code']);
+                try {
+                    $throwable = new $result['class']($result['message'] ?? '', (int) ($result['code'] ?? 0));
+                } catch (Throwable $throwable) {
+                    throw new RuntimeException(
+                        sprintf('[%s] %s', $result['class'], (string) ($result['message'] ?? '')),
+                        (int) ($result['code'] ?? 0),
+                        $throwable
+                    );
+                }
+
+                throw $throwable;
             }
             return resolve($result);
         }

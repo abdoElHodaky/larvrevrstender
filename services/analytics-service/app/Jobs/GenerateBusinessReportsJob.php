@@ -162,31 +162,16 @@ class GenerateBusinessReportsJob extends BaseQueueJob
             'end_date' => $this->endDate->toDateString()
         ]);
 
-        switch ($reportType) {
-            case 'executive_summary':
-                return $this->generateExecutiveSummaryReport($analyticsService);
-            
-            case 'user_engagement':
-                return $this->generateUserEngagementReport($analyticsService);
-            
-            case 'conversion_funnel':
-                return $this->generateConversionFunnelReport($analyticsService);
-            
-            case 'revenue_analytics':
-                return $this->generateRevenueAnalyticsReport($analyticsService);
-            
-            case 'platform_performance':
-                return $this->generatePlatformPerformanceReport($analyticsService);
-            
-            case 'geographic_distribution':
-                return $this->generateGeographicDistributionReport($analyticsService);
-            
-            case 'cohort_analysis':
-                return $this->generateCohortAnalysisReport($analyticsService);
-            
-            default:
-                throw new \InvalidArgumentException("Unknown report type: {$reportType}");
-        }
+        return match ($reportType) {
+            'executive_summary' => $this->generateExecutiveSummaryReport($analyticsService),
+            'user_engagement' => $this->generateUserEngagementReport($analyticsService),
+            'conversion_funnel' => $this->generateConversionFunnelReport($analyticsService),
+            'revenue_analytics' => $this->generateRevenueAnalyticsReport($analyticsService),
+            'platform_performance' => $this->generatePlatformPerformanceReport($analyticsService),
+            'geographic_distribution' => $this->generateGeographicDistributionReport($analyticsService),
+            'cohort_analysis' => $this->generateCohortAnalysisReport($analyticsService),
+            default => throw new \InvalidArgumentException("Unknown report type: {$reportType}")
+        };
     }
 
     /**

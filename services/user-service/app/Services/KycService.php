@@ -400,31 +400,16 @@ class KycService
      */
     protected function getNextSteps(User $user, string $overallStatus, array $missingTypes): array
     {
-        switch ($overallStatus) {
-            case 'not_started':
-                return ['Upload required documents: '.implode(', ', $this->getRequiredDocumentTypes())];
-
-            case 'pending':
-                if (! empty($missingTypes)) {
-                    return ['Upload missing documents: '.implode(', ', $missingTypes)];
-                }
-
-                return ['Submit documents for review'];
-
-            case 'under_review':
-                return ['Wait for document review to complete'];
-
-            case 'rejected':
-                $rejectedDocs = $user->kycDocuments()->rejected()->pluck('document_type')->toArray();
-
-                return ['Resubmit rejected documents: '.implode(', ', $rejectedDocs)];
-
-            case 'approved':
-                return ['KYC verification complete'];
-
-            default:
-                return ['Contact support for assistance'];
-        }
+        return match ($overallStatus) {
+            'not_started' => ['Upload required documents: '.implode(', ', $this->getRequiredDocumentTypes())],
+            'pending' => ! empty($missingTypes) 
+                ? ['Upload missing documents: '.implode(', ', $missingTypes)]
+                : ['Submit documents for review'],
+            'under_review' => ['Wait for document review to complete'],
+            'rejected' => ['Resubmit rejected documents: '.implode(', ', $user->kycDocuments()->rejected()->pluck('document_type')->toArray())],
+            'approved' => ['KYC verification complete'],
+            default => ['Contact support for assistance']
+        };
     }
 
     /**
