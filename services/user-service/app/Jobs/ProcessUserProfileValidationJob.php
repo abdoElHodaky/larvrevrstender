@@ -241,32 +241,19 @@ class ProcessUserProfileValidationJob extends BaseQueueJob
      */
     private function performValidationType(User $user, string $validationType): array
     {
-        switch ($validationType) {
-            case 'basic_profile':
-                return $this->validateBasicProfile($user);
-            
-            case 'contact_verification':
-                return $this->validateContactVerification($user);
-            
-            case 'customer_profile':
-                return $this->validateCustomerProfile($user);
-            
-            case 'kyc_documents':
-                return $this->validateKycDocuments($user);
-            
-            case 'profile_completeness':
-                return $this->validateProfileCompleteness($user);
-            
-            case 'data_consistency':
-                return $this->validateDataConsistency($user);
-            
-            default:
-                return [
-                    'passed' => false,
-                    'severity' => 'warning',
-                    'message' => "Unknown validation type: {$validationType}"
-                ];
-        }
+        return match ($validationType) {
+            'basic_profile' => $this->validateBasicProfile($user),
+            'contact_verification' => $this->validateContactVerification($user),
+            'customer_profile' => $this->validateCustomerProfile($user),
+            'kyc_documents' => $this->validateKycDocuments($user),
+            'profile_completeness' => $this->validateProfileCompleteness($user),
+            'data_consistency' => $this->validateDataConsistency($user),
+            default => [
+                'passed' => false,
+                'severity' => 'warning',
+                'message' => "Unknown validation type: {$validationType}"
+            ]
+        };
     }
 
     /**

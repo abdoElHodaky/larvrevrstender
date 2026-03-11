@@ -95,14 +95,13 @@ class HealthController extends Controller
         $last = strtolower($limit[strlen($limit) - 1]);
         $limit = (int) $limit;
 
-        switch ($last) {
-            case 'g':
-                $limit *= 1024;
-            case 'm':
-                $limit *= 1024;
-            case 'k':
-                $limit *= 1024;
-        }
+        $multiplier = match ($last) {
+            'g' => 1024 * 1024 * 1024,
+            'm' => 1024 * 1024,
+            'k' => 1024,
+            default => 1
+        };
+        $limit *= $multiplier;
 
         return $limit;
     }

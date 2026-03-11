@@ -385,18 +385,16 @@ trait CacheManagementProcedure
     private function setCacheValue(string $key, $value, int $ttl, string $driver, array $tags = []): array
     {
         try {
-            switch ($driver) {
-                case 'redis':
-                    return $this->setRedisValue($key, $value, $ttl, $tags);
-                case 'memcached':
-                    return $this->setMemcachedValue($key, $value, $ttl, $tags);
-                case 'file':
-                    return $this->setFileValue($key, $value, $ttl, $tags);
-                default:
+            return match ($driver) {
+                'redis' => $this->setRedisValue($key, $value, $ttl, $tags),
+                'memcached' => $this->setMemcachedValue($key, $value, $ttl, $tags),
+                'file' => $this->setFileValue($key, $value, $ttl, $tags),
+                default => (function() use ($key, $value, $ttl) {
                     // Use Laravel's default cache
                     Cache::put($key, $value, $ttl);
                     return ['success' => true];
-            }
+                })()
+            };
         } catch (Exception $e) {
             return [
                 'success' => false,
@@ -415,20 +413,18 @@ trait CacheManagementProcedure
     private function getCacheValue(string $key, string $driver): array
     {
         try {
-            switch ($driver) {
-                case 'redis':
-                    return $this->getRedisValue($key);
-                case 'memcached':
-                    return $this->getMemcachedValue($key);
-                case 'file':
-                    return $this->getFileValue($key);
-                default:
+            return match ($driver) {
+                'redis' => $this->getRedisValue($key),
+                'memcached' => $this->getMemcachedValue($key),
+                'file' => $this->getFileValue($key),
+                default => (function() use ($key) {
                     $value = Cache::get($key);
                     return [
                         'success' => $value !== null,
                         'value' => $value
                     ];
-            }
+                })()
+            };
         } catch (Exception $e) {
             return [
                 'success' => false,
@@ -447,16 +443,16 @@ trait CacheManagementProcedure
     private function deleteCacheValue(string $key, string $driver): array
     {
         try {
-            switch ($driver) {
-                case 'redis':
+            return match ($driver) {
+                'redis' => (function() use ($key) {
                     $result = Redis::del($key);
                     return ['success' => $result > 0];
-                case 'memcached':
-                case 'file':
-                default:
+                })(),
+                'memcached', 'file', default => (function() use ($key) {
                     $result = Cache::forget($key);
                     return ['success' => $result];
-            }
+                })()
+            };
         } catch (Exception $e) {
             return [
                 'success' => false,
@@ -475,12 +471,10 @@ trait CacheManagementProcedure
     private function cacheKeyExists(string $key, string $driver): bool
     {
         try {
-            switch ($driver) {
-                case 'redis':
-                    return Redis::exists($key) > 0;
-                default:
-                    return Cache::has($key);
-            }
+            return match ($driver) {
+                'redis' => Redis::exists($key) > 0,
+                default => Cache::has($key)
+            };
         } catch (Exception $e) {
             return false;
         }
@@ -682,8 +676,8 @@ trait CacheManagementProcedure
     private function getCacheStats(string $driver): array
     {
         try {
-            switch ($driver) {
-                case 'redis':
+            return match ($driver) {
+                'redis' => (function() {
                     $info = Redis::info();
                     return [
                         'driver' => 'redis',
@@ -694,12 +688,12 @@ trait CacheManagementProcedure
                         'keyspace_misses' => $info['keyspace_misses'] ?? 0,
                         'hit_rate' => $this->calculateHitRate($info['keyspace_hits'] ?? 0, $info['keyspace_misses'] ?? 0)
                     ];
-                default:
-                    return [
-                        'driver' => $driver,
-                        'message' => 'Statistics not available for this driver'
-                    ];
-            }
+                })(),
+                default => [
+                    'driver' => $driver,
+                    'message' => 'Statistics not available for this driver'
+                ]
+            };
         } catch (Exception $e) {
             return [
                 'driver' => $driver,
@@ -731,17 +725,16 @@ trait CacheManagementProcedure
     private function flushByPattern(string $pattern, string $driver): int
     {
         try {
-            switch ($driver) {
-                case 'redis':
+            return match ($driver) {
+                'redis' => (function() use ($pattern) {
                     $keys = Redis::keys($pattern);
                     if (!empty($keys)) {
                         return Redis::del($keys);
                     }
                     return 0;
-                default:
-                    // Not supported for other drivers
-                    return 0;
-            }
+                })(),
+                default => 0 // Not supported for other drivers
+            };
         } catch (Exception $e) {
             $this->log('error', 'Flush by pattern failed', [
                 'pattern' => $pattern,
@@ -764,16 +757,17 @@ trait CacheManagementProcedure
             $flushedCount = 0;
             
             foreach ($tags as $tag) {
-                switch ($driver) {
-                    case 'redis':
+                match ($driver) {
+                    'redis' => (function() use ($tag, &$flushedCount) {
                         $tagKey = "tag:{$tag}";
                         $keys = Redis::smembers($tagKey);
                         if (!empty($keys)) {
                             $flushedCount += Redis::del($keys);
                             Redis::del($tagKey); // Remove the tag set itself
                         }
-                        break;
-                }
+                    })(),
+                    default => null
+                };
             }
             
             return $flushedCount;
