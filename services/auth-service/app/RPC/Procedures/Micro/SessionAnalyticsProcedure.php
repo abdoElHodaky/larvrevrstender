@@ -3,6 +3,8 @@
 namespace App\RPC\Procedures\Micro;
 
 use App\Models\AuthUser;
+use App\Models\Session;
+use App\Models\SessionSecurityLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,11 +37,10 @@ trait SessionAnalyticsProcedure
             // Use Laravel's built-in session table with modern PHP 8.3 features
             $startDate = now()->subDays($days)->timestamp;
             
-            // Get session data using collection methods (PHP 8.3)
-            $sessions = collect(DB::table('sessions')
-                ->where('user_id', $userId)
-                ->where('last_activity', '>=', $startDate)
-                ->get());
+            // Get session data using Eloquent model with scopes (Laravel 12)
+            $sessions = Session::forUser($userId)
+                ->dateRange($startDate)
+                ->get();
 
             // Calculate analytics using collection methods instead of loops (PHP 8.3)
             $stats = [
@@ -58,16 +59,13 @@ trait SessionAnalyticsProcedure
             $activeThreshold = now()->subMinutes($sessionLifetime)->timestamp;
             
             $additionalStats = [
-                'active_sessions' => DB::table('sessions')
-                    ->where('user_id', $userId)
-                    ->where('last_activity', '>', $activeThreshold)
+                'active_sessions' => Session::forUser($userId)
+                    ->active($sessionLifetime * 60)
                     ->count(),
-                'recent_sessions' => DB::table('sessions')
-                    ->where('user_id', $userId)
-                    ->where('last_activity', '>', now()->subHour()->timestamp)
+                'recent_sessions' => Session::forUser($userId)
+                    ->dateRange(now()->subHour()->timestamp)
                     ->count(),
-                'unique_ips_last_week' => DB::table('sessions')
-                    ->where('user_id', $userId)
+                'unique_ips_last_week' => Session::forUser($userId)
                     ->where('last_activity', '>', now()->subWeek()->timestamp)
                     ->distinct('ip_address')
                     ->count(),
@@ -122,19 +120,14 @@ trait SessionAnalyticsProcedure
 
             $startDate = now()->subDays($days)->timestamp;
 
-            // Use Laravel's built-in session table with pagination (Laravel 12)
-            $totalCount = DB::table('sessions')
-                ->where('user_id', $userId)
-                ->where('last_activity', '>=', $startDate)
-                ->count();
+            // Use Eloquent model with pagination (Laravel 12)
+            $query = Session::forUser($userId)->dateRange($startDate);
+            $totalCount = $query->count();
 
-            $sessions = collect(DB::table('sessions')
-                ->where('user_id', $userId)
-                ->where('last_activity', '>=', $startDate)
-                ->orderBy('last_activity', 'desc')
+            $sessions = $query->orderBy('last_activity', 'desc')
                 ->limit($limit)
                 ->offset($offset)
-                ->get());
+                ->get();
 
             // Transform sessions using collection methods and arrow functions (PHP 8.3)
             $sessionLifetime = config('session.lifetime', 120);
@@ -270,9 +263,8 @@ trait SessionAnalyticsProcedure
      */
     private function getTotalSessions(int $userId, Carbon $startDate): int
     {
-        return DB::table('sessions')
-            ->where('user_id', $userId)
-            ->where('last_activity', '>=', $startDate->timestamp)
+        return Session::forUser($userId)
+            ->dateRange($startDate->timestamp)
             ->count();
     }
 
@@ -284,9 +276,8 @@ trait SessionAnalyticsProcedure
         $sessionLifetime = config('session.lifetime', 1440);
         $cutoffTime = now()->subMinutes($sessionLifetime)->timestamp;
 
-        return DB::table('sessions')
-            ->where('user_id', $userId)
-            ->where('last_activity', '>', $cutoffTime)
+        return Session::forUser($userId)
+            ->active($sessionLifetime * 60)
             ->count();
     }
 
@@ -295,9 +286,8 @@ trait SessionAnalyticsProcedure
      */
     private function getAverageSessionDuration(int $userId, Carbon $startDate): float
     {
-        $sessions = DB::table('sessions')
-            ->where('user_id', $userId)
-            ->where('last_activity', '>=', $startDate->timestamp)
+        $sessions = Session::forUser($userId)
+            ->dateRange($startDate->timestamp)
             ->get();
 
         if ($sessions->isEmpty()) {
@@ -326,9 +316,8 @@ trait SessionAnalyticsProcedure
      */
     private function getMostUsedDevices(int $userId, Carbon $startDate): array
     {
-        $sessions = DB::table('sessions')
-            ->where('user_id', $userId)
-            ->where('last_activity', '>=', $startDate->timestamp)
+        $sessions = Session::forUser($userId)
+            ->dateRange($startDate->timestamp)
             ->get();
 
         $deviceStats = [];
@@ -366,9 +355,8 @@ trait SessionAnalyticsProcedure
      */
     private function getLoginFrequency(int $userId, Carbon $startDate): array
     {
-        $sessions = DB::table('sessions')
-            ->where('user_id', $userId)
-            ->where('last_activity', '>=', $startDate->timestamp)
+        $sessions = Session::forUser($userId)
+            ->dateRange($startDate->timestamp)
             ->orderBy('last_activity')
             ->get();
 
@@ -396,8 +384,7 @@ trait SessionAnalyticsProcedure
                 return [];
             }
             
-            $incidents = DB::table('session_security_logs')
-                ->where('user_id', $userId)
+            $incidents = SessionSecurityLog::where('user_id', $userId)
                 ->where('created_at', '>=', $startDate)
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -422,9 +409,8 @@ trait SessionAnalyticsProcedure
      */
     private function getGeographicDistribution(int $userId, Carbon $startDate): array
     {
-        $sessions = DB::table('sessions')
-            ->where('user_id', $userId)
-            ->where('last_activity', '>=', $startDate->timestamp)
+        $sessions = Session::forUser($userId)
+            ->dateRange($startDate->timestamp)
             ->get();
 
         $ipStats = [];
@@ -457,8 +443,7 @@ trait SessionAnalyticsProcedure
      */
     private function getSystemTotalSessions(Carbon $startDate): int
     {
-        return DB::table('sessions')
-            ->where('last_activity', '>=', $startDate->timestamp)
+        return Session::dateRange($startDate->timestamp)
             ->count();
     }
 
@@ -470,8 +455,7 @@ trait SessionAnalyticsProcedure
         $sessionLifetime = config('session.lifetime', 1440);
         $cutoffTime = now()->subMinutes($sessionLifetime)->timestamp;
 
-        return DB::table('sessions')
-            ->where('last_activity', '>', $cutoffTime)
+        return Session::active($sessionLifetime * 60)
             ->count();
     }
 
@@ -480,8 +464,7 @@ trait SessionAnalyticsProcedure
      */
     private function getUniqueActiveUsers(Carbon $startDate): int
     {
-        return DB::table('sessions')
-            ->where('last_activity', '>=', $startDate->timestamp)
+        return Session::dateRange($startDate->timestamp)
             ->distinct('user_id')
             ->count('user_id');
     }
@@ -498,8 +481,7 @@ trait SessionAnalyticsProcedure
             $dayStart = $date->startOfDay()->timestamp;
             $dayEnd = $date->endOfDay()->timestamp;
 
-            $count = DB::table('sessions')
-                ->whereBetween('last_activity', [$dayStart, $dayEnd])
+            $count = Session::dateRange($dayStart, $dayEnd)
                 ->count();
 
             $sessionsByDay[$date->format('Y-m-d')] = $count;
@@ -513,8 +495,7 @@ trait SessionAnalyticsProcedure
      */
     private function getSystemDeviceBreakdown(Carbon $startDate): array
     {
-        $sessions = DB::table('sessions')
-            ->where('last_activity', '>=', $startDate->timestamp)
+        $sessions = Session::dateRange($startDate->timestamp)
             ->get();
 
         $deviceStats = [
@@ -549,8 +530,7 @@ trait SessionAnalyticsProcedure
                 return [];
             }
             
-            return DB::table('session_security_logs')
-                ->where('created_at', '>=', $startDate)
+            return SessionSecurityLog::where('created_at', '>=', $startDate)
                 ->selectRaw('risk_level, COUNT(*) as count')
                 ->groupBy('risk_level')
                 ->pluck('count', 'risk_level')
@@ -566,8 +546,7 @@ trait SessionAnalyticsProcedure
      */
     private function getTopUserAgents(Carbon $startDate): array
     {
-        return DB::table('sessions')
-            ->where('last_activity', '>=', $startDate->timestamp)
+        return Session::dateRange($startDate->timestamp)
             ->selectRaw('user_agent, COUNT(*) as count')
             ->groupBy('user_agent')
             ->orderBy('count', 'desc')
@@ -581,8 +560,7 @@ trait SessionAnalyticsProcedure
      */
     private function getSystemGeographicStats(Carbon $startDate): array
     {
-        return DB::table('sessions')
-            ->where('last_activity', '>=', $startDate->timestamp)
+        return Session::dateRange($startDate->timestamp)
             ->selectRaw('ip_address, COUNT(*) as count')
             ->groupBy('ip_address')
             ->orderBy('count', 'desc')
@@ -596,8 +574,7 @@ trait SessionAnalyticsProcedure
      */
     private function getSystemAverageSessionDuration(Carbon $startDate): float
     {
-        $sessions = DB::table('sessions')
-            ->where('last_activity', '>=', $startDate->timestamp)
+        $sessions = Session::dateRange($startDate->timestamp)
             ->get();
 
         if ($sessions->isEmpty()) {
@@ -639,9 +616,8 @@ trait SessionAnalyticsProcedure
         $sessionLifetime = config('session.lifetime', 1440);
         $expiredCutoff = now()->subMinutes($sessionLifetime)->timestamp;
 
-        $totalSessions = DB::table('sessions')->count();
-        $activeSessions = DB::table('sessions')
-            ->where('last_activity', '>', $expiredCutoff)
+        $totalSessions = Session::count();
+        $activeSessions = Session::active($sessionLifetime * 60)
             ->count();
         $expiredSessions = $totalSessions - $activeSessions;
 
@@ -682,12 +658,12 @@ trait SessionAnalyticsProcedure
 
             return [
                 'table_size_mb' => $tableSize[0]->size_mb ?? 0,
-                'total_records' => DB::table('sessions')->count(),
+                'total_records' => Session::count(),
             ];
         } catch (\Exception $e) {
             return [
                 'table_size_mb' => 0,
-                'total_records' => DB::table('sessions')->count(),
+                'total_records' => Session::count(),
             ];
         }
     }
