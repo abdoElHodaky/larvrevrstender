@@ -317,16 +317,12 @@ trait EventPublishingProcedure
         try {
             $driver = config('cross_service.events.default_driver', 'redis');
             
-            switch ($driver) {
-                case 'redis':
-                    return $this->publishToRedis($event);
-                case 'rabbitmq':
-                    return $this->publishToRabbitMQ($event);
-                case 'kafka':
-                    return $this->publishToKafka($event);
-                default:
-                    throw new Exception("Unsupported event driver: {$driver}");
-            }
+            return match ($driver) {
+                'redis' => $this->publishToRedis($event),
+                'rabbitmq' => $this->publishToRabbitMQ($event),
+                'kafka' => $this->publishToKafka($event),
+                default => throw new Exception("Unsupported event driver: {$driver}")
+            };
         } catch (Exception $e) {
             return [
                 'success' => false,

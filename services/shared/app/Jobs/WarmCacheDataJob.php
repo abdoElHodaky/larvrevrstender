@@ -148,28 +148,15 @@ class WarmCacheDataJob extends BaseQueueJob
             'batch_size' => $this->batchSize
         ]);
 
-        switch ($cacheType) {
-            case 'user_profiles':
-                return $this->warmUserProfilesCache();
-            
-            case 'auction_data':
-                return $this->warmAuctionDataCache();
-            
-            case 'analytics_metrics':
-                return $this->warmAnalyticsMetricsCache();
-            
-            case 'system_config':
-                return $this->warmSystemConfigCache();
-            
-            case 'notification_templates':
-                return $this->warmNotificationTemplatesCache();
-            
-            case 'payment_methods':
-                return $this->warmPaymentMethodsCache();
-            
-            default:
-                throw new \InvalidArgumentException("Unknown cache type: {$cacheType}");
-        }
+        return match ($cacheType) {
+            'user_profiles' => $this->warmUserProfilesCache(),
+            'auction_data' => $this->warmAuctionDataCache(),
+            'analytics_metrics' => $this->warmAnalyticsMetricsCache(),
+            'system_config' => $this->warmSystemConfigCache(),
+            'notification_templates' => $this->warmNotificationTemplatesCache(),
+            'payment_methods' => $this->warmPaymentMethodsCache(),
+            default => throw new \InvalidArgumentException("Unknown cache type: {$cacheType}")
+        };
     }
 
     /**

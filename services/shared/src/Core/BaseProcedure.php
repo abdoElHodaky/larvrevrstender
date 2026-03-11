@@ -179,29 +179,17 @@ abstract class BaseProcedure
      */
     private function validateType($value, string $type): bool
     {
-        switch ($type) {
-            case 'string':
-                return is_string($value);
-            case 'integer':
-            case 'int':
-                return is_int($value) || (is_string($value) && ctype_digit($value));
-            case 'float':
-            case 'double':
-                return is_float($value) || is_numeric($value);
-            case 'boolean':
-            case 'bool':
-                return is_bool($value) || in_array($value, ['true', 'false', '1', '0', 1, 0]);
-            case 'array':
-                return is_array($value);
-            case 'email':
-                return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
-            case 'url':
-                return filter_var($value, FILTER_VALIDATE_URL) !== false;
-            case 'uuid':
-                return preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value);
-            default:
-                return true;
-        }
+        return match ($type) {
+            'string' => is_string($value),
+            'integer', 'int' => is_int($value) || (is_string($value) && ctype_digit($value)),
+            'float', 'double' => is_float($value) || is_numeric($value),
+            'boolean', 'bool' => is_bool($value) || in_array($value, ['true', 'false', '1', '0', 1, 0]),
+            'array' => is_array($value),
+            'email' => filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
+            'url' => filter_var($value, FILTER_VALIDATE_URL) !== false,
+            'uuid' => preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value),
+            default => true
+        };
     }
 
     /**

@@ -422,34 +422,31 @@ trait ValidationProcedure
     {
         $errors = [];
 
-        switch ($rule['type']) {
-            case 'conditional_required':
+        match ($rule['type']) {
+            'conditional_required' => (function() use ($data, $rule, &$errors) {
                 if (isset($data[$rule['condition_field']]) && $data[$rule['condition_field']] === $rule['condition_value']) {
                     if (empty($data[$rule['required_field']])) {
                         $errors[] = "Field '{$rule['required_field']}' is required when '{$rule['condition_field']}' is '{$rule['condition_value']}'";
                     }
                 }
-                break;
-
-            case 'mutually_exclusive':
+            })(),
+            'mutually_exclusive' => (function() use ($data, $rule, &$errors) {
                 $presentFields = array_filter($rule['fields'], function($field) use ($data) {
                     return !empty($data[$field]);
                 });
                 if (count($presentFields) > 1) {
                     $errors[] = "Fields " . implode(', ', $rule['fields']) . " are mutually exclusive";
                 }
-                break;
-
-            case 'at_least_one':
+            })(),
+            'at_least_one' => (function() use ($data, $rule, &$errors) {
                 $presentFields = array_filter($rule['fields'], function($field) use ($data) {
                     return !empty($data[$field]);
                 });
                 if (empty($presentFields)) {
                     $errors[] = "At least one of these fields is required: " . implode(', ', $rule['fields']);
                 }
-                break;
-
-            case 'date_range':
+            })(),
+            'date_range' => (function() use ($data, $rule, &$errors) {
                 if (isset($data[$rule['start_field']]) && isset($data[$rule['end_field']])) {
                     $startDate = strtotime($data[$rule['start_field']]);
                     $endDate = strtotime($data[$rule['end_field']]);
@@ -457,8 +454,9 @@ trait ValidationProcedure
                         $errors[] = "'{$rule['start_field']}' must be before '{$rule['end_field']}'";
                     }
                 }
-                break;
-        }
+            })(),
+            default => null
+        };
 
         return [
             'success' => empty($errors),
@@ -482,38 +480,15 @@ trait ValidationProcedure
             $sanitizedValue = $value;
 
             foreach ($fieldRules as $rule) {
-                switch ($rule) {
-                    case 'trim':
-                        if (is_string($sanitizedValue)) {
-                            $sanitizedValue = trim($sanitizedValue);
-                        }
-                        break;
-                    case 'strip_tags':
-                        if (is_string($sanitizedValue)) {
-                            $sanitizedValue = strip_tags($sanitizedValue);
-                        }
-                        break;
-                    case 'escape_html':
-                        if (is_string($sanitizedValue)) {
-                            $sanitizedValue = htmlspecialchars($sanitizedValue, ENT_QUOTES, 'UTF-8');
-                        }
-                        break;
-                    case 'lowercase':
-                        if (is_string($sanitizedValue)) {
-                            $sanitizedValue = strtolower($sanitizedValue);
-                        }
-                        break;
-                    case 'uppercase':
-                        if (is_string($sanitizedValue)) {
-                            $sanitizedValue = strtoupper($sanitizedValue);
-                        }
-                        break;
-                    case 'remove_whitespace':
-                        if (is_string($sanitizedValue)) {
-                            $sanitizedValue = preg_replace('/\s+/', '', $sanitizedValue);
-                        }
-                        break;
-                }
+                $sanitizedValue = match ($rule) {
+                    'trim' => is_string($sanitizedValue) ? trim($sanitizedValue) : $sanitizedValue,
+                    'strip_tags' => is_string($sanitizedValue) ? strip_tags($sanitizedValue) : $sanitizedValue,
+                    'escape_html' => is_string($sanitizedValue) ? htmlspecialchars($sanitizedValue, ENT_QUOTES, 'UTF-8') : $sanitizedValue,
+                    'lowercase' => is_string($sanitizedValue) ? strtolower($sanitizedValue) : $sanitizedValue,
+                    'uppercase' => is_string($sanitizedValue) ? strtoupper($sanitizedValue) : $sanitizedValue,
+                    'remove_whitespace' => is_string($sanitizedValue) ? preg_replace('/\s+/', '', $sanitizedValue) : $sanitizedValue,
+                    default => $sanitizedValue
+                };
             }
 
             $sanitized[$field] = $sanitizedValue;
@@ -542,34 +517,22 @@ trait ValidationProcedure
      */
     private function validateFieldType($value, string $type): bool
     {
-        switch ($type) {
-            case 'string':
-                return is_string($value);
-            case 'integer':
-            case 'int':
-                return is_int($value) || (is_string($value) && ctype_digit($value));
-            case 'float':
-            case 'double':
-                return is_float($value) || is_numeric($value);
-            case 'boolean':
-            case 'bool':
-                return is_bool($value) || in_array($value, ['true', 'false', '1', '0', 1, 0]);
-            case 'array':
-                return is_array($value);
-            case 'email':
-                return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
-            case 'url':
-                return filter_var($value, FILTER_VALIDATE_URL) !== false;
-            case 'uuid':
-                return preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value);
-            case 'json':
+        return match ($type) {
+            'string' => is_string($value),
+            'integer', 'int' => is_int($value) || (is_string($value) && ctype_digit($value)),
+            'float', 'double' => is_float($value) || is_numeric($value),
+            'boolean', 'bool' => is_bool($value) || in_array($value, ['true', 'false', '1', '0', 1, 0]),
+            'array' => is_array($value),
+            'email' => filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
+            'url' => filter_var($value, FILTER_VALIDATE_URL) !== false,
+            'uuid' => preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value),
+            'json' => (function() use ($value) {
                 json_decode($value);
                 return json_last_error() === JSON_ERROR_NONE;
-            case 'date':
-                return strtotime($value) !== false;
-            default:
-                return true;
-        }
+            })(),
+            'date' => strtotime($value) !== false,
+            default => true
+        };
     }
 
     /**

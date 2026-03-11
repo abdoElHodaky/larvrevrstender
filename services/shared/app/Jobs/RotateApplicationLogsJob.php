@@ -145,28 +145,15 @@ class RotateApplicationLogsJob extends BaseQueueJob
             'rotation_options' => $this->rotationOptions
         ]);
 
-        switch ($logType) {
-            case 'application_logs':
-                return $this->rotateApplicationLogs();
-            
-            case 'access_logs':
-                return $this->rotateAccessLogs();
-            
-            case 'error_logs':
-                return $this->rotateErrorLogs();
-            
-            case 'audit_logs':
-                return $this->rotateAuditLogs();
-            
-            case 'performance_logs':
-                return $this->rotatePerformanceLogs();
-            
-            case 'security_logs':
-                return $this->rotateSecurityLogs();
-            
-            default:
-                throw new \InvalidArgumentException("Unknown log type: {$logType}");
-        }
+        return match ($logType) {
+            'application_logs' => $this->rotateApplicationLogs(),
+            'access_logs' => $this->rotateAccessLogs(),
+            'error_logs' => $this->rotateErrorLogs(),
+            'audit_logs' => $this->rotateAuditLogs(),
+            'performance_logs' => $this->rotatePerformanceLogs(),
+            'security_logs' => $this->rotateSecurityLogs(),
+            default => throw new \InvalidArgumentException("Unknown log type: {$logType}")
+        };
     }
 
     /**
@@ -461,4 +448,3 @@ class RotateApplicationLogsJob extends BaseQueueJob
         // broadcast(new \App\Events\Logs\LogRotationFailed(...));
     }
 }
-

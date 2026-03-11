@@ -439,19 +439,15 @@ trait ThirdPartyIntegrationProcedure
      */
     private function createIntegration(string $type, string $serviceName, array $config): ?BaseThirdPartyIntegration
     {
-        switch (strtolower($type)) {
-            case 'stripe':
-                return new StripeIntegration($serviceName, $config);
+        return match (strtolower($type)) {
+            'stripe' => new StripeIntegration($serviceName, $config),
             
             // Add more integration types here
-            // case 'mailgun':
-            //     return new MailgunIntegration($serviceName, $config);
-            // case 'twilio':
-            //     return new TwilioIntegration($serviceName, $config);
+            // 'mailgun' => new MailgunIntegration($serviceName, $config),
+            // 'twilio' => new TwilioIntegration($serviceName, $config),
             
-            default:
-                return null;
-        }
+            default => null
+        };
     }
 
     /**
@@ -465,4 +461,3 @@ trait ThirdPartyIntegrationProcedure
         return $this->integrations[$serviceName] ?? null;
     }
 }
-
