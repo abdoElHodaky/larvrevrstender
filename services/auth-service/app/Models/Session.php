@@ -19,6 +19,16 @@ class Session extends Model
     protected $primaryKey = 'id';
 
     /**
+     * The "type" of the primary key ID.
+     */
+    protected $keyType = 'string';
+
+    /**
+     * Indicates if the IDs are auto-incrementing.
+     */
+    public $incrementing = false;
+
+    /**
      * Indicates if the model should be timestamped.
      */
     public $timestamps = false;
@@ -39,7 +49,6 @@ class Session extends Model
      */
     protected $casts = [
         'last_activity' => 'integer',
-        'payload' => 'array', // Laravel 12 automatic JSON casting
     ];
 
     /**
@@ -86,6 +95,17 @@ class Session extends Model
     public function scopeFromIp($query, string $ipAddress)
     {
         return $query->where('ip_address', $ipAddress);
+    }
+
+    /**
+     * Get the decoded payload.
+     */
+    protected function payload(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ? unserialize(base64_decode($value)) : [],
+            set: fn ($value) => base64_encode(serialize($value))
+        );
     }
 
     /**

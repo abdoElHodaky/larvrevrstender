@@ -298,7 +298,8 @@ trait SessionAnalyticsProcedure
         $validSessions = 0;
 
         foreach ($sessions as $session) {
-            $payload = unserialize(base64_decode($session->payload));
+            // Laravel 12 automatically casts payload to array
+            $payload = $session->payload;
             $loginTime = $payload['login_time'] ?? $session->last_activity;
 
             $duration = $session->last_activity - $loginTime;
@@ -323,7 +324,8 @@ trait SessionAnalyticsProcedure
         $deviceStats = [];
 
         foreach ($sessions as $session) {
-            $payload = unserialize(base64_decode($session->payload));
+            // Laravel 12 automatically casts payload to array
+            $payload = $session->payload;
             $deviceInfo = $payload['device_info'] ?? [];
 
             $deviceKey = ($deviceInfo['device_type'] ?? 'unknown').'|'.
@@ -363,7 +365,8 @@ trait SessionAnalyticsProcedure
         $dailyLogins = [];
 
         foreach ($sessions as $session) {
-            $payload = unserialize(base64_decode($session->payload));
+            // Laravel 12 automatically casts payload to array
+            $payload = $session->payload;
             $loginTime = $payload['login_time'] ?? $session->last_activity;
             $date = Carbon::createFromTimestamp($loginTime)->format('Y-m-d');
 
@@ -502,7 +505,8 @@ trait SessionAnalyticsProcedure
         ];
 
         foreach ($sessions as $session) {
-            $payload = unserialize(base64_decode($session->payload));
+            // Laravel 12 automatically casts payload to array
+            $payload = $session->payload;
             $deviceType = $payload['device_info']['device_type'] ?? 'unknown';
 
             if (isset($deviceStats[$deviceType])) {
@@ -576,7 +580,8 @@ trait SessionAnalyticsProcedure
         $validSessions = 0;
 
         foreach ($sessions as $session) {
-            $payload = unserialize(base64_decode($session->payload));
+            // Laravel 12 automatically casts payload to array
+            $payload = $session->payload;
             $loginTime = $payload['login_time'] ?? $session->last_activity;
 
             $duration = $session->last_activity - $loginTime;

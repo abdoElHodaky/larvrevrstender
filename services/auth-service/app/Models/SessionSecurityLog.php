@@ -42,7 +42,7 @@ class SessionSecurityLog extends Model
      */
     public function session(): BelongsTo
     {
-        return $this->belongsTo(Session::class, 'session_id');
+        return $this->belongsTo(Session::class, 'session_id', 'id');
     }
 
     /**
