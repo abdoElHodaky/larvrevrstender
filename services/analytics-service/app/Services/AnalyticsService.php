@@ -249,10 +249,9 @@ class AnalyticsService
                 'conversion' => 'Conversion',
             ];
 
-            $funnelData = [];
             $previousStepUsers = null;
-
-            foreach ($funnelSteps as $eventType => $stepName) {
+            
+            $funnelData = collect($funnelSteps)->map(function($stepName, $eventType) use ($startDate, $endDate, $userType, &$previousStepUsers) {
                 $query = UserAnalytic::eventType($eventType)
                     ->dateRange($startDate, $endDate);
 
@@ -269,7 +268,7 @@ class AnalyticsService
                 $conversionRate = $previousStepUsers ? 
                     ($userCount / $previousStepUsers->count()) * 100 : 100;
 
-                $funnelData[] = [
+                $stepData = [
                     'step' => $stepName,
                     'event_type' => $eventType,
                     'users' => $userCount,
@@ -278,7 +277,9 @@ class AnalyticsService
                 ];
 
                 $previousStepUsers = $stepUsers;
-            }
+                
+                return $stepData;
+            })->values()->toArray();
 
             return [
                 'period' => [

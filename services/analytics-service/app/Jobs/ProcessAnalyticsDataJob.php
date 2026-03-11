@@ -73,18 +73,17 @@ class ProcessAnalyticsDataJob extends BaseQueueJob
 
         // Execute with circuit breaker protection
         $this->executeWithCircuitBreaker(function() use ($analyticsService) {
-            $results = [];
-            
-            foreach ($this->metricTypes as $metricType) {
+            $results = collect($this->metricTypes)->mapWithKeys(function($metricType) use ($analyticsService) {
                 $result = $this->processMetricType($metricType, $analyticsService);
-                $results[$metricType] = $result;
                 
                 Log::debug('Processed metric type', [
                     'metric_type' => $metricType,
                     'records_processed' => $result['records_processed'],
                     'metrics_created' => $result['metrics_created']
                 ]);
-            }
+                
+                return [$metricType => $result];
+            })->toArray();
 
             Log::info('Analytics data processing completed successfully', [
                 'aggregation_type' => $this->aggregationType,
