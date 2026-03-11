@@ -91,7 +91,7 @@ class GenerateBusinessReportsJob extends BaseQueueJob
                 'errors' => []
             ];
 
-            collect($this->reportTypes)->each(function($reportType) use (&$results, $analyticsService) {
+            foreach ($this->reportTypes as $reportType) {
                 try {
                     $reportResult = $this->generateReport($reportType, $analyticsService);
                     
@@ -121,7 +121,7 @@ class GenerateBusinessReportsJob extends BaseQueueJob
                         'trace' => $e->getTraceAsString()
                     ]);
                 }
-            });
+            }
 
             Log::info('Business report generation completed successfully', [
                 'reports_generated' => $results['reports_generated'],
