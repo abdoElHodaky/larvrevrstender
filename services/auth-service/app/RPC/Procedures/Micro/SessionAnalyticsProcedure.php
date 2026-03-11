@@ -79,7 +79,7 @@ trait SessionAnalyticsProcedure
                 'data' => [
                     'user_id' => $userId,
                     'period_days' => $days,
-                    'period_start' => $startDate->toISOString(),
+                    'period_start' => Carbon::createFromTimestamp($startDate)->toISOString(),
                     'period_end' => now()->toISOString(),
                     'statistics' => $stats,
                 ],
@@ -387,8 +387,9 @@ trait SessionAnalyticsProcedure
             return $incidents->map(function ($incident) {
                 return [
                     'session_id' => $incident->session_id,
-                    'risk_level' => $incident->risk_level,
-                    'flags' => json_decode($incident->flags, true),
+                    'event_type' => $incident->event_type,
+                    'severity' => $incident->severity,
+                    'details' => $incident->details,
                     'created_at' => Carbon::parse($incident->created_at)->toISOString(),
                 ];
             })->toArray();
@@ -521,11 +522,12 @@ trait SessionAnalyticsProcedure
     {
         try {
             return SessionSecurityLog::where('created_at', '>=', $startDate)
-                ->selectRaw('risk_level, COUNT(*) as count')
-                ->groupBy('risk_level')
-                ->pluck('count', 'risk_level')
+                ->selectRaw('severity, COUNT(*) as count')
+                ->groupBy('severity')
+                ->pluck('count', 'severity')
                 ->toArray();
         } catch (\Exception $e) {
+            // Table might not exist yet or no data
             return [];
         }
     }
