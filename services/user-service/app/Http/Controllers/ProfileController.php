@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Shared\Services\FileUploadService;
+use App\Models\UserAvatar;
+use App\Models\User;
 
 class ProfileController extends Controller
 {
@@ -62,20 +64,17 @@ class ProfileController extends Controller
                 'mime_type' => $avatar->getMimeType(),
                 'storage_provider' => $result['provider'] ?? 's3',
                 'url' => $result['url'],
-                'created_at' => now(),
-                'updated_at' => now(),
             ];
 
             // Update or create avatar record
-            DB::table('user_avatars')->updateOrInsert(
+            UserAvatar::updateOrCreate(
                 ['user_id' => $user->id],
                 $avatarData
             );
 
             // Update user's avatar_url field if it exists
             if (DB::getSchemaBuilder()->hasColumn('users', 'avatar_url')) {
-                DB::table('users')
-                    ->where('id', $user->id)
+                User::where('id', $user->id)
                     ->update(['avatar_url' => $result['url']]);
             }
 
@@ -112,8 +111,7 @@ class ProfileController extends Controller
             $user = $request->user();
 
             // Get current avatar record
-            $avatar = DB::table('user_avatars')
-                ->where('user_id', $user->id)
+            $avatar = UserAvatar::where('user_id', $user->id)
                 ->first();
 
             if (! $avatar) {
@@ -134,12 +132,11 @@ class ProfileController extends Controller
             }
 
             // Delete from database
-            DB::table('user_avatars')->where('user_id', $user->id)->delete();
+            UserAvatar::where('user_id', $user->id)->delete();
 
             // Clear user's avatar_url field if it exists
             if (DB::getSchemaBuilder()->hasColumn('users', 'avatar_url')) {
-                DB::table('users')
-                    ->where('id', $user->id)
+                User::where('id', $user->id)
                     ->update(['avatar_url' => null]);
             }
 
@@ -169,8 +166,7 @@ class ProfileController extends Controller
         try {
             $user = $request->user();
 
-            $avatar = DB::table('user_avatars')
-                ->where('user_id', $user->id)
+            $avatar = UserAvatar::where('user_id', $user->id)
                 ->first();
 
             if (! $avatar) {
