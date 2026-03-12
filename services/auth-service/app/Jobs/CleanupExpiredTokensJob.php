@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\PersonalAccessToken;
 use App\Models\PasswordResetToken;
 use App\Models\ActivityLog;
+use App\Models\Session as SessionModel;
 use Shared\Jobs\BaseQueueJob;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -238,8 +239,7 @@ class CleanupExpiredTokensJob extends BaseQueueJob
         $expiredThreshold = now()->subMinutes($sessionLifetime)->timestamp;
         
         do {
-            $deleted = DB::table('sessions')
-                ->where('last_activity', '<', $expiredThreshold)
+            $deleted = SessionModel::where('last_activity', '<', $expiredThreshold)
                 ->limit($this->batchSize)
                 ->delete();
             
@@ -278,8 +278,7 @@ class CleanupExpiredTokensJob extends BaseQueueJob
         $inactivityThreshold = now()->subDays($this->retentionPeriods['inactive_sessions'])->timestamp;
 
         do {
-            $deleted = DB::table('sessions')
-                ->where('last_activity', '<', $inactivityThreshold)
+            $deleted = SessionModel::where('last_activity', '<', $inactivityThreshold)
                 ->limit($this->batchSize)
                 ->delete();
             

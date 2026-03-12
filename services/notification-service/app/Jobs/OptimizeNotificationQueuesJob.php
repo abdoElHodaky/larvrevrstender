@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
+use App\Models\Job;
+use App\Models\FailedJob;
 
 /**
  * Notification Queue Optimization Job with Laravel Fuse Circuit Breaker Protection
@@ -213,33 +215,28 @@ class OptimizeNotificationQueuesJob extends BaseQueueJob
         $jobsCleaned = 0;
         $jobsFailedPermanently = 0;
 
-        // Get failed jobs older than threshold
-        $failedJobs = DB::table('failed_jobs')
-            ->where('queue', $queueName)
-            ->where('failed_at', '<', now()->subHours($this->optimizationOptions['failed_job_cleanup_hours']))
+        // Get failed jobs older than threshold using Eloquent (Laravel 12)
+        $failedJobs = FailedJob::inQueue($queueName)
+            ->olderThan($this->optimizationOptions['failed_job_cleanup_hours'])
             ->get();
 
         foreach ($failedJobs as $failedJob) {
             try {
-                // Check if job should be retried or permanently failed
-                $payload = json_decode($failedJob->payload, true);
-                $attempts = $payload['attempts'] ?? 0;
-                $maxAttempts = $payload['maxTries'] ?? 3;
-
-                if ($attempts >= $maxAttempts) {
-                    // Permanently fail the job
-                    DB::table('failed_jobs')->where('id', $failedJob->id)->delete();
+                // Check if job should be retried or permanently failed using Eloquent attributes (Laravel 12)
+                if ($failedJob->has_exceeded_max_attempts) {
+                    // Permanently fail the job using Eloquent delete (Laravel 12)
+                    $failedJob->delete();
                     $jobsFailedPermanently++;
                     
                     Log::debug('Permanently failed job removed', [
                         'job_id' => $failedJob->id,
                         'queue' => $queueName,
-                        'attempts' => $attempts,
-                        'max_attempts' => $maxAttempts
+                        'attempts' => $failedJob->attempts,
+                        'max_attempts' => $failedJob->max_attempts
                     ]);
                 } else {
-                    // Clean up old failed job record
-                    DB::table('failed_jobs')->where('id', $failedJob->id)->delete();
+                    // Clean up old failed job record using Eloquent delete (Laravel 12)
+                    $failedJob->delete();
                     $jobsCleaned++;
                 }
 
@@ -266,23 +263,19 @@ class OptimizeNotificationQueuesJob extends BaseQueueJob
     {
         $jobsRequeued = 0;
 
-        // Get jobs that have been processing for too long
-        $stuckJobs = DB::table('jobs')
-            ->where('queue', $queueName)
-            ->whereNotNull('reserved_at')
-            ->where('reserved_at', '<', now()->subMinutes($this->optimizationOptions['stuck_job_timeout_minutes']))
+        // Get jobs that have been processing for too long using Eloquent (Laravel 12)
+        $stuckJobs = Job::inQueue($queueName)
+            ->stuck($this->optimizationOptions['stuck_job_timeout_minutes'])
             ->get();
 
         foreach ($stuckJobs as $stuckJob) {
             try {
-                // Reset the job to be available again
-                DB::table('jobs')
-                    ->where('id', $stuckJob->id)
-                    ->update([
-                        'reserved_at' => null,
-                        'attempts' => $stuckJob->attempts + 1,
-                        'available_at' => now()->timestamp
-                    ]);
+                // Reset the job to be available again using Eloquent update (Laravel 12)
+                $stuckJob->update([
+                    'reserved_at' => null,
+                    'attempts' => $stuckJob->attempts + 1,
+                    'available_at' => now()->timestamp
+                ]);
 
                 $jobsRequeued++;
                 
@@ -315,19 +308,17 @@ class OptimizeNotificationQueuesJob extends BaseQueueJob
     {
         $jobsCleaned = 0;
 
-        // Find duplicate jobs based on payload hash
-        $duplicateJobs = DB::table('jobs')
-            ->select('payload', DB::raw('COUNT(*) as count'), DB::raw('MIN(id) as keep_id'))
-            ->where('queue', $queueName)
+        // Find duplicate jobs based on payload hash using Eloquent (Laravel 12)
+        $duplicateJobs = Job::selectRaw('payload, COUNT(*) as count, MIN(id) as keep_id')
+            ->inQueue($queueName)
             ->groupBy('payload')
-            ->having('count', '>', 1)
+            ->havingRaw('COUNT(*) > 1')
             ->get();
 
         foreach ($duplicateJobs as $duplicate) {
             try {
-                // Delete all duplicates except the first one
-                $deletedCount = DB::table('jobs')
-                    ->where('queue', $queueName)
+                // Delete all duplicates except the first one using Eloquent (Laravel 12)
+                $deletedCount = Job::inQueue($queueName)
                     ->where('payload', $duplicate->payload)
                     ->where('id', '!=', $duplicate->keep_id)
                     ->delete();
@@ -362,26 +353,24 @@ class OptimizeNotificationQueuesJob extends BaseQueueJob
     {
         $jobsOptimized = 0;
 
-        // Get jobs that need priority adjustment
-        $jobs = DB::table('jobs')
-            ->where('queue', $queueName)
-            ->whereNull('reserved_at')
+        // Get jobs that need priority adjustment using Eloquent (Laravel 12)
+        $jobs = Job::inQueue($queueName)
+            ->available()
             ->orderBy('created_at')
             ->get();
 
         foreach ($jobs as $job) {
             try {
-                $payload = json_decode($job->payload, true);
-                $jobClass = $payload['displayName'] ?? '';
-                $jobAge = now()->diffInHours(Carbon::createFromTimestamp($job->created_at));
+                // Use Eloquent attributes for job class and age (Laravel 12)
+                $jobClass = $job->job_class;
+                $jobAge = $job->age_in_hours;
                 
                 // Calculate new priority based on job type and age
                 $newPriority = $this->calculateJobPriority($jobClass, $jobAge);
                 
                 if ($newPriority !== null && $newPriority != $job->priority) {
-                    DB::table('jobs')
-                        ->where('id', $job->id)
-                        ->update(['priority' => $newPriority]);
+                    // Update priority using Eloquent update (Laravel 12)
+                    $job->update(['priority' => $newPriority]);
                     
                     $jobsOptimized++;
                 }
@@ -412,15 +401,13 @@ class OptimizeNotificationQueuesJob extends BaseQueueJob
         // This would typically involve moving jobs between queue partitions
         // For now, we'll implement a simple rebalancing by updating available_at times
         
-        $queueSize = DB::table('jobs')->where('queue', $queueName)->count();
+        $queueSize = Job::inQueue($queueName)->count();
         $targetBatchSize = $this->optimizationOptions['rebalance_batch_size'];
         
         if ($queueSize > $targetBatchSize * 2) {
-            // Spread out job execution times to prevent thundering herd
-            $jobs = DB::table('jobs')
-                ->where('queue', $queueName)
-                ->whereNull('reserved_at')
-                ->where('available_at', '<=', now()->timestamp)
+            // Spread out job execution times to prevent thundering herd using Eloquent (Laravel 12)
+            $jobs = Job::inQueue($queueName)
+                ->available()
                 ->limit($queueSize - $targetBatchSize)
                 ->get();
 
@@ -428,9 +415,8 @@ class OptimizeNotificationQueuesJob extends BaseQueueJob
                 try {
                     $newAvailableAt = now()->addSeconds($index * 5)->timestamp; // 5 second intervals
                     
-                    DB::table('jobs')
-                        ->where('id', $job->id)
-                        ->update(['available_at' => $newAvailableAt]);
+                    // Update available_at using Eloquent update (Laravel 12)
+                    $job->update(['available_at' => $newAvailableAt]);
                     
                     $jobsRebalanced++;
 
@@ -458,27 +444,27 @@ class OptimizeNotificationQueuesJob extends BaseQueueJob
     {
         $jobsCleaned = 0;
 
-        // Get jobs older than expiration threshold
-        $expiredJobs = DB::table('jobs')
-            ->where('queue', $queueName)
-            ->where('created_at', '<', now()->subHours($this->optimizationOptions['job_expiration_hours'])->timestamp)
+        // Get jobs older than expiration threshold using Eloquent (Laravel 12)
+        $expiredJobs = Job::inQueue($queueName)
+            ->expired($this->optimizationOptions['job_expiration_hours'])
             ->get();
 
         foreach ($expiredJobs as $expiredJob) {
             try {
-                $payload = json_decode($expiredJob->payload, true);
-                $jobClass = $payload['displayName'] ?? '';
+                // Use Eloquent attribute for job class (Laravel 12)
+                $jobClass = $expiredJob->job_class;
                 
                 // Check if this job type can be safely expired
                 if ($this->canJobExpire($jobClass)) {
-                    DB::table('jobs')->where('id', $expiredJob->id)->delete();
+                    // Delete expired job using Eloquent delete (Laravel 12)
+                    $expiredJob->delete();
                     $jobsCleaned++;
                     
                     Log::debug('Expired job removed', [
                         'job_id' => $expiredJob->id,
                         'queue' => $queueName,
                         'job_class' => $jobClass,
-                        'age_hours' => now()->diffInHours(Carbon::createFromTimestamp($expiredJob->created_at))
+                        'age_hours' => $expiredJob->age_in_hours
                     ]);
                 }
 
@@ -559,18 +545,11 @@ class OptimizeNotificationQueuesJob extends BaseQueueJob
      */
     private function getQueueHealth(string $queueName): array
     {
-        $totalJobs = DB::table('jobs')->where('queue', $queueName)->count();
-        $failedJobs = DB::table('failed_jobs')->where('queue', $queueName)->count();
-        $stuckJobs = DB::table('jobs')
-            ->where('queue', $queueName)
-            ->whereNotNull('reserved_at')
-            ->where('reserved_at', '<', now()->subMinutes(30))
-            ->count();
-
-        $oldJobs = DB::table('jobs')
-            ->where('queue', $queueName)
-            ->where('created_at', '<', now()->subHours(24)->timestamp)
-            ->count();
+        // Use Eloquent models for queue health monitoring (Laravel 12)
+        $totalJobs = Job::inQueue($queueName)->count();
+        $failedJobs = FailedJob::inQueue($queueName)->count();
+        $stuckJobs = Job::inQueue($queueName)->stuck(30)->count();
+        $oldJobs = Job::inQueue($queueName)->expired(24)->count();
 
         // Calculate health score (0-100, higher is better)
         $healthScore = 100;

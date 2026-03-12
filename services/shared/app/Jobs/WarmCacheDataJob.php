@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
+use Shared\Contracts\ModelResolverInterface;
 
 /**
  * Cache Warming Job with Laravel Fuse Circuit Breaker Protection
@@ -23,6 +24,8 @@ class WarmCacheDataJob extends BaseQueueJob
     public int $batchSize;
     public int $tries = 3;
     public int $timeout = 900; // 15 minutes for cache warming
+    
+    protected ModelResolverInterface $modelResolver;
 
     /**
      * Create a new job instance.
@@ -30,13 +33,15 @@ class WarmCacheDataJob extends BaseQueueJob
     public function __construct(
         array $cacheTypes = [],
         array $cacheOptions = [],
-        int $batchSize = 1000
+        int $batchSize = 1000,
+        ?ModelResolverInterface $modelResolver = null
     ) {
         parent::__construct();
         
         $this->cacheTypes = $cacheTypes ?: $this->getDefaultCacheTypes();
         $this->cacheOptions = array_merge($this->getDefaultCacheOptions(), $cacheOptions);
         $this->batchSize = $batchSize;
+        $this->modelResolver = $modelResolver ?: app(ModelResolverInterface::class);
         
         // Set queue for cache operations
         $this->onQueue($this->getQueueForCacheComplexity($cacheTypes));
@@ -168,8 +173,14 @@ class WarmCacheDataJob extends BaseQueueJob
         $entriesFailed = 0;
         $memoryUsed = 0;
 
-        // Get active users for cache warming
-        $activeUsers = DB::table('users')
+        // Get active users for cache warming using Eloquent (Laravel 12)
+        $userQuery = $this->modelResolver->query('User');
+        if (!$userQuery) {
+            Log::warning('User model not available for cache warming');
+            return ['entries_warmed' => 0, 'entries_failed' => 0, 'memory_used' => 0];
+        }
+        
+        $activeUsers = $userQuery
             ->where('status', 'active')
             ->where('last_login_at', '>=', now()->subDays(30))
             ->select('id', 'email', 'name', 'role')
@@ -216,8 +227,14 @@ class WarmCacheDataJob extends BaseQueueJob
         $entriesFailed = 0;
         $memoryUsed = 0;
 
-        // Get active auctions for cache warming
-        $activeAuctions = DB::table('auctions')
+        // Get active auctions for cache warming using Eloquent (Laravel 12)
+        $auctionQuery = $this->modelResolver->query('Auction');
+        if (!$auctionQuery) {
+            Log::warning('Auction model not available for cache warming');
+            return ['entries_warmed' => 0, 'entries_failed' => 0, 'memory_used' => 0];
+        }
+        
+        $activeAuctions = $auctionQuery
             ->where('status', 'active')
             ->where('end_time', '>', now())
             ->select('id', 'title', 'current_bid', 'bid_count', 'end_time')
@@ -265,8 +282,14 @@ class WarmCacheDataJob extends BaseQueueJob
         $entriesFailed = 0;
         $memoryUsed = 0;
 
-        // Get recent business metrics for cache warming
-        $recentMetrics = DB::table('business_metrics')
+        // Get recent business metrics for cache warming using Eloquent (Laravel 12)
+        $metricsQuery = $this->modelResolver->query('BusinessMetric');
+        if (!$metricsQuery) {
+            Log::warning('BusinessMetric model not available for cache warming');
+            return ['entries_warmed' => 0, 'entries_failed' => 0, 'memory_used' => 0];
+        }
+        
+        $recentMetrics = $metricsQuery
             ->where('metric_date', '>=', now()->subDays(7))
             ->select('metric_type', 'metric_date', 'value', 'breakdown_data')
             ->limit($this->batchSize)
@@ -360,8 +383,14 @@ class WarmCacheDataJob extends BaseQueueJob
         $entriesFailed = 0;
         $memoryUsed = 0;
 
-        // Get active notification templates
-        $templates = DB::table('notification_templates')
+        // Get active notification templates using Eloquent (Laravel 12)
+        $templateQuery = $this->modelResolver->query('NotificationTemplate');
+        if (!$templateQuery) {
+            Log::warning('NotificationTemplate model not available for cache warming');
+            return ['entries_warmed' => 0, 'entries_failed' => 0, 'memory_used' => 0];
+        }
+        
+        $templates = $templateQuery
             ->where('status', 'active')
             ->select('id', 'name', 'type', 'template_data', 'variables')
             ->limit($this->batchSize)
@@ -408,8 +437,14 @@ class WarmCacheDataJob extends BaseQueueJob
         $entriesFailed = 0;
         $memoryUsed = 0;
 
-        // Get active payment methods
-        $paymentMethods = DB::table('payment_methods')
+        // Get active payment methods using Eloquent (Laravel 12)
+        $paymentMethodQuery = $this->modelResolver->query('PaymentMethod');
+        if (!$paymentMethodQuery) {
+            Log::warning('PaymentMethod model not available for cache warming');
+            return ['entries_warmed' => 0, 'entries_failed' => 0, 'memory_used' => 0];
+        }
+        
+        $paymentMethods = $paymentMethodQuery
             ->where('status', 'active')
             ->select('id', 'name', 'type', 'configuration', 'supported_currencies')
             ->limit($this->batchSize)

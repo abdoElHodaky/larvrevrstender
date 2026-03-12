@@ -2,6 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\InAppNotification;
+use App\Models\Notification;
+use App\Models\NotificationEvent;
+use App\Models\UserNotificationPreference;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -100,14 +104,19 @@ class NotificationService
     public function trackEvent(array $data): void
     {
         try {
-            DB::table('notification_events')->insert([
+            // Check if notification_events table exists before querying
+            if (!DB::getSchemaBuilder()->hasTable('notification_events')) {
+                Log::warning('notification_events table does not exist, skipping event tracking');
+                return;
+            }
+
+            NotificationEvent::create([
                 'notification_id' => $data['notification_id'] ?? null,
                 'user_id' => $data['user_id'] ?? null,
                 'event_type' => $data['event_type'], // opened, clicked, delivered, bounced, etc.
-                'event_data' => json_encode($data['event_data'] ?? []),
+                'event_data' => $data['event_data'] ?? [],
                 'ip_address' => $data['ip_address'] ?? null,
                 'user_agent' => $data['user_agent'] ?? null,
-                'created_at' => now(),
             ]);
 
             Log::info('Notification event tracked', [
@@ -130,7 +139,7 @@ class NotificationService
     public function getStatus(string $notificationId): array
     {
         try {
-            $notification = DB::table('notifications')->find($notificationId);
+            $notification = Notification::find($notificationId);
 
             if (!$notification) {
                 return [
@@ -139,11 +148,13 @@ class NotificationService
                 ];
             }
 
-            // Get delivery events
-            $events = DB::table('notification_events')
-                ->where('notification_id', $notificationId)
-                ->orderBy('created_at', 'desc')
-                ->get();
+            // Get delivery events using Eloquent with defensive check
+            $events = collect();
+            if (DB::getSchemaBuilder()->hasTable('notification_events')) {
+                $events = NotificationEvent::forNotification($notificationId)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+            }
 
             return [
                 'found' => true,
@@ -180,9 +191,12 @@ class NotificationService
     public function getUserPreferences(int $userId): array
     {
         try {
-            $preferences = DB::table('user_notification_preferences')
-                ->where('user_id', $userId)
-                ->first();
+            // Check if user_notification_preferences table exists
+            if (!DB::getSchemaBuilder()->hasTable('user_notification_preferences')) {
+                return $this->getDefaultPreferences();
+            }
+
+            $preferences = UserNotificationPreference::forUser($userId)->first();
 
             if (!$preferences) {
                 // Return default preferences
@@ -191,13 +205,13 @@ class NotificationService
 
             return [
                 'user_id' => $userId,
-                'email_enabled' => (bool) $preferences->email_enabled,
-                'sms_enabled' => (bool) $preferences->sms_enabled,
-                'push_enabled' => (bool) $preferences->push_enabled,
-                'in_app_enabled' => (bool) $preferences->in_app_enabled,
+                'email_enabled' => $preferences->email_enabled,
+                'sms_enabled' => $preferences->sms_enabled,
+                'push_enabled' => $preferences->push_enabled,
+                'in_app_enabled' => $preferences->in_app_enabled,
                 'frequency' => $preferences->frequency ?? 'immediate',
                 'quiet_hours' => [
-                    'enabled' => (bool) $preferences->quiet_hours_enabled,
+                    'enabled' => $preferences->quiet_hours_enabled,
                     'start' => $preferences->quiet_hours_start ?? '22:00',
                     'end' => $preferences->quiet_hours_end ?? '08:00',
                 ],
@@ -221,6 +235,15 @@ class NotificationService
     public function updatePreferences(int $userId, array $preferences): array
     {
         try {
+            // Check if user_notification_preferences table exists
+            if (!DB::getSchemaBuilder()->hasTable('user_notification_preferences')) {
+                Log::warning('user_notification_preferences table does not exist, cannot update preferences');
+                return [
+                    'success' => false,
+                    'error' => 'Preferences table not available',
+                ];
+            }
+
             $data = [
                 'user_id' => $userId,
                 'email_enabled' => $preferences['email_enabled'] ?? true,
@@ -231,23 +254,15 @@ class NotificationService
                 'quiet_hours_enabled' => $preferences['quiet_hours']['enabled'] ?? false,
                 'quiet_hours_start' => $preferences['quiet_hours']['start'] ?? '22:00',
                 'quiet_hours_end' => $preferences['quiet_hours']['end'] ?? '08:00',
-                'categories' => json_encode($preferences['categories'] ?? []),
-                'updated_at' => now(),
+                'categories' => $preferences['categories'] ?? [],
+                'timezone' => $preferences['timezone'] ?? 'UTC',
             ];
 
-            // Check if preferences exist
-            $existing = DB::table('user_notification_preferences')
-                ->where('user_id', $userId)
-                ->first();
-
-            if ($existing) {
-                DB::table('user_notification_preferences')
-                    ->where('user_id', $userId)
-                    ->update($data);
-            } else {
-                $data['created_at'] = now();
-                DB::table('user_notification_preferences')->insert($data);
-            }
+            // Use updateOrCreate for cleaner upsert logic
+            UserNotificationPreference::updateOrCreate(
+                ['user_id' => $userId],
+                $data
+            );
 
             return [
                 'success' => true,
@@ -276,17 +291,16 @@ class NotificationService
     {
         try {
             $stats = [
-                'total_sent' => DB::table('notifications')->where('status', 'sent')->count(),
-                'total_failed' => DB::table('notifications')->where('status', 'failed')->count(),
-                'total_pending' => DB::table('notifications')->where('status', 'pending')->count(),
+                'total_sent' => Notification::where('status', 'sent')->count(),
+                'total_failed' => Notification::where('status', 'failed')->count(),
+                'total_pending' => Notification::where('status', 'pending')->count(),
             ];
 
             $stats['total'] = $stats['total_sent'] + $stats['total_failed'] + $stats['total_pending'];
             $stats['success_rate'] = $stats['total'] > 0 ? round(($stats['total_sent'] / $stats['total']) * 100, 2) : 0;
 
-            // Get stats by type
-            $typeStats = DB::table('notifications')
-                ->select('type', DB::raw('count(*) as count'), 'status')
+            // Get stats by type using Eloquent
+            $typeStats = Notification::select('type', DB::raw('count(*) as count'), 'status')
                 ->groupBy('type', 'status')
                 ->get();
 
@@ -302,9 +316,8 @@ class NotificationService
                 $statsByType[$stat->type][$stat->status] = $stat->count;
             }
 
-            // Get recent activity (last 24 hours)
-            $recentActivity = DB::table('notifications')
-                ->where('created_at', '>=', now()->subDay())
+            // Get recent activity (last 24 hours) using Eloquent
+            $recentActivity = Notification::where('created_at', '>=', now()->subDay())
                 ->select('type', 'status', DB::raw('count(*) as count'))
                 ->groupBy('type', 'status')
                 ->get();
@@ -340,8 +353,7 @@ class NotificationService
     public function getNotificationHistory(int $userId, array $filters = []): array
     {
         try {
-            $query = DB::table('notifications')
-                ->where('user_id', $userId)
+            $query = Notification::where('user_id', $userId)
                 ->orderBy('created_at', 'desc');
 
             // Apply filters
@@ -425,18 +437,16 @@ class NotificationService
     {
         $notificationId = Str::uuid();
 
-        DB::table('notifications')->insert([
+        Notification::create([
             'id' => $notificationId,
             'user_id' => $data['user_id'],
             'type' => $data['type'],
             'title' => $data['title'],
             'message' => $data['message'],
-            'data' => json_encode($data['data'] ?? []),
+            'data' => $data['data'] ?? [],
             'priority' => $data['priority'] ?? 'normal',
             'status' => 'pending',
             'scheduled_at' => $data['scheduled_at'] ?? now(),
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
 
         return $notificationId;
@@ -615,15 +625,14 @@ class NotificationService
     {
         try {
             // In-app notifications are stored in database for user to see in the app
-            DB::table('in_app_notifications')->insert([
+            InAppNotification::create([
                 'id' => Str::uuid(),
                 'notification_id' => $notificationId,
                 'user_id' => $data['user_id'],
                 'title' => $data['title'],
                 'message' => $data['message'],
-                'data' => json_encode($data['data'] ?? []),
+                'data' => $data['data'] ?? [],
                 'read' => false,
-                'created_at' => now(),
             ]);
 
             Log::info('In-app notification created', [
@@ -655,19 +664,16 @@ class NotificationService
         try {
             $updateData = [
                 'status' => $status,
-                'updated_at' => now(),
             ];
 
             if ($status === 'sent') {
                 $updateData['sent_at'] = now();
-                $updateData['provider_response'] = json_encode($result);
+                $updateData['provider_response'] = $result;
             } else {
                 $updateData['error_message'] = $result['reason'] ?? 'Unknown error';
             }
 
-            DB::table('notifications')
-                ->where('id', $notificationId)
-                ->update($updateData);
+            Notification::where('id', $notificationId)->update($updateData);
 
         } catch (\Exception $e) {
             Log::error('Failed to update notification status', [

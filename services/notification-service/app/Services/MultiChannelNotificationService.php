@@ -372,8 +372,9 @@ class MultiChannelNotificationService
                 'updated_at' => now()
             ];
 
-            // Insert into notifications table
-            $notificationId = \DB::table('notifications')->insertGetId($notification);
+            // Insert into notifications table using Eloquent (Laravel 12)
+            $notificationRecord = \App\Models\Notification::create($notification);
+            $notificationId = $notificationRecord->id;
 
             // Broadcast real-time notification if WebSocket is available
             if (config('broadcasting.default') !== 'null') {

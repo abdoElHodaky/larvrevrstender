@@ -17,6 +17,7 @@ use App\Models\AuthRole;
 use App\Models\AuthUserRole;
 use App\Models\AuthPermission;
 use App\Models\TokenInvalidation;
+use App\Models\Session as SessionModel;
 
 class AuthProcedure extends BaseProcedure
 {
@@ -482,7 +483,7 @@ class AuthProcedure extends BaseProcedure
                 ->delete();
 
             // Also clear any session data if using database sessions
-            \DB::table('sessions')->where('user_id', $userId)->delete();
+            SessionModel::where('user_id', $userId)->delete();
 
             $result = [
                 'success' => true,
@@ -518,7 +519,7 @@ class AuthProcedure extends BaseProcedure
             ]);
 
             // Clear all sessions for the user
-            $revokedCount = \DB::table('sessions')->where('user_id', $userId)->delete();
+            $revokedCount = SessionModel::where('user_id', $userId)->delete();
 
             // Also clear any remember tokens
             AuthUser::where('user_id', $userId)->update([
@@ -678,8 +679,7 @@ class AuthProcedure extends BaseProcedure
             $userId = $params['user_id'];
 
             // Get active sessions
-            $sessions = \DB::table('sessions')
-                ->where('user_id', $userId)
+            $sessions = SessionModel::where('user_id', $userId)
                 ->select(['id', 'ip_address', 'user_agent', 'last_activity'])
                 ->get()
                 ->map(function ($session) {

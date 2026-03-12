@@ -4,6 +4,8 @@ namespace App\RPC\Procedures\Micro;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\Session as SessionModel;
+use App\Models\SessionSecurityLog;
 
 /**
  * Session Security Micro Procedure
@@ -304,8 +306,7 @@ trait SessionSecurityProcedure
             $cutoffTime = now()->subHours($maxAge)->timestamp;
 
             // Get sessions that are either expired or flagged as suspicious
-            $suspiciousSessions = DB::table('sessions')
-                ->where(function ($query) use ($cutoffTime) {
+            $suspiciousSessions = SessionModel::where(function ($query) use ($cutoffTime) {
                     $query->where('last_activity', '<', $cutoffTime)
                         ->orWhereExists(function ($subQuery) {
                             $subQuery->select(DB::raw(1))
@@ -318,15 +319,14 @@ trait SessionSecurityProcedure
 
             $cleanedCount = 0;
             foreach ($suspiciousSessions as $session) {
-                $deleted = DB::table('sessions')->where('id', $session->id)->delete();
+                $deleted = SessionModel::where('id', $session->id)->delete();
                 if ($deleted) {
                     $cleanedCount++;
                 }
             }
 
             // Also clean up old security logs
-            $logsCleaned = DB::table('session_security_logs')
-                ->where('created_at', '<', now()->subDays(30))
+            $logsCleaned = SessionSecurityLog::where('created_at', '<', now()->subDays(30))
                 ->delete();
 
             Log::info('Suspicious sessions cleaned up', [
@@ -371,8 +371,7 @@ trait SessionSecurityProcedure
         }
 
         // Get recent sessions for this user
-        $recentSessions = DB::table('sessions')
-            ->where('user_id', $userId)
+        $recentSessions = SessionModel::where('user_id', $userId)
             ->where('last_activity', '>', now()->subHours(1)->timestamp)
             ->orderBy('last_activity', 'desc')
             ->limit(5)
@@ -452,7 +451,7 @@ trait SessionSecurityProcedure
 
             $riskLevel = $this->calculateRiskLevel($flags);
 
-            DB::table('session_security_logs')->insert([
+            SessionSecurityLog::create([
                 'session_id' => $sessionId,
                 'user_id' => $userId,
                 'risk_level' => $riskLevel,

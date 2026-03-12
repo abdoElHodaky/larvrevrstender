@@ -7,6 +7,12 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use App\Models\Payment;
+use App\Models\PaymentSettlement;
+use App\Models\PaymentRefund;
+use App\Models\PaymentChargeback;
+use App\Models\PaymentFee;
+use App\Models\PaymentReconciliationSummary;
 
 /**
  * Payment Reconciliation Sync Job with Laravel Fuse Circuit Breaker Protection
@@ -202,8 +208,15 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
         $amountReconciled = 0;
 
         // Get transactions for the reconciliation date
-        $transactions = DB::table('payments')
-            ->where('gateway', $gateway)
+        if (!DB::getSchemaBuilder()->hasTable('payments')) {
+            Log::warning('payments table does not exist, skipping transaction reconciliation', [
+                'gateway' => $gateway,
+                'date' => $this->reconciliationDate->toDateString(),
+            ]);
+            return ['transactions_reconciled' => 0, 'discrepancies_found' => 0, 'discrepancies_resolved' => 0, 'amount_reconciled' => 0];
+        }
+
+        $transactions = Payment::where('gateway', $gateway)
             ->whereDate('created_at', $this->reconciliationDate)
             ->where('status', '!=', 'reconciled')
             ->get();
@@ -266,10 +279,17 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
         $amountReconciled = 0;
 
         // Get settled transactions for reconciliation
-        $settlements = DB::table('payment_settlements')
-            ->where('gateway', $gateway)
-            ->whereDate('settlement_date', $this->reconciliationDate)
-            ->where('reconciliation_status', '!=', 'reconciled')
+        if (!DB::getSchemaBuilder()->hasTable('payment_settlements')) {
+            Log::warning('payment_settlements table does not exist, skipping settlement reconciliation', [
+                'gateway' => $gateway,
+                'date' => $this->reconciliationDate->toDateString(),
+            ]);
+            return ['transactions_reconciled' => 0, 'discrepancies_found' => 0, 'discrepancies_resolved' => 0, 'amount_reconciled' => 0];
+        }
+
+        $settlements = PaymentSettlement::forGateway($gateway)
+            ->forDate($this->reconciliationDate)
+            ->unreconciled()
             ->get();
 
         foreach ($settlements as $settlement) {
@@ -330,10 +350,17 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
         $amountReconciled = 0;
 
         // Get refunds for reconciliation
-        $refunds = DB::table('payment_refunds')
-            ->where('gateway', $gateway)
-            ->whereDate('created_at', $this->reconciliationDate)
-            ->where('status', '!=', 'reconciled')
+        if (!DB::getSchemaBuilder()->hasTable('payment_refunds')) {
+            Log::warning('payment_refunds table does not exist, skipping refund reconciliation', [
+                'gateway' => $gateway,
+                'date' => $this->reconciliationDate->toDateString(),
+            ]);
+            return ['transactions_reconciled' => 0, 'discrepancies_found' => 0, 'discrepancies_resolved' => 0, 'amount_reconciled' => 0];
+        }
+
+        $refunds = PaymentRefund::forGateway($gateway)
+            ->forDate($this->reconciliationDate)
+            ->unreconciled()
             ->get();
 
         foreach ($refunds as $refund) {
@@ -386,10 +413,17 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
         $amountReconciled = 0;
 
         // Get chargebacks for reconciliation
-        $chargebacks = DB::table('payment_chargebacks')
-            ->where('gateway', $gateway)
-            ->whereDate('created_at', $this->reconciliationDate)
-            ->where('status', '!=', 'reconciled')
+        if (!DB::getSchemaBuilder()->hasTable('payment_chargebacks')) {
+            Log::warning('payment_chargebacks table does not exist, skipping chargeback reconciliation', [
+                'gateway' => $gateway,
+                'date' => $this->reconciliationDate->toDateString(),
+            ]);
+            return ['transactions_reconciled' => 0, 'discrepancies_found' => 0, 'discrepancies_resolved' => 0, 'amount_reconciled' => 0];
+        }
+
+        $chargebacks = PaymentChargeback::forGateway($gateway)
+            ->forDate($this->reconciliationDate)
+            ->unreconciled()
             ->get();
 
         foreach ($chargebacks as $chargeback) {
@@ -442,10 +476,17 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
         $amountReconciled = 0;
 
         // Get fee records for reconciliation
-        $fees = DB::table('payment_fees')
-            ->where('gateway', $gateway)
-            ->whereDate('transaction_date', $this->reconciliationDate)
-            ->where('reconciliation_status', '!=', 'reconciled')
+        if (!DB::getSchemaBuilder()->hasTable('payment_fees')) {
+            Log::warning('payment_fees table does not exist, skipping fee reconciliation', [
+                'gateway' => $gateway,
+                'date' => $this->reconciliationDate->toDateString(),
+            ]);
+            return ['transactions_reconciled' => 0, 'discrepancies_found' => 0, 'discrepancies_resolved' => 0, 'amount_reconciled' => 0];
+        }
+
+        $fees = PaymentFee::forGateway($gateway)
+            ->forDate($this->reconciliationDate)
+            ->unreconciled()
             ->get();
 
         foreach ($fees as $fee) {
@@ -546,8 +587,7 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
     private function resolveStatusDiscrepancy($transaction, array $gatewayData): bool
     {
         try {
-            DB::table('payments')
-                ->where('id', $transaction->id)
+            Payment::where('id', $transaction->id)
                 ->update([
                     'status' => $gatewayData['status'],
                     'reconciled_at' => now(),
@@ -568,8 +608,7 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
     private function resolveAmountDiscrepancy($settlement, array $gatewayData): bool
     {
         try {
-            DB::table('payment_settlements')
-                ->where('id', $settlement->id)
+            PaymentSettlement::where('id', $settlement->id)
                 ->update([
                     'net_amount' => $gatewayData['net_amount'],
                     'reconciliation_status' => 'reconciled',
@@ -591,8 +630,7 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
     private function resolveRefundDiscrepancy($refund, array $gatewayData): bool
     {
         try {
-            DB::table('payment_refunds')
-                ->where('id', $refund->id)
+            PaymentRefund::where('id', $refund->id)
                 ->update([
                     'status' => $gatewayData['status'],
                     'reconciled_at' => now(),
@@ -608,8 +646,7 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
     private function resolveChargebackDiscrepancy($chargeback, array $gatewayData): bool
     {
         try {
-            DB::table('payment_chargebacks')
-                ->where('id', $chargeback->id)
+            PaymentChargeback::where('id', $chargeback->id)
                 ->update([
                     'status' => $gatewayData['status'],
                     'reconciled_at' => now(),
@@ -625,8 +662,7 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
     private function resolveFeeDiscrepancy($fee, array $gatewayData): bool
     {
         try {
-            DB::table('payment_fees')
-                ->where('id', $fee->id)
+            PaymentFee::where('id', $fee->id)
                 ->update([
                     'fee_amount' => $gatewayData['fee_amount'],
                     'reconciliation_status' => 'reconciled',
@@ -646,7 +682,7 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
     private function storeReconciliationSummary(array $results): void
     {
         try {
-            DB::table('payment_reconciliation_summaries')->insert([
+            PaymentReconciliationSummary::create([
                 'reconciliation_date' => $this->reconciliationDate,
                 'gateways_processed' => $results['gateways_processed'],
                 'transactions_reconciled' => $results['transactions_reconciled'],
@@ -655,8 +691,6 @@ class SyncPaymentReconciliationJob extends BaseQueueJob
                 'total_amount_reconciled' => $results['total_amount_reconciled'],
                 'processing_time_ms' => $results['processing_time_ms'],
                 'job_id' => $this->job?->getJobId(),
-                'created_at' => now(),
-                'updated_at' => now()
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to store reconciliation summary', [

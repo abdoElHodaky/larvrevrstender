@@ -6,6 +6,8 @@ use Illuminate\Support\ServiceProvider;
 use Shared\Core\ProcedureEngine;
 use Shared\Core\RestHandler;
 use Shared\Core\RpcHandler;
+use Shared\Contracts\ModelResolverInterface;
+use Shared\Services\ModelResolver;
 
 /**
  * Shared Service Provider
@@ -32,10 +34,16 @@ class SharedServiceProvider extends ServiceProvider
             return new RpcHandler();
         });
 
+        // Register Model Resolver for Eloquent ORM integration
+        $this->app->singleton(ModelResolverInterface::class, function ($app) {
+            return new ModelResolver();
+        });
+
         // Register aliases for easier access
         $this->app->alias(ProcedureEngine::class, 'shared.procedure-engine');
         $this->app->alias(RestHandler::class, 'shared.rest-handler');
         $this->app->alias(RpcHandler::class, 'shared.rpc-handler');
+        $this->app->alias(ModelResolverInterface::class, 'shared.model-resolver');
     }
 
     /**
@@ -70,9 +78,11 @@ class SharedServiceProvider extends ServiceProvider
             ProcedureEngine::class,
             RestHandler::class,
             RpcHandler::class,
+            ModelResolverInterface::class,
             'shared.procedure-engine',
             'shared.rest-handler',
             'shared.rpc-handler',
+            'shared.model-resolver',
         ];
     }
 }

@@ -382,6 +382,11 @@ trait SessionAnalyticsProcedure
     private function getSecurityIncidents(int $userId, Carbon $startDate): array
     {
         try {
+            // Check if session_security_logs table exists before querying
+            if (!DB::getSchemaBuilder()->hasTable('session_security_logs')) {
+                return [];
+            }
+            
             $incidents = SessionSecurityLog::where('user_id', $userId)
                 ->where('created_at', '>=', $startDate)
                 ->orderBy('created_at', 'desc')
@@ -525,13 +530,22 @@ trait SessionAnalyticsProcedure
     private function getSystemSecurityIncidents(Carbon $startDate): array
     {
         try {
+            // Check if session_security_logs table exists before querying
+            if (!DB::getSchemaBuilder()->hasTable('session_security_logs')) {
+                return [];
+            }
+            
             return SessionSecurityLog::where('created_at', '>=', $startDate)
                 ->selectRaw('severity, COUNT(*) as count')
                 ->groupBy('severity')
                 ->pluck('count', 'severity')
                 ->toArray();
         } catch (\Exception $e) {
+//<<<<<<< codegen-bot/fix-vendor-directories-cleanup-1773226072
             // Table might not exist yet or no data
+//=======
+            Log::warning('Failed to fetch security incidents', ['error' => $e->getMessage()]);
+//>>>>>>> codegen-bot/consolidate-all-phases-1773226072
             return [];
         }
     }

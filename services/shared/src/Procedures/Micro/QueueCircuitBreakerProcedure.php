@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Shared\Middleware\FuseCircuitBreakerMiddleware;
 use Shared\Jobs\BaseQueueJob;
+use Shared\Contracts\ModelResolverInterface;
 
 /**
  * Queue Circuit Breaker Procedure
@@ -437,15 +438,22 @@ trait QueueCircuitBreakerProcedure
     }
 
     /**
-     * Get failed jobs count
+     * Get failed jobs count using Eloquent (Laravel 12)
      *
      * @return int
      */
     private function getFailedJobsCount(): int
     {
         try {
-            // This would depend on your failed jobs table structure
-            return \DB::table('failed_jobs')->count();
+            $modelResolver = app(ModelResolverInterface::class);
+            $failedJobQuery = $modelResolver->query('FailedJob');
+            
+            if (!$failedJobQuery) {
+                // Fallback to DB::table if FailedJob model not available
+                return \DB::table('failed_jobs')->count();
+            }
+            
+            return $failedJobQuery->count();
         } catch (Exception $e) {
             return 0;
         }

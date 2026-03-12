@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Shared\Services\FileUploadService;
+use App\Models\KycDocument;
+use App\Models\User;
 
 class KycController extends Controller
 {
@@ -67,8 +69,7 @@ class KycController extends Controller
             $description = $request->input('description');
 
             // Check if user already has this document type (for versioning)
-            $existingDocument = DB::table('kyc_documents')
-                ->where('user_id', $user->id)
+            $existingDocument = KycDocument::where('user_id', $user->id)
                 ->where('document_type', $documentType)
                 ->where('status', '!=', 'deleted')
                 ->orderBy('version', 'desc')
@@ -101,19 +102,17 @@ class KycController extends Controller
                 'version' => $version,
                 'status' => self::STATUS_PENDING,
                 'encryption_enabled' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
             ];
 
-            $documentId = DB::table('kyc_documents')->insertGetId($documentData);
+            $document = KycDocument::create($documentData);
+            $documentId = $document->id;
 
             // Mark previous versions as superseded if this is a resubmission
             if ($existingDocument) {
-                DB::table('kyc_documents')
-                    ->where('user_id', $user->id)
+                KycDocument::where('user_id', $user->id)
                     ->where('document_type', $documentType)
                     ->where('id', '!=', $documentId)
-                    ->update(['status' => 'superseded', 'updated_at' => now()]);
+                    ->update(['status' => 'superseded']);
             }
 
             // Update user's KYC status if needed
@@ -156,8 +155,7 @@ class KycController extends Controller
         try {
             $user = $request->user();
 
-            $documents = DB::table('kyc_documents')
-                ->where('user_id', $user->id)
+            $documents = KycDocument::where('user_id', $user->id)
                 ->where('status', '!=', 'deleted')
                 ->orderBy('document_type')
                 ->orderBy('version', 'desc')
@@ -210,13 +208,11 @@ class KycController extends Controller
             $user = $request->user();
 
             // Get user's KYC status from user table or separate kyc_status table
-            $kycStatus = DB::table('users')
-                ->where('id', $user->id)
+            $kycStatus = User::where('id', $user->id)
                 ->value('kyc_status') ?? self::STATUS_PENDING;
 
             // Get document counts
-            $documentCounts = DB::table('kyc_documents')
-                ->where('user_id', $user->id)
+            $documentCounts = KycDocument::where('user_id', $user->id)
                 ->where('status', '!=', 'deleted')
                 ->selectRaw('status, COUNT(*) as count')
                 ->groupBy('status')
@@ -225,8 +221,7 @@ class KycController extends Controller
 
             // Get required document types (this could be configurable)
             $requiredDocuments = ['identity', 'proof_of_address'];
-            $uploadedDocuments = DB::table('kyc_documents')
-                ->where('user_id', $user->id)
+            $uploadedDocuments = KycDocument::where('user_id', $user->id)
                 ->where('status', '!=', 'deleted')
                 ->whereIn('document_type', $requiredDocuments)
                 ->distinct()
@@ -270,8 +265,7 @@ class KycController extends Controller
 
             // Check if user has uploaded required documents
             $requiredDocuments = ['identity', 'proof_of_address'];
-            $uploadedDocuments = DB::table('kyc_documents')
-                ->where('user_id', $user->id)
+            $uploadedDocuments = KycDocument::where('user_id', $user->id)
                 ->where('status', '!=', 'deleted')
                 ->whereIn('document_type', $requiredDocuments)
                 ->distinct()
@@ -289,21 +283,17 @@ class KycController extends Controller
             }
 
             // Update user's KYC status to under review
-            DB::table('users')
-                ->where('id', $user->id)
+            User::where('id', $user->id)
                 ->update([
                     'kyc_status' => self::STATUS_UNDER_REVIEW,
                     'kyc_submitted_at' => now(),
-                    'updated_at' => now(),
                 ]);
 
             // Update all pending documents to under review
-            DB::table('kyc_documents')
-                ->where('user_id', $user->id)
+            KycDocument::where('user_id', $user->id)
                 ->where('status', self::STATUS_PENDING)
                 ->update([
                     'status' => self::STATUS_UNDER_REVIEW,
-                    'updated_at' => now(),
                 ]);
 
             return response()->json([
@@ -337,8 +327,7 @@ class KycController extends Controller
             $user = $request->user();
 
             // Get the document
-            $document = DB::table('kyc_documents')
-                ->where('id', $documentId)
+            $document = KycDocument::where('id', $documentId)
                 ->where('user_id', $user->id)
                 ->where('status', '!=', 'deleted')
                 ->first();
@@ -362,12 +351,10 @@ class KycController extends Controller
             }
 
             // Mark as deleted in database (soft delete for audit trail)
-            DB::table('kyc_documents')
-                ->where('id', $documentId)
+            KycDocument::where('id', $documentId)
                 ->update([
                     'status' => 'deleted',
                     'deleted_at' => now(),
-                    'updated_at' => now(),
                 ]);
 
             // Update user's KYC status
@@ -397,8 +384,7 @@ class KycController extends Controller
      */
     private function updateUserKycStatus(int $userId): void
     {
-        $documentStatuses = DB::table('kyc_documents')
-            ->where('user_id', $userId)
+        $documentStatuses = KycDocument::where('user_id', $userId)
             ->where('status', '!=', 'deleted')
             ->pluck('status')
             ->unique()
@@ -416,11 +402,9 @@ class KycController extends Controller
             $overallStatus = self::STATUS_APPROVED;
         }
 
-        DB::table('users')
-            ->where('id', $userId)
+        User::where('id', $userId)
             ->update([
                 'kyc_status' => $overallStatus,
-                'updated_at' => now(),
             ]);
     }
 }
