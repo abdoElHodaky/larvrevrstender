@@ -1,0 +1,34 @@
+includes:
+    - ./vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+        - config/
+        - database/
+        - routes/
+    
+    # Rule level (0-9, 9 is strictest)
+    level: 8
+    
+    # Ignore errors in vendor and generated files
+    excludePaths:
+        - vendor/
+        - storage/
+        - bootstrap/cache/
+        - node_modules/
+    
+    # Laravel specific settings
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    
+    # Additional rules
+    checkTooWideReturnTypesInProtectedAndPublicMethods: true
+    checkUninitializedProperties: true
+    checkDynamicProperties: false
+    
+    # Ignore common Laravel patterns
+    ignoreErrors:
+        - "#Call to an undefined method Illuminate\\\\.*#"
+        - "#Access to an undefined property Illuminate\\\\.*#"
+        - "#Method .* should return .* but returns Illuminate\\\\.*#"

@@ -11,11 +11,9 @@ use Illuminate\Http\Request;
 
 class MerchantController extends Controller
 {
-    private MerchantService $merchantService;
-
-    public function __construct(MerchantService $merchantService)
-    {
-        $this->merchantService = $merchantService;
+    public function __construct(
+        private MerchantService$merchantService
+    ) {
     }
 
     /**

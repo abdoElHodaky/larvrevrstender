@@ -14,11 +14,9 @@ use Carbon\Carbon;
 
 class AuctionController extends Controller
 {
-    private BiddingService $biddingService;
-
-    public function __construct(BiddingService $biddingService)
-    {
-        $this->biddingService = $biddingService;
+    public function __construct(
+        private BiddingService$biddingService
+    ) {
     }
 
     /**

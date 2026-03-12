@@ -10,11 +10,9 @@ use Illuminate\Support\Facades\Validator;
 
 class AnalyticsController extends Controller
 {
-    protected AnalyticsService $analyticsService;
-
-    public function __construct(AnalyticsService $analyticsService)
-    {
-        $this->analyticsService = $analyticsService;
+    public function __construct(
+        protected AnalyticsService$analyticsService
+    ) {
     }
 
     /**

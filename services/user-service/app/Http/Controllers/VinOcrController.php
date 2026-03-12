@@ -10,14 +10,10 @@ use Illuminate\Http\Request;
 
 class VinOcrController extends Controller
 {
-    private VinOcrService $vinOcrService;
-
-    private CustomerService $customerService;
-
-    public function __construct(VinOcrService $vinOcrService, CustomerService $customerService)
-    {
-        $this->vinOcrService = $vinOcrService;
-        $this->customerService = $customerService;
+    public function __construct(
+        private VinOcrService$vinOcrService,
+        private CustomerService$customerService
+    ) {
     }
 
     /**

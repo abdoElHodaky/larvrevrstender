@@ -16,11 +16,9 @@ use Illuminate\Support\Facades\Log;
  */
 class WorkflowSignalController extends Controller
 {
-    protected WorkflowSignalHandler $signalHandler;
-
-    public function __construct(WorkflowSignalHandler $signalHandler)
-    {
-        $this->signalHandler = $signalHandler;
+    public function __construct(
+        protected WorkflowSignalHandler$signalHandler
+    ) {
     }
 
     /**

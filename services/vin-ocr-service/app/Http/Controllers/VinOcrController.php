@@ -14,20 +14,11 @@ use Shared\Services\FileUploadService;
 
 class VinOcrController extends Controller
 {
-    protected OcrService $ocrService;
-
-    protected VinValidationService $vinValidationService;
-
-    protected FileUploadService $fileUploadService;
-
     public function __construct(
-        OcrService $ocrService,
-        VinValidationService $vinValidationService,
-        FileUploadService $fileUploadService
+        protected OcrService$ocrService,
+        protected VinValidationService$vinValidationService,
+        protected FileUploadService$fileUploadService
     ) {
-        $this->ocrService = $ocrService;
-        $this->vinValidationService = $vinValidationService;
-        $this->fileUploadService = $fileUploadService;
     }
 
     /**

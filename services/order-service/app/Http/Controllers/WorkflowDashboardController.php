@@ -14,15 +14,10 @@ use Illuminate\Support\Facades\Log;
  */
 class WorkflowDashboardController extends Controller
 {
-    protected WorkflowDeadLetterQueue $dlqService;
-    protected WorkflowSignalHandler $signalHandler;
-
     public function __construct(
-        WorkflowDeadLetterQueue $dlqService,
-        WorkflowSignalHandler $signalHandler
+        protected WorkflowDeadLetterQueue$dlqService,
+        protected WorkflowSignalHandler$signalHandler
     ) {
-        $this->dlqService = $dlqService;
-        $this->signalHandler = $signalHandler;
     }
 
     /**

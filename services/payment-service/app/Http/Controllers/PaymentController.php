@@ -13,13 +13,10 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
-    private PaymentService $paymentService;
-    private PaymentGatewayService $gatewayService;
-
-    public function __construct(PaymentService $paymentService, PaymentGatewayService $gatewayService)
-    {
-        $this->paymentService = $paymentService;
-        $this->gatewayService = $gatewayService;
+    public function __construct(
+        private readonly PaymentService $paymentService,
+        private readonly PaymentGatewayService $gatewayService
+    ) {
     }
 
     /**

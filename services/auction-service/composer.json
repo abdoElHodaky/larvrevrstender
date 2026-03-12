@@ -31,7 +31,11 @@
         "nunomaduro/collision": "^8.6",
         "phpunit/phpunit": "^11.5.50",
         "spatie/laravel-ignition": "^2.8",
-        "laravel/pail": "^1.2.2"
+        "laravel/pail": "^1.2.2",
+        "symplify/easy-coding-standard": "^12.3",
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-laravel": "^2.1",
+        "larastan/larastan": "^3.0"
     },
     "autoload": {
         "psr-4": {
@@ -75,6 +79,21 @@
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
+        ],
+        "ecs": [
+            "vendor/bin/ecs check --fix"
+        ],
+        "stan": [
+            "vendor/bin/phpstan analyse --memory-limit=2G"
+        ],
+        "unit": [
+            "@php artisan test --testsuite=Unit"
+        ],
+        "coverage": [
+            "@php artisan test --coverage --min=100"
+        ],
+        "feature": [
+            "@php artisan test --testsuite=Feature"
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"

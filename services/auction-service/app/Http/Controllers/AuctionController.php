@@ -11,11 +11,9 @@ use Illuminate\Validation\ValidationException;
 
 class AuctionController extends Controller
 {
-    protected AuthServiceClient $authService;
-
-    public function __construct(AuthServiceClient $authService)
-    {
-        $this->authService = $authService;
+    public function __construct(
+        protected AuthServiceClient$authService
+    ) {
     }
     /**
      * Display a listing of auctions.

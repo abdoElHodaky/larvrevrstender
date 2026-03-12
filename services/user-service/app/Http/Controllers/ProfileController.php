@@ -11,11 +11,9 @@ use Shared\Services\FileUploadService;
 
 class ProfileController extends Controller
 {
-    protected FileUploadService $fileUploadService;
-
-    public function __construct(FileUploadService $fileUploadService)
-    {
-        $this->fileUploadService = $fileUploadService;
+    public function __construct(
+        protected FileUploadService$fileUploadService
+    ) {
     }
 
     /**

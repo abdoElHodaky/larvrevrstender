@@ -12,14 +12,10 @@ use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
-    private AuthService $authService;
-
-    private SocialAuthService $socialAuthService;
-
-    public function __construct(AuthService $authService, SocialAuthService $socialAuthService)
-    {
-        $this->authService = $authService;
-        $this->socialAuthService = $socialAuthService;
+    public function __construct(
+        private AuthService$authService,
+        private SocialAuthService$socialAuthService
+    ) {
     }
 
     /**
