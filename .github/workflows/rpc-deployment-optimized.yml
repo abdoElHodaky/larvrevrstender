@@ -156,8 +156,9 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.3'
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, redis, curl
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, redis, curl, gd, zip
         coverage: xdebug
+        ini-file: production
 
     # Optimization: Enhanced caching strategy
     - name: Cache Composer packages
