@@ -42,7 +42,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-version }}
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, iconv, json, mbstring, redis
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, iconv, json, mbstring, redis, xmlwriter
         tools: composer:v2
         
     - name: Cache Composer dependencies
@@ -231,7 +231,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-version }}
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, iconv, json, mbstring, redis
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, iconv, json, mbstring, redis, xmlwriter
         tools: composer:v2
         
     - name: Cache Composer dependencies
