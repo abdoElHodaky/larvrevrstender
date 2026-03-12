@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
+use App\Models\Session as SessionModel;
 
 /**
  * Session Validation Micro Procedure
@@ -32,8 +33,7 @@ trait SessionValidationProcedure
             }
 
             // Check if session exists in database
-            $sessionData = DB::table('sessions')
-                ->where('id', $sessionId)
+            $sessionData = SessionModel::where('id', $sessionId)
                 ->first();
 
             if (! $sessionData) {
@@ -50,7 +50,7 @@ trait SessionValidationProcedure
 
             if ($lastActivity->addMinutes($sessionLifetime)->isPast()) {
                 // Clean up expired session
-                DB::table('sessions')->where('id', $sessionId)->delete();
+                SessionModel::where('id', $sessionId)->delete();
 
                 return [
                     'success' => false,

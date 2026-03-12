@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
+use App\Models\Session as SessionModel;
+use App\Models\User;
 
 /**
  * Session Management Micro Procedure
@@ -50,7 +52,7 @@ trait SessionManagementProcedure
             $encodedPayload = base64_encode(serialize($payload));
 
             // Insert session into database
-            DB::table('sessions')->insert([
+            SessionModel::create([
                 'id' => $sessionId,
                 'user_id' => $userId,
                 'ip_address' => $ipAddress,
@@ -160,8 +162,7 @@ trait SessionManagementProcedure
             }
 
             // Update last activity
-            $updated = DB::table('sessions')
-                ->where('id', $sessionId)
+            $updated = SessionModel::where('id', $sessionId)
                 ->update(['last_activity' => now()->timestamp]);
 
             if (! $updated) {
@@ -218,8 +219,7 @@ trait SessionManagementProcedure
             }
 
             // Get session info before deletion for logging
-            $sessionData = DB::table('sessions')
-                ->where('id', $sessionId)
+            $sessionData = SessionModel::where('id', $sessionId)
                 ->first();
 
             if (! $sessionData) {
@@ -231,8 +231,7 @@ trait SessionManagementProcedure
             }
 
             // Delete session
-            $deleted = DB::table('sessions')
-                ->where('id', $sessionId)
+            $deleted = SessionModel::where('id', $sessionId)
                 ->delete();
 
             if (! $deleted) {
@@ -290,8 +289,7 @@ trait SessionManagementProcedure
             }
 
             // Get active sessions for user
-            $sessions = DB::table('sessions')
-                ->where('user_id', $userId)
+            $sessions = SessionModel::where('user_id', $userId)
                 ->orderBy('last_activity', 'desc')
                 ->limit($limit)
                 ->offset($offset)
@@ -317,7 +315,7 @@ trait SessionManagementProcedure
                     ];
                 } else {
                     // Clean up expired session
-                    DB::table('sessions')->where('id', $session->id)->delete();
+                    SessionModel::where('id', $session->id)->delete();
                 }
             }
 
@@ -363,7 +361,7 @@ trait SessionManagementProcedure
             }
 
             // Build query
-            $query = DB::table('sessions')->where('user_id', $userId);
+            $query = SessionModel::where('user_id', $userId);
 
             // Exclude current session if specified
             if ($excludeSessionId) {
@@ -465,8 +463,7 @@ trait SessionManagementProcedure
     private function updateUserLastLogin(int $userId, ?string $ipAddress): void
     {
         try {
-            DB::table('users')
-                ->where('id', $userId)
+            User::where('id', $userId)
                 ->update([
                     'last_login_at' => now(),
                     'last_login_ip' => $ipAddress,
