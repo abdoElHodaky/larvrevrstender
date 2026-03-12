@@ -23,7 +23,6 @@ class SessionSecurityLog extends Model
         'user_agent',
         'details',
         'severity',
-        'created_at',
     ];
 
     /**
@@ -31,20 +30,19 @@ class SessionSecurityLog extends Model
      */
     protected $casts = [
         'details' => 'array', // Laravel 12 automatic JSON casting
-        'created_at' => 'datetime',
     ];
 
     /**
      * Indicates if the model should be timestamped.
      */
-    public $timestamps = false;
+    public $timestamps = true;
 
     /**
      * Get the session that owns the security log.
      */
     public function session(): BelongsTo
     {
-        return $this->belongsTo(Session::class, 'session_id');
+        return $this->belongsTo(Session::class, 'session_id', 'id');
     }
 
     /**

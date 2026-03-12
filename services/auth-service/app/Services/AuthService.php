@@ -594,4 +594,207 @@ class AuthService
             ];
         }
     }
+
+    /**
+     * Create a new session for inter-service communication
+     */
+    public function createSession(int $userId, array $metadata = []): array
+    {
+        try {
+            $user = User::findOrFail($userId);
+            
+            // Create a new Sanctum token for the session
+            $token = $user->createToken('session-token', ['*'], now()->addHours(24));
+            
+            // Log session creation
+            Log::info('Session created', [
+                'user_id' => $userId,
+                'token_id' => $token->accessToken->id,
+                'metadata' => $metadata,
+            ]);
+
+            return [
+                'success' => true,
+                'session_id' => $token->accessToken->id,
+                'session_token' => $token->plainTextToken,
+                'expires_at' => $token->accessToken->expires_at,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Session creation failed', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Invalidate a session for inter-service communication
+     */
+    public function invalidateSession(string $sessionId): array
+    {
+        try {
+            $token = \Laravel\Sanctum\PersonalAccessToken::find($sessionId);
+            
+            if (!$token) {
+                return [
+                    'success' => false,
+                    'message' => 'Session not found',
+                ];
+            }
+
+            $token->delete();
+
+            Log::info('Session invalidated', [
+                'session_id' => $sessionId,
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Session invalidated successfully',
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Session invalidation failed', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Validate a token for inter-service communication
+     */
+    public function validateToken(string $token): array
+    {
+        try {
+            $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+            
+            if (!$accessToken || $accessToken->expires_at < now()) {
+                return [
+                    'valid' => false,
+                    'message' => 'Invalid or expired token',
+                ];
+            }
+
+            $user = $accessToken->tokenable;
+
+            return [
+                'valid' => true,
+                'user_id' => $user->id,
+                'user' => $user->toArray(),
+                'token_id' => $accessToken->id,
+                'expires_at' => $accessToken->expires_at,
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'valid' => false,
+                'message' => 'Token validation failed',
+            ];
+        }
+    }
+
+    /**
+     * Get user permissions
+     */
+    public function getUserPermissions(int $userId): array
+    {
+        try {
+            $user = User::findOrFail($userId);
+            
+            // For now, return basic permissions based on user type
+            // This can be expanded with a proper permission system
+            $permissions = [];
+            
+            if ($user->type === User::TYPE_CUSTOMER) {
+                $permissions = ['view_profile', 'update_profile', 'make_payments'];
+            } elseif ($user->type === User::TYPE_MERCHANT) {
+                $permissions = ['view_profile', 'update_profile', 'manage_products', 'view_orders'];
+            }
+
+            return $permissions;
+
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Check if user has specific permission
+     */
+    public function hasPermission(int $userId, string $permission): bool
+    {
+        $permissions = $this->getUserPermissions($userId);
+        return in_array($permission, $permissions);
+    }
+
+    /**
+     * Log user activity
+     */
+    public function logActivity(int $userId, string $action, array $metadata = [], ?string $timestamp = null): void
+    {
+        try {
+            Log::info('User activity', [
+                'user_id' => $userId,
+                'action' => $action,
+                'metadata' => $metadata,
+                'timestamp' => $timestamp ?? now()->toISOString(),
+            ]);
+
+            // Here you could also store to a database table if needed
+            // ActivityLog::create([...]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to log activity', [
+                'user_id' => $userId,
+                'action' => $action,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Get user roles
+     */
+    public function getUserRoles(int $userId): array
+    {
+        try {
+            $user = User::findOrFail($userId);
+            
+            // For now, return basic roles based on user type
+            // This can be expanded with a proper role system
+            $roles = [];
+            
+            if ($user->type === User::TYPE_CUSTOMER) {
+                $roles = ['customer'];
+            } elseif ($user->type === User::TYPE_MERCHANT) {
+                $roles = ['merchant'];
+            }
+
+            return $roles;
+
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Check if user has specific role
+     */
+    public function hasRole(int $userId, string $role): bool
+    {
+        $roles = $this->getUserRoles($userId);
+        return in_array($role, $roles);
+    }
 }

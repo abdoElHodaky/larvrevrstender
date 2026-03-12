@@ -303,6 +303,7 @@ trait SessionManagementProcedure
 
                 // Check if session is still active
                 if (! $lastActivity->addMinutes($sessionLifetime)->isPast()) {
+                    // Decode session payload (using raw DB query, not Eloquent model)
                     $payload = unserialize(base64_decode($session->payload));
 
                     $activeSessions[] = [

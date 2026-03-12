@@ -403,6 +403,57 @@ class AuthController extends Controller
     }
 
     /**
+     * Create a new session for inter-service communication
+     */
+    public function createSession(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|integer|exists:users,id',
+            'metadata' => 'nullable|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->error('Validation failed', $validator->errors(), 422);
+        }
+
+        try {
+            $result = $this->authService->createSession($request->user_id, $request->metadata ?? []);
+
+            if (!$result['success']) {
+                return response()->error($result['message'], null, 400);
+            }
+
+            return response()->success([
+                'session_id' => $result['session_id'],
+                'session_token' => $result['session_token'],
+                'expires_at' => $result['expires_at'],
+            ], 'Session created successfully');
+
+        } catch (\Exception $e) {
+            return response()->error('Failed to create session', null, 500);
+        }
+    }
+
+    /**
+     * Invalidate a session for inter-service communication
+     */
+    public function invalidateSession(Request $request, string $sessionId): JsonResponse
+    {
+        try {
+            $result = $this->authService->invalidateSession($sessionId);
+
+            if (!$result['success']) {
+                return response()->error($result['message'], null, 404);
+            }
+
+            return response()->success(null, 'Session invalidated successfully');
+
+        } catch (\Exception $e) {
+            return response()->error('Failed to invalidate session', null, 500);
+        }
+    }
+
+    /**
      * Redirect to social provider
      */
     public function socialRedirect(string $provider): JsonResponse
@@ -449,5 +500,190 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return response()->error('Social authentication failed', null, 400);
         }
+    }
+
+    /**
+     * Validate a token for inter-service communication
+     */
+    public function validateToken(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->error('Validation failed', $validator->errors(), 422);
+        }
+
+        try {
+            $result = $this->authService->validateToken($request->token);
+
+            return response()->success($result, 'Token validated');
+
+        } catch (\Exception $e) {
+            return response()->error('Token validation failed', null, 401);
+        }
+    }
+
+    /**
+     * Get user permissions for inter-service communication
+     */
+    public function getUserPermissions(Request $request, int $userId): JsonResponse
+    {
+        try {
+            $permissions = $this->authService->getUserPermissions($userId);
+
+            return response()->success([
+                'user_id' => $userId,
+                'permissions' => $permissions,
+            ], 'Permissions retrieved');
+
+        } catch (\Exception $e) {
+            return response()->error('Failed to retrieve permissions', null, 500);
+        }
+    }
+
+    /**
+     * Check if user has specific permission for inter-service communication
+     */
+    public function checkPermission(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|integer',
+            'permission' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->error('Validation failed', $validator->errors(), 422);
+        }
+
+        try {
+            $hasPermission = $this->authService->hasPermission($request->user_id, $request->permission);
+
+            return response()->success([
+                'user_id' => $request->user_id,
+                'permission' => $request->permission,
+                'has_permission' => $hasPermission,
+            ], 'Permission checked');
+
+        } catch (\Exception $e) {
+            return response()->error('Permission check failed', null, 500);
+        }
+    }
+
+    /**
+     * Log user activity for inter-service communication
+     */
+    public function logActivity(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|integer',
+            'action' => 'required|string',
+            'metadata' => 'nullable|array',
+            'timestamp' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->error('Validation failed', $validator->errors(), 422);
+        }
+
+        try {
+            $this->authService->logActivity(
+                $request->user_id,
+                $request->action,
+                $request->metadata ?? [],
+                $request->timestamp
+            );
+
+            return response()->success(null, 'Activity logged');
+
+        } catch (\Exception $e) {
+            return response()->error('Activity logging failed', null, 500);
+        }
+    }
+
+    /**
+     * Get user roles for inter-service communication
+     */
+    public function getUserRoles(Request $request, int $userId): JsonResponse
+    {
+        try {
+            $roles = $this->authService->getUserRoles($userId);
+
+            return response()->success([
+                'user_id' => $userId,
+                'roles' => $roles,
+            ], 'Roles retrieved');
+
+        } catch (\Exception $e) {
+            return response()->error('Failed to retrieve roles', null, 500);
+        }
+    }
+
+    /**
+     * Check if user has specific role for inter-service communication
+     */
+    public function checkRole(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|integer',
+            'role' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->error('Validation failed', $validator->errors(), 422);
+        }
+
+        try {
+            $hasRole = $this->authService->hasRole($request->user_id, $request->role);
+
+            return response()->success([
+                'user_id' => $request->user_id,
+                'role' => $request->role,
+                'has_role' => $hasRole,
+            ], 'Role checked');
+
+        } catch (\Exception $e) {
+            return response()->error('Role check failed', null, 500);
+        }
+    }
+
+    /**
+     * Get user tokens
+     */
+    public function getTokens(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $tokens = $user->tokens()->get();
+
+        return response()->success($tokens, 'Tokens retrieved');
+    }
+
+    /**
+     * Revoke specific token
+     */
+    public function revokeToken(Request $request, string $tokenId): JsonResponse
+    {
+        $user = $request->user();
+        $token = $user->tokens()->where('id', $tokenId)->first();
+
+        if (!$token) {
+            return response()->error('Token not found', null, 404);
+        }
+
+        $token->delete();
+
+        return response()->success(null, 'Token revoked successfully');
+    }
+
+    /**
+     * Revoke all tokens
+     */
+    public function revokeAllTokens(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $user->tokens()->delete();
+
+        return response()->success(null, 'All tokens revoked successfully');
     }
 }

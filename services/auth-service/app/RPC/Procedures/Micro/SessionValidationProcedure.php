@@ -59,7 +59,7 @@ trait SessionValidationProcedure
                 ];
             }
 
-            // Decode session payload
+            // Decode session payload (using raw DB query, not Eloquent model)
             $payload = unserialize(base64_decode($sessionData->payload));
 
             return [

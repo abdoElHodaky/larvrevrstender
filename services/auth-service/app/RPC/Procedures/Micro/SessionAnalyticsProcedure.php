@@ -79,7 +79,7 @@ trait SessionAnalyticsProcedure
                 'data' => [
                     'user_id' => $userId,
                     'period_days' => $days,
-                    'period_start' => $startDate->toISOString(),
+                    'period_start' => Carbon::createFromTimestamp($startDate)->toISOString(),
                     'period_end' => now()->toISOString(),
                     'statistics' => $stats,
                 ],
@@ -298,7 +298,8 @@ trait SessionAnalyticsProcedure
         $validSessions = 0;
 
         foreach ($sessions as $session) {
-            $payload = unserialize(base64_decode($session->payload));
+            // Laravel 12 automatically casts payload to array
+            $payload = $session->payload;
             $loginTime = $payload['login_time'] ?? $session->last_activity;
 
             $duration = $session->last_activity - $loginTime;
@@ -323,7 +324,8 @@ trait SessionAnalyticsProcedure
         $deviceStats = [];
 
         foreach ($sessions as $session) {
-            $payload = unserialize(base64_decode($session->payload));
+            // Laravel 12 automatically casts payload to array
+            $payload = $session->payload;
             $deviceInfo = $payload['device_info'] ?? [];
 
             $deviceKey = ($deviceInfo['device_type'] ?? 'unknown').'|'.
@@ -363,7 +365,8 @@ trait SessionAnalyticsProcedure
         $dailyLogins = [];
 
         foreach ($sessions as $session) {
-            $payload = unserialize(base64_decode($session->payload));
+            // Laravel 12 automatically casts payload to array
+            $payload = $session->payload;
             $loginTime = $payload['login_time'] ?? $session->last_activity;
             $date = Carbon::createFromTimestamp($loginTime)->format('Y-m-d');
 
@@ -392,8 +395,9 @@ trait SessionAnalyticsProcedure
             return $incidents->map(function ($incident) {
                 return [
                     'session_id' => $incident->session_id,
-                    'risk_level' => $incident->risk_level,
-                    'flags' => json_decode($incident->flags, true),
+                    'event_type' => $incident->event_type,
+                    'severity' => $incident->severity,
+                    'details' => $incident->details,
                     'created_at' => Carbon::parse($incident->created_at)->toISOString(),
                 ];
             })->toArray();
@@ -506,7 +510,8 @@ trait SessionAnalyticsProcedure
         ];
 
         foreach ($sessions as $session) {
-            $payload = unserialize(base64_decode($session->payload));
+            // Laravel 12 automatically casts payload to array
+            $payload = $session->payload;
             $deviceType = $payload['device_info']['device_type'] ?? 'unknown';
 
             if (isset($deviceStats[$deviceType])) {
@@ -531,12 +536,16 @@ trait SessionAnalyticsProcedure
             }
             
             return SessionSecurityLog::where('created_at', '>=', $startDate)
-                ->selectRaw('risk_level, COUNT(*) as count')
-                ->groupBy('risk_level')
-                ->pluck('count', 'risk_level')
+                ->selectRaw('severity, COUNT(*) as count')
+                ->groupBy('severity')
+                ->pluck('count', 'severity')
                 ->toArray();
         } catch (\Exception $e) {
+//<<<<<<< codegen-bot/fix-vendor-directories-cleanup-1773226072
+            // Table might not exist yet or no data
+//=======
             Log::warning('Failed to fetch security incidents', ['error' => $e->getMessage()]);
+//>>>>>>> codegen-bot/consolidate-all-phases-1773226072
             return [];
         }
     }
@@ -585,7 +594,8 @@ trait SessionAnalyticsProcedure
         $validSessions = 0;
 
         foreach ($sessions as $session) {
-            $payload = unserialize(base64_decode($session->payload));
+            // Laravel 12 automatically casts payload to array
+            $payload = $session->payload;
             $loginTime = $payload['login_time'] ?? $session->last_activity;
 
             $duration = $session->last_activity - $loginTime;
