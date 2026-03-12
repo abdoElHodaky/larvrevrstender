@@ -14,7 +14,9 @@ use Tests\Fixtures\TestParentTimerWorkflow;
 use Tests\Fixtures\TestParentWorkflow;
 use Tests\TestCase;
 use Workflow\AsyncWorkflow;
+use Workflow\Models\StoredWorkflow;
 use Workflow\States\WorkflowCompletedStatus;
+use Workflow\States\WorkflowCreatedStatus;
 use Workflow\States\WorkflowFailedStatus;
 use Workflow\WorkflowStub;
 
@@ -47,6 +49,22 @@ final class ParentWorkflowTest extends TestCase
 
         $this->assertSame(WorkflowFailedStatus::class, $workflow->status());
         $this->assertNull($workflow->output());
+
+        $storedWorkflow = StoredWorkflow::findOrFail($workflow->id());
+        $storedWorkflow->status = WorkflowCreatedStatus::class;
+        $storedWorkflow->save();
+        $storedWorkflow->logs()
+            ->delete();
+        $storedWorkflow->exceptions()
+            ->delete();
+
+        $storedChildWorkflow = StoredWorkflow::findOrFail($workflow->id() + 1);
+        $storedChildWorkflow->status = WorkflowCreatedStatus::class;
+        $storedChildWorkflow->save();
+        $storedChildWorkflow->logs()
+            ->delete();
+        $storedChildWorkflow->exceptions()
+            ->delete();
 
         $workflow->fresh()
             ->start(shouldThrow: false);

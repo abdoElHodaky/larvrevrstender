@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Workflow\Exceptions\TransitionNotFound;
 use Workflow\Middleware\WithoutOverlappingMiddleware;
 use Workflow\Models\StoredWorkflow;
 
@@ -36,8 +37,11 @@ final class Exception implements ShouldBeEncrypted, ShouldQueue
         $connection = null,
         $queue = null
     ) {
-        $connection = $connection ?? config('queue.default');
-        $queue = $queue ?? config('queue.connections.' . $connection . '.queue', 'default');
+        $connection = $connection ?? $this->storedWorkflow->effectiveConnection() ?? config('queue.default');
+        $queue = $queue ?? $this->storedWorkflow->effectiveQueue() ?? config(
+            'queue.connections.' . $connection . '.queue',
+            'default'
+        );
         $this->onConnection($connection);
         $this->onQueue($queue);
     }
@@ -47,12 +51,12 @@ final class Exception implements ShouldBeEncrypted, ShouldQueue
         $workflow = $this->storedWorkflow->toWorkflow();
 
         try {
-            if ($this->storedWorkflow->logs()->whereIndex($this->index)->exists()) {
+            if ($this->storedWorkflow->hasLogByIndex($this->index)) {
                 $workflow->resume();
-            } else {
+            } elseif (! $this->storedWorkflow->logs()->where('class', self::class)->exists()) {
                 $workflow->next($this->index, $this->now, self::class, $this->exception);
             }
-        } catch (\Spatie\ModelStates\Exceptions\TransitionNotFound) {
+        } catch (TransitionNotFound) {
             if ($workflow->running()) {
                 $this->release();
             }
@@ -62,7 +66,12 @@ final class Exception implements ShouldBeEncrypted, ShouldQueue
     public function middleware()
     {
         return [
-            new WithoutOverlappingMiddleware($this->storedWorkflow->id, WithoutOverlappingMiddleware::ACTIVITY),
+            new WithoutOverlappingMiddleware(
+                $this->storedWorkflow->id,
+                WithoutOverlappingMiddleware::ACTIVITY,
+                0,
+                15
+            ),
         ];
     }
 }

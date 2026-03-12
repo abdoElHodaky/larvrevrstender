@@ -6,7 +6,6 @@ namespace Tests\Unit\Traits;
 
 use Carbon\CarbonInterval;
 use Exception;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Bus;
 use Mockery;
@@ -136,7 +135,7 @@ final class TimersTest extends TestCase
                 $result = $value;
             });
 
-        $this->assertSame(true, $result);
+        $this->assertSame(false, $result);
         $this->assertSame(1, $workflow->logs()->count());
         $this->assertDatabaseHas('workflow_logs', [
             'stored_workflow_id' => $workflow->id(),
@@ -163,23 +162,14 @@ final class TimersTest extends TestCase
                 'result' => Serializer::serialize(true),
             ]);
 
-        $mockLogs = Mockery::mock(HasMany::class)
-            ->shouldReceive('whereIndex')
-            ->once()
-            ->andReturnSelf()
-            ->shouldReceive('first')
-            ->once()
-            ->andReturn(null)
-            ->shouldReceive('create')
-            ->andThrow(new UniqueConstraintViolationException('', '', [], new Exception()))
-            ->getMock();
-
         $mockStoredWorkflow = Mockery::spy($storedWorkflow);
-
-        $mockStoredWorkflow->shouldReceive('logs')
-            ->andReturnUsing(static function () use ($mockLogs) {
-                return $mockLogs;
-            });
+        $mockStoredWorkflow->shouldReceive('findLogByIndex')
+            ->once()
+            ->with(0)
+            ->andReturn(null);
+        $mockStoredWorkflow->shouldReceive('createLog')
+            ->once()
+            ->andThrow(new UniqueConstraintViolationException('', '', [], new Exception()));
 
         WorkflowStub::setContext([
             'storedWorkflow' => $mockStoredWorkflow,
