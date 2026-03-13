@@ -313,20 +313,13 @@ class MetricsController extends Controller
             ];
 
             // Increment based on groupBy
-            switch ($groupBy) {
-                case 'hour':
-                    $current->addHour();
-                    break;
-                case 'day':
-                    $current->addDay();
-                    break;
-                case 'week':
-                    $current->addWeek();
-                    break;
-                case 'month':
-                    $current->addMonth();
-                    break;
-            }
+            match ($groupBy) {
+                'hour' => $current->addHour(),
+                'day' => $current->addDay(),
+                'week' => $current->addWeek(),
+                'month' => $current->addMonth(),
+                default => $current->addDay(),
+            };
         }
 
         return $summary;
@@ -350,20 +343,13 @@ class MetricsController extends Controller
             ];
 
             // Increment based on interval
-            switch ($interval) {
-                case 'hour':
-                    $current->addHour();
-                    break;
-                case 'day':
-                    $current->addDay();
-                    break;
-                case 'week':
-                    $current->addWeek();
-                    break;
-                case 'month':
-                    $current->addMonth();
-                    break;
-            }
+            match ($interval) {
+                'hour' => $current->addHour(),
+                'day' => $current->addDay(),
+                'week' => $current->addWeek(),
+                'month' => $current->addMonth(),
+                default => $current->addDay(),
+            };
         }
 
         return $trends;
