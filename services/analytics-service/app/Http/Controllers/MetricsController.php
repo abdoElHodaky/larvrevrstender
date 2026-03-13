@@ -363,19 +363,15 @@ class MetricsController extends Controller
         $services = $serviceName ? [$serviceName] : ['auth', 'auction', 'payment', 'notification', 'user', 'order', 'analytics'];
         $performance = [];
 
-        foreach ($services as $service) {
-            $serviceData = [
+        $performance = collect($services)->map(function ($service) use ($metrics) {
+            return [
                 'service_name' => $service,
                 'status' => rand(0, 100) > 5 ? 'healthy' : 'degraded', // 95% healthy
-                'metrics' => [],
+                'metrics' => collect($metrics)->mapWithKeys(fn($metric) => [
+                    $metric => $this->generatePerformanceMetric($metric)
+                ])->toArray(),
             ];
-
-            foreach ($metrics as $metric) {
-                $serviceData['metrics'][$metric] = $this->generatePerformanceMetric($metric);
-            }
-
-            $performance[] = $serviceData;
-        }
+        })->toArray();
 
         return [
             'services' => $performance,
