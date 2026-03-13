@@ -313,20 +313,13 @@ class MetricsController extends Controller
             ];
 
             // Increment based on groupBy
-            switch ($groupBy) {
-                case 'hour':
-                    $current->addHour();
-                    break;
-                case 'day':
-                    $current->addDay();
-                    break;
-                case 'week':
-                    $current->addWeek();
-                    break;
-                case 'month':
-                    $current->addMonth();
-                    break;
-            }
+            match ($groupBy) {
+                'hour' => $current->addHour(),
+                'day' => $current->addDay(),
+                'week' => $current->addWeek(),
+                'month' => $current->addMonth(),
+                default => $current->addDay(),
+            };
         }
 
         return $summary;
@@ -350,20 +343,13 @@ class MetricsController extends Controller
             ];
 
             // Increment based on interval
-            switch ($interval) {
-                case 'hour':
-                    $current->addHour();
-                    break;
-                case 'day':
-                    $current->addDay();
-                    break;
-                case 'week':
-                    $current->addWeek();
-                    break;
-                case 'month':
-                    $current->addMonth();
-                    break;
-            }
+            match ($interval) {
+                'hour' => $current->addHour(),
+                'day' => $current->addDay(),
+                'week' => $current->addWeek(),
+                'month' => $current->addMonth(),
+                default => $current->addDay(),
+            };
         }
 
         return $trends;
@@ -377,19 +363,15 @@ class MetricsController extends Controller
         $services = $serviceName ? [$serviceName] : ['auth', 'auction', 'payment', 'notification', 'user', 'order', 'analytics'];
         $performance = [];
 
-        foreach ($services as $service) {
-            $serviceData = [
+        $performance = collect($services)->map(function ($service) use ($metrics) {
+            return [
                 'service_name' => $service,
                 'status' => rand(0, 100) > 5 ? 'healthy' : 'degraded', // 95% healthy
-                'metrics' => [],
+                'metrics' => collect($metrics)->mapWithKeys(fn($metric) => [
+                    $metric => $this->generatePerformanceMetric($metric)
+                ])->toArray(),
             ];
-
-            foreach ($metrics as $metric) {
-                $serviceData['metrics'][$metric] = $this->generatePerformanceMetric($metric);
-            }
-
-            $performance[] = $serviceData;
-        }
+        })->toArray();
 
         return [
             'services' => $performance,
