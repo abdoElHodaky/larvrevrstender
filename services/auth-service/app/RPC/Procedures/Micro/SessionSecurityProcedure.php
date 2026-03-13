@@ -4,6 +4,7 @@ namespace App\RPC\Procedures\Micro;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\SessionModel;
 
 /**
  * Session Security Micro Procedure
@@ -163,28 +164,18 @@ trait SessionSecurityProcedure
             $sessionsToRemove = $sessionCount - $maxSessions;
             $revokedCount = 0;
 
-            foreach ($sortedSessions as $session) {
-                if ($revokedCount >= $sessionsToRemove) {
-                    break;
-                }
+            // Use collection methods with arrow functions (PHP 8.3)
+            $sessionsToRevoke = collect($sortedSessions)
+                ->filter(fn($session) => !$currentSessionId || $session['session_id'] !== $currentSessionId)
+                ->take($sessionsToRemove)
+                ->pluck('session_id')
+                ->toArray();
 
-                // Don't revoke the current session
-                if ($currentSessionId && $session['session_id'] === $currentSessionId) {
-                    continue;
-                }
-
-                $sessionsToRevoke[] = $session['session_id'];
-                $revokedCount++;
-            }
-
-            // Revoke excess sessions
-            $totalRevoked = 0;
-            foreach ($sessionsToRevoke as $sessionId) {
-                $revokeResult = $this->revokeLaravelSession(['session_id' => $sessionId]);
-                if ($revokeResult['success']) {
-                    $totalRevoked++;
-                }
-            }
+            // Revoke excess sessions using collection methods (PHP 8.3)
+            $totalRevoked = collect($sessionsToRevoke)
+                ->map(fn($sessionId) => $this->revokeLaravelSession(['session_id' => $sessionId]))
+                ->filter(fn($result) => $result['success'])
+                ->count();
 
             Log::info('Concurrent session limit enforced', [
                 'user_id' => $userId,
@@ -303,9 +294,8 @@ trait SessionSecurityProcedure
 
             $cutoffTime = now()->subHours($maxAge)->timestamp;
 
-            // Get sessions that are either expired or flagged as suspicious
-            $suspiciousSessions = DB::table('sessions')
-                ->where(function ($query) use ($cutoffTime) {
+            // Get sessions that are either expired or flagged as suspicious using Eloquent (Laravel 12)
+            $suspiciousSessions = SessionModel::where(function ($query) use ($cutoffTime) {
                     $query->where('last_activity', '<', $cutoffTime)
                         ->orWhereExists(function ($subQuery) {
                             $subQuery->select(DB::raw(1))
@@ -316,13 +306,11 @@ trait SessionSecurityProcedure
                 })
                 ->get();
 
-            $cleanedCount = 0;
-            foreach ($suspiciousSessions as $session) {
-                $deleted = DB::table('sessions')->where('id', $session->id)->delete();
-                if ($deleted) {
-                    $cleanedCount++;
-                }
-            }
+            // Use collection methods for session cleanup with Eloquent (PHP 8.3 + Laravel 12)
+            $cleanedCount = collect($suspiciousSessions)
+                ->map(fn($session) => $session->delete())
+                ->filter(fn($deleted) => $deleted)
+                ->count();
 
             // Also clean up old security logs
             $logsCleaned = DB::table('session_security_logs')
@@ -370,9 +358,8 @@ trait SessionSecurityProcedure
             return null;
         }
 
-        // Get recent sessions for this user
-        $recentSessions = DB::table('sessions')
-            ->where('user_id', $userId)
+        // Get recent sessions for this user using Eloquent (Laravel 12)
+        $recentSessions = SessionModel::forUser($userId)
             ->where('last_activity', '>', now()->subHours(1)->timestamp)
             ->orderBy('last_activity', 'desc')
             ->limit(5)
@@ -481,16 +468,13 @@ trait SessionSecurityProcedure
         $highRiskTypes = ['user_agent_change', 'rapid_location_change'];
         $mediumRiskTypes = ['ip_change', 'concurrent_different_locations'];
 
-        foreach ($flags as $flag) {
-            if (in_array($flag['type'], $highRiskTypes) || $flag['severity'] === 'high') {
-                return 'high';
-            }
+        // Use collection methods for risk level calculation (PHP 8.3)
+        if (collect($flags)->some(fn($flag) => in_array($flag['type'], $highRiskTypes) || $flag['severity'] === 'high')) {
+            return 'high';
         }
 
-        foreach ($flags as $flag) {
-            if (in_array($flag['type'], $mediumRiskTypes) || $flag['severity'] === 'medium') {
-                return 'medium';
-            }
+        if (collect($flags)->some(fn($flag) => in_array($flag['type'], $mediumRiskTypes) || $flag['severity'] === 'medium')) {
+            return 'medium';
         }
 
         return 'low';

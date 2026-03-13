@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Sajya\Server\ServerServiceProvider;
+use Shared\Core\RpcClient;
+use Shared\Core\ServiceDiscoveryClient;
 
 class RpcServiceProvider extends ServiceProvider
 {
@@ -14,6 +16,9 @@ class RpcServiceProvider extends ServiceProvider
     {
         // Register Sajya RPC Server
         $this->app->register(ServerServiceProvider::class);
+
+        // Register shared RPC infrastructure
+        $this->registerSharedRpcServices();
     }
 
     /**
@@ -26,9 +31,48 @@ class RpcServiceProvider extends ServiceProvider
 
         // Register RPC middleware
         $this->registerRpcMiddleware();
+    }
 
-        // Register RPC clients for other services
-        $this->registerRpcClients();
+    /**
+     * Register shared RPC services
+     */
+    private function registerSharedRpcServices(): void
+    {
+        // Register Service Discovery Client
+        $this->app->singleton(ServiceDiscoveryClient::class, function ($app) {
+            return new ServiceDiscoveryClient([
+                'registry_url' => config('rpc.service_discovery.url', 'http://service-registry:8080'),
+                'cache_ttl' => config('rpc.service_discovery.cache_ttl', 300),
+                'environment' => config('app.env', 'production'),
+                'service_name' => 'analytics-service'
+            ]);
+        });
+
+        // Register shared RPC Client
+        $this->app->singleton(RpcClient::class, function ($app) {
+            return new RpcClient(
+                $app->make(ServiceDiscoveryClient::class),
+                [
+                    'timeout' => config('rpc.client.timeout', 30),
+                    'retry_attempts' => config('rpc.client.retry_attempts', 3),
+                    'retry_delay' => config('rpc.client.retry_delay', 1000),
+                    'circuit_breaker' => [
+                        'failure_threshold' => config('rpc.circuit_breaker.failure_threshold', 5),
+                        'recovery_timeout' => config('rpc.circuit_breaker.recovery_timeout', 60),
+                        'expected_exception_types' => ['ConnectionException', 'TimeoutException']
+                    ],
+                    'correlation_id_header' => 'X-Correlation-ID',
+                    'service_name' => 'analytics-service'
+                ]
+            );
+        });
+
+        // Register service-specific RPC client aliases for backward compatibility
+        $this->app->alias(RpcClient::class, 'UserRpc');
+        $this->app->alias(RpcClient::class, 'OrderRpc');
+        $this->app->alias(RpcClient::class, 'PaymentRpc');
+        $this->app->alias(RpcClient::class, 'AuctionRpc');
+        $this->app->alias(RpcClient::class, 'BiddingRpc');
     }
 
     /**
@@ -41,76 +85,5 @@ class RpcServiceProvider extends ServiceProvider
         $router->aliasMiddleware('rpc.correlation', \App\Http\Middleware\RpcCorrelationMiddleware::class);
         $router->aliasMiddleware('rpc.performance', \App\Http\Middleware\RpcPerformanceMiddleware::class);
         $router->aliasMiddleware('rpc.logging', \App\Http\Middleware\RpcLoggingMiddleware::class);
-    }
-
-    /**
-     * Register RPC clients for inter-service communication
-     */
-    private function registerRpcClients(): void
-    {
-        // User Service RPC Client
-        $this->app->singleton('UserRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.user.url'))
-                    ->withToken(config('rpc.services.user.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'analytics-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
-        });
-
-        // Order Service RPC Client
-        $this->app->singleton('OrderRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.order.url'))
-                    ->withToken(config('rpc.services.order.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'analytics-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
-        });
-
-        // Payment Service RPC Client
-        $this->app->singleton('PaymentRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.payment.url'))
-                    ->withToken(config('rpc.services.payment.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'analytics-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
-        });
-
-        // Auction Service RPC Client
-        $this->app->singleton('AuctionRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.auction.url'))
-                    ->withToken(config('rpc.services.auction.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'analytics-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
-        });
-
-        // Bidding Service RPC Client
-        $this->app->singleton('BiddingRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.bidding.url'))
-                    ->withToken(config('rpc.services.bidding.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'analytics-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
-        });
     }
 }
