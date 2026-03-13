@@ -33,7 +33,6 @@
         "laravel/pail": "^1.2.2",
         "symplify/easy-coding-standard": "^12.3",
         "phpstan/phpstan": "^2.1",
-        "phpstan/phpstan-laravel": "^2.1",
         "larastan/larastan": "^3.0"
     },
     "autoload": {

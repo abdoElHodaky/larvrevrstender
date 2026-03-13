@@ -2,6 +2,27 @@
 
 All notable changes to `image` will be documented in this file
 
+## 3.9.3 - 2026-03-01
+
+### What's Changed
+
+* Fix VipsDriver `format()` being ignored when saving to a path with a different extension
+
+**Full Changelog**: https://github.com/spatie/image/compare/3.9.2...3.9.3
+
+## 3.9.1 - 2026-01-12
+
+### What's Changed
+
+* Bump dependabot/fetch-metadata from 2.4.0 to 2.5.0 by @dependabot[bot] in https://github.com/spatie/image/pull/318
+* Fix PSR-4 filename mismatch for CannotOptimizePng exception by @abkrim in https://github.com/spatie/image/pull/317
+
+### New Contributors
+
+* @abkrim made their first contribution in https://github.com/spatie/image/pull/317
+
+**Full Changelog**: https://github.com/spatie/image/compare/3.9.0...3.9.1
+
 ## 3.9.0 - 2026-01-07
 
 ### What's Changed

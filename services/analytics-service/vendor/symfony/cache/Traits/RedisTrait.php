@@ -178,7 +178,22 @@ trait RedisTrait
         }
 
         $params += $query + $options + self::$defaultConnectionOptions;
-        $params['auth'] ??= $auth;
+
+        $booleanStreamOptions = [
+            'allow_self_signed',
+            'capture_peer_cert',
+            'capture_peer_cert_chain',
+            'disable_compression',
+            'SNI_enabled',
+            'verify_peer',
+            'verify_peer_name',
+        ];
+
+        foreach ($params['ssl'] ?? [] as $streamOption => $value) {
+            if (\in_array($streamOption, $booleanStreamOptions, true) && \is_string($value)) {
+                $params['ssl'][$streamOption] = filter_var($value, \FILTER_VALIDATE_BOOL);
+            }
+        }
 
         $aliases = [
             'sentinel_master' => 'sentinel',
@@ -195,8 +210,14 @@ trait RedisTrait
             };
         }
 
-        if (isset($params['sentinel']) && !class_exists(\Predis\Client::class) && !class_exists(\RedisSentinel::class) && !class_exists(Sentinel::class)) {
-            throw new CacheException('Redis Sentinel support requires one of: "predis/predis", "ext-redis >= 5.2", "ext-relay".');
+        if (!isset($params['sentinel'])) {
+            $params['auth'] ??= $auth;
+            $sentinelAuth = null;
+        } elseif (!class_exists(\Predis\Client::class) && !class_exists(\RedisSentinel::class) && !class_exists(Sentinel::class)) {
+            throw new CacheException('Redis Sentinel support requires one of: "predis/predis", "ext-redis >= 6.1", "ext-relay".');
+        } else {
+            $sentinelAuth = $params['auth'] ?? null;
+            $params['auth'] = $auth ?? $params['auth'];
         }
 
         foreach (['lazy', 'persistent', 'cluster'] as $option) {
@@ -227,7 +248,7 @@ trait RedisTrait
         };
 
         if (isset($params['sentinel']) && !is_a($class, \Predis\Client::class, true) && !class_exists(\RedisSentinel::class) && !class_exists(Sentinel::class)) {
-            throw new CacheException(\sprintf('Cannot use Redis Sentinel: class "%s" does not extend "Predis\Client" and neither ext-redis >= 5.2 nor ext-relay have been found.', $class));
+            throw new CacheException(\sprintf('Cannot use Redis Sentinel: class "%s" does not extend "Predis\Client" and neither ext-redis >= 6.1 nor ext-relay have been found.', $class));
         }
 
         $isRedisExt = is_a($class, \Redis::class, true);
@@ -236,14 +257,14 @@ trait RedisTrait
         if ($isRedisExt || $isRelayExt) {
             $connect = $params['persistent'] || $params['persistent_id'] ? 'pconnect' : 'connect';
 
-            $initializer = static function () use ($class, $isRedisExt, $connect, $params, $auth, $hosts, $tls) {
+            $initializer = static function () use ($class, $isRedisExt, $connect, $params, $sentinelAuth, $hosts, $tls) {
                 $sentinelClass = $isRedisExt ? \RedisSentinel::class : Sentinel::class;
                 $redis = new $class();
                 $hostIndex = 0;
                 do {
                     $host = $hosts[$hostIndex]['host'] ?? $hosts[$hostIndex]['path'];
                     $port = $hosts[$hostIndex]['port'] ?? 0;
-                    $passAuth = null !== $params['auth'] && (!$isRedisExt || \defined('Redis::OPT_NULL_MULTIBULK_AS_NULL'));
+                    $passAuth = null !== $sentinelAuth && (!$isRedisExt || \defined('Redis::OPT_NULL_MULTIBULK_AS_NULL'));
                     $address = false;
 
                     if (isset($hosts[$hostIndex]['host']) && $tls) {
@@ -255,7 +276,7 @@ trait RedisTrait
                     }
 
                     try {
-                        if ($isRedisExt && version_compare(phpversion('redis'), '6.0.0', '>=')) {
+                        if ($isRedisExt) {
                             $options = [
                                 'host' => $host,
                                 'port' => $port,
@@ -266,12 +287,16 @@ trait RedisTrait
                             ];
 
                             if ($passAuth) {
-                                $options['auth'] = $params['auth'];
+                                $options['auth'] = $sentinelAuth;
+                            }
+
+                            if (null !== $params['ssl'] && version_compare(phpversion('redis'), '6.2.0', '>=')) {
+                                $options['ssl'] = $params['ssl'];
                             }
 
                             $sentinel = new \RedisSentinel($options);
                         } else {
-                            $extra = $passAuth ? [$params['auth']] : [];
+                            $extra = $passAuth ? [$sentinelAuth] : [];
 
                             $sentinel = @new $sentinelClass($host, $port, $params['timeout'], (string) $params['persistent_id'], $params['retry_interval'], $params['read_timeout'], ...$extra);
                         }
@@ -312,7 +337,7 @@ trait RedisTrait
                         $redis->setOption($isRedisExt ? \Redis::OPT_TCP_KEEPALIVE : Relay::OPT_TCP_KEEPALIVE, $params['tcp_keepalive']);
                     }
 
-                    if ((!\defined('Redis::SCAN_PREFIX') && null !== $auth && $isRedisExt && !$redis->auth($auth)) || !$redis->select($params['dbindex'])) {
+                    if (!$redis->select($params['dbindex'])) {
                         $e = preg_replace('/^ERR /', '', $redis->getLastError());
                         throw new InvalidArgumentException('Redis connection failed: '.$e.'.');
                     }
@@ -350,10 +375,6 @@ trait RedisTrait
                 $redis->setOption($isRedisExt ? \Redis::OPT_TCP_KEEPALIVE : Relay::OPT_TCP_KEEPALIVE, $params['tcp_keepalive']);
             }
         } elseif (is_a($class, RelayCluster::class, true)) {
-            if (version_compare(phpversion('relay'), '0.10.0', '<')) {
-                throw new InvalidArgumentException('Using RelayCluster is supported from ext-relay 0.10.0 or higher.');
-            }
-
             $initializer = static function () use ($class, $params, $hosts) {
                 foreach ($hosts as $i => $host) {
                     $hosts[$i] = match ($host['scheme']) {
@@ -458,6 +479,24 @@ trait RedisTrait
                 $params['parameters']['password'] = $params['auth'][1];
             } elseif (null !== $params['auth']) {
                 $params['parameters']['password'] = $params['auth'];
+            }
+
+            if (isset($params['sentinel']) && null !== $sentinelAuth) {
+                if (\is_array($sentinelAuth)) {
+                    $sentinelUsername = $sentinelAuth[0];
+                    $sentinelPassword = $sentinelAuth[1];
+                } else {
+                    $sentinelUsername = null;
+                    $sentinelPassword = $sentinelAuth;
+                }
+
+                foreach ($hosts as $i => $host) {
+                    $hosts[$i]['password'] ??= $sentinelPassword;
+
+                    if (null !== $sentinelUsername) {
+                        $hosts[$i]['username'] ??= $sentinelUsername;
+                    }
+                }
             }
 
             if (isset($params['ssl'])) {
