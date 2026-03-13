@@ -107,10 +107,11 @@ class AuthService extends BaseService
             }
 
             // Verify OTP using OtpService
-            if (! $this->otpService->verifyOtp($user->phone, $otpCode)) {
+            $otpResult = $this->otpService->verifyOtp($user->phone, $otpCode);
+            if (! $otpResult['valid']) {
                 return [
                     'success' => false,
-                    'message' => 'Invalid or expired OTP',
+                    'message' => $otpResult['message'] ?? 'Invalid or expired OTP',
                 ];
             }
 
