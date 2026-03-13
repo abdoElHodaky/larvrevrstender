@@ -91,21 +91,18 @@ class GenerateBusinessReportsJob extends BaseQueueJob
                 'errors' => []
             ];
 
-            foreach ($this->reportTypes as $reportType) {
+            collect($this->reportTypes)->each(function($reportType) use (&$results, $analyticsService) {
                 try {
                     $reportResult = $this->generateReport($reportType, $analyticsService);
                     
                     $results['reports_generated']++;
                     $results['total_data_points'] += $reportResult['data_points'];
+                    $results['output_files'][] = $reportResult['file_path'];
                     
-                    if (!empty($reportResult['output_file'])) {
-                        $results['output_files'][] = $reportResult['output_file'];
-                    }
-                    
-                    Log::debug('Generated business report', [
-                        'report_type' => $reportType,
+                    Log::info("Successfully generated {$reportType} report", [
                         'data_points' => $reportResult['data_points'],
-                        'output_file' => $reportResult['output_file'] ?? null
+                        'file_path' => $reportResult['file_path'],
+                        'generation_time' => $reportResult['generation_time']
                     ]);
                     
                 } catch (\Exception $e) {
@@ -115,135 +112,69 @@ class GenerateBusinessReportsJob extends BaseQueueJob
                         'error' => $e->getMessage()
                     ];
                     
-                    Log::error('Failed to generate business report', [
-                        'report_type' => $reportType,
+                    Log::error("Failed to generate {$reportType} report", [
                         'error' => $e->getMessage(),
                         'trace' => $e->getTraceAsString()
                     ]);
                 }
-            }
+            });
 
-            Log::info('Business report generation completed successfully', [
-                'reports_generated' => $results['reports_generated'],
-                'reports_failed' => $results['reports_failed'],
-                'total_data_points' => $results['total_data_points'],
-                'output_files_count' => count($results['output_files']),
-                'job_id' => $this->job?->getJobId()
-            ]);
-
-            return $results;
-        }, function(\Exception $e) {
-            // Circuit breaker failure handler
-            Log::error('Business report generation failed with circuit breaker protection', [
-                'report_types' => $this->reportTypes,
-                'date_range' => [
-                    'start' => $this->startDate->toDateString(),
-                    'end' => $this->endDate->toDateString()
-                ],
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'job_id' => $this->job?->getJobId(),
-            ]);
-
-            throw $e;
+            Log::info('Business report generation completed', $results);
+            
+            // Store summary results for monitoring
+            $this->storeSummaryResults($results);
         });
     }
 
     /**
-     * Generate a specific report type
+     * Generate individual report by type
      */
     private function generateReport(string $reportType, AnalyticsService $analyticsService): array
     {
         $startTime = microtime(true);
         
-        Log::debug('Generating business report', [
-            'report_type' => $reportType,
-            'start_date' => $this->startDate->toDateString(),
-            'end_date' => $this->endDate->toDateString()
-        ]);
-
-        switch ($reportType) {
-            case 'executive_summary':
-                return $this->generateExecutiveSummaryReport($analyticsService);
-            
-            case 'user_engagement':
-                return $this->generateUserEngagementReport($analyticsService);
-            
-            case 'conversion_funnel':
-                return $this->generateConversionFunnelReport($analyticsService);
-            
-            case 'revenue_analytics':
-                return $this->generateRevenueAnalyticsReport($analyticsService);
-            
-            case 'platform_performance':
-                return $this->generatePlatformPerformanceReport($analyticsService);
-            
-            case 'geographic_distribution':
-                return $this->generateGeographicDistributionReport($analyticsService);
-            
-            case 'cohort_analysis':
-                return $this->generateCohortAnalysisReport($analyticsService);
-            
-            default:
-                throw new \InvalidArgumentException("Unknown report type: {$reportType}");
-        }
+        $data = match ($reportType) {
+            'revenue_analysis' => $this->generateRevenueAnalysis($analyticsService),
+            'user_engagement' => $this->generateUserEngagementReport($analyticsService),
+            'conversion_funnel' => $this->generateConversionFunnelReport($analyticsService),
+            'auction_performance' => $this->generateAuctionPerformanceReport($analyticsService),
+            'geographic_distribution' => $this->generateGeographicReport($analyticsService),
+            'retention_cohorts' => $this->generateRetentionCohortsReport($analyticsService),
+            'feature_adoption' => $this->generateFeatureAdoptionReport($analyticsService),
+            default => throw new \InvalidArgumentException("Unknown report type: {$reportType}")
+        };
+        
+        $generationTime = microtime(true) - $startTime;
+        
+        // Save report to storage
+        $filePath = $this->saveReportToStorage($reportType, $data);
+        
+        return [
+            'data_points' => count($data),
+            'file_path' => $filePath,
+            'generation_time' => round($generationTime, 3)
+        ];
     }
 
     /**
-     * Generate executive summary report
+     * Generate revenue analysis report
      */
-    private function generateExecutiveSummaryReport(AnalyticsService $analyticsService): array
+    private function generateRevenueAnalysis(AnalyticsService $analyticsService): array
     {
-        $data = [];
-        $dataPoints = 0;
-
-        // Key metrics overview
-        $totalUsers = $this->getMetricValue('active_users_daily', 'sum');
-        $totalEvents = $this->getMetricValue('user_events_daily', 'sum');
-        $avgSessionDuration = $this->getMetricValue('unique_sessions_daily', 'avg');
-        
-        $data['key_metrics'] = [
-            'total_active_users' => $totalUsers,
-            'total_events' => $totalEvents,
-            'average_session_duration' => $avgSessionDuration,
-            'period' => [
-                'start' => $this->startDate->toDateString(),
-                'end' => $this->endDate->toDateString(),
-                'days' => $this->startDate->diffInDays($this->endDate) + 1
-            ]
-        ];
-        $dataPoints += 3;
-
-        // Growth trends
-        $previousPeriodStart = $this->startDate->copy()->subDays($this->startDate->diffInDays($this->endDate) + 1);
-        $previousPeriodEnd = $this->startDate->copy()->subDay();
-        
-        $previousUsers = $this->getMetricValue('active_users_daily', 'sum', $previousPeriodStart, $previousPeriodEnd);
-        $previousEvents = $this->getMetricValue('user_events_daily', 'sum', $previousPeriodStart, $previousPeriodEnd);
-        
-        $data['growth_trends'] = [
-            'user_growth_rate' => $previousUsers > 0 ? (($totalUsers - $previousUsers) / $previousUsers) * 100 : 0,
-            'event_growth_rate' => $previousEvents > 0 ? (($totalEvents - $previousEvents) / $previousEvents) * 100 : 0,
-            'comparison_period' => [
-                'start' => $previousPeriodStart->toDateString(),
-                'end' => $previousPeriodEnd->toDateString()
-            ]
-        ];
-        $dataPoints += 2;
-
-        // Top performing metrics
-        $topEvents = $this->getTopEventTypes(5);
-        $data['top_performing'] = [
-            'event_types' => $topEvents,
-            'peak_activity_day' => $this->getPeakActivityDay(),
-        ];
-        $dataPoints += count($topEvents) + 1;
-
-        return [
-            'data' => $data,
-            'data_points' => $dataPoints,
-            'output_file' => $this->saveReportToFile('executive_summary', $data)
-        ];
+        return DB::table('business_metrics')
+            ->select([
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('SUM(CASE WHEN metric_type = "revenue" THEN metric_value ELSE 0 END) as total_revenue'),
+                DB::raw('SUM(CASE WHEN metric_type = "transactions" THEN metric_value ELSE 0 END) as total_transactions'),
+                DB::raw('AVG(CASE WHEN metric_type = "avg_order_value" THEN metric_value ELSE NULL END) as avg_order_value'),
+                DB::raw('COUNT(DISTINCT user_id) as unique_customers')
+            ])
+            ->whereBetween('created_at', [$this->startDate, $this->endDate])
+            ->whereIn('metric_type', ['revenue', 'transactions', 'avg_order_value'])
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy('date')
+            ->get()
+            ->toArray();
     }
 
     /**
@@ -251,53 +182,20 @@ class GenerateBusinessReportsJob extends BaseQueueJob
      */
     private function generateUserEngagementReport(AnalyticsService $analyticsService): array
     {
-        $data = [];
-        $dataPoints = 0;
-
-        // Daily active users trend
-        $dailyActiveUsers = BusinessMetric::where('metric_type', 'active_users_daily')
-            ->whereBetween('metric_date', [$this->startDate, $this->endDate])
-            ->orderBy('metric_date')
-            ->get(['metric_date', 'value']);
-        
-        $data['daily_active_users'] = $dailyActiveUsers->map(function($metric) {
-            return [
-                'date' => $metric->metric_date->toDateString(),
-                'active_users' => (int) $metric->value
-            ];
-        })->toArray();
-        $dataPoints += $dailyActiveUsers->count();
-
-        // Session metrics
-        $sessionMetrics = BusinessMetric::where('metric_type', 'unique_sessions_daily')
-            ->whereBetween('metric_date', [$this->startDate, $this->endDate])
-            ->get();
-        
-        $data['session_analytics'] = [
-            'total_sessions' => $sessionMetrics->sum('value'),
-            'average_sessions_per_day' => $sessionMetrics->avg('value'),
-            'peak_sessions_day' => $sessionMetrics->sortByDesc('value')->first()?->metric_date?->toDateString(),
-            'session_distribution' => $sessionMetrics->groupBy(function($item) {
-                return $item->metric_date->dayOfWeek;
-            })->map(function($group) {
-                return $group->avg('value');
-            })->toArray()
-        ];
-        $dataPoints += $sessionMetrics->count();
-
-        // User retention analysis
-        $data['retention_analysis'] = $this->calculateUserRetention();
-        $dataPoints += 7; // Assuming 7-day retention analysis
-
-        // Engagement patterns
-        $data['engagement_patterns'] = $this->analyzeEngagementPatterns();
-        $dataPoints += 10; // Various engagement metrics
-
-        return [
-            'data' => $data,
-            'data_points' => $dataPoints,
-            'output_file' => $this->saveReportToFile('user_engagement', $data)
-        ];
+        return DB::table('user_analytics')
+            ->select([
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('COUNT(DISTINCT user_id) as daily_active_users'),
+                DB::raw('AVG(session_duration) as avg_session_duration'),
+                DB::raw('SUM(page_views) as total_page_views'),
+                DB::raw('AVG(page_views) as avg_page_views_per_user'),
+                DB::raw('COUNT(*) as total_sessions')
+            ])
+            ->whereBetween('created_at', [$this->startDate, $this->endDate])
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy('date')
+            ->get()
+            ->toArray();
     }
 
     /**
@@ -305,368 +203,191 @@ class GenerateBusinessReportsJob extends BaseQueueJob
      */
     private function generateConversionFunnelReport(AnalyticsService $analyticsService): array
     {
-        $data = [];
-        $dataPoints = 0;
+        $funnelSteps = [
+            'landing_page_view',
+            'product_view',
+            'add_to_cart',
+            'checkout_start',
+            'payment_complete'
+        ];
 
-        // Funnel steps analysis
-        $funnelSteps = ['page_view', 'signup_started', 'signup_completed', 'first_action', 'conversion'];
-        $funnelData = [];
-        
-        foreach ($funnelSteps as $step) {
-            $stepMetrics = BusinessMetric::where('metric_type', "conversion_{$step}_daily")
-                ->whereBetween('metric_date', [$this->startDate, $this->endDate])
-                ->get();
-            
-            $totalUsers = $stepMetrics->sum('value');
-            $funnelData[] = [
+        return collect($funnelSteps)->map(function($step, $index) {
+            $count = DB::table('user_analytics')
+                ->where('event_type', $step)
+                ->whereBetween('created_at', [$this->startDate, $this->endDate])
+                ->count();
+
+            return [
                 'step' => $step,
-                'users' => $totalUsers,
-                'daily_breakdown' => $stepMetrics->map(function($metric) {
-                    return [
-                        'date' => $metric->metric_date->toDateString(),
-                        'users' => (int) $metric->value
-                    ];
-                })->toArray()
+                'step_number' => $index + 1,
+                'count' => $count,
+                'conversion_rate' => $index === 0 ? 100 : null // Calculate in post-processing
             ];
-            $dataPoints += $stepMetrics->count() + 1;
-        }
-
-        // Calculate conversion rates
-        for ($i = 1; $i < count($funnelData); $i++) {
-            $currentStep = $funnelData[$i];
-            $previousStep = $funnelData[$i - 1];
-            
-            $conversionRate = $previousStep['users'] > 0 ? 
-                ($currentStep['users'] / $previousStep['users']) * 100 : 0;
-            
-            $funnelData[$i]['conversion_rate'] = round($conversionRate, 2);
-            $funnelData[$i]['drop_off_rate'] = round(100 - $conversionRate, 2);
-        }
-
-        $data['funnel_analysis'] = $funnelData;
-        $data['overall_conversion_rate'] = count($funnelData) > 1 ? 
-            round(($funnelData[count($funnelData) - 1]['users'] / $funnelData[0]['users']) * 100, 2) : 0;
-
-        // Funnel optimization insights
-        $data['optimization_insights'] = $this->generateFunnelOptimizationInsights($funnelData);
-        $dataPoints += 5; // Various optimization metrics
-
-        return [
-            'data' => $data,
-            'data_points' => $dataPoints,
-            'output_file' => $this->saveReportToFile('conversion_funnel', $data)
-        ];
+        })->toArray();
     }
 
     /**
-     * Generate revenue analytics report
+     * Generate auction performance report
      */
-    private function generateRevenueAnalyticsReport(AnalyticsService $analyticsService): array
+    private function generateAuctionPerformanceReport(AnalyticsService $analyticsService): array
     {
-        $data = [];
-        $dataPoints = 0;
-
-        // Note: This would typically integrate with payment/order services
-        // For now, we'll use placeholder data structure
-        
-        $data['revenue_overview'] = [
-            'total_revenue' => 0, // Would come from payment service
-            'average_order_value' => 0,
-            'revenue_per_user' => 0,
-            'conversion_value' => 0
-        ];
-        
-        $data['revenue_trends'] = [
-            'daily_revenue' => [], // Would be populated from payment data
-            'monthly_recurring_revenue' => 0,
-            'customer_lifetime_value' => 0
-        ];
-        
-        $data['revenue_sources'] = [
-            'by_service' => [],
-            'by_user_segment' => [],
-            'by_geographic_region' => []
-        ];
-
-        // Placeholder data points
-        $dataPoints = 15;
-
-        return [
-            'data' => $data,
-            'data_points' => $dataPoints,
-            'output_file' => $this->saveReportToFile('revenue_analytics', $data)
-        ];
-    }
-
-    /**
-     * Generate platform performance report
-     */
-    private function generatePlatformPerformanceReport(AnalyticsService $analyticsService): array
-    {
-        $data = [];
-        $dataPoints = 0;
-
-        // Event volume analysis
-        $eventVolume = BusinessMetric::where('metric_type', 'user_events_daily')
-            ->whereBetween('metric_date', [$this->startDate, $this->endDate])
-            ->get();
-        
-        $data['event_volume'] = [
-            'total_events' => $eventVolume->sum('value'),
-            'average_events_per_day' => $eventVolume->avg('value'),
-            'peak_events_day' => $eventVolume->sortByDesc('value')->first()?->metric_date?->toDateString(),
-            'daily_breakdown' => $eventVolume->map(function($metric) {
-                return [
-                    'date' => $metric->metric_date->toDateString(),
-                    'events' => (int) $metric->value
-                ];
-            })->toArray()
-        ];
-        $dataPoints += $eventVolume->count() + 3;
-
-        // Performance metrics
-        $data['performance_metrics'] = [
-            'average_response_time' => 0, // Would come from application monitoring
-            'error_rate' => 0,
-            'uptime_percentage' => 99.9,
-            'throughput' => $eventVolume->avg('value')
-        ];
-        $dataPoints += 4;
-
-        // System health indicators
-        $data['system_health'] = [
-            'database_performance' => 'good',
-            'cache_hit_rate' => 95.5,
-            'queue_processing_time' => 'normal',
-            'memory_usage' => 'optimal'
-        ];
-        $dataPoints += 4;
-
-        return [
-            'data' => $data,
-            'data_points' => $dataPoints,
-            'output_file' => $this->saveReportToFile('platform_performance', $data)
-        ];
+        return DB::table('business_metrics')
+            ->select([
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('SUM(CASE WHEN metric_type = "auctions_created" THEN metric_value ELSE 0 END) as auctions_created'),
+                DB::raw('SUM(CASE WHEN metric_type = "auctions_completed" THEN metric_value ELSE 0 END) as auctions_completed'),
+                DB::raw('SUM(CASE WHEN metric_type = "total_bids" THEN metric_value ELSE 0 END) as total_bids'),
+                DB::raw('AVG(CASE WHEN metric_type = "avg_bid_amount" THEN metric_value ELSE NULL END) as avg_bid_amount'),
+                DB::raw('SUM(CASE WHEN metric_type = "auction_revenue" THEN metric_value ELSE 0 END) as auction_revenue')
+            ])
+            ->whereBetween('created_at', [$this->startDate, $this->endDate])
+            ->whereIn('metric_type', ['auctions_created', 'auctions_completed', 'total_bids', 'avg_bid_amount', 'auction_revenue'])
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy('date')
+            ->get()
+            ->toArray();
     }
 
     /**
      * Generate geographic distribution report
      */
-    private function generateGeographicDistributionReport(AnalyticsService $analyticsService): array
+    private function generateGeographicReport(AnalyticsService $analyticsService): array
     {
-        $data = [];
-        $dataPoints = 0;
-
-        // This would typically analyze user locations from UserAnalytic data
-        // For now, we'll create a placeholder structure
-        
-        $data['geographic_distribution'] = [
-            'by_country' => [
-                'SA' => ['users' => 0, 'events' => 0, 'percentage' => 0],
-                'AE' => ['users' => 0, 'events' => 0, 'percentage' => 0],
-                'EG' => ['users' => 0, 'events' => 0, 'percentage' => 0],
-            ],
-            'by_region' => [
-                'MENA' => ['users' => 0, 'events' => 0, 'percentage' => 0],
-                'GCC' => ['users' => 0, 'events' => 0, 'percentage' => 0],
-            ],
-            'top_cities' => []
-        ];
-        
-        $data['regional_insights'] = [
-            'fastest_growing_region' => 'GCC',
-            'highest_engagement_region' => 'MENA',
-            'localization_opportunities' => []
-        ];
-
-        $dataPoints = 20; // Placeholder
-
-        return [
-            'data' => $data,
-            'data_points' => $dataPoints,
-            'output_file' => $this->saveReportToFile('geographic_distribution', $data)
-        ];
-    }
-
-    /**
-     * Generate cohort analysis report
-     */
-    private function generateCohortAnalysisReport(AnalyticsService $analyticsService): array
-    {
-        $data = [];
-        $dataPoints = 0;
-
-        // User cohort analysis by signup month
-        $data['cohort_analysis'] = [
-            'retention_by_cohort' => [],
-            'engagement_by_cohort' => [],
-            'value_by_cohort' => []
-        ];
-        
-        $data['cohort_insights'] = [
-            'best_performing_cohort' => null,
-            'retention_trends' => [],
-            'seasonal_patterns' => []
-        ];
-
-        $dataPoints = 30; // Placeholder for cohort calculations
-
-        return [
-            'data' => $data,
-            'data_points' => $dataPoints,
-            'output_file' => $this->saveReportToFile('cohort_analysis', $data)
-        ];
-    }
-
-    /**
-     * Helper methods for report generation
-     */
-    private function getMetricValue(string $metricType, string $aggregation, ?Carbon $startDate = null, ?Carbon $endDate = null): float
-    {
-        $query = BusinessMetric::where('metric_type', $metricType)
-            ->whereBetween('metric_date', [
-                $startDate ?? $this->startDate,
-                $endDate ?? $this->endDate
-            ]);
-
-        return match ($aggregation) {
-            'sum' => $query->sum('value'),
-            'avg' => $query->avg('value') ?? 0,
-            'max' => $query->max('value') ?? 0,
-            'min' => $query->min('value') ?? 0,
-            'count' => $query->count(),
-            default => 0,
-        };
-    }
-
-    private function getTopEventTypes(int $limit = 10): array
-    {
-        return UserAnalytic::whereBetween('created_at', [$this->startDate, $this->endDate])
-            ->select('event_type', DB::raw('COUNT(*) as count'))
-            ->groupBy('event_type')
-            ->orderByDesc('count')
-            ->limit($limit)
+        return DB::table('user_analytics')
+            ->select([
+                'country',
+                'region',
+                DB::raw('COUNT(DISTINCT user_id) as unique_users'),
+                DB::raw('COUNT(*) as total_sessions'),
+                DB::raw('AVG(session_duration) as avg_session_duration'),
+                DB::raw('SUM(page_views) as total_page_views')
+            ])
+            ->whereBetween('created_at', [$this->startDate, $this->endDate])
+            ->whereNotNull('country')
+            ->groupBy(['country', 'region'])
+            ->orderBy('unique_users', 'desc')
             ->get()
-            ->map(function($item) {
-                return [
-                    'event_type' => $item->event_type,
-                    'count' => $item->count
-                ];
-            })
             ->toArray();
     }
 
-    private function getPeakActivityDay(): ?string
+    /**
+     * Generate retention cohorts report
+     */
+    private function generateRetentionCohortsReport(AnalyticsService $analyticsService): array
     {
-        $peakDay = BusinessMetric::where('metric_type', 'user_events_daily')
-            ->whereBetween('metric_date', [$this->startDate, $this->endDate])
-            ->orderByDesc('value')
-            ->first();
-        
-        return $peakDay?->metric_date?->toDateString();
+        // Simplified cohort analysis - in production, this would be more sophisticated
+        return DB::table('user_analytics')
+            ->select([
+                DB::raw('DATE_FORMAT(MIN(created_at), "%Y-%m") as cohort_month'),
+                DB::raw('COUNT(DISTINCT user_id) as cohort_size'),
+                DB::raw('AVG(session_duration) as avg_session_duration'),
+                DB::raw('SUM(page_views) as total_page_views')
+            ])
+            ->whereBetween('created_at', [$this->startDate, $this->endDate])
+            ->groupBy(DB::raw('DATE_FORMAT(MIN(created_at), "%Y-%m")'))
+            ->orderBy('cohort_month')
+            ->get()
+            ->toArray();
     }
 
-    private function calculateUserRetention(): array
+    /**
+     * Generate feature adoption report
+     */
+    private function generateFeatureAdoptionReport(AnalyticsService $analyticsService): array
     {
-        // Placeholder for user retention calculation
-        return [
-            'day_1_retention' => 85.5,
-            'day_7_retention' => 45.2,
-            'day_30_retention' => 25.8,
-            'retention_curve' => []
+        $features = [
+            'search_filters',
+            'saved_searches',
+            'bid_alerts',
+            'auto_bidding',
+            'mobile_app',
+            'social_sharing'
         ];
+
+        return collect($features)->map(function($feature) {
+            $adoptionData = DB::table('user_analytics')
+                ->select([
+                    DB::raw('COUNT(DISTINCT user_id) as unique_users'),
+                    DB::raw('COUNT(*) as total_usage'),
+                    DB::raw('AVG(session_duration) as avg_session_duration')
+                ])
+                ->where('event_type', "feature_used_{$feature}")
+                ->whereBetween('created_at', [$this->startDate, $this->endDate])
+                ->first();
+
+            return [
+                'feature' => $feature,
+                'unique_users' => $adoptionData->unique_users ?? 0,
+                'total_usage' => $adoptionData->total_usage ?? 0,
+                'avg_session_duration' => $adoptionData->avg_session_duration ?? 0
+            ];
+        })->toArray();
     }
 
-    private function analyzeEngagementPatterns(): array
+    /**
+     * Save report to storage
+     */
+    private function saveReportToStorage(string $reportType, array $data): string
     {
-        // Placeholder for engagement pattern analysis
-        return [
-            'peak_hours' => [9, 14, 20],
-            'peak_days' => ['Monday', 'Wednesday', 'Friday'],
-            'session_duration_avg' => 12.5,
-            'pages_per_session' => 4.2
-        ];
-    }
+        $fileName = sprintf(
+            'business_reports/%s/%s_%s_%s.%s',
+            $this->startDate->format('Y/m'),
+            $reportType,
+            $this->startDate->format('Y-m-d'),
+            $this->endDate->format('Y-m-d'),
+            $this->outputFormat
+        );
 
-    private function generateFunnelOptimizationInsights(array $funnelData): array
-    {
-        $insights = [];
+        $content = match ($this->outputFormat) {
+            'json' => json_encode($data, JSON_PRETTY_PRINT),
+            'csv' => $this->convertToCsv($data),
+            default => json_encode($data, JSON_PRETTY_PRINT)
+        };
+
+        Storage::disk('local')->put($fileName, $content);
         
-        for ($i = 1; $i < count($funnelData); $i++) {
-            $dropOffRate = $funnelData[$i]['drop_off_rate'] ?? 0;
-            
-            if ($dropOffRate > 50) {
-                $insights[] = [
-                    'step' => $funnelData[$i]['step'],
-                    'issue' => 'High drop-off rate',
-                    'recommendation' => 'Optimize user experience for this step',
-                    'priority' => 'high'
-                ];
-            }
+        return $fileName;
+    }
+
+    /**
+     * Convert data to CSV format
+     */
+    private function convertToCsv(array $data): string
+    {
+        if (empty($data)) {
+            return '';
+        }
+
+        $output = fopen('php://temp', 'r+');
+        
+        // Write headers
+        fputcsv($output, array_keys((array) $data[0]));
+        
+        // Write data rows
+        foreach ($data as $row) {
+            fputcsv($output, (array) $row);
         }
         
-        return $insights;
-    }
-
-    private function saveReportToFile(string $reportType, array $data): ?string
-    {
-        if (!$this->reportOptions['save_to_file']) {
-            return null;
-        }
-
-        try {
-            $filename = sprintf(
-                'reports/%s_%s_%s_to_%s.%s',
-                $reportType,
-                now()->format('Y-m-d_H-i-s'),
-                $this->startDate->format('Y-m-d'),
-                $this->endDate->format('Y-m-d'),
-                $this->outputFormat
-            );
-
-            $content = match ($this->outputFormat) {
-                'json' => json_encode($data, JSON_PRETTY_PRINT),
-                'csv' => $this->convertToCSV($data),
-                'xml' => $this->convertToXML($data),
-                default => json_encode($data, JSON_PRETTY_PRINT),
-            };
-
-            Storage::disk('local')->put($filename, $content);
-            
-            return $filename;
-        } catch (\Exception $e) {
-            Log::error('Failed to save report to file', [
-                'report_type' => $reportType,
-                'error' => $e->getMessage()
-            ]);
-            
-            return null;
-        }
-    }
-
-    private function convertToCSV(array $data): string
-    {
-        // Simplified CSV conversion - would need more sophisticated logic for complex nested data
-        $csv = '';
-        foreach ($data as $key => $value) {
-            if (is_array($value)) {
-                $csv .= $key . ',' . json_encode($value) . "\n";
-            } else {
-                $csv .= $key . ',' . $value . "\n";
-            }
-        }
+        rewind($output);
+        $csv = stream_get_contents($output);
+        fclose($output);
+        
         return $csv;
     }
 
-    private function convertToXML(array $data): string
+    /**
+     * Store summary results for monitoring
+     */
+    private function storeSummaryResults(array $results): void
     {
-        // Simplified XML conversion
-        $xml = "<?xml version='1.0' encoding='UTF-8'?>\n<report>\n";
-        foreach ($data as $key => $value) {
-            $xml .= "  <{$key}>" . (is_array($value) ? json_encode($value) : $value) . "</{$key}>\n";
-        }
-        $xml .= "</report>";
-        return $xml;
+        DB::table('job_execution_logs')->insert([
+            'job_class' => static::class,
+            'job_id' => $this->job?->getJobId(),
+            'execution_results' => json_encode($results),
+            'executed_at' => now(),
+            'execution_time' => $this->timeout,
+            'status' => $results['reports_failed'] > 0 ? 'partial_success' : 'success'
+        ]);
     }
 
     /**
@@ -675,10 +396,9 @@ class GenerateBusinessReportsJob extends BaseQueueJob
     private function getDefaultReportTypes(): array
     {
         return [
-            'executive_summary',
+            'revenue_analysis',
             'user_engagement',
-            'conversion_funnel',
-            'platform_performance'
+            'auction_performance'
         ];
     }
 
@@ -688,28 +408,23 @@ class GenerateBusinessReportsJob extends BaseQueueJob
     private function getDefaultReportOptions(): array
     {
         return [
-            'save_to_file' => true,
+            'include_charts' => false,
             'include_raw_data' => false,
-            'compress_output' => false,
-            'email_recipients' => [],
-            'dashboard_integration' => true
+            'aggregate_level' => 'daily',
+            'timezone' => config('app.timezone', 'UTC')
         ];
     }
 
     /**
-     * Get queue name based on report complexity
+     * Determine queue based on report complexity
      */
     private function getQueueForReportComplexity(array $reportTypes): string
     {
-        $complexReports = ['cohort_analysis', 'revenue_analytics', 'geographic_distribution'];
+        $complexReports = ['retention_cohorts', 'geographic_distribution', 'conversion_funnel'];
+        
         $hasComplexReports = !empty(array_intersect($reportTypes, $complexReports));
         
-        return match (true) {
-            count($reportTypes) >= 5 => 'reports-large',
-            $hasComplexReports => 'reports-complex',
-            count($reportTypes) >= 3 => 'reports-medium',
-            default => 'reports-default',
-        };
+        return $hasComplexReports ? 'reports-heavy' : 'reports-standard';
     }
 
     /**
@@ -717,19 +432,25 @@ class GenerateBusinessReportsJob extends BaseQueueJob
      */
     public function failed(\Throwable $exception): void
     {
-        Log::error('Business report generation job failed permanently', [
+        Log::error('Business report generation job failed', [
             'report_types' => $this->reportTypes,
             'date_range' => [
                 'start' => $this->startDate->toDateString(),
                 'end' => $this->endDate->toDateString()
             ],
-            'output_format' => $this->outputFormat,
             'error' => $exception->getMessage(),
             'trace' => $exception->getTraceAsString(),
-            'job_id' => $this->job?->getJobId(),
+            'job_id' => $this->job?->getJobId()
         ]);
 
-        // Could broadcast failure event for monitoring
-        // broadcast(new \App\Events\Analytics\ReportGenerationFailed(...));
+        // Store failure information
+        DB::table('job_execution_logs')->insert([
+            'job_class' => static::class,
+            'job_id' => $this->job?->getJobId(),
+            'execution_results' => json_encode(['error' => $exception->getMessage()]),
+            'executed_at' => now(),
+            'status' => 'failed'
+        ]);
     }
 }
+
