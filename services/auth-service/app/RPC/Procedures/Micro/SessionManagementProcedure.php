@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
+use App\Models\Session as SessionModel;
 
 /**
  * Session Management Micro Procedure
@@ -49,13 +50,13 @@ trait SessionManagementProcedure
             // Encode payload
             $encodedPayload = base64_encode(serialize($payload));
 
-            // Insert session into database
-            DB::table('sessions')->insert([
+            // Insert session into database using Eloquent model (Laravel 12)
+            SessionModel::create([
                 'id' => $sessionId,
                 'user_id' => $userId,
                 'ip_address' => $ipAddress,
                 'user_agent' => $userAgent,
-                'payload' => $encodedPayload,
+                'payload' => $payload, // Model handles encoding automatically
                 'last_activity' => now()->timestamp,
             ]);
 
@@ -159,9 +160,8 @@ trait SessionManagementProcedure
                 return $validation;
             }
 
-            // Update last activity
-            $updated = DB::table('sessions')
-                ->where('id', $sessionId)
+            // Update last activity using Eloquent model (Laravel 12)
+            $updated = SessionModel::where('id', $sessionId)
                 ->update(['last_activity' => now()->timestamp]);
 
             if (! $updated) {
@@ -289,38 +289,46 @@ trait SessionManagementProcedure
                 ];
             }
 
-            // Get active sessions for user
-            $sessions = DB::table('sessions')
-                ->where('user_id', $userId)
+            // Get active sessions for user using Eloquent model (Laravel 12)
+            $sessions = SessionModel::forUser($userId)
                 ->orderBy('last_activity', 'desc')
                 ->limit($limit)
                 ->offset($offset)
                 ->get();
 
-            $activeSessions = [];
             $sessionLifetime = config('session.lifetime', 1440);
 
-            foreach ($sessions as $session) {
-                $lastActivity = Carbon::createFromTimestamp($session->last_activity);
-
-                // Check if session is still active
-                if (! $lastActivity->addMinutes($sessionLifetime)->isPast()) {
-                    // Decode session payload (using raw DB query, not Eloquent model)
-                    $payload = unserialize(base64_decode($session->payload));
-
-                    $activeSessions[] = [
-                        'session_id' => $session->id,
-                        'ip_address' => $session->ip_address,
-                        'user_agent' => $session->user_agent,
-                        'last_activity' => $lastActivity->toISOString(),
-                        'device_info' => $payload['device_info'] ?? null,
-                        'expires_at' => $lastActivity->addMinutes($sessionLifetime)->toISOString(),
-                    ];
-                } else {
-                    // Clean up expired session
-                    DB::table('sessions')->where('id', $session->id)->delete();
-                }
-            }
+            // Use Laravel collection methods with arrow functions (PHP 8.3)
+            $activeSessions = collect($sessions)
+                ->map(fn($session) => [
+                    'session' => $session,
+                    'last_activity' => Carbon::createFromTimestamp($session->last_activity)
+                ])
+                ->partition(fn($item) => !$item['last_activity']->addMinutes($sessionLifetime)->isPast())
+                ->pipe(function ($partitioned) use ($sessionLifetime) {
+                    [$active, $expired] = $partitioned;
+                    
+                    // Clean up expired sessions using Eloquent model (Laravel 12)
+                    $expired->each(fn($item) => 
+                        SessionModel::where('id', $item['session']->id)->delete()
+                    );
+                    
+                    // Transform active sessions
+                    return $active->map(function ($item) use ($sessionLifetime) {
+                        $session = $item['session'];
+                        $lastActivity = $item['last_activity'];
+                        $payload = unserialize(base64_decode($session->payload));
+                        
+                        return [
+                            'session_id' => $session->id,
+                            'ip_address' => $session->ip_address,
+                            'user_agent' => $session->user_agent,
+                            'last_activity' => $lastActivity->toISOString(),
+                            'device_info' => $payload['device_info'] ?? null,
+                            'expires_at' => $lastActivity->addMinutes($sessionLifetime)->toISOString(),
+                        ];
+                    })->values()->toArray();
+                });
 
             return [
                 'success' => true,
@@ -363,8 +371,8 @@ trait SessionManagementProcedure
                 ];
             }
 
-            // Build query
-            $query = DB::table('sessions')->where('user_id', $userId);
+            // Build query using Eloquent model (Laravel 12)
+            $query = SessionModel::forUser($userId);
 
             // Exclude current session if specified
             if ($excludeSessionId) {

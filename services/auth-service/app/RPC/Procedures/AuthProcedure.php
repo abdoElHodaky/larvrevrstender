@@ -4,7 +4,7 @@ namespace App\RPC\Procedures;
 
 use App\Http\Controllers\AuthController;
 use App\Services\Shared\ActivityRpcService;
-use Illuminate\Support\Facades\Http;
+use Shared\Core\RpcClient;
 use App\RPC\BaseProcedure;
 use App\RPC\Procedures\Micro\SessionAnalyticsProcedure;
 use App\RPC\Procedures\Micro\SessionManagementProcedure;
@@ -23,7 +23,8 @@ class AuthProcedure extends BaseProcedure
     use SessionAnalyticsProcedure, SessionManagementProcedure, SessionSecurityProcedure, SessionValidationProcedure;
 
     public function __construct(
-        private ActivityRpcService $activityRpcService
+        private ActivityRpcService $activityRpcService,
+        private RpcClient $rpcClient
     ) {}
 
     /**
@@ -258,25 +259,13 @@ class AuthProcedure extends BaseProcedure
                 'user_id' => 'required|integer',
             ]);
 
-            // Call user-service RPC to get user information
-            $userServiceUrl = config('services.user_service.url', 'http://user-service:8000');
-            $response = Http::timeout(30)->post($userServiceUrl . '/rpc', [
-                'jsonrpc' => '2.0',
-                'method' => 'user.getUser',
-                'params' => ['user_id' => $params['user_id']],
-                'id' => uniqid()
-            ]);
-
-            if (!$response->successful()) {
-                throw new \Exception("Failed to get user from user-service: " . $response->status());
-            }
-
-            $data = $response->json();
-            if (isset($data['error'])) {
-                throw new \Exception("User service error: " . $data['error']['message']);
-            }
-
-            $result = $data['result'] ?? [];
+            // Call user-service RPC to get user information using RPC client
+            $result = $this->rpcClient->call(
+                'user-service',
+                'user.getUser',
+                ['user_id' => $params['user_id']],
+                ['correlation_id' => $this->getCorrelationId()]
+            );
 
             $this->logPerformance(__METHOD__, $params, $result, $startTime);
 
@@ -1041,34 +1030,39 @@ class AuthProcedure extends BaseProcedure
             // Remove permission from auth system
             $deleted = AuthPermission::where('permission_id', $permissionId)->delete();
 
-            // Update roles that had this permission
+            // Update roles that had this permission using collection methods (PHP 8.3)
             $rolesWithPermission = AuthRole::get();
-            $affectedRoles = 0;
-            $affectedUsers = 0;
-
-            foreach ($rolesWithPermission as $role) {
-                $permissions = $role->permissions ?? [];
-                if (in_array($permissionName, $permissions)) {
-                    $newPermissions = array_diff($permissions, [$permissionName]);
-                    AuthRole::where('id', $role->id)
-                        ->update([
-                            'permissions' => $newPermissions,
-                            'updated_at' => now()
-                        ]);
-                    $affectedRoles++;
-
-                    // Invalidate tokens for users with this role
+            
+            $updateResults = collect($rolesWithPermission)
+                ->filter(fn($role) => in_array($permissionName, $role->permissions ?? []))
+                ->map(function ($role) use ($permissionName) {
+                    $newPermissions = array_diff($role->permissions ?? [], [$permissionName]);
+                    
+                    // Update role permissions
+                    AuthRole::where('id', $role->id)->update([
+                        'permissions' => $newPermissions,
+                        'updated_at' => now()
+                    ]);
+                    
+                    // Get users with this role and invalidate their tokens
                     $usersWithRole = AuthUserRole::where('role_id', $role->role_id)->get();
-                    foreach ($usersWithRole as $userRole) {
+                    
+                    $usersWithRole->each(fn($userRole) => 
                         $this->invalidateUserTokens([
                             'user_id' => $userRole->user_id,
                             'reason' => 'permission_deleted',
                             'timestamp' => now()->toISOString()
-                        ]);
-                        $affectedUsers++;
-                    }
-                }
-            }
+                        ])
+                    );
+                    
+                    return [
+                        'role_id' => $role->role_id,
+                        'affected_users' => $usersWithRole->count()
+                    ];
+                });
+            
+            $affectedRoles = $updateResults->count();
+            $affectedUsers = $updateResults->sum('affected_users');
 
             $result = [
                 'success' => true,
