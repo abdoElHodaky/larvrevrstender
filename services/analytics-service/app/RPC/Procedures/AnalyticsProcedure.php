@@ -7,17 +7,19 @@ use App\Http\Controllers\MetricsController;
 use App\Http\Controllers\ReportController;
 use App\RPC\BaseProcedure;
 use Illuminate\Http\Request;
+use Shared\Traits\RpcMonitoring;
+use Shared\Traits\RpcCacheable;
+use Shared\Enums\RpcMethodType;
 
 class AnalyticsProcedure extends BaseProcedure
 {
+    use RpcMonitoring, RpcCacheable;
     /**
      * Track an event
      */
     public function trackEvent(array $params): array
     {
-        $startTime = microtime(true);
-
-        try {
+        return $this->withMonitoring(__METHOD__, RpcMethodType::WRITE, $params, function() use ($params) {
             $this->validate($params, [
                 'event_name' => 'required|string|max:255',
                 'user_id' => 'nullable|integer',
@@ -31,15 +33,11 @@ class AnalyticsProcedure extends BaseProcedure
 
             $result = $controller->trackEvent($request);
 
-            $this->logPerformance(__METHOD__, $params, $result, $startTime);
-
             return [
                 'success' => $result->getStatusCode() === 201,
                 'event_id' => $result->getData()->id ?? null,
             ];
-        } catch (\Exception $e) {
-            $this->handleError($e, __METHOD__, $params);
-        }
+        });
     }
 
     /**
@@ -79,27 +77,23 @@ class AnalyticsProcedure extends BaseProcedure
      */
     public function getDashboard(array $params): array
     {
-        $startTime = microtime(true);
+        return $this->withCaching(__METHOD__, $params, 300, ['dashboard', 'analytics'], function() use ($params) {
+            return $this->withMonitoring(__METHOD__, RpcMethodType::READ, $params, function() use ($params) {
+                $this->validate($params, [
+                    'user_id' => 'nullable|integer',
+                    'date_from' => 'nullable|date',
+                    'date_to' => 'nullable|date',
+                    'filters' => 'nullable|array',
+                ]);
 
-        try {
-            $this->validate($params, [
-                'user_id' => 'nullable|integer',
-                'date_from' => 'nullable|date',
-                'date_to' => 'nullable|date',
-                'filters' => 'nullable|array',
-            ]);
+                $controller = new AnalyticsController;
+                $request = new Request($params);
 
-            $controller = new AnalyticsController;
-            $request = new Request($params);
+                $result = $controller->getDashboard($request);
 
-            $result = $controller->getDashboard($request);
-
-            $this->logPerformance(__METHOD__, $params, $result, $startTime);
-
-            return $result->getData(true);
-        } catch (\Exception $e) {
-            $this->handleError($e, __METHOD__, $params);
-        }
+                return $result->getData(true);
+            });
+        });
     }
 
     /**

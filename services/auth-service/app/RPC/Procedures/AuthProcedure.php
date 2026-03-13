@@ -17,10 +17,14 @@ use App\Models\AuthRole;
 use App\Models\AuthUserRole;
 use App\Models\AuthPermission;
 use App\Models\TokenInvalidation;
+use Shared\Traits\RpcMonitoring;
+use Shared\Traits\RpcCacheable;
+use Shared\Enums\RpcMethodType;
 
 class AuthProcedure extends BaseProcedure
 {
     use SessionAnalyticsProcedure, SessionManagementProcedure, SessionSecurityProcedure, SessionValidationProcedure;
+    use RpcMonitoring, RpcCacheable;
 
     public function __construct(
         private ActivityRpcService $activityRpcService,
@@ -32,28 +36,24 @@ class AuthProcedure extends BaseProcedure
      */
     public function validateToken(array $params): array
     {
-        $startTime = microtime(true);
+        return $this->withCaching(__METHOD__, $params, 60, ['auth', 'token'], function() use ($params) {
+            return $this->withMonitoring(__METHOD__, RpcMethodType::READ, $params, function() use ($params) {
+                $this->validate($params, [
+                    'token' => 'required|string',
+                ]);
 
-        try {
-            $this->validate($params, [
-                'token' => 'required|string',
-            ]);
+                $controller = new AuthController;
+                $request = new Request(['token' => $params['token']]);
 
-            $controller = new AuthController;
-            $request = new Request(['token' => $params['token']]);
+                $result = $controller->validateToken($request);
 
-            $result = $controller->validateToken($request);
-
-            $this->logPerformance(__METHOD__, $params, $result, $startTime);
-
-            return [
-                'valid' => $result->getData()->valid ?? false,
-                'user_id' => $result->getData()->user_id ?? null,
-                'expires_at' => $result->getData()->expires_at ?? null,
-            ];
-        } catch (\Exception $e) {
-            $this->handleError($e, __METHOD__, $params);
-        }
+                return [
+                    'valid' => $result->getData()->valid ?? false,
+                    'user_id' => $result->getData()->user_id ?? null,
+                    'expires_at' => $result->getData()->expires_at ?? null,
+                ];
+            });
+        });
     }
 
     /**
