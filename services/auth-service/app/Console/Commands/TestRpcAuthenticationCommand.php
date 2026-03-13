@@ -66,7 +66,7 @@ class TestRpcAuthenticationCommand extends Command
             }
             
             if (isset($result['token_info'])) {
-                $this->line("   🔑 Token: " . substr($result['token_info'], 0, 20) . "...");
+                $this->line("   🔑 Token: [REDACTED]");
             }
             
             $this->newLine();
@@ -148,7 +148,6 @@ class TestRpcAuthenticationCommand extends Command
                 return [
                     'success' => true,
                     'response_time' => $responseTime,
-                    'token_info' => $token,
                     'status_code' => $response->status(),
                 ];
             } else {
@@ -156,7 +155,6 @@ class TestRpcAuthenticationCommand extends Command
                     'success' => false,
                     'error' => "HTTP {$response->status()}: " . $response->body(),
                     'response_time' => $responseTime,
-                    'token_info' => $token,
                 ];
             }
 
@@ -164,7 +162,6 @@ class TestRpcAuthenticationCommand extends Command
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
-                'token_info' => $token ?? null,
             ];
         }
     }
@@ -192,7 +189,7 @@ class TestRpcAuthenticationCommand extends Command
             $token = env($tokenKey);
             
             if ($token) {
-                $this->line("   ✅ {$service}: " . substr($token, 0, 20) . "...");
+                $this->line("   ✅ {$service}: [TOKEN CONFIGURED]");
             } else {
                 $this->error("   ❌ {$service}: No token configured");
             }

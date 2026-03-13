@@ -201,7 +201,11 @@ class GenerateRpcTokensCommand extends Command
     protected function generateStaticToken(string $fromService, string $toService): string
     {
         // Generate a deterministic but secure token based on service names
-        $seed = "rpc-{$fromService}-to-{$toService}-" . config('app.key', 'default-key');
+        $appKey = config('app.key');
+        if (empty($appKey)) {
+            throw new \RuntimeException('Application key is required for token generation');
+        }
+        $seed = "rpc-{$fromService}-to-{$toService}-" . $appKey;
         $hash = hash('sha256', $seed);
         
         // Format as a Sanctum-like token (prefix|hash)
