@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Carbon\Carbon;
 
 class Session extends Model
 {
@@ -64,7 +65,7 @@ class Session extends Model
      */
     public function scopeActive($query, int $threshold = 3600)
     {
-        return $query->where('last_activity', '>=', now()->subSeconds($threshold)->timestamp);
+        return $query->where('last_activity', '>=', Carbon::now()->subSeconds($threshold)->timestamp);
     }
 
     /**
@@ -123,7 +124,7 @@ class Session extends Model
      */
     public function isActive(int $threshold = 3600): bool
     {
-        return $this->last_activity >= (now()->timestamp - $threshold);
+        return $this->last_activity >= (Carbon::now()->timestamp - $threshold);
     }
 
     /**
@@ -131,6 +132,6 @@ class Session extends Model
      */
     public function getDurationAttribute(): int
     {
-        return now()->timestamp - $this->last_activity;
+        return Carbon::now()->timestamp - $this->last_activity;
     }
 }

@@ -4,6 +4,7 @@ namespace Shared\Exceptions;
 
 use Exception;
 use Throwable;
+use Carbon\Carbon;
 
 /**
  * Standardized RPC Exception (PHP 8.3)
@@ -252,7 +253,7 @@ class RpcException extends Exception
                 'severity' => $this->getSeverity(),
                 'retryable' => $this->isRetryable(),
                 'retry_delay_ms' => $this->getRetryDelay(),
-                'timestamp' => now()->toISOString(),
+                'timestamp' => Carbon::now()->toISOString(),
                 'trace' => $this->getTraceAsString()
             ])
         ];
@@ -273,7 +274,7 @@ class RpcException extends Exception
             'retryable' => $this->isRetryable(),
             'file' => $this->getFile(),
             'line' => $this->getLine(),
-            'timestamp' => now()->toISOString()
+            'timestamp' => Carbon::now()->toISOString()
         ];
     }
 

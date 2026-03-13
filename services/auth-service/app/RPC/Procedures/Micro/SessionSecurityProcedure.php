@@ -4,7 +4,8 @@ namespace App\RPC\Procedures\Micro;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Models\SessionModel;
+use App\Models\Session;
+use Carbon\Carbon;
 
 /**
  * Session Security Micro Procedure
@@ -292,10 +293,10 @@ trait SessionSecurityProcedure
             $maxAge = $params['max_age_hours'] ?? 24;
             $riskThreshold = $params['risk_threshold'] ?? 'high';
 
-            $cutoffTime = now()->subHours($maxAge)->timestamp;
+            $cutoffTime = Carbon::now()->subHours($maxAge)->timestamp;
 
             // Get sessions that are either expired or flagged as suspicious using Eloquent (Laravel 12)
-            $suspiciousSessions = SessionModel::where(function ($query) use ($cutoffTime) {
+            $suspiciousSessions = Session::where(function ($query) use ($cutoffTime) {
                     $query->where('last_activity', '<', $cutoffTime)
                         ->orWhereExists(function ($subQuery) {
                             $subQuery->select(DB::raw(1))
@@ -314,7 +315,7 @@ trait SessionSecurityProcedure
 
             // Also clean up old security logs
             $logsCleaned = DB::table('session_security_logs')
-                ->where('created_at', '<', now()->subDays(30))
+                ->where('created_at', '<', Carbon::now()->subDays(30))
                 ->delete();
 
             Log::info('Suspicious sessions cleaned up', [
@@ -359,8 +360,8 @@ trait SessionSecurityProcedure
         }
 
         // Get recent sessions for this user using Eloquent (Laravel 12)
-        $recentSessions = SessionModel::forUser($userId)
-            ->where('last_activity', '>', now()->subHours(1)->timestamp)
+        $recentSessions = Session::forUser($userId)
+            ->where('last_activity', '>', Carbon::now()->subHours(1)->timestamp)
             ->orderBy('last_activity', 'desc')
             ->limit(5)
             ->get();
@@ -444,7 +445,7 @@ trait SessionSecurityProcedure
                 'user_id' => $userId,
                 'risk_level' => $riskLevel,
                 'flags' => json_encode($flags),
-                'created_at' => now(),
+                'created_at' => Carbon::now(),
             ]);
 
         } catch (\Exception $e) {
