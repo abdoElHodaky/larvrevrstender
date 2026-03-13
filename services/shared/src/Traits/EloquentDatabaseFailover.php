@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Shared\Facades\SharedLog;
 use Shared\Traits\DatabaseQueryCircuitBreaker;
+use Shared\Traits\EloquentDatabaseFailoverEvents;
 
 /**
  * EloquentDatabaseFailover Trait
@@ -43,7 +44,7 @@ use Shared\Traits\DatabaseQueryCircuitBreaker;
  */
 trait EloquentDatabaseFailover
 {
-    use DatabaseQueryCircuitBreaker;
+    use DatabaseQueryCircuitBreaker, EloquentDatabaseFailoverEvents;
 
     /**
      * Failover configuration cache
@@ -415,5 +416,179 @@ trait EloquentDatabaseFailover
             'error' => $exception->getMessage(),
             'service' => $this->getServiceName()
         ]);
+    }
+
+    /**
+     * Concrete implementations for EloquentDatabaseFailoverEvents trait
+     * Modern PHP 8.3 & Laravel 12 implementation
+     */
+
+    /**
+     * Perform model creation operation
+     * Modern implementation with error handling
+     */
+    protected function performCreate(): bool
+    {
+        try {
+            return $this->save();
+        } catch (\Exception $e) {
+            $this->handleModelOperationFailure('create', $e);
+            return false;
+        }
+    }
+
+    /**
+     * Perform model update operation
+     * Modern implementation with error handling
+     */
+    protected function performUpdate(): bool
+    {
+        try {
+            return $this->save();
+        } catch (\Exception $e) {
+            $this->handleModelOperationFailure('update', $e);
+            return false;
+        }
+    }
+
+    /**
+     * Perform model deletion operation
+     * Modern implementation with error handling
+     */
+    protected function performDelete(): bool
+    {
+        try {
+            return $this->delete() !== false;
+        } catch (\Exception $e) {
+            $this->handleModelOperationFailure('delete', $e);
+            return false;
+        }
+    }
+
+    /**
+     * Build circuit breaker name for operation
+     * Consistent naming convention across the trait
+     */
+    protected function buildCircuitName(string $operation): string
+    {
+        $modelName = class_basename(static::class);
+        $tableName = $this->getTable();
+        
+        return "eloquent_{$modelName}_{$tableName}_{$operation}";
+    }
+
+    /**
+     * Execute protected query with circuit breaker
+     * Delegates to DatabaseQueryCircuitBreaker trait
+     */
+    protected function executeProtectedQuery(string $circuitName, callable $query): mixed
+    {
+        $config = $this->getFailoverConfig();
+        return parent::executeProtectedQuery($circuitName, $query, $config);
+    }
+
+    /**
+     * Check if circuit breaker is open for operation
+     * Modern PHP 8.3 implementation
+     */
+    protected function isCircuitBreakerOpen(string $circuitName): bool
+    {
+        try {
+            $stats = $this->getCircuitBreakerStats($circuitName);
+            return ($stats['state'] ?? 'closed') === 'open';
+        } catch (\Exception $e) {
+            // If we can't determine state, assume closed for safety
+            return false;
+        }
+    }
+
+    /**
+     * Record successful operation for circuit breaker
+     * Modern implementation with comprehensive logging
+     */
+    protected function recordOperationSuccess(string $operation): void
+    {
+        $circuitName = $this->buildCircuitName($operation);
+        
+        try {
+            // Record success in circuit breaker
+            $this->recordCircuitBreakerSuccess($circuitName);
+            
+            // Log success for monitoring
+            $this->logModelOperation($operation . '_success', [
+                'circuit_name' => $circuitName,
+                'model_id' => $this->getKey(),
+                'success' => true,
+            ]);
+            
+        } catch (\Exception $e) {
+            // Don't fail the operation if logging fails
+            Log::warning("Failed to record operation success", [
+                'model' => class_basename(static::class),
+                'operation' => $operation,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Log successful failover operation
+     * Modern PHP 8.3 implementation with comprehensive context
+     */
+    protected function logFailoverOperationSuccess(string $operation): void
+    {
+        SharedLog::databaseFailover('eloquent_failover_operation_success', [
+            'model' => class_basename(static::class),
+            'table' => $this->getTable(),
+            'operation' => $operation,
+            'model_id' => $this->getKey(),
+            'connection' => $this->getConnectionName(),
+            'circuit_breaker_protected' => true,
+            'timestamp' => now()->toISOString(),
+        ]);
+    }
+
+    /**
+     * Log failed failover operation
+     * Modern PHP 8.3 implementation with error context
+     */
+    protected function logFailoverOperationFailure(string $operation, string $error): void
+    {
+        SharedLog::databaseFailover('eloquent_failover_operation_failure', [
+            'model' => class_basename(static::class),
+            'table' => $this->getTable(),
+            'operation' => $operation,
+            'model_id' => $this->getKey(),
+            'connection' => $this->getConnectionName(),
+            'error_message' => $error,
+            'circuit_breaker_protected' => true,
+            'severity' => 'error',
+            'timestamp' => now()->toISOString(),
+        ]);
+    }
+
+    /**
+     * Record circuit breaker success
+     * Helper method for circuit breaker integration
+     */
+    protected function recordCircuitBreakerSuccess(string $circuitName): void
+    {
+        // This would integrate with the actual circuit breaker implementation
+        // For now, we'll use cache to track success
+        $successKey = "circuit_breaker_success_{$circuitName}";
+        $currentCount = cache()->get($successKey, 0);
+        cache()->put($successKey, $currentCount + 1, 3600);
+    }
+
+    /**
+     * Get service name for logging context
+     * Modern implementation with fallback
+     */
+    protected function getServiceName(): string
+    {
+        // Try to determine service name from environment or config
+        return config('app.service_name') ?? 
+               env('SERVICE_NAME') ?? 
+               'unknown_service';
     }
 }
