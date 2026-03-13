@@ -12,13 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 class BiddingController extends Controller
 {
-    protected BiddingServiceClient $biddingService;
-    protected AuthServiceClient $authService;
-
-    public function __construct(BiddingServiceClient $biddingService, AuthServiceClient $authService)
-    {
-        $this->biddingService = $biddingService;
-        $this->authService = $authService;
+    public function __construct(
+        protected BiddingServiceClient$biddingService,
+        protected AuthServiceClient$authService
+    ) {
     }
 
     /**

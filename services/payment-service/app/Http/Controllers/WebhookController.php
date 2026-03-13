@@ -12,13 +12,10 @@ use Illuminate\Support\Str;
 
 class WebhookController extends Controller
 {
-    private PaymentService $paymentService;
-    private WebhookService $webhookService;
-
-    public function __construct(PaymentService $paymentService, WebhookService $webhookService)
-    {
-        $this->paymentService = $paymentService;
-        $this->webhookService = $webhookService;
+    public function __construct(
+        private PaymentService$paymentService,
+        private WebhookService$webhookService
+    ) {
     }
 
     /**

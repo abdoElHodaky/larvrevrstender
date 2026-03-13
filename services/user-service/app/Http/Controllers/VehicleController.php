@@ -12,14 +12,10 @@ use Illuminate\Http\Request;
 
 class VehicleController extends Controller
 {
-    private VehicleService $vehicleService;
-
-    private CustomerService $customerService;
-
-    public function __construct(VehicleService $vehicleService, CustomerService $customerService)
-    {
-        $this->vehicleService = $vehicleService;
-        $this->customerService = $customerService;
+    public function __construct(
+        private VehicleService$vehicleService,
+        private CustomerService$customerService
+    ) {
     }
 
     /**

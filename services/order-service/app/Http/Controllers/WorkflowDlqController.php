@@ -12,11 +12,9 @@ use Illuminate\Support\Facades\Log;
  */
 class WorkflowDlqController extends Controller
 {
-    protected WorkflowDeadLetterQueue $dlqService;
-
-    public function __construct(WorkflowDeadLetterQueue $dlqService)
-    {
-        $this->dlqService = $dlqService;
+    public function __construct(
+        protected WorkflowDeadLetterQueue$dlqService
+    ) {
     }
 
     /**

@@ -17,15 +17,10 @@ use Illuminate\Support\Facades\Log;
  */
 class WorkflowCorrelationController extends Controller
 {
-    protected CorrelationService $correlationService;
-    protected WorkflowTracingService $tracingService;
-
     public function __construct(
-        CorrelationService $correlationService,
-        WorkflowTracingService $tracingService
+        protected CorrelationService$correlationService,
+        protected WorkflowTracingService$tracingService
     ) {
-        $this->correlationService = $correlationService;
-        $this->tracingService = $tracingService;
     }
 
     /**

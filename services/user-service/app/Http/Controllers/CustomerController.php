@@ -12,11 +12,9 @@ use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
-    private CustomerService $customerService;
-
-    public function __construct(CustomerService $customerService)
-    {
-        $this->customerService = $customerService;
+    public function __construct(
+        private readonly CustomerService $customerService
+    ) {
     }
 
     /**
