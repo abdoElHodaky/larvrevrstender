@@ -1,0 +1,89 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: database-failover-metrics
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: database-failover-metrics
+    app.kubernetes.io/part-of: reverse-tender-platform
+    flagger.app/monitoring: "true"
+spec:
+  # Monitor services across namespaces
+  namespaceSelector:
+    matchNames:
+    - reverse-tender
+  selector:
+    matchLabels:
+      app: gateway-service
+  endpoints:
+  - port: http
+    interval: 15s
+    path: /health/database/metrics
+    scheme: http
+    honorLabels: true
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'database_failover_.*'
+      action: keep
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: reverse-tender-services-metrics
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: reverse-tender-services-metrics
+    app.kubernetes.io/part-of: reverse-tender-platform
+    flagger.app/monitoring: "true"
+spec:
+  # Monitor all services in reverse-tender namespace
+  namespaceSelector:
+    matchNames:
+    - reverse-tender
+  selector:
+    matchLabels:
+      tier: gateway
+  endpoints:
+  - port: http
+    interval: 15s
+    path: /metrics
+    scheme: http
+    honorLabels: true
+  - port: http
+    interval: 15s
+    path: /health/metrics
+    scheme: http
+    honorLabels: true
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: flagger-canary-metrics
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: flagger-canary-metrics
+    app.kubernetes.io/part-of: reverse-tender-platform
+    flagger.app/monitoring: "true"
+spec:
+  # Monitor Flagger canary services
+  namespaceSelector:
+    matchNames:
+    - reverse-tender
+  selector:
+    matchLabels:
+      flagger.app/canary: "true"
+  endpoints:
+  - port: http
+    interval: 15s
+    path: /metrics
+    scheme: http
+    honorLabels: true
+  - port: http
+    interval: 15s
+    path: /health/database/metrics
+    scheme: http
+    honorLabels: true
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'database_failover_.*|http_requests_.*|response_time_.*'
+      action: keep

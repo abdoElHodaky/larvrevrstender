@@ -7,8 +7,9 @@ use App\Models\UserAnalytic;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Shared\Core\BaseService;
 
-class AnalyticsService
+class AnalyticsService extends BaseService
 {
     /**
      * Track a user event

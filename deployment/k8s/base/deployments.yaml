@@ -456,11 +456,42 @@ spec:
             secretKeyRef:
               name: app-secrets
               key: FCM_SERVER_KEY
-        - name: TWILIO_SID
+        # SMS Provider Configuration (MENA-compatible)
+        - name: SMS_PROVIDER
+          value: "unifonic"
+        - name: UNIFONIC_API_KEY
           valueFrom:
             secretKeyRef:
               name: app-secrets
-              key: TWILIO_SID
+              key: UNIFONIC_API_KEY
+        - name: UNIFONIC_SENDER_ID
+          value: "ReverseTender"
+        - name: MSEGAT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: MSEGAT_USERNAME
+        - name: MSEGAT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: MSEGAT_API_KEY
+        - name: MSEGAT_SENDER_ID
+          value: "ReverseTender"
+        - name: OURSMS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: OURSMS_API_KEY
+        - name: OURSMS_SENDER_ID
+          value: "ReverseTender"
+        - name: INFOBIP_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: INFOBIP_API_KEY
+        - name: INFOBIP_SENDER_ID
+          value: "ReverseTender"
         livenessProbe:
           httpGet:
             path: /health

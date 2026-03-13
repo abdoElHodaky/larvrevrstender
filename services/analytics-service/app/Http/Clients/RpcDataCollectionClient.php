@@ -6,6 +6,8 @@ use App\RPC\Clients\UserServiceRpcClient;
 use App\RPC\Clients\PaymentServiceRpcClient;
 use App\RPC\Clients\AuctionServiceRpcClient;
 use App\RPC\Clients\BiddingServiceRpcClient;
+use App\RPC\Clients\NotificationServiceRpcClient;
+use App\RPC\Clients\VinOcrServiceRpcClient;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -20,6 +22,8 @@ class RpcDataCollectionClient
     private PaymentServiceRpcClient $paymentRpcClient;
     private AuctionServiceRpcClient $auctionRpcClient;
     private BiddingServiceRpcClient $biddingRpcClient;
+    private NotificationServiceRpcClient $notificationRpcClient;
+    private VinOcrServiceRpcClient $vinOcrRpcClient;
 
     public function __construct()
     {
@@ -27,6 +31,8 @@ class RpcDataCollectionClient
         $this->paymentRpcClient = app(PaymentServiceRpcClient::class);
         $this->auctionRpcClient = app(AuctionServiceRpcClient::class);
         $this->biddingRpcClient = app(BiddingServiceRpcClient::class);
+        $this->notificationRpcClient = app(NotificationServiceRpcClient::class);
+        $this->vinOcrRpcClient = app(VinOcrServiceRpcClient::class);
     }
 
     /**
@@ -80,10 +86,14 @@ class RpcDataCollectionClient
     public function collectNotificationData(): array
     {
         try {
-            // For now, return empty array as notification service RPC client is not available in analytics service
-            // This would need to be added to the RPC service provider if notification analytics are needed
-            Log::info('Notification data collection not implemented via RPC yet');
-            return [];
+            $result = $this->notificationRpcClient->getNotificationAnalyticsData();
+            
+            Log::info('Notification analytics data collected successfully', [
+                'data_points' => count($result['data'] ?? []),
+                'timestamp' => now()
+            ]);
+            
+            return $result;
         } catch (\Exception $e) {
             Log::error('RPC Notification data collection failed', ['error' => $e->getMessage()]);
             return ['error' => $e->getMessage()];
@@ -93,10 +103,14 @@ class RpcDataCollectionClient
     public function collectVinOcrData(): array
     {
         try {
-            // For now, return empty array as VIN OCR service RPC client is not available in analytics service
-            // This would need to be added to the RPC service provider if VIN OCR analytics are needed
-            Log::info('VIN OCR data collection not implemented via RPC yet');
-            return [];
+            $result = $this->vinOcrRpcClient->getVinOcrAnalyticsData();
+            
+            Log::info('VIN OCR analytics data collected successfully', [
+                'data_points' => count($result['data'] ?? []),
+                'timestamp' => now()
+            ]);
+            
+            return $result;
         } catch (\Exception $e) {
             Log::error('RPC VIN OCR data collection failed', ['error' => $e->getMessage()]);
             return ['error' => $e->getMessage()];
@@ -139,10 +153,22 @@ class RpcDataCollectionClient
             $metrics['bidding'] = ['error' => $e->getMessage()];
         }
 
+        try {
+            $notificationHealth = $this->notificationRpcClient->healthCheck();
+            $metrics['notification'] = $notificationHealth;
+        } catch (\Exception $e) {
+            $metrics['notification'] = ['error' => $e->getMessage()];
+        }
+
+        try {
+            $vinOcrHealth = $this->vinOcrRpcClient->healthCheck();
+            $metrics['vin_ocr'] = $vinOcrHealth;
+        } catch (\Exception $e) {
+            $metrics['vin_ocr'] = ['error' => $e->getMessage()];
+        }
+
         // Placeholder for services not yet available via RPC
         $metrics['auth'] = ['status' => 'rpc_not_implemented'];
-        $metrics['notification'] = ['status' => 'rpc_not_implemented'];
-        $metrics['vin_ocr'] = ['status' => 'rpc_not_implemented'];
 
         return $metrics;
     }
@@ -183,10 +209,22 @@ class RpcDataCollectionClient
             $info['bidding'] = ['error' => $e->getMessage()];
         }
 
+        try {
+            $notificationInfo = $this->notificationRpcClient->getServiceInfo();
+            $info['notification'] = $notificationInfo['success'] ?? false ? ($notificationInfo['data'] ?? []) : [];
+        } catch (\Exception $e) {
+            $info['notification'] = ['error' => $e->getMessage()];
+        }
+
+        try {
+            $vinOcrInfo = $this->vinOcrRpcClient->getServiceInfo();
+            $info['vin_ocr'] = $vinOcrInfo['success'] ?? false ? ($vinOcrInfo['data'] ?? []) : [];
+        } catch (\Exception $e) {
+            $info['vin_ocr'] = ['error' => $e->getMessage()];
+        }
+
         // Placeholder for services not yet available via RPC
         $info['auth'] = ['status' => 'rpc_not_implemented'];
-        $info['notification'] = ['status' => 'rpc_not_implemented'];
-        $info['vin_ocr'] = ['status' => 'rpc_not_implemented'];
 
         return $info;
     }

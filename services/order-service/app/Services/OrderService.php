@@ -14,8 +14,11 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Shared\Core\BaseService;
+use App\Services\Contracts\OrderServiceInterface;
+use App\Services\Contracts\EnhancedOrderServiceInterface;
 
-class OrderService
+class OrderService extends BaseService implements OrderServiceInterface, EnhancedOrderServiceInterface
 {
     /**
      * Get order by ID.
@@ -541,9 +544,9 @@ class OrderService
     // ========================================
 
     /**
-     * Create order from winning bid
+     * Create order from winning bid with enhanced validation and data
      */
-    public function createOrderFromBid(int $bidId, array $orderData = []): array
+    public function createOrderFromBidWithData(int $bidId, array $orderData = []): array
     {
         try {
             DB::beginTransaction();
@@ -697,9 +700,9 @@ class OrderService
     }
 
     /**
-     * Update order status with validation
+     * Update order status with enhanced validation and data
      */
-    public function updateOrderStatus(int $orderId, string $newStatus, array $statusData = []): array
+    public function updateOrderStatusWithData(int $orderId, string $newStatus, array $statusData = []): array
     {
         try {
             DB::beginTransaction();
@@ -986,9 +989,9 @@ class OrderService
     }
 
     /**
-     * Cancel order with validation
+     * Cancel order with enhanced validation and data
      */
-    public function cancelOrder(int $orderId, string $reason, int $cancelledBy): array
+    public function cancelOrderWithData(int $orderId, string $reason, int $cancelledBy): array
     {
         try {
             DB::beginTransaction();
@@ -1002,7 +1005,7 @@ class OrderService
                 ];
             }
 
-            $result = $this->updateOrderStatus($orderId, Order::STATUS_CANCELLED, [
+            $result = $this->updateOrderStatusWithData($orderId, Order::STATUS_CANCELLED, [
                 'cancellation_reason' => $reason,
                 'updated_by' => $cancelledBy,
                 'note' => "Order cancelled: {$reason}",

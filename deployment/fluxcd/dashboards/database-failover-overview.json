@@ -1,0 +1,189 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Database Failover Overview",
+    "tags": ["database", "failover", "flagger", "reverse-tender"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Database Failover Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "database_failover:active_provider",
+            "legendFormat": "Active Provider: {{provider}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {"displayMode": "list", "orientation": "horizontal"},
+            "mappings": [
+              {"options": {"neon": {"text": "Neon PostgreSQL", "color": "green"}}}
+            ]
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Available Database Providers",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "database_failover:available_providers_count",
+            "legendFormat": "Available: {{value}}/3"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "green", "value": 2}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Database Provider Health",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "database_failover_provider_health_status",
+            "legendFormat": "{{provider}} Health"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {"drawStyle": "line", "lineInterpolation": "linear"}
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Query Latency (95th Percentile)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "database_failover:query_latency_p95",
+            "legendFormat": "{{provider}} P95 Latency"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "Connection Pool Utilization",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "database_failover:connection_pool_utilization",
+            "legendFormat": "{{provider}} Pool Usage"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "percent",
+            "max": 100
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Database Error Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "database_failover:error_rate",
+            "legendFormat": "{{provider}} Error Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24}
+      },
+      {
+        "id": 7,
+        "title": "Circuit Breaker Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "database_failover_circuit_breaker_state",
+            "legendFormat": "{{provider}} Circuit Breaker"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"options": {"0": {"text": "CLOSED", "color": "green"}}},
+              {"options": {"1": {"text": "HALF_OPEN", "color": "yellow"}}},
+              {"options": {"2": {"text": "OPEN", "color": "red"}}}
+            ]
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 32}
+      },
+      {
+        "id": 8,
+        "title": "Neon Compute Size",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "database_failover_neon_compute_size",
+            "legendFormat": "Neon Compute Units"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 32}
+      },
+      {
+        "id": 9,
+        "title": "CNPG Cluster Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "database_failover_cnpg_cluster_ready_instances",
+            "legendFormat": "Ready: {{value}}"
+          },
+          {
+            "expr": "database_failover_cnpg_cluster_total_instances",
+            "legendFormat": "Total: {{value}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 32}
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 1
+  }
+}
+

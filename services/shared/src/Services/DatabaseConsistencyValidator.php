@@ -5,6 +5,7 @@ namespace Shared\Services;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Shared\Facades\SharedLog;
 use Carbon\Carbon;
 
 /**
@@ -31,6 +32,14 @@ class DatabaseConsistencyValidator
     {
         $validationId = $this->generateValidationId();
         
+        // Log to SharedLog for centralized monitoring
+        SharedLog::databaseFailover('consistency_validation_started', [
+            'validation_id' => $validationId,
+            'source_connection' => $sourceConnection,
+            'target_connection' => $targetConnection,
+            'validation_type' => 'data_consistency'
+        ]);
+
         Log::info("Starting data consistency validation", [
             'validation_id' => $validationId,
             'source' => $sourceConnection,
@@ -70,10 +79,32 @@ class DatabaseConsistencyValidator
             $result['completed_at'] = now()->toISOString();
             $result['duration_ms'] = now()->diffInMilliseconds(Carbon::parse($result['started_at']));
 
+            // Log completion to SharedLog
+            SharedLog::databaseFailover('consistency_validation_completed', [
+                'validation_id' => $validationId,
+                'source_connection' => $sourceConnection,
+                'target_connection' => $targetConnection,
+                'consistent' => $result['consistent'],
+                'duration_ms' => $result['duration_ms'],
+                'inconsistencies_count' => count($result['inconsistencies']),
+                'warnings_count' => count($result['warnings']),
+                'checks_performed' => array_keys($result['checks'])
+            ]);
+
         } catch (\Exception $e) {
             $result['consistent'] = false;
             $result['errors'][] = $e->getMessage();
             $result['completed_at'] = now()->toISOString();
+            
+            // Log validation failure to SharedLog
+            SharedLog::databaseFailover('consistency_validation_failed', [
+                'validation_id' => $validationId,
+                'source_connection' => $sourceConnection,
+                'target_connection' => $targetConnection,
+                'error_message' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'trace' => $e->getTraceAsString()
+            ]);
             
             Log::error("Data consistency validation failed", [
                 'validation_id' => $validationId,
@@ -589,6 +620,13 @@ class DatabaseConsistencyValidator
     {
         $splitBrainId = $this->generateValidationId();
         
+        // Log split-brain detection start to SharedLog
+        SharedLog::databaseFailover('split_brain_detection_started', [
+            'split_brain_id' => $splitBrainId,
+            'connections' => $connections,
+            'connection_count' => count($connections)
+        ]);
+
         Log::info("Starting split-brain detection", [
             'split_brain_id' => $splitBrainId,
             'connections' => $connections
@@ -629,9 +667,26 @@ class DatabaseConsistencyValidator
             if (count($pgWriters) > 1) {
                 $result['split_brain_detected'] = true;
                 $result['warnings'][] = "Multiple PostgreSQL writers detected: " . implode(', ', $pgWriters);
+                
+                // Log critical split-brain detection to SharedLog
+                SharedLog::databaseFailover('split_brain_detected', [
+                    'split_brain_id' => $splitBrainId,
+                    'multiple_writers' => $pgWriters,
+                    'writer_count' => count($pgWriters),
+                    'all_connections' => $connections,
+                    'severity' => 'critical'
+                ]);
             }
 
             $result['completed_at'] = now()->toISOString();
+            
+            // Log split-brain detection completion
+            SharedLog::databaseFailover('split_brain_detection_completed', [
+                'split_brain_id' => $splitBrainId,
+                'split_brain_detected' => $result['split_brain_detected'],
+                'active_writers' => $result['active_writers'],
+                'connections_checked' => count($connections)
+            ]);
 
         } catch (\Exception $e) {
             $result['errors'][] = $e->getMessage();

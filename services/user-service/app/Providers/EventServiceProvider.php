@@ -13,6 +13,11 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Event;
+use Shared\Events\DatabaseFailoverEvent;
+use Shared\Events\DatabaseFailoverSystemEvent;
+use Shared\Events\WriteOperationBufferedEvent;
+use Shared\Events\WriteOperationReplayedEvent;
+use Shared\Listeners\DatabaseFailoverNotificationListener;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -22,6 +27,27 @@ class EventServiceProvider extends ServiceProvider
      * @var array<class-string, array<int, class-string>>
      */
     protected $listen = [
+        // Database Failover Events (imported from shared)
+        DatabaseFailoverEvent::class => [
+            DatabaseFailoverNotificationListener::class . '@handle',
+            'App\Listeners\HandleDatabaseFailover',
+        ],
+
+        DatabaseFailoverSystemEvent::class => [
+            DatabaseFailoverNotificationListener::class . '@handleSystemEvent',
+            'App\Listeners\HandleDatabaseFailoverSystem',
+        ],
+
+        // Write Operation Events (User service has profile updates)
+        WriteOperationBufferedEvent::class => [
+            'App\Listeners\HandleWriteOperationBuffered',
+        ],
+
+        WriteOperationReplayedEvent::class => [
+            'App\Listeners\HandleWriteOperationReplayed',
+        ],
+
+        // Laravel Auth Events
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],

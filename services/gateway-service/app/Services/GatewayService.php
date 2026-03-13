@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
-class GatewayService
+use Shared\Core\BaseService;
+
+class GatewayService extends BaseService
 {
     /**
      * Route request to appropriate service

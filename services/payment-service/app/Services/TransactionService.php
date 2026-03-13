@@ -7,8 +7,10 @@ use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Collection;
+use Shared\Core\BaseService;
+use App\Services\Contracts\TransactionServiceInterface;
 
-class TransactionService
+class TransactionService extends BaseService
 {
     /**
      * Create a new transaction.

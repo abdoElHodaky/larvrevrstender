@@ -10,6 +10,11 @@ use App\Events\Workflow\WorkflowFailed;
 use App\Listeners\Workflow\CollectWorkflowMetrics;
 use App\Listeners\Workflow\SendWorkflowNotifications;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use Shared\Events\DatabaseFailoverEvent;
+use Shared\Events\DatabaseFailoverSystemEvent;
+use Shared\Events\WriteOperationBufferedEvent;
+use Shared\Events\WriteOperationReplayedEvent;
+use Shared\Listeners\DatabaseFailoverNotificationListener;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -19,6 +24,24 @@ class EventServiceProvider extends ServiceProvider
      * @var array<class-string, array<int, class-string>>
      */
     protected $listen = [
+        // Database Failover Events (imported from shared)
+        DatabaseFailoverEvent::class => [
+            DatabaseFailoverNotificationListener::class . '@handle',
+        ],
+
+        DatabaseFailoverSystemEvent::class => [
+            DatabaseFailoverNotificationListener::class . '@handleSystemEvent',
+        ],
+
+        // Write Operation Events (Order service has write operations)
+        WriteOperationBufferedEvent::class => [
+            'App\Listeners\HandleWriteOperationBuffered',
+        ],
+
+        WriteOperationReplayedEvent::class => [
+            'App\Listeners\HandleWriteOperationReplayed',
+        ],
+
         // Workflow Events
         OrderWorkflowInitiated::class => [
             SendWorkflowNotifications::class . '@handleWorkflowInitiated',

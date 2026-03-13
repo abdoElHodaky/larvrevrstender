@@ -6,8 +6,10 @@ use App\Events\MerchantProfileUpdated;
 use App\Events\MerchantVerificationStatusChanged;
 use App\Models\MerchantProfile;
 use Illuminate\Support\Collection;
+use Shared\Core\BaseService;
+use App\Services\Contracts\MerchantServiceInterface;
 
-class MerchantService
+class MerchantService extends BaseService implements MerchantServiceInterface
 {
     /**
      * Get merchant profile by user ID.

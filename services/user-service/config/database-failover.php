@@ -84,6 +84,57 @@ return [
             'database' => 'reverse_tender_users',
             'allow_readonly_fallback' => true,
             'critical_operations' => ['profile_update', 'verification'],
+            'write_buffer_config' => [
+                'queue_connection' => 'redis',
+                'queue_name' => 'user_write_operations',
+                'enable_encryption' => true,
+                'max_buffer_size' => 800,
+                'buffer_ttl' => 3600, // 1 hour
+            ],
+            'operation_specific_rules' => [
+                'user_registration' => [
+                    'consistency_level' => 'strong',
+                    'max_delay_seconds' => 30,
+                    'enable_buffering' => true,
+                    'priority' => 'critical',
+                ],
+                'profile_update' => [
+                    'consistency_level' => 'eventual',
+                    'max_delay_seconds' => 180,
+                    'enable_buffering' => true,
+                    'priority' => 'high',
+                ],
+                'password_change' => [
+                    'consistency_level' => 'strong',
+                    'max_delay_seconds' => 60,
+                    'enable_buffering' => true,
+                    'priority' => 'critical',
+                ],
+                'email_verification' => [
+                    'consistency_level' => 'strong',
+                    'max_delay_seconds' => 120,
+                    'enable_buffering' => true,
+                    'priority' => 'high',
+                ],
+                'account_verification' => [
+                    'consistency_level' => 'strong',
+                    'max_delay_seconds' => 90,
+                    'enable_buffering' => true,
+                    'priority' => 'high',
+                ],
+                'preference_update' => [
+                    'consistency_level' => 'eventual',
+                    'max_delay_seconds' => 300,
+                    'enable_buffering' => true,
+                    'priority' => 'medium',
+                ],
+                'session_management' => [
+                    'consistency_level' => 'eventual',
+                    'max_delay_seconds' => 600,
+                    'enable_buffering' => true,
+                    'priority' => 'low',
+                ],
+            ],
         ],
         'auction-service' => [
             'database' => 'reverse_tender',
@@ -206,4 +257,3 @@ return [
         'mock_connections' => env('DB_MOCK_CONNECTIONS', false),
     ],
 ];
-

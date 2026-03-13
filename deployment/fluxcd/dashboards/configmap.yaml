@@ -323,3 +323,134 @@ data:
       "uid": "blue-green-deployment",
       "version": 1
     }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-database-failover
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana-dashboards-database-failover
+    app.kubernetes.io/part-of: reverse-tender-platform
+    grafana_dashboard: "1"
+    flagger.app/monitoring: "true"
+data:
+  database-failover-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Database Failover Overview",
+        "tags": ["database", "failover", "flagger", "reverse-tender"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Database Failover Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "database_failover:active_provider",
+                "legendFormat": "Active Provider: {{provider}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {"displayMode": "list", "orientation": "horizontal"},
+                "mappings": [
+                  {"options": {"neon": {"text": "Neon PostgreSQL", "color": "green"}}},
+                  {"options": {"cnpg": {"text": "CNPG PostgreSQL", "color": "blue"}}},
+                  {"options": {"mongodb": {"text": "MongoDB Atlas", "color": "orange"}}}
+                ]
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Available Database Providers",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "database_failover:available_providers_count",
+                "legendFormat": "Available: {{value}}/3"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 1},
+                    {"color": "green", "value": 2}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Database Provider Health",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "database_failover_provider_health_status",
+                "legendFormat": "{{provider}} Health"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {"drawStyle": "line", "lineInterpolation": "linear"}
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Query Latency (95th Percentile)",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "database_failover:query_latency_p95",
+                "legendFormat": "{{provider}} P95 Latency"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "s"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 5,
+            "title": "Connection Pool Utilization",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "database_failover:connection_pool_utilization",
+                "legendFormat": "{{provider}} Pool Usage"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "percent",
+                "max": 100
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          }
+        ],
+        "time": {"from": "now-1h", "to": "now"},
+        "refresh": "30s",
+        "schemaVersion": 27,
+        "version": 1,
+        "uid": "database-failover-overview"
+      }
+    }

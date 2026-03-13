@@ -2,7 +2,7 @@
 
 namespace App\RPC\Clients;
 
-use Shared\RPC\BaseRpcClient;
+use Shared\Clients\BaseRpcClient;
 
 /**
  * Payment Service RPC Client for Order Service
@@ -338,4 +338,3 @@ class PaymentServiceRpcClient extends BaseRpcClient
         ]);
     }
 }
-

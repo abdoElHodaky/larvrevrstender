@@ -4,13 +4,15 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
 use Exception;
+use Shared\Core\BaseService;
+use App\Services\Contracts\AuctionServiceInterface;
 
 /**
  * Auction Service for Bidding Service
  * 
  * Handles auction-related operations within the bidding context.
  */
-class AuctionService
+class AuctionService extends BaseService
 {
     /**
      * Get auction details

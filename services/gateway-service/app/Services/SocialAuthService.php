@@ -6,8 +6,9 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
+use Shared\Core\BaseService;
 
-class SocialAuthService
+class SocialAuthService extends BaseService
 {
     /**
      * Handle social authentication

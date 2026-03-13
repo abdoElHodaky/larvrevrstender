@@ -85,3 +85,93 @@ spec:
     - sourceLabels: [__meta_kubernetes_service_name]
       targetLabel: service_name
       replacement: "${1}_octane"
+  # Database Failover Health Metrics
+  - port: http
+    interval: 15s
+    path: /health/database/metrics
+    scheme: http
+    metricRelabelings:
+    - sourceLabels: [__meta_kubernetes_service_name]
+      targetLabel: service_name
+    - sourceLabels: [__meta_kubernetes_pod_label_database_failover_enabled]
+      targetLabel: database_failover_enabled
+    - sourceLabels: [__meta_kubernetes_pod_label_database_primary_provider]
+      targetLabel: primary_provider
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: database-failover-services
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: database-failover-services
+    app.kubernetes.io/part-of: reverse-tender-platform
+    database.kubernetes.io/failover-enabled: "true"
+    flagger.app/monitoring: "true"
+spec:
+  selector:
+    matchLabels:
+      database.kubernetes.io/failover-enabled: "true"
+  endpoints:
+  # Database Health Monitor Service
+  - port: http
+    interval: 15s
+    path: /health/metrics
+    scheme: http
+    metricRelabelings:
+    - sourceLabels: [__meta_kubernetes_service_name]
+      targetLabel: service_name
+    - sourceLabels: [__meta_kubernetes_pod_label_database_provider]
+      targetLabel: database_provider
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+  # Database Failover Webhook Service
+  - port: http
+    interval: 30s
+    path: /webhook/metrics
+    scheme: http
+    metricRelabelings:
+    - sourceLabels: [__meta_kubernetes_service_name]
+      targetLabel: service_name
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+  # CNPG PostgreSQL Metrics
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    scheme: http
+    metricRelabelings:
+    - sourceLabels: [__meta_kubernetes_service_name]
+      targetLabel: service_name
+    - sourceLabels: [__meta_kubernetes_pod_label_cnpg_io_cluster]
+      targetLabel: cnpg_cluster
+    - sourceLabels: [__meta_kubernetes_pod_label_cnpg_io_instanceRole]
+      targetLabel: cnpg_role
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: flagger-database-failover
+  namespace: flagger-system
+  labels:
+    app.kubernetes.io/name: flagger-database-failover
+    app.kubernetes.io/part-of: flagger
+    flagger.app/monitoring: "true"
+spec:
+  selector:
+    matchLabels:
+      app: flagger
+  endpoints:
+  - port: http
+    interval: 15s
+    path: /metrics
+    scheme: http
+    metricRelabelings:
+    - sourceLabels: [__meta_kubernetes_service_name]
+      targetLabel: service_name
+    - sourceLabels: [__name__]
+      regex: 'flagger_canary_.*'
+      targetLabel: canary_metric
+    - sourceLabels: [__name__]
+      regex: 'flagger_canary_database_.*'
+      targetLabel: database_canary_metric

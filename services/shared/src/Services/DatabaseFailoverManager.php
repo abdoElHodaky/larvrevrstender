@@ -19,7 +19,7 @@ use Carbon\Carbon;
  * - Secondary: Cloud Provider PostgreSQL  
  * - Fallback: MongoDB Atlas
  */
-class DatabaseFailoverManager implements DatabaseFailoverInterface
+class DatabaseFailoverManager
 {
     private array $connections;
     private array $connectionHealth;

@@ -10,6 +10,7 @@ use Shared\Services\DatabaseFailoverManager;
 use Shared\Services\DatabaseConsistencyValidator;
 use Shared\HealthCheck\DatabaseHealthChecker;
 use Shared\Events\DatabaseFailoverEvent;
+use Shared\Facades\SharedLog;
 use Carbon\Carbon;
 
 /**
@@ -228,6 +229,16 @@ class DatabaseFailoverRecoveryManager
             $consistencyResult = $this->consistencyValidator->validateConsistency($currentConnection, $targetConnection);
             
             if (!$consistencyResult['consistent']) {
+                // Log consistency issues to SharedLog
+                SharedLog::databaseFailover('data_consistency_issues_detected', [
+                    'recovery_id' => $recoveryId,
+                    'current_connection' => $currentConnection,
+                    'target_connection' => $targetConnection,
+                    'inconsistencies' => $consistencyResult['inconsistencies'],
+                    'validation_id' => $consistencyResult['validation_id'] ?? null,
+                    'validation_duration_ms' => $consistencyResult['duration_ms'] ?? null
+                ]);
+
                 Log::warning("Data consistency issues detected during recovery", [
                     'recovery_id' => $recoveryId,
                     'inconsistencies' => $consistencyResult['inconsistencies']
@@ -235,6 +246,15 @@ class DatabaseFailoverRecoveryManager
                 
                 // Still proceed but log the issues
                 $recovery['warnings'][] = "Data consistency issues detected: " . implode(', ', $consistencyResult['inconsistencies']);
+            } else {
+                // Log successful consistency validation
+                SharedLog::databaseFailover('data_consistency_validated', [
+                    'recovery_id' => $recoveryId,
+                    'current_connection' => $currentConnection,
+                    'target_connection' => $targetConnection,
+                    'validation_id' => $consistencyResult['validation_id'] ?? null,
+                    'validation_duration_ms' => $consistencyResult['duration_ms'] ?? null
+                ]);
             }
         }
 

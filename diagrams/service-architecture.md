@@ -73,7 +73,7 @@ graph TB
     %% External APIs
     ZATCA[🇸🇦 ZATCA API<br/>E-invoicing]
     PaymentGW[💰 Payment Gateway<br/>STC Pay + Cards]
-    SMSProvider[📱 SMS Provider<br/>Twilio/Local]
+    SMSProvider[📱 SMS Provider<br/>MENA Providers]
     EmailProvider[📧 Email Provider<br/>SendGrid/SES]
     
     %% Client connections

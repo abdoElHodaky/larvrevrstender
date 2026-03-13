@@ -1,0 +1,701 @@
+# Helm Values for Database Failover Configuration
+# Updated for comprehensive database failover architecture v3.0
+# Supports: Neon PostgreSQL, Cloud-Native PostgreSQL, MongoDB Atlas
+
+# =============================================================================
+# GLOBAL CONFIGURATION
+# =============================================================================
+global:
+  # Application Configuration
+  app:
+    name: reverse-tender
+    version: "3.0.0"
+    environment: production
+    debug: false
+    url: https://reversetender.com
+  
+  # Image Configuration
+  image:
+    registry: reversetender
+    tag: latest
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  
+  # Database Failover Configuration
+  databaseFailover:
+    enabled: true
+    strategy: primary-secondary-tertiary
+    timeout: 30
+    retryAttempts: 3
+    retryDelay: 5
+    healthCheckInterval: 30
+    
+    # Circuit Breaker Configuration
+    circuitBreaker:
+      enabled: true
+      threshold: 5
+      timeout: 60
+      halfOpenMaxRequests: 3
+
+# =============================================================================
+# DATABASE FAILOVER CONFIGURATION
+# =============================================================================
+databaseFailover:
+  # Enable database failover system
+  enabled: true
+  
+  # Failover strategy
+  strategy: primary-secondary-tertiary
+  
+  # Failover timeouts and retries
+  timeout: 30
+  retryAttempts: 3
+  retryDelay: 5
+  
+  # Health check configuration
+  healthCheck:
+    enabled: true
+    interval: 30
+    timeout: 10
+    retries: 3
+    endpoint: /health/database
+  
+  # Circuit breaker configuration
+  circuitBreaker:
+    enabled: true
+    threshold: 5
+    timeout: 60
+    halfOpenMaxRequests: 3
+  
+  # Connection pool configuration
+  connectionPool:
+    enabled: true
+    minConnections: 5
+    maxConnections: 50
+    acquireTimeout: 30000
+    createTimeout: 30000
+    destroyTimeout: 5000
+    idleTimeout: 300000
+    reapInterval: 1000
+  
+  # Monitoring configuration
+  monitoring:
+    enabled: true
+    metricsEnabled: true
+    slowQueryLog: true
+    slowQueryThreshold: 1000
+    connectionLog: false
+    errorLog: true
+  
+  # Webhook notifications
+  webhooks:
+    enabled: true
+    timeout: 10
+    emailEnabled: true
+    slackEnabled: true
+
+# =============================================================================
+# PRIMARY DATABASE: NEON POSTGRESQL
+# =============================================================================
+neonPostgreSQL:
+  # Enable Neon PostgreSQL as primary database
+  enabled: true
+  
+  # Provider configuration
+  provider: neon
+  type: postgresql
+  connection: pgsql
+  port: 5432
+  charset: utf8
+  collation: utf8_unicode_ci
+  sslMode: require
+  
+  # Neon-specific configuration
+  config:
+    region: us-east-1
+    computeSize: 1
+    autoscalingEnabled: true
+    minComputeSize: 0.5
+    maxComputeSize: 8
+    suspendTimeout: 300
+    poolerEnabled: true
+    poolerMode: transaction
+    poolerSize: 25
+    connectionLimit: 100
+  
+  # Branch configuration
+  branches:
+    enabled: true
+    mainBranch: main
+    devBranch: dev
+    stagingBranch: staging
+  
+  # Connection pool settings
+  pool:
+    size: 20
+    timeout: 30
+    idleTimeout: 300
+    maxLifetime: 3600
+  
+  # Backup configuration
+  backup:
+    enabled: true
+    pointInTimeRecovery: true
+    retentionDays: 30
+  
+  # Secrets configuration
+  secrets:
+    # These will be provided via external secret management
+    databaseUrl: ""
+    host: ""
+    username: ""
+    password: ""
+    database: ""
+    apiKey: ""
+    projectId: ""
+    organizationId: ""
+    branchId: ""
+    endpointId: ""
+
+# =============================================================================
+# SECONDARY DATABASE: CLOUD-NATIVE POSTGRESQL (CNPG)
+# =============================================================================
+cnpgPostgreSQL:
+  # Enable CNPG PostgreSQL as secondary database
+  enabled: true
+  
+  # Provider configuration
+  provider: cnpg
+  type: postgresql
+  connection: pgsql
+  port: 5432
+  charset: utf8
+  collation: utf8_unicode_ci
+  sslMode: prefer
+  
+  # CNPG cluster configuration
+  cluster:
+    name: reverse-tender-postgres
+    instances: 3
+    primaryUpdateStrategy: unsupervised
+    postgresqlVersion: "16"
+    storageClass: fast-ssd
+    storageSize: 200Gi
+    
+    # Resource configuration
+    resources:
+      requests:
+        memory: 2Gi
+        cpu: 1000m
+      limits:
+        memory: 4Gi
+        cpu: 2000m
+  
+  # Replication configuration
+  replication:
+    enabled: true
+    instances: 2
+    streaming: true
+    synchronous: false
+    maxReplicationSlots: 10
+    maxWalSenders: 10
+  
+  # Connection pool settings
+  pool:
+    size: 15
+    timeout: 30
+    idleTimeout: 300
+    maxLifetime: 3600
+  
+  # Backup configuration
+  backup:
+    enabled: true
+    schedule: "0 2 * * *"
+    retentionPolicy: 30d
+    walRetentionPolicy: 7d
+    compression: gzip
+    s3:
+      bucket: reverse-tender-backups
+      path: cnpg
+      region: us-east-1
+  
+  # Monitoring configuration
+  monitoring:
+    enabled: true
+    prometheusEnabled: true
+    customQueries: true
+  
+  # Secrets configuration
+  secrets:
+    # These will be provided via external secret management
+    host: reverse-tender-postgres-rw.default.svc.cluster.local
+    hostRO: reverse-tender-postgres-ro.default.svc.cluster.local
+    username: ""
+    password: ""
+    database: ""
+    superuserUsername: postgres
+    superuserPassword: ""
+    replicationUsername: streaming_replica
+    replicationPassword: ""
+
+# =============================================================================
+# TERTIARY DATABASE: MONGODB ATLAS
+# =============================================================================
+mongoDBAtlas:
+  # Enable MongoDB Atlas as tertiary database
+  enabled: true
+  
+  # Provider configuration
+  provider: mongodb-atlas
+  type: mongodb
+  connection: mongodb
+  port: 27017
+  authSource: admin
+  replicaSet: atlas-replica-set
+  ssl: true
+  
+  # MongoDB Atlas configuration
+  config:
+    clusterName: reverse-tender-production
+    region: US_EAST_1
+    tier: M30
+    version: "7.0"
+    replicaSetEnabled: true
+    replicaSetSize: 3
+    backupEnabled: true
+    backupPolicy: DAILY
+    backupRetention: 30
+  
+  # Connection configuration
+  connection:
+    authSource: admin
+    sslEnabled: true
+    sslValidate: true
+    retryWrites: true
+    retryReads: true
+    readPreference: primaryPreferred
+    writeConcern: majority
+    readConcern: majority
+  
+  # Connection pool settings
+  pool:
+    size: 10
+    timeout: 30
+    serverSelectionTimeout: 30000
+    socketTimeout: 30000
+    connectTimeout: 30000
+    minPoolSize: 5
+    maxPoolSize: 20
+    maxIdleTime: 300000
+    waitQueueTimeout: 30000
+  
+  # Monitoring configuration
+  monitoring:
+    enabled: true
+    profilerEnabled: true
+    slowQueryThreshold: 1000
+  
+  # Secrets configuration
+  secrets:
+    # These will be provided via external secret management
+    connectionString: ""
+    host: ""
+    username: ""
+    password: ""
+    database: ""
+    apiPublicKey: ""
+    apiPrivateKey: ""
+    projectId: ""
+    orgId: ""
+    clusterName: ""
+    clusterEndpoint: ""
+
+# =============================================================================
+# APPLICATION SERVICES CONFIGURATION
+# =============================================================================
+services:
+  # API Gateway with Database Failover
+  apiGateway:
+    enabled: true
+    name: api-gateway
+    image:
+      repository: reversetender/api-gateway
+      tag: latest
+      pullPolicy: IfNotPresent
+    
+    replicas: 3
+    
+    ports:
+      http: 8000
+    
+    # Database failover configuration
+    databaseFailover:
+      enabled: true
+      initContainer:
+        enabled: true
+        image: postgres:16-alpine
+        resources:
+          requests:
+            memory: 128Mi
+            cpu: 100m
+          limits:
+            memory: 256Mi
+            cpu: 200m
+    
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 250m
+      limits:
+        memory: 1Gi
+        cpu: 500m
+    
+    # Health checks
+    healthCheck:
+      enabled: true
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 8000
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /health/ready
+          port: 8000
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        timeoutSeconds: 3
+        failureThreshold: 3
+      startupProbe:
+        httpGet:
+          path: /health/database
+          port: 8000
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 30
+    
+    # Service configuration
+    service:
+      type: ClusterIP
+      port: 8000
+      targetPort: 8000
+    
+    # Ingress configuration
+    ingress:
+      enabled: true
+      className: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+      hosts:
+        - host: api.reversetender.com
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: api-gateway-tls
+          hosts:
+            - api.reversetender.com
+  
+  # Auth Service with Database Failover
+  authService:
+    enabled: true
+    name: auth-service
+    image:
+      repository: reversetender/auth-service
+      tag: latest
+      pullPolicy: IfNotPresent
+    
+    replicas: 2
+    
+    ports:
+      http: 8001
+      rpc: 8081
+    
+    # Database failover configuration
+    databaseFailover:
+      enabled: true
+      initContainer:
+        enabled: true
+        image: postgres:16-alpine
+    
+    # RPC configuration
+    rpc:
+      enabled: true
+      port: 8081
+    
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 512Mi
+        cpu: 250m
+    
+    # Health checks
+    healthCheck:
+      enabled: true
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 8001
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      readinessProbe:
+        httpGet:
+          path: /health/ready
+          port: 8001
+        initialDelaySeconds: 5
+        periodSeconds: 5
+      startupProbe:
+        httpGet:
+          path: /health/database
+          port: 8001
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        failureThreshold: 30
+    
+    # Service configuration
+    service:
+      type: ClusterIP
+      ports:
+        - name: http
+          port: 8001
+          targetPort: 8001
+        - name: rpc
+          port: 8081
+          targetPort: 8081
+
+# =============================================================================
+# DATABASE HEALTH MONITOR
+# =============================================================================
+databaseHealthMonitor:
+  enabled: true
+  name: database-health-monitor
+  
+  image:
+    repository: nginx
+    tag: alpine
+    pullPolicy: IfNotPresent
+  
+  replicas: 2
+  
+  ports:
+    http: 8080
+  
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 128Mi
+      cpu: 100m
+  
+  # Health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 8080
+      initialDelaySeconds: 10
+      periodSeconds: 30
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 10
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  
+  # Configuration
+  config:
+    healthCheckInterval: 30
+    healthCheckTimeout: 10
+
+# =============================================================================
+# WEBHOOK SERVICE
+# =============================================================================
+webhookService:
+  enabled: true
+  name: database-failover-webhook
+  
+  image:
+    repository: nginx
+    tag: alpine
+    pullPolicy: IfNotPresent
+  
+  replicas: 2
+  
+  ports:
+    http: 8080
+  
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 128Mi
+      cpu: 100m
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+
+# =============================================================================
+# MONITORING AND OBSERVABILITY
+# =============================================================================
+monitoring:
+  # Prometheus configuration
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      scrapeTimeout: 10s
+    
+    # Database failover rules
+    rules:
+      enabled: true
+      groups:
+        - name: database-failover
+          rules:
+            - alert: DatabaseFailoverTriggered
+              expr: database_failover_active != database_failover_primary
+              for: 1m
+              labels:
+                severity: warning
+              annotations:
+                summary: "Database failover has been triggered"
+                description: "Database failover from {{ $labels.from }} to {{ $labels.to }}"
+            
+            - alert: AllDatabasesDown
+              expr: database_failover_available_count == 0
+              for: 30s
+              labels:
+                severity: critical
+              annotations:
+                summary: "All databases are unavailable"
+                description: "All configured databases are currently unavailable"
+  
+  # Grafana dashboards
+  grafana:
+    enabled: true
+    dashboards:
+      enabled: true
+      folder: "Database Failover"
+      datasource: prometheus
+
+# =============================================================================
+# SECRETS MANAGEMENT
+# =============================================================================
+secrets:
+  # External secret management
+  external:
+    enabled: true
+    provider: kubernetes # or vault, aws-secrets-manager, etc.
+  
+  # Secret names
+  names:
+    databaseFailover: database-failover-secrets
+    neonPostgreSQL: neon-postgresql-secrets
+    cnpgPostgreSQL: cnpg-postgresql-secrets
+    mongoDBAtlas: mongodb-atlas-secrets
+    webhooks: webhook-secrets
+    monitoring: monitoring-secrets
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+security:
+  # Pod Security Context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Container Security Context
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    capabilities:
+      drop:
+        - ALL
+  
+  # Network Policies
+  networkPolicy:
+    enabled: true
+    ingress:
+      enabled: true
+    egress:
+      enabled: true
+  
+  # Pod Disruption Budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+# =============================================================================
+# AUTOSCALING CONFIGURATION
+# =============================================================================
+autoscaling:
+  # Horizontal Pod Autoscaler
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  # Vertical Pod Autoscaler
+  vpa:
+    enabled: false
+    updateMode: Auto
+
+# =============================================================================
+# BACKUP CONFIGURATION
+# =============================================================================
+backup:
+  enabled: true
+  
+  # Backup schedule
+  schedule: "0 2 * * *"
+  
+  # Retention policy
+  retentionDays: 90
+  
+  # Compression
+  compression: gzip
+  
+  # Storage configuration
+  storage:
+    type: s3
+    bucket: reverse-tender-backups
+    region: us-east-1
+    path: database-failover
+
+# =============================================================================
+# ENVIRONMENT-SPECIFIC OVERRIDES
+# =============================================================================
+# These values can be overridden for different environments:
+# - values-database-failover-development.yaml
+# - values-database-failover-staging.yaml
+# - values-database-failover-production.yaml

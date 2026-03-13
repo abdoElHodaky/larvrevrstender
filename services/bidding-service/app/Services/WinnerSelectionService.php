@@ -12,6 +12,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Shared\Core\BaseService;
+use App\Services\Contracts\WinnerSelectionServiceInterface;
 
 /**
  * Winner Selection Service
@@ -19,7 +21,7 @@ use Carbon\Carbon;
  * Core service responsible for evaluating bids and selecting winners
  * using multi-criteria decision analysis.
  */
-class WinnerSelectionService
+class WinnerSelectionService extends BaseService
 {
     private UserServiceAdapter $userService;
     private NotificationServiceAdapter $notificationService;

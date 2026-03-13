@@ -7,8 +7,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon;
+use Shared\Core\BaseService;
 
-class ActivityService
+class ActivityService extends BaseService
 {
     /**
      * Log an activity for a user or model

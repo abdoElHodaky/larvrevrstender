@@ -5,8 +5,10 @@ namespace App\Services;
 use App\Events\CustomerProfileUpdated;
 use App\Models\CustomerProfile;
 use Illuminate\Support\Collection;
+use Shared\Core\BaseService;
+use App\Services\Contracts\CustomerServiceInterface;
 
-class CustomerService
+class CustomerService extends BaseService implements CustomerServiceInterface
 {
     /**
      * Get customer profile by user ID.

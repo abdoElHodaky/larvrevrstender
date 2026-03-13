@@ -10,8 +10,10 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
+use Shared\Core\BaseService;
+use App\Services\Contracts\PaymentServiceInterface;
 
-class PaymentService
+class PaymentService extends BaseService
 {
     private InvoiceService $invoiceService;
 
