@@ -1,87 +1,41 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redis;
+use Shared\Health\HealthChecker;
+use Shared\Health\Enums\HealthStatus;
 
+/**
+ * Modern Health Controller - PHP 8.3 & Laravel 12 Implementation
+ * 
+ * Uses the new comprehensive health checking system
+ * with standardized status reporting and monitoring.
+ */
 class HealthController extends Controller
 {
+    public function __construct(
+        private readonly HealthChecker $healthChecker
+    ) {}
+
     /**
-     * Health check endpoint for monitoring and load balancers.
+     * Comprehensive health check endpoint for monitoring and load balancers
      */
     public function check(): JsonResponse
     {
-        $health = [
-            'status' => 'healthy',
-            'service' => 'auth-service',
-            'timestamp' => now()->toISOString(),
-            'version' => config('app.version', '1.0.0'),
-            'environment' => config('app.env'),
-        ];
+        $healthData = $this->healthChecker->check();
+        
+        // Add service-specific metadata
+        $healthData['service'] = 'auth-service';
+        $healthData['version'] = config('app.version', '1.0.0');
+        $healthData['environment'] = config('app.env');
 
-        $checks = [];
+        $status = HealthStatus::from($healthData['status']);
+        $statusCode = $status->getHttpStatusCode();
 
-        // Database connectivity check
-        try {
-            DB::connection()->getPdo();
-            $checks['database'] = 'connected';
-        } catch (\Exception $e) {
-            $checks['database'] = 'disconnected';
-            $health['status'] = 'unhealthy';
-        }
-
-        // Redis connectivity check
-        try {
-            if (class_exists('Redis') && config('cache.default') !== 'array') {
-                Redis::ping();
-                $checks['redis'] = 'connected';
-            } else {
-                $checks['redis'] = 'disabled';
-            }
-        } catch (\Exception $e) {
-            $checks['redis'] = 'disconnected';
-            if (config('app.env') !== 'testing') {
-                $health['status'] = 'unhealthy';
-            }
-        }
-
-        // Memory usage check
-        $memoryUsage = memory_get_usage(true);
-        $memoryLimit = $this->parseMemoryLimit(ini_get('memory_limit'));
-        $memoryPercentage = ($memoryUsage / $memoryLimit) * 100;
-
-        $checks['memory'] = [
-            'usage' => $this->formatBytes($memoryUsage),
-            'limit' => $this->formatBytes($memoryLimit),
-            'percentage' => round($memoryPercentage, 2).'%',
-        ];
-
-        if ($memoryPercentage > 90) {
-            $health['status'] = 'unhealthy';
-        }
-
-        // Disk space check
-        $diskFree = disk_free_space('/');
-        $diskTotal = disk_total_space('/');
-        $diskUsagePercentage = (($diskTotal - $diskFree) / $diskTotal) * 100;
-
-        $checks['disk'] = [
-            'free' => $this->formatBytes($diskFree),
-            'total' => $this->formatBytes($diskTotal),
-            'usage_percentage' => round($diskUsagePercentage, 2).'%',
-        ];
-
-        if ($diskUsagePercentage > 90) {
-            $health['status'] = 'unhealthy';
-        }
-
-        $health['checks'] = $checks;
-
-        $statusCode = $health['status'] === 'healthy' ? 200 : 503;
-
-        return response()->json($health, $statusCode);
+        return response()->json($healthData, $statusCode);
     }
 
     /**
