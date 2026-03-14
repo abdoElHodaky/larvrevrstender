@@ -1,117 +1,83 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Shared\Health\HealthChecker;
+use Shared\Health\Enums\HealthStatus;
 
+/**
+ * Modern Health Controller - PHP 8.3 & Laravel 12 Implementation
+ * 
+ * Uses the new comprehensive health checking system
+ * with standardized status reporting and monitoring.
+ */
 class HealthController extends Controller
 {
+    public function __construct(
+        private readonly HealthChecker $healthChecker
+    ) {}
+
     /**
-     * Health check endpoint
+     * Comprehensive health check endpoint for monitoring and load balancers
      */
     public function check(): JsonResponse
     {
-        return response()->json([
-            'status' => 'healthy',
-            'service' => 'notification-service',
-            'timestamp' => now()->toISOString(),
-            'version' => config('app.version', '1.0.0'),
-            'environment' => config('app.env'),
-            'checks' => [
-                'database' => $this->checkDatabase(),
-                'redis' => $this->checkRedis(),
-                'queue' => $this->checkQueue(),
-            ]
-        ]);
+        $healthData = $this->healthChecker->check();
+        
+        // Add service-specific metadata
+        $healthData['service'] = 'notification-service';
+        $healthData['version'] = config('app.version', '1.0.0');
+        $healthData['environment'] = config('app.env');
+
+        $status = HealthStatus::from($healthData['status']);
+        $statusCode = $status->getHttpStatusCode();
+
+        return response()->json($healthData, $statusCode);
     }
 
     /**
-     * Simple up check - doesn't depend on external services
+     * Simple health check for load balancers.
      */
     public function up(): JsonResponse
     {
-        return response()->json([
-            'status' => 'up',
-            'service' => 'notification-service',
-            'timestamp' => now()->toISOString(),
-            'version' => config('app.version', '1.0.0'),
-        ]);
+        return response()->json(['status' => 'up'], 200);
     }
 
     /**
-     * Check database connectivity
+     * Parse memory limit string to bytes.
      */
-    private function checkDatabase(): array
+    private function parseMemoryLimit(string $limit): int
     {
-        try {
-            $pdo = \DB::connection()->getPdo();
-            if ($pdo) {
-                // Simple query to verify connection
-                \DB::select('SELECT 1');
-                return [
-                    'status' => 'healthy',
-                    'message' => 'Database connection successful'
-                ];
-            }
-            return [
-                'status' => 'unhealthy',
-                'message' => 'Database PDO connection is null'
-            ];
-        } catch (\Exception $e) {
-            \Log::warning('Database health check failed', ['error' => $e->getMessage()]);
-            return [
-                'status' => 'unhealthy',
-                'message' => 'Database connection failed: ' . $e->getMessage()
-            ];
+        $limit = trim($limit);
+        $last = strtolower($limit[strlen($limit) - 1]);
+        $limit = (int) $limit;
+
+        switch ($last) {
+            case 'g':
+                $limit *= 1024;
+            case 'm':
+                $limit *= 1024;
+            case 'k':
+                $limit *= 1024;
         }
+
+        return $limit;
     }
 
     /**
-     * Check Redis connectivity
+     * Format bytes to human readable format.
      */
-    private function checkRedis(): array
+    private function formatBytes(int $bytes, int $precision = 2): string
     {
-        try {
-            $redis = \Redis::connection();
-            $result = $redis->ping();
-            if ($result === true || $result === 'PONG') {
-                return [
-                    'status' => 'healthy',
-                    'message' => 'Redis connection successful'
-                ];
-            }
-            return [
-                'status' => 'unhealthy',
-                'message' => 'Redis ping returned unexpected result: ' . $result
-            ];
-        } catch (\Exception $e) {
-            \Log::warning('Redis health check failed', ['error' => $e->getMessage()]);
-            return [
-                'status' => 'unhealthy',
-                'message' => 'Redis connection failed: ' . $e->getMessage()
-            ];
-        }
-    }
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
-    /**
-     * Check queue connectivity
-     */
-    private function checkQueue(): array
-    {
-        try {
-            $queueSize = \Queue::size();
-            return [
-                'status' => 'healthy',
-                'message' => 'Queue is accessible',
-                'queue_size' => $queueSize
-            ];
-        } catch (\Exception $e) {
-            \Log::warning('Queue health check failed', ['error' => $e->getMessage()]);
-            return [
-                'status' => 'unhealthy',
-                'message' => 'Queue check failed: ' . $e->getMessage()
-            ];
+        for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
+            $bytes /= 1024;
         }
+
+        return round($bytes, $precision).' '.$units[$i];
     }
 }

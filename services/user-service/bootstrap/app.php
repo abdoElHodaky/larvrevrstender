@@ -8,6 +8,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withProviders([
         // Database Failover System Service Provider
         \Shared\Providers\SharedServiceProvider::class,
+        // Modern RPC Ecosystem Service Provider
+        \Shared\RPC\Providers\RpcServiceProvider::class,
     ])
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
@@ -38,6 +40,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'jwt.auth' => \Tymon\JWTAuth\Http\Middleware\Authenticate::class,
             'jwt.refresh' => \Tymon\JWTAuth\Http\Middleware\RefreshToken::class,
             'db.failover' => \Shared\Middleware\DatabaseFailoverMiddleware::class,
+            // Modern RPC Middleware
+            'rpc.correlation' => \Shared\RPC\Middleware\CorrelationIdMiddleware::class,
+            'rpc.auth' => \Shared\RPC\Middleware\RpcAuthMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
