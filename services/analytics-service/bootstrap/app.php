@@ -10,6 +10,8 @@ return Application::configure(basePath: dirname(__DIR__))
         \Shared\Providers\SharedServiceProvider::class,
         // Modern RPC Ecosystem Service Provider
         \Shared\RPC\Providers\RpcServiceProvider::class,
+        // Modern RPC Client Bindings
+        \App\Providers\ModernRpcServiceProvider::class,
     ])
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
