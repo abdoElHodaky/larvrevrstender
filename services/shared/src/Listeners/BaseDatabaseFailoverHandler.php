@@ -627,6 +627,9 @@ abstract class BaseDatabaseFailoverHandler implements ShouldQueue
         // Delegate to enhanced notification method
         $strategy = $this->determineFailoverStrategy($event);
         $this->notifyStakeholdersEnhanced($event, $strategy);
+        
+        $serviceName = strtolower(str_replace('-service', '', $this->serviceName));
+        foreach ($this->getAffectedServices() as $service) {
             cache()->put("{$serviceName}_service_failover_coordination_{$service}", [
                 'status' => 'database_failover_in_progress',
                 'failover_type' => $event->failoverType,
@@ -660,30 +663,7 @@ abstract class BaseDatabaseFailoverHandler implements ShouldQueue
         ]);
     }
 
-    /**
-     * Notify stakeholders using common notification patterns.
-     */
-    protected function notifyStakeholders(DatabaseFailoverEvent $event): void
-    {
-        $stakeholders = $this->getStakeholders();
-        $serviceName = strtolower(str_replace('-service', '', $this->serviceName));
 
-        foreach ($stakeholders as $stakeholder) {
-            cache()->put("{$serviceName}_service_failover_notification_{$stakeholder}", [
-                'status' => 'database_failover_initiated',
-                'failover_type' => $event->failoverType,
-                'timestamp' => now()->toISOString(),
-                'business_impact' => $this->getBusinessImpactDescription(),
-                'estimated_completion' => now()->addMinutes(10)->toISOString(),
-            ], 1800); // 30 minutes
-        }
-
-        Log::info("{$this->serviceName}: Stakeholders notified of failover", [
-            'service' => $this->serviceName,
-            'stakeholders' => $stakeholders,
-            'failover_type' => $event->failoverType,
-        ]);
-    }
 
     /**
      * Get operation-specific rules for the service.
