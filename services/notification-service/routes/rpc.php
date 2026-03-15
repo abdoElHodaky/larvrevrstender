@@ -17,5 +17,5 @@ use App\RPC\Procedures\NotificationProcedure;
 if (class_exists('Sajya\Server\Route')) {
     \Sajya\Server\Route::rpc('/', [
         NotificationProcedure::class,
-    ])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging']);
+    ])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging', 'rpc.auth']);
 }

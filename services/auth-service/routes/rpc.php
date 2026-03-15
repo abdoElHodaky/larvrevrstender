@@ -16,4 +16,4 @@ use Illuminate\Support\Facades\Route;
 
 Route::rpc('/', [
     AuthProcedure::class,
-])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging']);
+])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging', 'rpc.auth']);
