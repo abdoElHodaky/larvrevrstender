@@ -20,5 +20,5 @@ if (class_exists('Sajya\Server\Route')) {
     \Sajya\Server\Route::rpc('/', [
         OrderProcedure::class,
         // EnhancedOrderProcedure::class, // TODO: Review if this is needed or can be merged with OrderProcedure
-    ])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging']);
+    ])->middleware(['rpc.auth', 'rpc.correlation', 'rpc.performance', 'rpc.logging']);
 }
