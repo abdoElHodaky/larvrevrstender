@@ -49,45 +49,16 @@ class RpcServiceProvider extends ServiceProvider
     private function registerRpcClients(): void
     {
         // Auth Service RPC Client
-        $this->app->singleton('AuthRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.auth.url'))
-                    ->withToken(config('rpc.services.auth.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'auction-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
-        });
 
         // Bidding Service RPC Client
-        $this->app->singleton('BiddingRpc', function () {
-            return new \App\RPC\Clients\BiddingServiceRpcClient();
-        });
 
         // Notification Service RPC Client
-        $this->app->singleton('NotificationRpc', function () {
-            return new \App\RPC\Clients\NotificationServiceRpcClient();
-        });
 
         // Payment Service RPC Client
-        $this->app->singleton('PaymentRpc', function () {
-            return new \App\RPC\Clients\PaymentServiceRpcClient();
-        });
 
         // Register RPC clients with interface bindings for dependency injection
-        $this->app->bind(\App\RPC\Clients\BiddingServiceRpcClient::class, function () {
-            return app('BiddingRpc');
-        });
 
-        $this->app->bind(\App\RPC\Clients\NotificationServiceRpcClient::class, function () {
-            return app('NotificationRpc');
-        });
 
-        $this->app->bind(\App\RPC\Clients\PaymentServiceRpcClient::class, function () {
-            return app('PaymentRpc');
-        });
 
         // Register RPC Adapters (compatibility layer)
         $this->registerRpcAdapters();

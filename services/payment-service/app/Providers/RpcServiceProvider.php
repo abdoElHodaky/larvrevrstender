@@ -149,36 +149,13 @@ class RpcServiceProvider extends ServiceProvider
     private function registerRpcClients(): void
     {
         // Auction Service RPC Client
-        $this->app->singleton('AuctionRpc', function () {
-            return new \App\RPC\Clients\AuctionServiceRpcClient();
-        });
 
         // Notification Service RPC Client
-        $this->app->singleton('NotificationRpc', function () {
-            return new \App\RPC\Clients\NotificationServiceRpcClient();
-        });
 
         // Register RPC clients with interface bindings for dependency injection
-        $this->app->bind(\App\RPC\Clients\AuctionServiceRpcClient::class, function () {
-            return app('AuctionRpc');
-        });
 
-        $this->app->bind(\App\RPC\Clients\NotificationServiceRpcClient::class, function () {
-            return app('NotificationRpc');
-        });
 
         // Order Service RPC Client
-        $this->app->singleton('OrderRpc', function () {
-            return new \Sajya\Client\Client(
-                \Illuminate\Support\Facades\Http::baseUrl(config('rpc.services.order.url'))
-                    ->withToken(config('rpc.services.order.token'))
-                    ->withHeaders([
-                        'X-Service-Name' => 'payment-service',
-                        'X-Correlation-ID' => request()->header('X-Correlation-ID', uniqid('rpc_', true)),
-                    ])
-                    ->timeout(config('rpc.client.timeout', 5))
-            );
-        });
 
         // Register RPC adapters
         $this->registerRpcAdapters();

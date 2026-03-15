@@ -52,23 +52,11 @@ class RpcServiceProvider extends ServiceProvider
     private function registerRpcClients(): void
     {
         // Analytics Service RPC Client
-        $this->app->singleton('AnalyticsRpc', function () {
-            return new \App\RPC\Clients\AnalyticsServiceRpcClient();
-        });
 
         // VIN OCR Service RPC Client
-        $this->app->singleton('VinOcrRpc', function () {
-            return new \App\RPC\Clients\VinOcrServiceRpcClient();
-        });
 
         // Register RPC clients with interface bindings for dependency injection
-        $this->app->bind(\App\RPC\Clients\AnalyticsServiceRpcClient::class, function () {
-            return app('AnalyticsRpc');
-        });
 
-        $this->app->bind(\App\RPC\Clients\VinOcrServiceRpcClient::class, function () {
-            return app('VinOcrRpc');
-        });
     }
 
     /**

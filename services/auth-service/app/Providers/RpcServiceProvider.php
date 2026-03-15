@@ -52,23 +52,11 @@ class RpcServiceProvider extends ServiceProvider
     private function registerRpcClients(): void
     {
         // User Service RPC Client
-        $this->app->singleton('UserRpc', function () {
-            return new \App\RPC\Clients\UserServiceRpcClient();
-        });
 
         // Notification Service RPC Client
-        $this->app->singleton('NotificationRpc', function () {
-            return new \App\RPC\Clients\NotificationServiceRpcClient();
-        });
 
         // Register RPC clients with interface bindings for dependency injection
-        $this->app->bind(\App\RPC\Clients\UserServiceRpcClient::class, function () {
-            return app('UserRpc');
-        });
 
-        $this->app->bind(\App\RPC\Clients\NotificationServiceRpcClient::class, function () {
-            return app('NotificationRpc');
-        });
     }
 
     /**
