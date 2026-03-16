@@ -8,6 +8,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withProviders([
         // Database Failover System Service Provider
         \Shared\Providers\SharedServiceProvider::class,
+        // Modern RPC Ecosystem Service Provider
+        \Shared\RPC\Providers\RpcServiceProvider::class,
+        // Modern RPC Client Bindings
+        \App\Providers\ModernRpcServiceProvider::class,
     ])
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
@@ -36,6 +40,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
             'db.failover' => \Shared\Middleware\DatabaseFailoverMiddleware::class,
+            // Modern RPC Middleware
+            'rpc.correlation' => \Shared\RPC\Middleware\CorrelationIdMiddleware::class,
+            'rpc.auth' => \Shared\RPC\Middleware\RpcAuthMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

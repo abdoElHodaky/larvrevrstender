@@ -5,25 +5,31 @@ namespace App\Listeners;
 use Illuminate\Support\Facades\Log;
 use Shared\Events\DatabaseFailoverEvent;
 use Shared\Listeners\BaseDatabaseFailoverHandler;
+use Shared\Facades\SharedLog;
 
 class AuthServiceDatabaseFailoverHandler extends BaseDatabaseFailoverHandler
 {
     /**
-     * Handle auth service specific database failover logic.
+     * Handle auth service specific database failover logic with strategy
+     * Modern PHP 8.3 & Laravel 12 implementation
      */
-    protected function handleServiceSpecificFailover(DatabaseFailoverEvent $event): void
+    protected function handleServiceSpecificFailover(DatabaseFailoverEvent $event, string $strategy = 'standard'): void
     {
         // Set auth service to failover mode
         $this->setFailoverMode($event);
         
-        Log::critical('Auth Service: Entering CRITICAL AUTHENTICATION FAILOVER mode', [
+        SharedLog::databaseFailover('auth_service_critical_failover_mode', [
             'service' => 'auth-service',
+            'strategy' => $strategy,
             'mode' => 'critical_auth_failover',
             'from_connection' => $event->fromConnection,
             'to_connection' => $event->toConnection,
-            'failover_type' => $event->failoverType,
+            'severity' => $event->getSeverity(),
+            'impact' => $event->getImpact(),
             'auth_impact' => 'CRITICAL - User authentication and authorization affected',
             'security_impact' => 'Authentication system integrity at risk',
+            'estimated_recovery_time' => $this->getEstimatedRecoveryTime($event, $strategy),
+            'timestamp' => now()->toISOString(),
         ]);
 
         // Handle different auth failover scenarios

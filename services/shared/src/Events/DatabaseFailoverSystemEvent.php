@@ -267,6 +267,6 @@ class DatabaseFailoverSystemEvent
                 'Monitor system performance',
                 'Escalate if issues persist'
             ]
-        ];
+        };
     }
 }

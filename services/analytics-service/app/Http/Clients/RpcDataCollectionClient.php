@@ -2,12 +2,12 @@
 
 namespace App\Http\Clients;
 
-use App\RPC\Clients\UserServiceRpcClient;
-use App\RPC\Clients\PaymentServiceRpcClient;
-use App\RPC\Clients\AuctionServiceRpcClient;
-use App\RPC\Clients\BiddingServiceRpcClient;
-use App\RPC\Clients\NotificationServiceRpcClient;
-use App\RPC\Clients\VinOcrServiceRpcClient;
+use Shared\RPC\Clients\UserServiceClient;
+use Shared\RPC\Clients\PaymentServiceClient;
+use Shared\RPC\Clients\AuctionServiceClient;
+use Shared\RPC\Clients\BiddingServiceClient;
+use Shared\RPC\Clients\NotificationServiceClient;
+use Shared\RPC\Clients\VinOcrServiceClient;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -18,21 +18,21 @@ use Illuminate\Support\Facades\Log;
  */
 class RpcDataCollectionClient
 {
-    private UserServiceRpcClient $userRpcClient;
-    private PaymentServiceRpcClient $paymentRpcClient;
-    private AuctionServiceRpcClient $auctionRpcClient;
-    private BiddingServiceRpcClient $biddingRpcClient;
-    private NotificationServiceRpcClient $notificationRpcClient;
-    private VinOcrServiceRpcClient $vinOcrRpcClient;
+    private UserServiceClient $userRpcClient;
+    private PaymentServiceClient $paymentRpcClient;
+    private AuctionServiceClient $auctionRpcClient;
+    private BiddingServiceClient $biddingRpcClient;
+    private NotificationServiceClient $notificationRpcClient;
+    private VinOcrServiceClient $vinOcrRpcClient;
 
     public function __construct()
     {
-        $this->userRpcClient = app(UserServiceRpcClient::class);
-        $this->paymentRpcClient = app(PaymentServiceRpcClient::class);
-        $this->auctionRpcClient = app(AuctionServiceRpcClient::class);
-        $this->biddingRpcClient = app(BiddingServiceRpcClient::class);
-        $this->notificationRpcClient = app(NotificationServiceRpcClient::class);
-        $this->vinOcrRpcClient = app(VinOcrServiceRpcClient::class);
+        $this->userRpcClient = app(UserServiceClient::class);
+        $this->paymentRpcClient = app(PaymentServiceClient::class);
+        $this->auctionRpcClient = app(AuctionServiceClient::class);
+        $this->biddingRpcClient = app(BiddingServiceClient::class);
+        $this->notificationRpcClient = app(NotificationServiceClient::class);
+        $this->vinOcrRpcClient = app(VinOcrServiceClient::class);
     }
 
     /**
@@ -41,8 +41,9 @@ class RpcDataCollectionClient
     public function collectUserData(): array
     {
         try {
-            $result = $this->userRpcClient->getUserAnalyticsData();
-            return $result['success'] ?? false ? ($result['data'] ?? []) : [];
+            // Use searchUsers to get user data for analytics
+            $response = $this->userRpcClient->searchUsers([], 1, 100);
+            return $response->isSuccess() ? $response->getData() : [];
         } catch (\Exception $e) {
             Log::error('RPC User data collection failed', ['error' => $e->getMessage()]);
             return ['error' => $e->getMessage()];
@@ -52,8 +53,9 @@ class RpcDataCollectionClient
     public function collectPaymentData(): array
     {
         try {
-            $result = $this->paymentRpcClient->getPaymentAnalyticsData();
-            return $result['success'] ?? false ? ($result['data'] ?? []) : [];
+            // TODO: Implement payment analytics data collection using available payment methods
+            Log::info('Payment analytics data collection not yet implemented in modern RPC clients');
+            return [];
         } catch (\Exception $e) {
             Log::error('RPC Payment data collection failed', ['error' => $e->getMessage()]);
             return ['error' => $e->getMessage()];
@@ -63,9 +65,9 @@ class RpcDataCollectionClient
     public function collectOrderData(): array
     {
         try {
-            // Use auction service for order-related data since orders are part of auctions
-            $result = $this->auctionRpcClient->getAuctionAnalyticsData();
-            return $result['success'] ?? false ? ($result['data'] ?? []) : [];
+            // Use auction service to get auction data for analytics
+            $response = $this->auctionRpcClient->searchAuctions([], 1, 100);
+            return $response->isSuccess() ? $response->getData() : [];
         } catch (\Exception $e) {
             Log::error('RPC Order data collection failed', ['error' => $e->getMessage()]);
             return ['error' => $e->getMessage()];
@@ -75,8 +77,9 @@ class RpcDataCollectionClient
     public function collectBiddingData(): array
     {
         try {
-            $result = $this->biddingRpcClient->getBiddingAnalyticsData();
-            return $result['success'] ?? false ? ($result['data'] ?? []) : [];
+            // TODO: Implement bidding analytics data collection using available bidding methods
+            Log::info('Bidding analytics data collection not yet implemented in modern RPC clients');
+            return [];
         } catch (\Exception $e) {
             Log::error('RPC Bidding data collection failed', ['error' => $e->getMessage()]);
             return ['error' => $e->getMessage()];
@@ -86,14 +89,9 @@ class RpcDataCollectionClient
     public function collectNotificationData(): array
     {
         try {
-            $result = $this->notificationRpcClient->getNotificationAnalyticsData();
-            
-            Log::info('Notification analytics data collected successfully', [
-                'data_points' => count($result['data'] ?? []),
-                'timestamp' => now()
-            ]);
-            
-            return $result;
+            // TODO: Implement notification analytics data collection using available notification methods
+            Log::info('Notification analytics data collection not yet implemented in modern RPC clients');
+            return [];
         } catch (\Exception $e) {
             Log::error('RPC Notification data collection failed', ['error' => $e->getMessage()]);
             return ['error' => $e->getMessage()];
@@ -103,14 +101,9 @@ class RpcDataCollectionClient
     public function collectVinOcrData(): array
     {
         try {
-            $result = $this->vinOcrRpcClient->getVinOcrAnalyticsData();
-            
-            Log::info('VIN OCR analytics data collected successfully', [
-                'data_points' => count($result['data'] ?? []),
-                'timestamp' => now()
-            ]);
-            
-            return $result;
+            // TODO: Implement VIN OCR analytics data collection using available VIN OCR methods
+            Log::info('VIN OCR analytics data collection not yet implemented in modern RPC clients');
+            return [];
         } catch (\Exception $e) {
             Log::error('RPC VIN OCR data collection failed', ['error' => $e->getMessage()]);
             return ['error' => $e->getMessage()];

@@ -2,7 +2,8 @@
 
 namespace App\Http\Clients;
 
-use App\RPC\Clients\UserServiceRpcClient;
+use Shared\RPC\Clients\AuthServiceClient;
+use Shared\RPC\Clients\UserServiceClient;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -13,11 +14,13 @@ use Illuminate\Support\Facades\Log;
  */
 class RpcAuthServiceClient
 {
-    private UserServiceRpcClient $userRpcClient;
+    private AuthServiceClient $authRpcClient;
+    private UserServiceClient $userRpcClient;
 
     public function __construct()
     {
-        $this->userRpcClient = app(UserServiceRpcClient::class);
+        $this->authRpcClient = app(AuthServiceClient::class);
+        $this->userRpcClient = app(UserServiceClient::class);
     }
 
     /**
@@ -26,9 +29,9 @@ class RpcAuthServiceClient
     public function validateToken(string $token): ?array
     {
         try {
-            $result = $this->userRpcClient->validateUserToken($token);
+            $response = $this->authRpcClient->validateToken($token);
             
-            return $result['success'] ?? false ? $result['data'] ?? null : null;
+            return $response->isSuccess() ? $response->getData() : null;
         } catch (\Exception $e) {
             Log::error('RPC Auth token validation failed', [
                 'error' => $e->getMessage(),
@@ -44,9 +47,16 @@ class RpcAuthServiceClient
     public function hasAnalyticsPermission(int $userId, string $permission): bool
     {
         try {
-            $result = $this->userRpcClient->checkUserPermission($userId, $permission);
+            $response = $this->userRpcClient->getUserProfile($userId);
             
-            return $result['success'] ?? false && ($result['data']['has_permission'] ?? false);
+            if (!$response->isSuccess()) {
+                return false;
+            }
+            
+            $userData = $response->getData();
+            $permissions = $userData['permissions'] ?? [];
+            
+            return in_array($permission, $permissions) || in_array('analytics.*', $permissions);
         } catch (\Exception $e) {
             Log::error('RPC Auth permission check failed', [
                 'error' => $e->getMessage(),
@@ -59,13 +69,17 @@ class RpcAuthServiceClient
 
     /**
      * Get analytics audit logs.
+     * Note: This is a placeholder implementation until audit logging is implemented in the modern RPC clients
      */
     public function getAuditLogs(array $filters = []): array
     {
         try {
-            $result = $this->userRpcClient->getUserAuditLogs($filters);
+            // TODO: Implement audit logging in the modern RPC ecosystem
+            Log::info('Audit logs requested but not yet implemented in modern RPC clients', [
+                'filters' => $filters
+            ]);
             
-            return $result['success'] ?? false ? ($result['data']['logs'] ?? []) : [];
+            return [];
         } catch (\Exception $e) {
             Log::error('RPC Auth audit logs retrieval failed', [
                 'error' => $e->getMessage(),
