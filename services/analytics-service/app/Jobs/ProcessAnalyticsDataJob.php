@@ -52,8 +52,8 @@ class ProcessAnalyticsDataJob extends BaseQueueJob
             'tags' => [
                 'service' => 'analytics-service',
                 'job_type' => 'data_processing',
-                'aggregation_type' => $aggregationType,
-                'priority' => 'critical'
+                'operation' => 'analytics_aggregation',
+                'priority' => 'high'
             ]
         ]);
     }
@@ -73,396 +73,473 @@ class ProcessAnalyticsDataJob extends BaseQueueJob
 
         // Execute with circuit breaker protection
         $this->executeWithCircuitBreaker(function() use ($analyticsService) {
-            $results = [];
+            $results = [
+                'metrics_processed' => 0,
+                'metrics_failed' => 0,
+                'total_records_processed' => 0,
+                'processing_time' => 0,
+                'errors' => []
+            ];
+
+            $startTime = microtime(true);
+
+            collect($this->metricTypes)->each(function($metricType) use (&$results, $analyticsService) {
+                try {
+                    $processedCount = $this->processMetricType($metricType, $analyticsService);
+                    
+                    $results['metrics_processed']++;
+                    $results['total_records_processed'] += $processedCount;
+                    
+                    Log::info("Successfully processed {$metricType} metrics", [
+                        'records_processed' => $processedCount,
+                        'aggregation_type' => $this->aggregationType,
+                        'target_date' => $this->targetDate->toDateString()
+                    ]);
+                    
+                } catch (\Exception $e) {
+                    $results['metrics_failed']++;
+                    $results['errors'][] = [
+                        'metric_type' => $metricType,
+                        'error' => $e->getMessage()
+                    ];
+                    
+                    Log::error("Failed to process {$metricType} metrics", [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'aggregation_type' => $this->aggregationType,
+                        'target_date' => $this->targetDate->toDateString()
+                    ]);
+                }
+            });
+
+            $results['processing_time'] = round(microtime(true) - $startTime, 3);
+
+            Log::info('Analytics data processing completed', $results);
             
-            foreach ($this->metricTypes as $metricType) {
-                $result = $this->processMetricType($metricType, $analyticsService);
-                $results[$metricType] = $result;
-                
-                Log::debug('Processed metric type', [
-                    'metric_type' => $metricType,
-                    'records_processed' => $result['records_processed'],
-                    'metrics_created' => $result['metrics_created']
-                ]);
-            }
-
-            Log::info('Analytics data processing completed successfully', [
-                'aggregation_type' => $this->aggregationType,
-                'target_date' => $this->targetDate->toDateString(),
-                'total_metrics_processed' => array_sum(array_column($results, 'records_processed')),
-                'total_metrics_created' => array_sum(array_column($results, 'metrics_created')),
-                'job_id' => $this->job?->getJobId()
-            ]);
-
-            return $results;
-        }, function(\Exception $e) {
-            // Circuit breaker failure handler
-            Log::error('Analytics data processing failed with circuit breaker protection', [
-                'aggregation_type' => $this->aggregationType,
-                'target_date' => $this->targetDate->toDateString(),
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'job_id' => $this->job?->getJobId(),
-            ]);
-
-            throw $e;
+            // Store processing results for monitoring
+            $this->storeProcessingResults($results);
         });
     }
 
     /**
-     * Process a specific metric type
+     * Process specific metric type
      */
-    private function processMetricType(string $metricType, AnalyticsService $analyticsService): array
+    private function processMetricType(string $metricType, AnalyticsService $analyticsService): int
     {
-        $startDate = $this->getStartDateForAggregation();
-        $endDate = $this->getEndDateForAggregation();
-        
-        Log::debug('Processing metric type', [
-            'metric_type' => $metricType,
-            'start_date' => $startDate->toDateString(),
-            'end_date' => $endDate->toDateString(),
-            'aggregation_type' => $this->aggregationType
-        ]);
-
-        switch ($metricType) {
-            case 'user_events':
-                return $this->aggregateUserEvents($startDate, $endDate);
-            
-            case 'active_users':
-                return $this->aggregateActiveUsers($startDate, $endDate);
-            
-            case 'session_metrics':
-                return $this->aggregateSessionMetrics($startDate, $endDate);
-            
-            case 'conversion_funnel':
-                return $this->aggregateConversionMetrics($startDate, $endDate);
-            
-            case 'event_types':
-                return $this->aggregateEventTypes($startDate, $endDate);
-            
-            default:
-                Log::warning('Unknown metric type', ['metric_type' => $metricType]);
-                return ['records_processed' => 0, 'metrics_created' => 0];
-        }
+        return match ($metricType) {
+            'user_engagement' => $this->processUserEngagementMetrics(),
+            'revenue_metrics' => $this->processRevenueMetrics(),
+            'auction_metrics' => $this->processAuctionMetrics(),
+            'conversion_metrics' => $this->processConversionMetrics(),
+            'geographic_metrics' => $this->processGeographicMetrics(),
+            'device_metrics' => $this->processDeviceMetrics(),
+            'feature_usage' => $this->processFeatureUsageMetrics(),
+            default => throw new \InvalidArgumentException("Unknown metric type: {$metricType}")
+        };
     }
 
     /**
-     * Aggregate user events data
+     * Process user engagement metrics
      */
-    private function aggregateUserEvents(Carbon $startDate, Carbon $endDate): array
+    private function processUserEngagementMetrics(): int
     {
-        $query = UserAnalytic::dateRange($startDate, $endDate);
+        $dateRange = $this->getDateRangeForAggregation();
         
-        if ($this->aggregationType === 'hourly') {
-            $groupBy = DB::raw('DATE_FORMAT(created_at, "%Y-%m-%d %H:00:00") as period');
-        } else {
-            $groupBy = DB::raw('DATE(created_at) as period');
-        }
-
-        $aggregatedData = $query
-            ->select($groupBy, DB::raw('COUNT(*) as total_events'))
-            ->groupBy('period')
+        $metrics = DB::table('user_analytics')
+            ->select([
+                DB::raw($this->getDateGroupBy() . ' as metric_date'),
+                DB::raw('COUNT(DISTINCT user_id) as daily_active_users'),
+                DB::raw('COUNT(*) as total_sessions'),
+                DB::raw('AVG(session_duration) as avg_session_duration'),
+                DB::raw('SUM(page_views) as total_page_views'),
+                DB::raw('AVG(page_views) as avg_page_views_per_session'),
+                DB::raw('COUNT(DISTINCT CASE WHEN session_duration > 300 THEN user_id END) as engaged_users')
+            ])
+            ->whereBetween('created_at', $dateRange)
+            ->groupBy(DB::raw($this->getDateGroupBy()))
             ->get();
 
-        $metricsCreated = 0;
-        foreach ($aggregatedData as $data) {
-            $metricDate = Carbon::parse($data->period);
-            
-            BusinessMetric::updateOrCreate([
-                'metric_date' => $metricDate,
-                'metric_type' => 'user_events_' . $this->aggregationType,
-            ], [
-                'value' => $data->total_events,
-                'breakdown' => [
-                    'aggregation_type' => $this->aggregationType,
-                    'period' => $data->period,
-                    'processed_at' => now()->toISOString()
-                ]
-            ]);
-            
-            $metricsCreated++;
-        }
+        $processedCount = 0;
 
-        return [
-            'records_processed' => $aggregatedData->count(),
-            'metrics_created' => $metricsCreated
-        ];
-    }
+        foreach ($metrics as $metric) {
+            // Store individual metrics
+            $metricsToStore = [
+                'daily_active_users' => $metric->daily_active_users,
+                'total_sessions' => $metric->total_sessions,
+                'avg_session_duration' => round($metric->avg_session_duration, 2),
+                'total_page_views' => $metric->total_page_views,
+                'avg_page_views_per_session' => round($metric->avg_page_views_per_session, 2),
+                'engaged_users' => $metric->engaged_users
+            ];
 
-    /**
-     * Aggregate active users data
-     */
-    private function aggregateActiveUsers(Carbon $startDate, Carbon $endDate): array
-    {
-        $query = UserAnalytic::dateRange($startDate, $endDate);
-        
-        if ($this->aggregationType === 'hourly') {
-            $groupBy = DB::raw('DATE_FORMAT(created_at, "%Y-%m-%d %H:00:00") as period');
-        } else {
-            $groupBy = DB::raw('DATE(created_at) as period');
-        }
-
-        $aggregatedData = $query
-            ->select($groupBy, DB::raw('COUNT(DISTINCT user_id) as active_users'))
-            ->groupBy('period')
-            ->get();
-
-        $metricsCreated = 0;
-        foreach ($aggregatedData as $data) {
-            $metricDate = Carbon::parse($data->period);
-            
-            BusinessMetric::updateOrCreate([
-                'metric_date' => $metricDate,
-                'metric_type' => 'active_users_' . $this->aggregationType,
-            ], [
-                'value' => $data->active_users,
-                'breakdown' => [
-                    'aggregation_type' => $this->aggregationType,
-                    'period' => $data->period,
-                    'processed_at' => now()->toISOString()
-                ]
-            ]);
-            
-            $metricsCreated++;
-        }
-
-        return [
-            'records_processed' => $aggregatedData->count(),
-            'metrics_created' => $metricsCreated
-        ];
-    }
-
-    /**
-     * Aggregate session metrics data
-     */
-    private function aggregateSessionMetrics(Carbon $startDate, Carbon $endDate): array
-    {
-        $query = UserAnalytic::dateRange($startDate, $endDate)
-            ->whereNotNull('session_id');
-        
-        if ($this->aggregationType === 'hourly') {
-            $groupBy = DB::raw('DATE_FORMAT(created_at, "%Y-%m-%d %H:00:00") as period');
-        } else {
-            $groupBy = DB::raw('DATE(created_at) as period');
-        }
-
-        $aggregatedData = $query
-            ->select(
-                $groupBy,
-                DB::raw('COUNT(DISTINCT session_id) as unique_sessions'),
-                DB::raw('COUNT(*) as total_session_events')
-            )
-            ->groupBy('period')
-            ->get();
-
-        $metricsCreated = 0;
-        foreach ($aggregatedData as $data) {
-            $metricDate = Carbon::parse($data->period);
-            
-            // Create unique sessions metric
-            BusinessMetric::updateOrCreate([
-                'metric_date' => $metricDate,
-                'metric_type' => 'unique_sessions_' . $this->aggregationType,
-            ], [
-                'value' => $data->unique_sessions,
-                'breakdown' => [
-                    'aggregation_type' => $this->aggregationType,
-                    'period' => $data->period,
-                    'total_session_events' => $data->total_session_events,
-                    'processed_at' => now()->toISOString()
-                ]
-            ]);
-            
-            $metricsCreated++;
-        }
-
-        return [
-            'records_processed' => $aggregatedData->count(),
-            'metrics_created' => $metricsCreated
-        ];
-    }
-
-    /**
-     * Aggregate conversion metrics data
-     */
-    private function aggregateConversionMetrics(Carbon $startDate, Carbon $endDate): array
-    {
-        // Define conversion funnel steps
-        $funnelSteps = [
-            'page_view',
-            'signup_started', 
-            'signup_completed',
-            'first_action',
-            'conversion'
-        ];
-
-        $metricsCreated = 0;
-        
-        foreach ($funnelSteps as $step) {
-            $query = UserAnalytic::dateRange($startDate, $endDate)
-                ->where('event_type', $step);
-            
-            if ($this->aggregationType === 'hourly') {
-                $groupBy = DB::raw('DATE_FORMAT(created_at, "%Y-%m-%d %H:00:00") as period');
-            } else {
-                $groupBy = DB::raw('DATE(created_at) as period');
-            }
-
-            $aggregatedData = $query
-                ->select(
-                    $groupBy,
-                    DB::raw('COUNT(DISTINCT user_id) as unique_users'),
-                    DB::raw('COUNT(*) as total_events')
-                )
-                ->groupBy('period')
-                ->get();
-
-            foreach ($aggregatedData as $data) {
-                $metricDate = Carbon::parse($data->period);
-                
+            foreach ($metricsToStore as $metricName => $value) {
                 BusinessMetric::updateOrCreate([
-                    'metric_date' => $metricDate,
-                    'metric_type' => 'conversion_' . $step . '_' . $this->aggregationType,
+                    'metric_type' => $metricName,
+                    'metric_date' => $metric->metric_date,
+                    'aggregation_type' => $this->aggregationType
                 ], [
-                    'value' => $data->unique_users,
-                    'breakdown' => [
-                        'aggregation_type' => $this->aggregationType,
-                        'funnel_step' => $step,
-                        'period' => $data->period,
-                        'total_events' => $data->total_events,
-                        'processed_at' => now()->toISOString()
-                    ]
+                    'metric_value' => $value,
+                    'updated_at' => now()
                 ]);
                 
-                $metricsCreated++;
+                $processedCount++;
             }
         }
 
-        return [
-            'records_processed' => count($funnelSteps),
-            'metrics_created' => $metricsCreated
-        ];
+        return $processedCount;
     }
 
     /**
-     * Aggregate event types data
+     * Process revenue metrics
      */
-    private function aggregateEventTypes(Carbon $startDate, Carbon $endDate): array
+    private function processRevenueMetrics(): int
     {
-        $query = UserAnalytic::dateRange($startDate, $endDate);
+        $dateRange = $this->getDateRangeForAggregation();
         
-        if ($this->aggregationType === 'hourly') {
-            $groupBy = [
-                DB::raw('DATE_FORMAT(created_at, "%Y-%m-%d %H:00:00") as period'),
-                'event_type'
-            ];
-        } else {
-            $groupBy = [
-                DB::raw('DATE(created_at) as period'),
-                'event_type'
-            ];
-        }
-
-        $aggregatedData = $query
-            ->select(
-                $groupBy[0],
-                $groupBy[1],
-                DB::raw('COUNT(*) as event_count'),
-                DB::raw('COUNT(DISTINCT user_id) as unique_users')
-            )
-            ->groupBy($groupBy)
+        // This would typically query order/payment tables
+        // For now, we'll aggregate from existing business metrics or user analytics
+        $metrics = DB::table('user_analytics')
+            ->select([
+                DB::raw($this->getDateGroupBy() . ' as metric_date'),
+                DB::raw('COUNT(DISTINCT CASE WHEN event_type = "purchase_completed" THEN user_id END) as paying_customers'),
+                DB::raw('COUNT(CASE WHEN event_type = "purchase_completed" THEN 1 END) as total_transactions'),
+                DB::raw('SUM(CASE WHEN event_type = "purchase_completed" THEN CAST(event_data->>"$.amount" AS DECIMAL(10,2)) ELSE 0 END) as total_revenue'),
+                DB::raw('AVG(CASE WHEN event_type = "purchase_completed" THEN CAST(event_data->>"$.amount" AS DECIMAL(10,2)) END) as avg_order_value')
+            ])
+            ->whereBetween('created_at', $dateRange)
+            ->whereIn('event_type', ['purchase_completed', 'payment_processed'])
+            ->groupBy(DB::raw($this->getDateGroupBy()))
             ->get();
 
-        $metricsCreated = 0;
-        foreach ($aggregatedData as $data) {
-            $metricDate = Carbon::parse($data->period);
-            
+        $processedCount = 0;
+
+        foreach ($metrics as $metric) {
+            $metricsToStore = [
+                'paying_customers' => $metric->paying_customers,
+                'total_transactions' => $metric->total_transactions,
+                'total_revenue' => round($metric->total_revenue ?? 0, 2),
+                'avg_order_value' => round($metric->avg_order_value ?? 0, 2)
+            ];
+
+            foreach ($metricsToStore as $metricName => $value) {
+                BusinessMetric::updateOrCreate([
+                    'metric_type' => $metricName,
+                    'metric_date' => $metric->metric_date,
+                    'aggregation_type' => $this->aggregationType
+                ], [
+                    'metric_value' => $value,
+                    'updated_at' => now()
+                ]);
+                
+                $processedCount++;
+            }
+        }
+
+        return $processedCount;
+    }
+
+    /**
+     * Process auction metrics
+     */
+    private function processAuctionMetrics(): int
+    {
+        $dateRange = $this->getDateRangeForAggregation();
+        
+        $metrics = DB::table('user_analytics')
+            ->select([
+                DB::raw($this->getDateGroupBy() . ' as metric_date'),
+                DB::raw('COUNT(CASE WHEN event_type = "auction_created" THEN 1 END) as auctions_created'),
+                DB::raw('COUNT(CASE WHEN event_type = "auction_completed" THEN 1 END) as auctions_completed'),
+                DB::raw('COUNT(CASE WHEN event_type = "bid_placed" THEN 1 END) as total_bids'),
+                DB::raw('COUNT(DISTINCT CASE WHEN event_type = "bid_placed" THEN user_id END) as unique_bidders'),
+                DB::raw('AVG(CASE WHEN event_type = "bid_placed" THEN CAST(event_data->>"$.amount" AS DECIMAL(10,2)) END) as avg_bid_amount')
+            ])
+            ->whereBetween('created_at', $dateRange)
+            ->whereIn('event_type', ['auction_created', 'auction_completed', 'bid_placed'])
+            ->groupBy(DB::raw($this->getDateGroupBy()))
+            ->get();
+
+        $processedCount = 0;
+
+        foreach ($metrics as $metric) {
+            $metricsToStore = [
+                'auctions_created' => $metric->auctions_created,
+                'auctions_completed' => $metric->auctions_completed,
+                'total_bids' => $metric->total_bids,
+                'unique_bidders' => $metric->unique_bidders,
+                'avg_bid_amount' => round($metric->avg_bid_amount ?? 0, 2)
+            ];
+
+            foreach ($metricsToStore as $metricName => $value) {
+                BusinessMetric::updateOrCreate([
+                    'metric_type' => $metricName,
+                    'metric_date' => $metric->metric_date,
+                    'aggregation_type' => $this->aggregationType
+                ], [
+                    'metric_value' => $value,
+                    'updated_at' => now()
+                ]);
+                
+                $processedCount++;
+            }
+        }
+
+        return $processedCount;
+    }
+
+    /**
+     * Process conversion metrics
+     */
+    private function processConversionMetrics(): int
+    {
+        $dateRange = $this->getDateRangeForAggregation();
+        
+        $funnelSteps = [
+            'landing_page_view' => 'visitors',
+            'product_view' => 'product_viewers',
+            'add_to_cart' => 'cart_additions',
+            'checkout_start' => 'checkout_starts',
+            'payment_complete' => 'conversions'
+        ];
+
+        $processedCount = 0;
+
+        foreach ($funnelSteps as $eventType => $metricName) {
+            $metrics = DB::table('user_analytics')
+                ->select([
+                    DB::raw($this->getDateGroupBy() . ' as metric_date'),
+                    DB::raw('COUNT(DISTINCT user_id) as unique_users'),
+                    DB::raw('COUNT(*) as total_events')
+                ])
+                ->where('event_type', $eventType)
+                ->whereBetween('created_at', $dateRange)
+                ->groupBy(DB::raw($this->getDateGroupBy()))
+                ->get();
+
+            foreach ($metrics as $metric) {
+                BusinessMetric::updateOrCreate([
+                    'metric_type' => $metricName,
+                    'metric_date' => $metric->metric_date,
+                    'aggregation_type' => $this->aggregationType
+                ], [
+                    'metric_value' => $metric->unique_users,
+                    'updated_at' => now()
+                ]);
+                
+                $processedCount++;
+            }
+        }
+
+        return $processedCount;
+    }
+
+    /**
+     * Process geographic metrics
+     */
+    private function processGeographicMetrics(): int
+    {
+        $dateRange = $this->getDateRangeForAggregation();
+        
+        $metrics = DB::table('user_analytics')
+            ->select([
+                DB::raw($this->getDateGroupBy() . ' as metric_date'),
+                'country',
+                DB::raw('COUNT(DISTINCT user_id) as unique_users'),
+                DB::raw('COUNT(*) as total_sessions'),
+                DB::raw('AVG(session_duration) as avg_session_duration')
+            ])
+            ->whereBetween('created_at', $dateRange)
+            ->whereNotNull('country')
+            ->groupBy([DB::raw($this->getDateGroupBy()), 'country'])
+            ->get();
+
+        $processedCount = 0;
+
+        foreach ($metrics as $metric) {
             BusinessMetric::updateOrCreate([
-                'metric_date' => $metricDate,
-                'metric_type' => 'event_type_' . $data->event_type . '_' . $this->aggregationType,
+                'metric_type' => 'geographic_users',
+                'metric_date' => $metric->metric_date,
+                'aggregation_type' => $this->aggregationType,
+                'dimension_value' => $metric->country
             ], [
-                'value' => $data->event_count,
-                'breakdown' => [
-                    'aggregation_type' => $this->aggregationType,
-                    'event_type' => $data->event_type,
-                    'period' => $data->period,
-                    'unique_users' => $data->unique_users,
-                    'processed_at' => now()->toISOString()
-                ]
+                'metric_value' => $metric->unique_users,
+                'updated_at' => now()
             ]);
             
-            $metricsCreated++;
+            $processedCount++;
         }
 
-        return [
-            'records_processed' => $aggregatedData->count(),
-            'metrics_created' => $metricsCreated
+        return $processedCount;
+    }
+
+    /**
+     * Process device metrics
+     */
+    private function processDeviceMetrics(): int
+    {
+        $dateRange = $this->getDateRangeForAggregation();
+        
+        $metrics = DB::table('user_analytics')
+            ->select([
+                DB::raw($this->getDateGroupBy() . ' as metric_date'),
+                'device_type',
+                DB::raw('COUNT(DISTINCT user_id) as unique_users'),
+                DB::raw('COUNT(*) as total_sessions'),
+                DB::raw('AVG(session_duration) as avg_session_duration')
+            ])
+            ->whereBetween('created_at', $dateRange)
+            ->whereNotNull('device_type')
+            ->groupBy([DB::raw($this->getDateGroupBy()), 'device_type'])
+            ->get();
+
+        $processedCount = 0;
+
+        foreach ($metrics as $metric) {
+            BusinessMetric::updateOrCreate([
+                'metric_type' => 'device_users',
+                'metric_date' => $metric->metric_date,
+                'aggregation_type' => $this->aggregationType,
+                'dimension_value' => $metric->device_type
+            ], [
+                'metric_value' => $metric->unique_users,
+                'updated_at' => now()
+            ]);
+            
+            $processedCount++;
+        }
+
+        return $processedCount;
+    }
+
+    /**
+     * Process feature usage metrics
+     */
+    private function processFeatureUsageMetrics(): int
+    {
+        $dateRange = $this->getDateRangeForAggregation();
+        
+        $features = [
+            'search_filters',
+            'saved_searches',
+            'bid_alerts',
+            'auto_bidding',
+            'mobile_app',
+            'social_sharing'
         ];
-    }
 
-    /**
-     * Get start date for aggregation based on type
-     */
-    private function getStartDateForAggregation(): Carbon
-    {
-        switch ($this->aggregationType) {
-            case 'hourly':
-                return $this->targetDate->startOfDay();
-            case 'daily':
-                return $this->targetDate->startOfDay();
-            case 'weekly':
-                return $this->targetDate->startOfWeek();
-            case 'monthly':
-                return $this->targetDate->startOfMonth();
-            default:
-                return $this->targetDate->startOfDay();
+        $processedCount = 0;
+
+        foreach ($features as $feature) {
+            $metrics = DB::table('user_analytics')
+                ->select([
+                    DB::raw($this->getDateGroupBy() . ' as metric_date'),
+                    DB::raw('COUNT(DISTINCT user_id) as unique_users'),
+                    DB::raw('COUNT(*) as total_usage')
+                ])
+                ->where('event_type', "feature_used_{$feature}")
+                ->whereBetween('created_at', $dateRange)
+                ->groupBy(DB::raw($this->getDateGroupBy()))
+                ->get();
+
+            foreach ($metrics as $metric) {
+                BusinessMetric::updateOrCreate([
+                    'metric_type' => 'feature_usage',
+                    'metric_date' => $metric->metric_date,
+                    'aggregation_type' => $this->aggregationType,
+                    'dimension_value' => $feature
+                ], [
+                    'metric_value' => $metric->unique_users,
+                    'updated_at' => now()
+                ]);
+                
+                $processedCount++;
+            }
         }
+
+        return $processedCount;
     }
 
     /**
-     * Get end date for aggregation based on type
+     * Get date range for aggregation
      */
-    private function getEndDateForAggregation(): Carbon
+    private function getDateRangeForAggregation(): array
     {
-        switch ($this->aggregationType) {
-            case 'hourly':
-                return $this->targetDate->endOfDay();
-            case 'daily':
-                return $this->targetDate->endOfDay();
-            case 'weekly':
-                return $this->targetDate->endOfWeek();
-            case 'monthly':
-                return $this->targetDate->endOfMonth();
-            default:
-                return $this->targetDate->endOfDay();
-        }
+        return match ($this->aggregationType) {
+            'hourly' => [
+                $this->targetDate->startOfHour(),
+                $this->targetDate->endOfHour()
+            ],
+            'daily' => [
+                $this->targetDate->startOfDay(),
+                $this->targetDate->endOfDay()
+            ],
+            'weekly' => [
+                $this->targetDate->startOfWeek(),
+                $this->targetDate->endOfWeek()
+            ],
+            'monthly' => [
+                $this->targetDate->startOfMonth(),
+                $this->targetDate->endOfMonth()
+            ],
+            default => [
+                $this->targetDate->startOfDay(),
+                $this->targetDate->endOfDay()
+            ]
+        };
     }
 
     /**
-     * Get default metric types to process
+     * Get date grouping SQL for aggregation type
+     */
+    private function getDateGroupBy(): string
+    {
+        return match ($this->aggregationType) {
+            'hourly' => 'DATE_FORMAT(created_at, "%Y-%m-%d %H:00:00")',
+            'daily' => 'DATE(created_at)',
+            'weekly' => 'DATE_FORMAT(created_at, "%Y-%u")',
+            'monthly' => 'DATE_FORMAT(created_at, "%Y-%m")',
+            default => 'DATE(created_at)'
+        };
+    }
+
+    /**
+     * Store processing results for monitoring
+     */
+    private function storeProcessingResults(array $results): void
+    {
+        DB::table('job_execution_logs')->insert([
+            'job_class' => static::class,
+            'job_id' => $this->job?->getJobId(),
+            'execution_results' => json_encode($results),
+            'executed_at' => now(),
+            'execution_time' => $results['processing_time'],
+            'status' => $results['metrics_failed'] > 0 ? 'partial_success' : 'success'
+        ]);
+    }
+
+    /**
+     * Get default metric types
      */
     private function getDefaultMetricTypes(): array
     {
         return [
-            'user_events',
-            'active_users',
-            'session_metrics',
-            'conversion_funnel',
-            'event_types'
+            'user_engagement',
+            'revenue_metrics',
+            'auction_metrics',
+            'conversion_metrics'
         ];
     }
 
     /**
-     * Get queue name based on aggregation type
+     * Determine queue based on aggregation type
      */
     private function getQueueForAggregationType(string $aggregationType): string
     {
         return match ($aggregationType) {
             'hourly' => 'analytics-realtime',
-            'daily' => 'analytics-daily',
-            'weekly' => 'analytics-weekly',
-            'monthly' => 'analytics-monthly',
-            default => 'analytics-default',
+            'daily' => 'analytics-standard',
+            'weekly', 'monthly' => 'analytics-batch',
+            default => 'analytics-standard'
         };
     }
 
@@ -471,16 +548,23 @@ class ProcessAnalyticsDataJob extends BaseQueueJob
      */
     public function failed(\Throwable $exception): void
     {
-        Log::error('Analytics data processing job failed permanently', [
+        Log::error('Analytics data processing job failed', [
             'aggregation_type' => $this->aggregationType,
             'target_date' => $this->targetDate->toDateString(),
             'metric_types' => $this->metricTypes,
             'error' => $exception->getMessage(),
             'trace' => $exception->getTraceAsString(),
-            'job_id' => $this->job?->getJobId(),
+            'job_id' => $this->job?->getJobId()
         ]);
 
-        // Could broadcast failure event for monitoring
-        // broadcast(new \App\Events\Analytics\DataProcessingFailed(...));
+        // Store failure information
+        DB::table('job_execution_logs')->insert([
+            'job_class' => static::class,
+            'job_id' => $this->job?->getJobId(),
+            'execution_results' => json_encode(['error' => $exception->getMessage()]),
+            'executed_at' => now(),
+            'status' => 'failed'
+        ]);
     }
 }
+

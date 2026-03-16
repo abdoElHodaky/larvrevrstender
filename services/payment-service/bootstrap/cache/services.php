@@ -35,8 +35,9 @@
     31 => 'Sajya\\Server\\ServerServiceProvider',
     32 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
     33 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
-    34 => 'App\\Providers\\AppServiceProvider',
-    35 => 'App\\Providers\\RpcServiceProvider',
+    34 => 'Shared\\Providers\\SharedServiceProvider',
+    35 => 'App\\Providers\\AppServiceProvider',
+    36 => 'App\\Providers\\RpcServiceProvider',
   ),
   'eager' => 
   array (
@@ -60,8 +61,9 @@
     17 => 'Sajya\\Server\\ServerServiceProvider',
     18 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
     19 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
-    20 => 'App\\Providers\\AppServiceProvider',
-    21 => 'App\\Providers\\RpcServiceProvider',
+    20 => 'Shared\\Providers\\SharedServiceProvider',
+    21 => 'App\\Providers\\AppServiceProvider',
+    22 => 'App\\Providers\\RpcServiceProvider',
   ),
   'deferred' => 
   array (

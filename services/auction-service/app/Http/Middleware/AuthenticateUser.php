@@ -2,16 +2,16 @@
 
 namespace App\Http\Middleware;
 
-use App\RPC\Adapters\AuthServiceAdapter;
+use App\Http\Clients\AuthServiceClient;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class AuthenticateUser
 {
-    protected AuthServiceAdapter $authService;
+    protected AuthServiceClient $authService;
 
-    public function __construct(AuthServiceAdapter $authService)
+    public function __construct(AuthServiceClient $authService)
     {
         $this->authService = $authService;
     }

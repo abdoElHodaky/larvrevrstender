@@ -17,5 +17,5 @@ use App\RPC\Procedures\PaymentProcedure;
 if (class_exists('Sajya\Server\Route')) {
     \Sajya\Server\Route::rpc('/', [
         PaymentProcedure::class,
-    ])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging']);
+    ])->middleware(['rpc.auth', 'rpc.correlation', 'rpc.performance', 'rpc.logging']);
 }

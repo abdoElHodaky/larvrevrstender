@@ -1,0 +1,91 @@
+[2026-03-16 09:07:21] production.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-16 09:07:21] production.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-16 09:07:21] production.ERROR: Declaration of App\Listeners\PaymentServiceDatabaseFailoverHandler::handleServiceSpecificFailover(Shared\Events\DatabaseFailoverEvent $event): void must be compatible with Shared\Listeners\BaseDatabaseFailoverHandler::handleServiceSpecificFailover(Shared\Events\DatabaseFailoverEvent $event, string $strategy = 'standard'): void {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Declaration of App\\Listeners\\PaymentServiceDatabaseFailoverHandler::handleServiceSpecificFailover(Shared\\Events\\DatabaseFailoverEvent $event): void must be compatible with Shared\\Listeners\\BaseDatabaseFailoverHandler::handleServiceSpecificFailover(Shared\\Events\\DatabaseFailoverEvent $event, string $strategy = 'standard'): void at /tmp/abdoElHodaky/larvrevrstender/services/payment-service/app/Listeners/PaymentServiceDatabaseFailoverHandler.php:14)
+[stacktrace]
+#0 {main}
+"} 
+[2026-03-16 09:09:11] production.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-16 09:09:11] production.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 

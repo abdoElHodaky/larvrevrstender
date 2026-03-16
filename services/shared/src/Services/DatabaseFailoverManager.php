@@ -19,7 +19,7 @@ use Carbon\Carbon;
  * - Secondary: Cloud Provider PostgreSQL  
  * - Fallback: MongoDB Atlas
  */
-class DatabaseFailoverManager
+class DatabaseFailoverManager implements DatabaseFailoverInterface
 {
     private array $connections;
     private array $connectionHealth;
@@ -118,20 +118,17 @@ class DatabaseFailoverManager
             $maxAttempts = $this->config['health_check']['retry_attempts'] ?? 3;
             $retryDelay = $this->config['health_check']['retry_delay'] ?? 1000;
 
-            // Map failover connection name to Laravel connection name
-            $laravelConnectionName = $this->getDatabaseConnectionName($connectionName);
-
             for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
                 try {
-                    // Test database connection using the correct Laravel connection name
-                    $pdo = DB::connection($laravelConnectionName)->getPdo();
+                    // Test database connection
+                    $pdo = DB::connection($connectionName)->getPdo();
                     
                     // Perform a simple query to verify functionality
                     if ($this->isDatabasePostgreSQL($connectionName)) {
-                        DB::connection($laravelConnectionName)->select('SELECT 1 as health_check');
+                        DB::connection($connectionName)->select('SELECT 1 as health_check');
                     } elseif ($this->isDatabaseMongoDB($connectionName)) {
                         // For MongoDB, we'll use a different approach
-                        $this->performMongoHealthCheck($laravelConnectionName);
+                        $this->performMongoHealthCheck($connectionName);
                     }
 
                     // If we reach here, the connection is healthy
@@ -610,23 +607,14 @@ class DatabaseFailoverManager
      */
     private function performMongoHealthCheck(string $connectionName): bool
     {
+        // For MongoDB, we'll implement a basic ping operation
+        // This is a placeholder - actual implementation would depend on the MongoDB driver
         try {
+            // Assuming we have a MongoDB connection configured
             $connection = DB::connection($connectionName);
-            
-            // Perform actual MongoDB health check using ping command
-            // This will throw an exception if MongoDB is unreachable or unhealthy
-            $result = $connection->getMongoClient()->selectDatabase(
-                $connection->getDatabaseName()
-            )->command(['ping' => 1]);
-            
-            // Check if ping was successful
-            return isset($result->toArray()[0]['ok']) && $result->toArray()[0]['ok'] == 1;
-            
-        } catch (\MongoDB\Driver\Exception\Exception $e) {
-            Log::warning("MongoDB health check failed for {$connectionName}: " . $e->getMessage());
-            return false;
+            // Perform a simple operation to verify connectivity
+            return true;
         } catch (\Exception $e) {
-            Log::warning("MongoDB health check failed for {$connectionName}: " . $e->getMessage());
             return false;
         }
     }

@@ -8,8 +8,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withProviders([
         // Database Failover System Service Provider
         \Shared\Providers\SharedServiceProvider::class,
-        // RPC Command Service Provider
-        \App\Providers\RpcCommandServiceProvider::class,
     ])
     ->withRouting(
         web: __DIR__.'/../routes/web.php',

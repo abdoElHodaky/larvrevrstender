@@ -717,6 +717,12 @@ class CrossServiceProcedure extends BaseProcedure
             throw new Exception("RPC endpoint not found for service: {$serviceName}");
         }
 
+        // Get RPC token for authentication
+        $rpcToken = $this->getServiceRpcToken($serviceName);
+        if (!$rpcToken) {
+            throw new Exception("RPC token not found for service: {$serviceName}");
+        }
+
         // Prepare RPC request
         $rpcRequest = [
             'jsonrpc' => '2.0',
@@ -725,13 +731,18 @@ class CrossServiceProcedure extends BaseProcedure
             'id' => $context['trace_id'] ?? uniqid('rpc_', true)
         ];
 
-        // Make RPC call using HTTP client
-        $response = Http::withHeaders([
+        // Prepare headers with proper RPC authentication
+        $headers = [
             'Content-Type' => 'application/json',
+            'X-RPC-Token' => $rpcToken,
             'X-Trace-ID' => $context['trace_id'] ?? '',
             'X-Caller-Service' => $this->procedureName,
-            'X-Request-ID' => uniqid('req_', true)
-        ])
+            'X-Request-ID' => uniqid('req_', true),
+            'X-Service-Name' => config('app.name', 'unknown-service')
+        ];
+
+        // Make RPC call using HTTP client
+        $response = Http::withHeaders($headers)
         ->timeout(30)
         ->retry(3, 1000)
         ->post($serviceUrl, $rpcRequest);
@@ -825,6 +836,50 @@ class CrossServiceProcedure extends BaseProcedure
         $kubernetesUrl = "http://{$serviceName}:8080/rpc";
         
         return $kubernetesUrl;
+    }
+
+    /**
+     * Get RPC token for a service
+     *
+     * @param string $serviceName
+     * @return string|null
+     */
+    private function getServiceRpcToken(string $serviceName): ?string
+    {
+        // Normalize service name for environment variable lookup
+        $normalizedServiceName = strtoupper(str_replace('-', '_', $serviceName));
+        
+        // Try to get from environment variables first
+        $envKey = 'RPC_' . $normalizedServiceName . '_TOKEN';
+        $token = env($envKey);
+        
+        if ($token) {
+            return $token;
+        }
+
+        // Try alternative naming patterns
+        $alternativeKeys = [
+            'RPC_' . $normalizedServiceName . '_SERVICE_TOKEN',
+            $normalizedServiceName . '_RPC_TOKEN',
+            $normalizedServiceName . '_SERVICE_TOKEN'
+        ];
+
+        foreach ($alternativeKeys as $key) {
+            $token = env($key);
+            if ($token) {
+                return $token;
+            }
+        }
+
+        // Try to get from config file
+        $configKey = strtolower(str_replace('-', '_', $serviceName));
+        $configToken = config("rpc.services.{$configKey}.token");
+        
+        if ($configToken) {
+            return $configToken;
+        }
+
+        return null;
     }
 
     /**

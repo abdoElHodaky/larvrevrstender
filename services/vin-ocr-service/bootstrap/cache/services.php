@@ -32,8 +32,9 @@
     28 => 'Carbon\\Laravel\\ServiceProvider',
     29 => 'Termwind\\Laravel\\TermwindServiceProvider',
     30 => 'Sajya\\Server\\ServerServiceProvider',
-    31 => 'App\\Providers\\AppServiceProvider',
-    32 => 'App\\Providers\\RpcServiceProvider',
+    31 => 'Shared\\Providers\\SharedServiceProvider',
+    32 => 'App\\Providers\\AppServiceProvider',
+    33 => 'App\\Providers\\RpcServiceProvider',
   ),
   'eager' => 
   array (
@@ -54,8 +55,9 @@
     14 => 'Carbon\\Laravel\\ServiceProvider',
     15 => 'Termwind\\Laravel\\TermwindServiceProvider',
     16 => 'Sajya\\Server\\ServerServiceProvider',
-    17 => 'App\\Providers\\AppServiceProvider',
-    18 => 'App\\Providers\\RpcServiceProvider',
+    17 => 'Shared\\Providers\\SharedServiceProvider',
+    18 => 'App\\Providers\\AppServiceProvider',
+    19 => 'App\\Providers\\RpcServiceProvider',
   ),
   'deferred' => 
   array (

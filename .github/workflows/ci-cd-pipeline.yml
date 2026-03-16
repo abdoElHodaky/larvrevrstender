@@ -46,7 +46,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-version }}
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, pgsql, redis, curl, zip, gd, json, dom, filter, sqlite3
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, pgsql, redis, mongodb, curl, zip, gd, json, dom, filter, sqlite3
         tools: composer:v2
         
     - name: "Enhanced Composer Cache (Phase 5: Advanced Caching)"
@@ -315,7 +315,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-version }}
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, pgsql, redis, curl, zip, gd, json, dom, filter, sqlite3
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, pdo_pgsql, pgsql, redis, mongodb, curl, zip, gd, json, dom, filter, sqlite3
         tools: composer:v2
         
     - name: Cache Composer dependencies
