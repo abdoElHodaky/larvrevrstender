@@ -107,7 +107,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, redis
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, redis, mongodb
           coverage: none
 
       - name: PHP Syntax Check
@@ -178,4 +178,3 @@ jobs:
           
           REPORT=$(cat /tmp/report.md)
           echo "$REPORT"
-

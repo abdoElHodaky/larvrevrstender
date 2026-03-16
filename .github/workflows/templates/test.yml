@@ -72,7 +72,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ inputs.php_version }}
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, redis
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, redis, mongodb
           coverage: xdebug
 
       - name: Parse Services to Test
