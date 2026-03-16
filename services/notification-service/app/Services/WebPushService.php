@@ -7,8 +7,10 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use NotificationChannels\WebPush\WebPushChannel;
 use NotificationChannels\WebPush\WebPushMessage;
+use Shared\Core\BaseService;
+use App\Services\Contracts\WebPushServiceInterface;
 
-class WebPushService
+class WebPushService extends BaseService
 {
     /**
      * Send web push notification to a specific user.

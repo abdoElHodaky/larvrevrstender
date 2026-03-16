@@ -7,13 +7,15 @@ use App\Models\Bid;
 use App\Models\BidEvaluation;
 use App\RPC\Adapters\UserServiceAdapter;
 use Illuminate\Support\Facades\Log;
+use Shared\Core\BaseService;
+use App\Services\Contracts\BidEvaluationServiceInterface;
 
 /**
  * Bid Evaluation Service
  * 
  * Handles the scoring and evaluation of individual bids based on multiple criteria.
  */
-class BidEvaluationService
+class BidEvaluationService extends BaseService
 {
     private UserServiceAdapter $userService;
 

@@ -10,8 +10,10 @@ use App\Models\EscrowTransaction;
 use App\Models\EscrowReleaseCondition;
 use Illuminate\Support\Facades\DB;
 use Shared\Procedures\Micro\CircuitBreakerProcedure;
+use Shared\Core\BaseService;
+use App\Services\Contracts\EscrowServiceInterface;
 
-class EscrowService
+class EscrowService extends BaseService
 {
     use CircuitBreakerProcedure;
 

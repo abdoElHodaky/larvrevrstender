@@ -4,21 +4,18 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Twilio\Rest\Client;
+use Illuminate\Support\Facades\Http;
+use Shared\Core\BaseService;
 
-class OtpService
+class OtpService extends BaseService
 {
-    private $twilioClient;
-
-    private $fromNumber;
+    private $smsProvider;
+    private $smsConfig;
 
     public function __construct()
     {
-        $this->twilioClient = new Client(
-            config('services.twilio.sid'),
-            config('services.twilio.token')
-        );
-        $this->fromNumber = config('services.twilio.from');
+        $this->smsProvider = config('services.sms.provider', 'unifonic');
+        $this->smsConfig = config('services.sms.providers.' . $this->smsProvider);
     }
 
     /**
@@ -56,19 +53,18 @@ class OtpService
             // Get message template based on type
             $messageBody = $this->getMessageTemplate($type, $otp, $expiryMinutes);
 
-            // Send SMS
-            $message = $this->twilioClient->messages->create(
-                $phoneNumber,
-                [
-                    'from' => $this->fromNumber,
-                    'body' => $messageBody,
-                ]
-            );
+            // Send SMS via MENA-compatible provider
+            $smsResult = $this->sendSmsViaMenaProvider($phoneNumber, $messageBody);
+
+            if (!$smsResult['success']) {
+                throw new \Exception($smsResult['message']);
+            }
 
             Log::info('OTP sent successfully', [
                 'phone' => $phoneNumber,
                 'type' => $type,
-                'message_sid' => $message->sid,
+                'provider' => $this->smsProvider,
+                'message_id' => $smsResult['message_id'] ?? null,
             ]);
 
             return [
@@ -237,5 +233,161 @@ class OtpService
 
         // Also clear rate limit
         Cache::forget("otp_rate_limit:{$phoneNumber}");
+    }
+
+    /**
+     * Send SMS via MENA-compatible providers
+     */
+    private function sendSmsViaMenaProvider(string $phoneNumber, string $message): array
+    {
+        try {
+            switch ($this->smsProvider) {
+                case 'unifonic':
+                    return $this->sendViaUnifonic($phoneNumber, $message);
+                
+                case 'msegat':
+                    return $this->sendViaMsegat($phoneNumber, $message);
+                
+                case 'oursms':
+                    return $this->sendViaOursms($phoneNumber, $message);
+                
+                case 'infobip':
+                    return $this->sendViaInfobip($phoneNumber, $message);
+                
+                default:
+                    return [
+                        'success' => false,
+                        'message' => 'Unsupported SMS provider: ' . $this->smsProvider
+                    ];
+            }
+        } catch (\Exception $e) {
+            Log::error('SMS provider error', [
+                'provider' => $this->smsProvider,
+                'phone' => $phoneNumber,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'SMS sending failed: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send SMS via Unifonic (Saudi Arabia)
+     */
+    private function sendViaUnifonic(string $phoneNumber, string $message): array
+    {
+        $response = Http::withHeaders([
+            'Authorization' => 'Basic ' . base64_encode($this->smsConfig['api_key'] . ':'),
+        ])->post($this->smsConfig['base_url'] . '/rest/SMS/messages', [
+            'Recipient' => $phoneNumber,
+            'Body' => $message,
+            'SenderID' => $this->smsConfig['sender_id'],
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            return [
+                'success' => true,
+                'message_id' => $data['data']['MessageID'] ?? null,
+                'provider' => 'unifonic'
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Unifonic API error: ' . $response->body()
+        ];
+    }
+
+    /**
+     * Send SMS via Msegat (UAE)
+     */
+    private function sendViaMsegat(string $phoneNumber, string $message): array
+    {
+        $response = Http::post($this->smsConfig['base_url'] . '/gw/sendsms.php', [
+            'userName' => $this->smsConfig['username'],
+            'apiKey' => $this->smsConfig['api_key'],
+            'numbers' => $phoneNumber,
+            'userSender' => $this->smsConfig['sender_id'],
+            'msg' => $message,
+        ]);
+
+        if ($response->successful()) {
+            return [
+                'success' => true,
+                'message_id' => $response->body(),
+                'provider' => 'msegat'
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Msegat API error: ' . $response->body()
+        ];
+    }
+
+    /**
+     * Send SMS via Oursms (Egypt)
+     */
+    private function sendViaOursms(string $phoneNumber, string $message): array
+    {
+        $response = Http::post($this->smsConfig['base_url'] . '/api/v1/sms/send', [
+            'api_key' => $this->smsConfig['api_key'],
+            'to' => $phoneNumber,
+            'from' => $this->smsConfig['sender_id'],
+            'message' => $message,
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            return [
+                'success' => true,
+                'message_id' => $data['message_id'] ?? null,
+                'provider' => 'oursms'
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Oursms API error: ' . $response->body()
+        ];
+    }
+
+    /**
+     * Send SMS via Infobip (International with MENA focus)
+     */
+    private function sendViaInfobip(string $phoneNumber, string $message): array
+    {
+        $response = Http::withHeaders([
+            'Authorization' => 'App ' . $this->smsConfig['api_key'],
+            'Content-Type' => 'application/json',
+        ])->post($this->smsConfig['base_url'] . '/sms/2/text/advanced', [
+            'messages' => [
+                [
+                    'from' => $this->smsConfig['sender_id'],
+                    'destinations' => [
+                        ['to' => $phoneNumber]
+                    ],
+                    'text' => $message,
+                ]
+            ]
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            return [
+                'success' => true,
+                'message_id' => $data['messages'][0]['messageId'] ?? null,
+                'provider' => 'infobip'
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Infobip API error: ' . $response->body()
+        ];
     }
 }

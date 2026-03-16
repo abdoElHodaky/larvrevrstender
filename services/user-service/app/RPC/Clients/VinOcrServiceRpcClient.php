@@ -2,7 +2,7 @@
 
 namespace App\RPC\Clients;
 
-use Shared\RPC\BaseRpcClient;
+use Shared\Clients\BaseRpcClient;
 
 /**
  * VIN OCR Service RPC Client for User Service
@@ -311,4 +311,3 @@ class VinOcrServiceRpcClient extends BaseRpcClient
         return $this->batchCall($calls);
     }
 }
-

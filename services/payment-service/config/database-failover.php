@@ -97,8 +97,34 @@ return [
         ],
         'payment-service' => [
             'database' => 'reverse_tender_payments',
-            'allow_readonly_fallback' => false,
+            'allow_readonly_fallback' => true,
+            'enable_write_buffering' => true,
             'critical_operations' => ['payment_processing', 'refund_processing'],
+            'write_buffer_config' => [
+                'queue_connection' => 'redis',
+                'queue_name' => 'payment_write_operations',
+                'max_buffer_size' => 5000,
+                'buffer_timeout' => 120, // 2 minutes - strict for financial operations
+                'replay_batch_size' => 50,
+                'enable_idempotency' => true,
+                'enable_encryption' => true, // Financial data encryption
+            ],
+            'operation_specific_rules' => [
+                'payment_processing' => [
+                    'consistency_level' => 'strict_acid',
+                    'max_delay_seconds' => 5,
+                    'enable_buffering' => true,
+                    'priority' => 'critical',
+                    'require_confirmation' => true,
+                ],
+                'refund_processing' => [
+                    'consistency_level' => 'strong',
+                    'max_delay_seconds' => 30,
+                    'enable_buffering' => true,
+                    'priority' => 'high',
+                    'require_confirmation' => true,
+                ],
+            ],
         ],
         'order-service' => [
             'database' => 'reverse_tender_orders',
@@ -206,4 +232,3 @@ return [
         'mock_connections' => env('DB_MOCK_CONNECTIONS', false),
     ],
 ];
-

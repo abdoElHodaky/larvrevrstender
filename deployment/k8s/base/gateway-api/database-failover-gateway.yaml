@@ -1,0 +1,485 @@
+# Gateway API Configuration with Database Failover Support
+# Updated for comprehensive database failover architecture v3.0
+# Supports routing based on database health and failover status
+
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: Gateway
+metadata:
+  name: database-failover-gateway
+  namespace: default
+  labels:
+    app.kubernetes.io/name: database-failover-gateway
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: reverse-tender-platform
+    database.kubernetes.io/failover-enabled: "true"
+  annotations:
+    gateway.kubernetes.io/description: "Gateway with database failover routing support"
+    database.kubernetes.io/providers: "neon-postgresql,cnpg-postgresql,mongodb-atlas"
+spec:
+  gatewayClassName: reverse-tender-gateway-class
+  listeners:
+  - name: http
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: https
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: tls-secret
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: database-health
+    port: 8080
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+
+---
+# HTTPRoute for Database Health Monitoring
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: database-health-route
+  namespace: default
+  labels:
+    app.kubernetes.io/name: database-health-route
+    app.kubernetes.io/component: health-monitoring
+    database.kubernetes.io/failover-enabled: "true"
+spec:
+  parentRefs:
+  - name: database-failover-gateway
+    sectionName: database-health
+  hostnames:
+  - "health.reversetender.com"
+  - "db-health.reversetender.com"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /health/database
+    backendRefs:
+    - name: database-health-service
+      port: 8080
+      weight: 100
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /health/neon
+    backendRefs:
+    - name: neon-health-service
+      port: 8080
+      weight: 100
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /health/cnpg
+    backendRefs:
+    - name: cnpg-health-service
+      port: 8080
+      weight: 100
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /health/mongodb
+    backendRefs:
+    - name: mongodb-health-service
+      port: 8080
+      weight: 100
+
+---
+# HTTPRoute for API Gateway with Database Failover
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: api-gateway-failover-route
+  namespace: default
+  labels:
+    app.kubernetes.io/name: api-gateway-failover-route
+    app.kubernetes.io/component: api-routing
+    database.kubernetes.io/failover-enabled: "true"
+spec:
+  parentRefs:
+  - name: database-failover-gateway
+    sectionName: https
+  hostnames:
+  - "api.reversetender.com"
+  - "reversetender.com"
+  rules:
+  # Primary routing (when Neon is available)
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/v1
+      headers:
+      - name: X-Database-Provider
+        value: neon
+    filters:
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        add:
+        - name: X-Database-Active
+          value: neon
+        - name: X-Database-Priority
+          value: "1"
+    backendRefs:
+    - name: api-gateway
+      port: 8000
+      weight: 100
+  
+  # Secondary routing (when CNPG is active)
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/v1
+      headers:
+      - name: X-Database-Provider
+        value: cnpg
+    filters:
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        add:
+        - name: X-Database-Active
+          value: cnpg
+        - name: X-Database-Priority
+          value: "2"
+    backendRefs:
+    - name: api-gateway
+      port: 8000
+      weight: 100
+  
+  # Tertiary routing (when MongoDB is active)
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/v1
+      headers:
+      - name: X-Database-Provider
+        value: mongodb
+    filters:
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        add:
+        - name: X-Database-Active
+          value: mongodb
+        - name: X-Database-Priority
+          value: "3"
+    backendRefs:
+    - name: api-gateway
+      port: 8000
+      weight: 100
+  
+  # Default routing (no database header)
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/v1
+    filters:
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        add:
+        - name: X-Database-Active
+          value: auto
+        - name: X-Database-Priority
+          value: "auto"
+    backendRefs:
+    - name: api-gateway
+      port: 8000
+      weight: 100
+
+---
+# HTTPRoute for Auth Service with Database Failover
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: auth-service-failover-route
+  namespace: default
+  labels:
+    app.kubernetes.io/name: auth-service-failover-route
+    app.kubernetes.io/component: auth-routing
+    database.kubernetes.io/failover-enabled: "true"
+spec:
+  parentRefs:
+  - name: database-failover-gateway
+    sectionName: https
+  hostnames:
+  - "auth.reversetender.com"
+  rules:
+  # Authentication endpoints with database failover support
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /auth
+    filters:
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        add:
+        - name: X-Service-Name
+          value: auth-service
+        - name: X-Database-Failover-Enabled
+          value: "true"
+    backendRefs:
+    - name: auth-service
+      port: 8001
+      weight: 100
+  
+  # RPC endpoints for auth service
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /rpc
+    filters:
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        add:
+        - name: X-Service-Name
+          value: auth-service
+        - name: X-RPC-Enabled
+          value: "true"
+        - name: X-Database-Failover-Enabled
+          value: "true"
+    backendRefs:
+    - name: auth-service
+      port: 8081
+      weight: 100
+
+---
+# Database Health Check Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-health-service
+  namespace: default
+  labels:
+    app.kubernetes.io/name: database-health-service
+    app.kubernetes.io/component: health-monitoring
+    database.kubernetes.io/failover-enabled: "true"
+spec:
+  selector:
+    app: database-health-monitor
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Database Health Monitor Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database-health-monitor
+  namespace: default
+  labels:
+    app: database-health-monitor
+    app.kubernetes.io/name: database-health-monitor
+    app.kubernetes.io/component: health-monitoring
+    database.kubernetes.io/failover-enabled: "true"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: database-health-monitor
+  template:
+    metadata:
+      labels:
+        app: database-health-monitor
+      annotations:
+        database.kubernetes.io/failover-enabled: "true"
+        database.kubernetes.io/providers: "neon,cnpg,mongodb"
+    spec:
+      containers:
+      - name: health-monitor
+        image: nginx:alpine
+        ports:
+        - containerPort: 8080
+          name: http
+        
+        env:
+        # Database Connection Details
+        - name: NEON_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DB_HOST
+        - name: NEON_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DB_USERNAME
+        - name: CNPG_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_HOST
+        - name: CNPG_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_USERNAME
+        - name: MONGODB_ATLAS_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: MONGODB_ATLAS_CONNECTION_STRING
+        
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        
+        volumeMounts:
+        - name: health-monitor-config
+          mountPath: /etc/nginx/conf.d
+        - name: health-scripts
+          mountPath: /usr/share/nginx/html
+      
+      volumes:
+      - name: health-monitor-config
+        configMap:
+          name: health-monitor-nginx-config
+      - name: health-scripts
+        configMap:
+          name: health-monitor-scripts
+
+---
+# Health Monitor Nginx Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: health-monitor-nginx-config
+  namespace: default
+  labels:
+    app.kubernetes.io/name: health-monitor-nginx-config
+    app.kubernetes.io/component: health-monitoring
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name localhost;
+        
+        location /health {
+            return 200 '{"status":"healthy","timestamp":"'$(date -Iseconds)'"}';
+            add_header Content-Type application/json;
+        }
+        
+        location /ready {
+            return 200 '{"status":"ready","timestamp":"'$(date -Iseconds)'"}';
+            add_header Content-Type application/json;
+        }
+        
+        location /health/database {
+            root /usr/share/nginx/html;
+            try_files /database-health.json =404;
+            add_header Content-Type application/json;
+        }
+        
+        location /health/neon {
+            root /usr/share/nginx/html;
+            try_files /neon-health.json =404;
+            add_header Content-Type application/json;
+        }
+        
+        location /health/cnpg {
+            root /usr/share/nginx/html;
+            try_files /cnpg-health.json =404;
+            add_header Content-Type application/json;
+        }
+        
+        location /health/mongodb {
+            root /usr/share/nginx/html;
+            try_files /mongodb-health.json =404;
+            add_header Content-Type application/json;
+        }
+    }
+
+---
+# Health Monitor Scripts
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: health-monitor-scripts
+  namespace: default
+  labels:
+    app.kubernetes.io/name: health-monitor-scripts
+    app.kubernetes.io/component: health-monitoring
+data:
+  database-health.json: |
+    {
+      "status": "monitoring",
+      "providers": {
+        "neon": {
+          "status": "unknown",
+          "priority": 1,
+          "type": "postgresql"
+        },
+        "cnpg": {
+          "status": "unknown",
+          "priority": 2,
+          "type": "postgresql"
+        },
+        "mongodb": {
+          "status": "unknown",
+          "priority": 3,
+          "type": "mongodb"
+        }
+      },
+      "active_provider": "auto",
+      "failover_enabled": true,
+      "last_check": "2024-01-01T00:00:00Z"
+    }
+  
+  neon-health.json: |
+    {
+      "provider": "neon",
+      "type": "postgresql",
+      "status": "unknown",
+      "priority": 1,
+      "connection_test": "pending",
+      "last_check": "2024-01-01T00:00:00Z"
+    }
+  
+  cnpg-health.json: |
+    {
+      "provider": "cnpg",
+      "type": "postgresql",
+      "status": "unknown",
+      "priority": 2,
+      "connection_test": "pending",
+      "last_check": "2024-01-01T00:00:00Z"
+    }
+  
+  mongodb-health.json: |
+    {
+      "provider": "mongodb-atlas",
+      "type": "mongodb",
+      "status": "unknown",
+      "priority": 3,
+      "connection_test": "pending",
+      "last_check": "2024-01-01T00:00:00Z"
+    }

@@ -165,8 +165,17 @@ services:
       - JWT_TTL=${JWT_TTL:-900}
       - REFRESH_TTL=${REFRESH_TTL:-43200}
       - OTP_EXPIRY=${OTP_EXPIRY:-300}
-      - TWILIO_SID=${TWILIO_SID}
-      - TWILIO_TOKEN=${TWILIO_TOKEN}
+      # SMS Provider Configuration (MENA-compatible)
+      - SMS_PROVIDER=${SMS_PROVIDER:-unifonic}
+      - UNIFONIC_API_KEY=${UNIFONIC_API_KEY}
+      - UNIFONIC_SENDER_ID=${UNIFONIC_SENDER_ID:-ReverseTender}
+      - MSEGAT_USERNAME=${MSEGAT_USERNAME}
+      - MSEGAT_API_KEY=${MSEGAT_API_KEY}
+      - MSEGAT_SENDER_ID=${MSEGAT_SENDER_ID:-ReverseTender}
+      - OURSMS_API_KEY=${OURSMS_API_KEY}
+      - OURSMS_SENDER_ID=${OURSMS_SENDER_ID:-ReverseTender}
+      - INFOBIP_API_KEY=${INFOBIP_API_KEY}
+      - INFOBIP_SENDER_ID=${INFOBIP_SENDER_ID:-ReverseTender}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
       # RPC Configuration
       - RPC_ENABLED=${RPC_ENABLED:-true}
@@ -423,8 +432,17 @@ services:
       - FCM_SERVER_KEY=${FCM_SERVER_KEY}
       - APNS_KEY_ID=${APNS_KEY_ID}
       - APNS_TEAM_ID=${APNS_TEAM_ID}
-      - TWILIO_SID=${TWILIO_SID}
-      - TWILIO_TOKEN=${TWILIO_TOKEN}
+      # SMS Provider Configuration (MENA-compatible)
+      - SMS_PROVIDER=${SMS_PROVIDER:-unifonic}
+      - UNIFONIC_API_KEY=${UNIFONIC_API_KEY}
+      - UNIFONIC_SENDER_ID=${UNIFONIC_SENDER_ID:-ReverseTender}
+      - MSEGAT_USERNAME=${MSEGAT_USERNAME}
+      - MSEGAT_API_KEY=${MSEGAT_API_KEY}
+      - MSEGAT_SENDER_ID=${MSEGAT_SENDER_ID:-ReverseTender}
+      - OURSMS_API_KEY=${OURSMS_API_KEY}
+      - OURSMS_SENDER_ID=${OURSMS_SENDER_ID:-ReverseTender}
+      - INFOBIP_API_KEY=${INFOBIP_API_KEY}
+      - INFOBIP_SENDER_ID=${INFOBIP_SENDER_ID:-ReverseTender}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
       # Laravel Octane Configuration
       - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}

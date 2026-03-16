@@ -11,8 +11,9 @@ use App\Models\Trim;
 use App\Models\Vehicle;
 use App\Models\VehicleModel;
 use Illuminate\Support\Collection;
+use Shared\Core\BaseService;
 
-class VehicleService
+class VehicleService extends BaseService
 {
     /**
      * Get vehicle by ID.

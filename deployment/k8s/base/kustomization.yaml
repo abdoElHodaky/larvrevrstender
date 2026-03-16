@@ -1,5 +1,6 @@
 # Kustomize Base Configuration for Reverse Tender Platform
-# Updated for JSON-RPC/tRPC microservices architecture v2.0
+# Updated for comprehensive database failover architecture v3.0
+# Supports: Neon PostgreSQL, Cloud-Native PostgreSQL, MongoDB Atlas
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -15,13 +16,16 @@ commonLabels:
   app.kubernetes.io/name: reverse-tender
   app.kubernetes.io/part-of: reverse-tender-platform
   protocol: json-rpc
-  version: v2.0
+  version: v3.0
+  database.kubernetes.io/failover-enabled: "true"
 
 # Common annotations applied to all resources
 commonAnnotations:
   app.kubernetes.io/managed-by: kustomize
-  app.kubernetes.io/version: "2.0.0"
+  app.kubernetes.io/version: "3.0.0"
   app.kubernetes.io/protocol: "json-rpc"
+  database.kubernetes.io/failover-strategy: "primary-secondary-tertiary"
+  database.kubernetes.io/providers: "neon-postgresql,cnpg-postgresql,mongodb-atlas"
 
 # Resources to include
 resources:
@@ -40,10 +44,16 @@ resources:
   - rpc-client-config.yaml
   - resilience-config.yaml
   - event-bus-config.yaml
+  # Database Failover Resources
+  - database-failover-config.yaml
+  - database-failover-secrets.yaml
+  - cnpg-operator.yaml
+  - cnpg-cluster.yaml
   # Secrets
   - secrets/app-secrets.yaml
   # Kubernetes resources
   - deployments.yaml
+  - deployments-with-database-failover.yaml
   - services.yaml
   - ingress.yaml
   - hpa.yaml
@@ -51,11 +61,13 @@ resources:
   - networkpolicy.yaml
   - serviceaccount.yaml
   - rbac.yaml
-  # Gateway API resources (next-generation traffic routing)
+  # Gateway API resources (next-generation traffic routing with database failover)
   - gateway-api/gatewayclass.yaml
   - gateway-api/gateway.yaml
   - gateway-api/httproutes.yaml
   - gateway-api/policies.yaml
+  - gateway-api/database-failover-gateway.yaml
+  - gateway-api/database-failover-policies.yaml
 
 # Images to use (can be overridden in overlays)
 images:

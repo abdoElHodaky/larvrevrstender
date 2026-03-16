@@ -71,7 +71,7 @@ graph TB
     subgraph EXTERNAL["🌐 External Services"]
         ZATCA_API[🏛️ ZATCA API<br/>E-Invoicing System]
         FCM[🔥 Firebase Cloud Messaging<br/>Push Notifications]
-        TWILIO[📱 Twilio<br/>SMS Provider]
+        SMS_PROVIDERS[📱 MENA SMS Providers<br/>Unifonic + Msegat + Oursms + Infobip]
         SENDGRID[📧 SendGrid<br/>Email Provider]
         S3_STORAGE[📁 AWS S3<br/>File Storage]
     end
@@ -133,13 +133,13 @@ graph TB
     %% External Service Connections
     DO_APP1 --> ZATCA_API
     DO_APP2 --> FCM
-    DO_APP3 --> TWILIO
+    DO_APP3 --> SMS_PROVIDERS
     DO_APP1 --> SENDGRID
     DO_APP2 --> S3_STORAGE
     
     LN_APP1 --> ZATCA_API
     LN_APP2 --> FCM
-    LN_APP3 --> TWILIO
+    LN_APP3 --> SMS_PROVIDERS
     LN_APP1 --> SENDGRID
     LN_APP2 --> S3_STORAGE
     
@@ -179,7 +179,7 @@ graph TB
     class DO_APP1,DO_APP2,DO_APP3,DO_DB1,DO_DB2,DO_CACHE1,DO_CACHE2,DO_MONITOR,LB_DO digitaloceanStyle
     class LN_APP1,LN_APP2,LN_APP3,LN_DB1,LN_DB2,LN_CACHE1,LN_CACHE2,LN_MONITOR,LB_LINODE linodeStyle
     class ZATCA_API governmentStyle
-    class FCM,TWILIO,SENDGRID,S3_STORAGE externalStyle
+    class FCM,SMS_PROVIDERS,SENDGRID,S3_STORAGE externalStyle
     class PROMETHEUS,GRAFANA,ELK,ALERTMANAGER monitoringStyle
     class GITHUB,DOCKER_REGISTRY,TERRAFORM,ANSIBLE,BLUE_GREEN cicdStyle
 ```

@@ -11,8 +11,10 @@ use App\Models\Vehicle;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Shared\Core\BaseService;
+use App\Services\Contracts\UserServiceInterface;
 
-class UserService
+class UserService extends BaseService implements UserServiceInterface
 {
     /**
      * Create or update user profile based on user type

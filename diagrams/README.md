@@ -93,7 +93,7 @@
 - **Multi-channel notification system** with workflow integration
 - **Event-driven notification flows**
 - **Push, SMS, email, and in-app** notifications
-- **Third-party integration** (Mailgun, Twilio)
+- **Third-party integration** (Mailgun, MENA SMS providers)
 - **Circuit breaker protection** for notification services
 - **Key Features**: Workflow-triggered notifications, fault tolerance
 

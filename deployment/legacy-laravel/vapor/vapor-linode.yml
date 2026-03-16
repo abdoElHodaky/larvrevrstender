@@ -147,9 +147,11 @@ environments:
                 
                 # Environment variables
                 environment:
-                    TWILIO_SID: ${TWILIO_SID}
-                    TWILIO_TOKEN: ${TWILIO_TOKEN}
-                    TWILIO_FROM: ${TWILIO_FROM}
+                    SMS_PROVIDER: unifonic
+                    UNIFONIC_API_KEY: ${UNIFONIC_API_KEY}
+                    UNIFONIC_SENDER_ID: ${UNIFONIC_SENDER_ID}
+                    MSEGAT_API_KEY: ${MSEGAT_API_KEY}
+                    MSEGAT_USERNAME: ${MSEGAT_USERNAME}
                 
                 # HTTP triggers
                 triggers:

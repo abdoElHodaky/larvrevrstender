@@ -16,7 +16,7 @@ use Carbon\Carbon;
  * Handles alerting and incident response for database failover events.
  * Supports multiple alert channels: Slack, PagerDuty, Email, Webhook
  */
-class DatabaseFailoverAlertManager implements AlertManagerInterface
+class DatabaseFailoverAlertManager
 {
     private array $config;
     private array $alertChannels;

@@ -95,13 +95,22 @@ jobs:
             exit 1
           fi
           
-          # Check for composer.json (Laravel services)
+          # Check for composer.json and determine service type
           if [ -f "$SERVICE_PATH/composer.json" ]; then
-            echo "✅ Laravel service detected (composer.json found)"
-            echo "is_laravel=true" >> $GITHUB_OUTPUT
+            # Check if this is a library package
+            if grep -q '"type": "library"' "$SERVICE_PATH/composer.json"; then
+              echo "📚 Library package detected (type: library)"
+              echo "is_laravel=false" >> $GITHUB_OUTPUT
+              echo "is_library=true" >> $GITHUB_OUTPUT
+            else
+              echo "✅ Laravel service detected (composer.json found)"
+              echo "is_laravel=true" >> $GITHUB_OUTPUT
+              echo "is_library=false" >> $GITHUB_OUTPUT
+            fi
           else
             echo "ℹ️ Non-Laravel service (no composer.json)"
             echo "is_laravel=false" >> $GITHUB_OUTPUT
+            echo "is_library=false" >> $GITHUB_OUTPUT
           fi
           
           echo "exists=true" >> $GITHUB_OUTPUT
@@ -110,8 +119,8 @@ jobs:
           
           echo "✅ Service validation passed"
 
-      - name: Setup PHP (Laravel Services)
-        if: steps.validate.outputs.is_laravel == 'true'
+      - name: Setup PHP (Laravel Services & Library Packages)
+        if: steps.validate.outputs.is_laravel == 'true' || steps.validate.outputs.is_library == 'true'
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ inputs.php_version }}
@@ -152,6 +161,35 @@ jobs:
           done
           
           echo "✅ Dependencies validation passed"
+
+      - name: Validate Dependencies (Library Packages)
+        if: steps.validate.outputs.is_library == 'true'
+        working-directory: ${{ steps.validate.outputs.service_path }}
+        run: |
+          echo "🔍 Validating library package dependencies..."
+          
+          # Check composer.json syntax
+          if ! php -r "json_decode(file_get_contents('composer.json'), true, 512, JSON_THROW_ON_ERROR);"; then
+            echo "❌ Invalid composer.json syntax"
+            exit 1
+          fi
+          
+          # Validate library-specific dependencies
+          REQUIRED_DEPS=("php")
+          for dep in "${REQUIRED_DEPS[@]}"; do
+            if ! grep -q "\"$dep\":" composer.json; then
+              echo "❌ Missing required dependency: $dep"
+              exit 1
+            fi
+          done
+          
+          # Check if autoload is properly configured
+          if ! grep -q '"autoload"' composer.json; then
+            echo "❌ Missing autoload configuration"
+            exit 1
+          fi
+          
+          echo "✅ Library dependencies validation passed"
 
       - name: Service Dependency Analysis
         id: dependency-check
@@ -210,12 +248,13 @@ jobs:
           fi
 
       - name: Set up Docker Buildx
+        if: steps.validate.outputs.is_library != 'true'
         uses: docker/setup-buildx-action@v3
         with:
           driver-opts: network=host
 
       - name: Log in to Container Registry
-        if: inputs.push_image
+        if: inputs.push_image && steps.validate.outputs.is_library != 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ inputs.registry }}
@@ -224,6 +263,7 @@ jobs:
 
       - name: Extract Metadata
         id: meta
+        if: steps.validate.outputs.is_library != 'true'
         uses: docker/metadata-action@v5
         with:
           images: ${{ inputs.registry }}/${{ inputs.image_name }}-${{ inputs.service_name }}
@@ -236,6 +276,7 @@ jobs:
 
       - name: Build and Push Docker Image
         id: build
+        if: steps.validate.outputs.is_library != 'true'
         uses: docker/build-push-action@v5
         with:
           context: ${{ steps.validate.outputs.service_path }}
@@ -251,10 +292,21 @@ jobs:
             ENVIRONMENT=${{ inputs.environment }}
             SERVICE_NAME=${{ inputs.service_name }}
 
+      - name: Skip Docker Build for Library Package
+        id: build-skip
+        if: steps.validate.outputs.is_library == 'true'
+        run: |
+          echo "📚 Skipping Docker build for library package: ${{ inputs.service_name }}"
+          echo "Library packages are distributed via Composer, not as Docker images."
+          echo "status=skipped" >> $GITHUB_OUTPUT
+
       - name: Set Build Result
         id: build-result
         run: |
-          if [ "${{ steps.build.outcome }}" = "success" ]; then
+          if [ "${{ steps.build-skip.outcome }}" = "success" ]; then
+            echo "status=skipped" >> $GITHUB_OUTPUT
+            echo "⏭️ Build skipped for library package: ${{ inputs.service_name }}"
+          elif [ "${{ steps.build.outcome }}" = "success" ]; then
             echo "status=success" >> $GITHUB_OUTPUT
             echo "✅ Build completed successfully for ${{ inputs.service_name }}"
           else

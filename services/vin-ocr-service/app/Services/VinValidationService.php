@@ -5,8 +5,9 @@ namespace App\Services;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Exception;
+use Shared\Core\BaseService;
 
-class VinValidationService
+class VinValidationService extends BaseService
 {
     /**
      * Validate VIN and return detailed information

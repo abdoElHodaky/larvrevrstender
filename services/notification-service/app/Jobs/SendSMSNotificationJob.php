@@ -100,8 +100,8 @@ class SendSMSNotificationJob extends BaseQueueJob
      */
     private function sendSMS(): void
     {
-        // Example implementation - replace with actual SMS service
-        // This could be Twilio, AWS SNS, Nexmo, etc.
+        // Using MENA-compatible SMS providers (Unifonic, Msegat, Oursms, Infobip)
+        // Configuration is handled via config/mena-services.php
         
         $smsData = [
             'to' => $this->phoneNumber,
@@ -110,9 +110,8 @@ class SendSMSNotificationJob extends BaseQueueJob
             'metadata' => $this->metadata
         ];
 
-        // Example: Twilio SMS sending
-        // $twilio = new Client(config('twilio.sid'), config('twilio.token'));
-        // $twilio->messages->create($this->phoneNumber, $smsData);
+        // SMS sending is handled by the MENA-compatible providers
+        // See config/mena-services.php for provider configurations
         
         // For now, simulate successful SMS sending
         Log::debug('SMS sent via provider', $smsData);

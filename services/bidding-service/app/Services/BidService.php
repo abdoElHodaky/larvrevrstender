@@ -4,13 +4,15 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
 use Exception;
+use Shared\Core\BaseService;
+use App\Services\Contracts\BidServiceInterface;
 
 /**
  * Bid Service for Bidding Service
  * 
  * Handles bid creation, validation, and management.
  */
-class BidService
+class BidService extends BaseService
 {
     /**
      * Create a new bid

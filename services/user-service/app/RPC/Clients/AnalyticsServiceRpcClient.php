@@ -2,7 +2,7 @@
 
 namespace App\RPC\Clients;
 
-use Shared\RPC\BaseRpcClient;
+use Shared\Clients\BaseRpcClient;
 
 /**
  * Analytics Service RPC Client for User Service
@@ -381,4 +381,3 @@ class AnalyticsServiceRpcClient extends BaseRpcClient
         ]);
     }
 }
-

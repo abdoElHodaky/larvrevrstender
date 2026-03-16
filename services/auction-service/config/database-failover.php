@@ -87,8 +87,31 @@ return [
         ],
         'auction-service' => [
             'database' => 'reverse_tender',
-            'allow_readonly_fallback' => false,
+            'allow_readonly_fallback' => true,
+            'enable_write_buffering' => true,
             'critical_operations' => ['bid_placement', 'auction_creation'],
+            'write_buffer_config' => [
+                'queue_connection' => 'redis',
+                'queue_name' => 'auction_write_operations',
+                'max_buffer_size' => 10000,
+                'buffer_timeout' => 300, // 5 minutes
+                'replay_batch_size' => 100,
+                'enable_idempotency' => true,
+            ],
+            'operation_specific_rules' => [
+                'bid_placement' => [
+                    'consistency_level' => 'eventual',
+                    'max_delay_seconds' => 30,
+                    'enable_buffering' => true,
+                    'priority' => 'high',
+                ],
+                'auction_creation' => [
+                    'consistency_level' => 'strong',
+                    'max_delay_seconds' => 5,
+                    'enable_buffering' => true,
+                    'priority' => 'critical',
+                ],
+            ],
         ],
         'bidding-service' => [
             'database' => 'reverse_tender_bidding',
@@ -206,4 +229,3 @@ return [
         'mock_connections' => env('DB_MOCK_CONNECTIONS', false),
     ],
 ];
-

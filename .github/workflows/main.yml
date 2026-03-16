@@ -41,6 +41,9 @@ jobs:
     outputs:
       affected_services: ${{ steps.analyze.outputs.affected_services }}
       should_deploy: ${{ steps.analyze.outputs.should_deploy }}
+      change_impact: ${{ steps.analyze.outputs.change_impact }}
+      risk_score: ${{ steps.analyze.outputs.risk_score }}
+      services_matrix: ${{ steps.analyze.outputs.services_matrix }}
     
     steps:
       - name: Checkout Repository
@@ -73,13 +76,50 @@ jobs:
           echo "Changed files:"
           echo "$CHANGED_FILES"
           
-          # Simple service detection
+          # Initialize variables
           AFFECTED_SERVICES=""
-          for service in auth user auction bidding payment order notification analytics; do
-            if echo "$CHANGED_FILES" | grep -q "services/${service}/\|services/${service}-service/"; then
+          CHANGE_IMPACT="low"
+          RISK_SCORE=10
+          SERVICES_MATRIX="[]"
+          
+          # Simple service detection
+          for service in auth user auction bidding payment order notification analytics vin-ocr gateway shared; do
+            if echo "$CHANGED_FILES" | grep -q "services/${service}/\|services/${service}-service/\|${service}-service/"; then
               AFFECTED_SERVICES="${AFFECTED_SERVICES}${service},"
+              CHANGE_IMPACT="medium"
+              RISK_SCORE=30
             fi
           done
+          
+          # Check for high-impact changes
+          if echo "$CHANGED_FILES" | grep -q "shared/\|common/\|lib/\|database/migrations/"; then
+            CHANGE_IMPACT="high"
+            RISK_SCORE=70
+            # All services potentially affected
+            AFFECTED_SERVICES="auth,user,auction,bidding,payment,order,notification,analytics,vin-ocr,gateway,shared"
+          fi
+          
+          # Check for infrastructure changes
+          if echo "$CHANGED_FILES" | grep -q "deployment/\|docker/\|.github/workflows/\|docker-compose"; then
+            CHANGE_IMPACT="high"
+            RISK_SCORE=80
+          fi
+          
+          # Check for configuration changes
+          if echo "$CHANGED_FILES" | grep -q "config/\|.env\|package.json\|composer.json\|logging.php\|mail.php"; then
+            if [ "$CHANGE_IMPACT" = "low" ]; then
+              CHANGE_IMPACT="medium"
+              RISK_SCORE=40
+            fi
+          fi
+          
+          # Create services matrix JSON
+          if [ -n "$AFFECTED_SERVICES" ]; then
+            SERVICES_MATRIX=$(echo "$AFFECTED_SERVICES" | sed 's/,$//' | sed 's/,/","/g' | sed 's/^/["/' | sed 's/$/"]/')
+          fi
+          
+          # Remove trailing comma from affected services
+          AFFECTED_SERVICES=$(echo "$AFFECTED_SERVICES" | sed 's/,$//')
           
           # Determine if deployment is needed
           SHOULD_DEPLOY="false"
@@ -88,12 +128,16 @@ jobs:
           fi
           
           # Output results
-          echo "affected_services=${AFFECTED_SERVICES%,}" >> $GITHUB_OUTPUT
+          echo "affected_services=${AFFECTED_SERVICES}" >> $GITHUB_OUTPUT
           echo "should_deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+          echo "change_impact=$CHANGE_IMPACT" >> $GITHUB_OUTPUT
+          echo "risk_score=$RISK_SCORE" >> $GITHUB_OUTPUT
+          echo "services_matrix=$SERVICES_MATRIX" >> $GITHUB_OUTPUT
           
           echo "📊 Analysis Results:"
-          echo "  Affected Services: ${AFFECTED_SERVICES%,}"
+          echo "  Affected Services: $AFFECTED_SERVICES"
           echo "  Should Deploy: $SHOULD_DEPLOY"
+          echo "  Change Impact: $CHANGE_IMPACT"
           echo "  Risk Score: $RISK_SCORE/100"
           echo "  Services Matrix: $SERVICES_MATRIX"
           
@@ -395,7 +439,7 @@ jobs:
   # Phase 3: Security Scanning (Template Integration)
   security-scan:
     name: 🔒 Security Scanning
-    needs: [change-detection, dependency-environment-validation]
+    needs: [change-detection, basic-testing]
     if: needs.change-detection.outputs.should_deploy == 'true'
     uses: ./.github/workflows/templates/security.yml
     with:
@@ -406,7 +450,7 @@ jobs:
   # Phase 4: Service Build Matrix (Dependency-Ordered Orchestration)
   service-build:
     name: 🏗️ Service Build (Dependency-Ordered)
-    needs: [change-detection, dependency-environment-validation, security-scan]
+    needs: [change-detection, basic-testing, security-scan]
     if: needs.change-detection.outputs.should_deploy == 'true'
     strategy:
       fail-fast: false
@@ -418,14 +462,14 @@ jobs:
       environment: ${{ inputs.target_environment || 'staging' }}
       registry: ${{ env.REGISTRY }}
       image_name: abdoElHodaky/larvrevrstender
-      dependency_graph: ${{ needs.dependency-environment-validation.outputs.dependency_graph }}
-      deployment_order: ${{ needs.dependency-environment-validation.outputs.deployment_order }}
+      dependency_graph: ${{ needs.basic-testing.outputs.dependency_graph }}
+      deployment_order: ${{ needs.basic-testing.outputs.deployment_order }}
     secrets: inherit
 
   # Phase 4.5: Docker Image Optimization (NEW)
   docker-optimization:
     name: 🐳 Docker Image Optimization
-    needs: [change-detection, dependency-environment-validation, service-build]
+    needs: [change-detection, basic-testing, service-build]
     if: |
       always() && 
       needs.change-detection.outputs.should_deploy == 'true' &&
@@ -443,7 +487,7 @@ jobs:
   # Phase 5: Database Migration Integration
   database-migration:
     name: 🗄️ Database Migration
-    needs: [change-detection, dependency-environment-validation, docker-optimization]
+    needs: [change-detection, basic-testing, docker-optimization]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' && 
       (contains(needs.change-detection.outputs.affected_services, 'shared') || 
@@ -514,7 +558,7 @@ jobs:
   # Phase 6: Comprehensive Testing (Template Integration)
   comprehensive-testing:
     name: 🧪 Comprehensive Testing
-    needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, database-migration]
+    needs: [change-detection, basic-testing, service-build, docker-optimization, database-migration]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' &&
       needs.service-build.result == 'success' &&
@@ -529,7 +573,7 @@ jobs:
   # Phase 7: Performance Testing (NEW)
   performance-testing:
     name: 🚀 Performance Testing
-    needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, comprehensive-testing]
+    needs: [change-detection, basic-testing, service-build, docker-optimization, comprehensive-testing]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' &&
       needs.service-build.result == 'success' &&
@@ -547,7 +591,7 @@ jobs:
   # Phase 8: Self-Healing & Optimization (Template Integration)
   self-healing:
     name: 🔧 Self-Healing & Optimization
-    needs: [change-detection, dependency-environment-validation, docker-optimization, comprehensive-testing, performance-testing]
+    needs: [change-detection, basic-testing, docker-optimization, comprehensive-testing, performance-testing]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' &&
       needs.comprehensive-testing.result == 'success' &&
@@ -563,7 +607,7 @@ jobs:
   # Phase 8.5: Disaster Recovery Automation (NEW)
   disaster-recovery:
     name: 🛡️ Disaster Recovery Automation
-    needs: [change-detection, dependency-environment-validation, docker-optimization, comprehensive-testing, performance-testing, self-healing]
+    needs: [change-detection, basic-testing, docker-optimization, comprehensive-testing, performance-testing, self-healing]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' &&
       (needs.self-healing.result == 'success' || needs.self-healing.result == 'skipped') &&
@@ -586,7 +630,7 @@ jobs:
   # Phase 9: Blue-Green Deployment (Dependency-Ordered)
   deployment:
     name: 🚀 Blue-Green Deployment (Dependency-Ordered)
-    needs: [change-detection, dependency-environment-validation, service-build, docker-optimization, comprehensive-testing, performance-testing, self-healing, disaster-recovery]
+    needs: [change-detection, basic-testing, service-build, docker-optimization, comprehensive-testing, performance-testing, self-healing, disaster-recovery]
     if: |
       needs.change-detection.outputs.should_deploy == 'true' &&
       needs.service-build.result == 'success' &&
@@ -603,18 +647,18 @@ jobs:
       service_name: ${{ matrix.service }}
       environment: ${{ inputs.target_environment || 'staging' }}
       image_tag: ${{ github.sha }}
-      health_check_url: ${{ fromJson(needs.dependency-environment-validation.outputs.health_check_urls)[matrix.service] || format('https://{0}-{1}.larvrevrstender.com/health', matrix.service, inputs.target_environment || 'staging') }}
+      health_check_url: ${{ fromJson(needs.basic-testing.outputs.health_check_urls)[matrix.service] || format('https://{0}-{1}.larvrevrstender.com/health', matrix.service, inputs.target_environment || 'staging') }}
       deployment_strategy: ${{ needs.change-detection.outputs.deployment_strategy }}
       rollback_on_failure: true
-      dependency_graph: ${{ needs.dependency-environment-validation.outputs.dependency_graph }}
-      deployment_order: ${{ needs.dependency-environment-validation.outputs.deployment_order }}
-      environment_config: ${{ needs.dependency-environment-validation.outputs.environment_config }}
+      dependency_graph: ${{ needs.basic-testing.outputs.dependency_graph }}
+      deployment_order: ${{ needs.basic-testing.outputs.deployment_order }}
+      environment_config: ${{ needs.basic-testing.outputs.environment_config }}
     secrets: inherit
 
   # Phase 10: Risk Scoring Optimization (Template Integration)
   optimization:
     name: 📊 Risk Scoring Optimization
-    needs: [change-detection, dependency-environment-validation, docker-optimization, performance-testing, deployment]
+    needs: [change-detection, basic-testing, docker-optimization, performance-testing, deployment]
     if: |
       needs.deployment.result == 'success' &&
       needs.change-detection.outputs.change_impact == 'high'

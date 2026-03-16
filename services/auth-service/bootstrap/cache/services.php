@@ -44,10 +44,12 @@
     40 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
     41 => 'Tymon\\JWTAuth\\Providers\\LaravelServiceProvider',
     42 => 'Shared\\Providers\\SharedServiceProvider',
-    43 => 'App\\Providers\\AppServiceProvider',
-    44 => 'App\\Providers\\RpcServiceProvider',
-    45 => 'Shared\\Providers\\SharedServiceProvider',
-    46 => 'Tymon\\JWTAuth\\Providers\\LaravelServiceProvider',
+    43 => 'App\\Providers\\RpcCommandServiceProvider',
+    44 => 'App\\Providers\\AppServiceProvider',
+    45 => 'App\\Providers\\EventServiceProvider',
+    46 => 'App\\Providers\\RpcServiceProvider',
+    47 => 'Shared\\Providers\\SharedServiceProvider',
+    48 => 'Tymon\\JWTAuth\\Providers\\LaravelServiceProvider',
   ),
   'eager' => 
   array (
@@ -79,10 +81,12 @@
     25 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
     26 => 'Tymon\\JWTAuth\\Providers\\LaravelServiceProvider',
     27 => 'Shared\\Providers\\SharedServiceProvider',
-    28 => 'App\\Providers\\AppServiceProvider',
-    29 => 'App\\Providers\\RpcServiceProvider',
-    30 => 'Shared\\Providers\\SharedServiceProvider',
-    31 => 'Tymon\\JWTAuth\\Providers\\LaravelServiceProvider',
+    28 => 'App\\Providers\\RpcCommandServiceProvider',
+    29 => 'App\\Providers\\AppServiceProvider',
+    30 => 'App\\Providers\\EventServiceProvider',
+    31 => 'App\\Providers\\RpcServiceProvider',
+    32 => 'Shared\\Providers\\SharedServiceProvider',
+    33 => 'Tymon\\JWTAuth\\Providers\\LaravelServiceProvider',
   ),
   'deferred' => 
   array (

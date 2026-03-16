@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Concerns\InteractsWithDictionary;
-use Illuminate\Support\Arr;
 
 /**
  * @template TRelatedModel of \Illuminate\Database\Eloquent\Model
@@ -84,6 +83,7 @@ class MorphTo extends BelongsTo
      * @param  string|null  $ownerKey
      * @param  string  $type
      * @param  string  $relation
+     * @return void
      */
     public function __construct(Builder $query, Model $parent, $foreignKey, $ownerKey, $type, $relation)
     {
@@ -107,18 +107,12 @@ class MorphTo extends BelongsTo
      */
     protected function buildDictionary(EloquentCollection $models)
     {
-        $isAssociative = Arr::isAssoc($models->all());
-
-        foreach ($models as $key => $model) {
+        foreach ($models as $model) {
             if ($model->{$this->morphType}) {
                 $morphTypeKey = $this->getDictionaryKey($model->{$this->morphType});
                 $foreignKeyKey = $this->getDictionaryKey($model->{$this->foreignKey});
 
-                if ($isAssociative) {
-                    $this->dictionary[$morphTypeKey][$foreignKeyKey][$key] = $model;
-                } else {
-                    $this->dictionary[$morphTypeKey][$foreignKeyKey][] = $model;
-                }
+                $this->dictionary[$morphTypeKey][$foreignKeyKey][] = $model;
             }
         }
     }
@@ -182,10 +176,10 @@ class MorphTo extends BelongsTo
     protected function gatherKeysByType($type, $keyType)
     {
         return $keyType !== 'string'
-            ? array_keys($this->dictionary[$type])
-            : array_map(function ($modelId) {
-                return (string) $modelId;
-            }, array_filter(array_keys($this->dictionary[$type])));
+                    ? array_keys($this->dictionary[$type])
+                    : array_map(function ($modelId) {
+                        return (string) $modelId;
+                    }, array_filter(array_keys($this->dictionary[$type])));
     }
 
     /**
@@ -243,8 +237,8 @@ class MorphTo extends BelongsTo
     {
         if ($model instanceof Model) {
             $foreignKey = $this->ownerKey && $model->{$this->ownerKey}
-                ? $this->ownerKey
-                : $model->getKeyName();
+                            ? $this->ownerKey
+                            : $model->getKeyName();
         }
 
         $this->parent->setAttribute(

@@ -6,8 +6,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Facades\Image;
 use Exception;
+use Shared\Core\BaseService;
 
-class OcrService
+class OcrService extends BaseService
 {
     /**
      * Extract VIN from image using OCR

@@ -16,7 +16,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register service-specific bindings
         $this->app->singleton('order_service.service', function ($app) {
-            return new \App\Services\OrderServiceService;
+            return new \App\Services\OrderService;
         });
 
         // Register FileUploadService for order-service

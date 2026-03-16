@@ -667,6 +667,33 @@ services:
           memory: 1G
 ```
 
+## 🔄 **Database Failover Architecture**
+
+### Enterprise-Grade Resilience Strategy
+
+Our platform implements **business-aware database failover** with distributed service ownership and shared base classes:
+
+#### 🔴 Critical Services (Complex Failover)
+- **Order Service** - Revenue protection (orders = money)
+- **Payment Service** - Financial compliance (PCI DSS)
+- **User Service** - Customer data integrity
+- **Auth Service** - Authentication security
+- **Bidding Service** - Auction revenue protection
+
+#### 🟡 Non-Critical Services (Simple Mechanisms)
+- **Notification Service** - Async retry queues
+- **VIN-OCR Service** - Regenerable processing
+- **Analytics Service** - Eventual consistency
+- **Gateway Service** - Routing only
+
+### Architecture Benefits
+- **94% Code Reduction** - Shared base classes with service ownership (2,085 lines)
+- **Business-Aware Resilience** - Resources match business impact
+- **Service Autonomy** - Each service owns its failover handler
+- **Clean Inheritance** - Base patterns via `use` statements, no duplication
+
+📚 **[Complete Documentation](docs/DATABASE_FAILOVER_ARCHITECTURE.md)** | 📊 **[Architecture Diagrams](docs/diagrams/database-failover-architecture.md)**
+
 ## 🔐 **Security**
 
 ### Authentication & Authorization

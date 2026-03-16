@@ -92,8 +92,31 @@ return [
         ],
         'bidding-service' => [
             'database' => 'reverse_tender_bidding',
-            'allow_readonly_fallback' => false,
+            'allow_readonly_fallback' => true,
+            'enable_write_buffering' => true,
             'critical_operations' => ['bid_submission', 'bid_evaluation'],
+            'write_buffer_config' => [
+                'queue_connection' => 'redis',
+                'queue_name' => 'bidding_write_operations',
+                'max_buffer_size' => 15000,
+                'buffer_timeout' => 180, // 3 minutes
+                'replay_batch_size' => 150,
+                'enable_idempotency' => true,
+            ],
+            'operation_specific_rules' => [
+                'bid_submission' => [
+                    'consistency_level' => 'eventual',
+                    'max_delay_seconds' => 60,
+                    'enable_buffering' => true,
+                    'priority' => 'high',
+                ],
+                'bid_evaluation' => [
+                    'consistency_level' => 'strong',
+                    'max_delay_seconds' => 10,
+                    'enable_buffering' => true,
+                    'priority' => 'critical',
+                ],
+            ],
         ],
         'payment-service' => [
             'database' => 'reverse_tender_payments',
@@ -206,4 +229,3 @@ return [
         'mock_connections' => env('DB_MOCK_CONNECTIONS', false),
     ],
 ];
-

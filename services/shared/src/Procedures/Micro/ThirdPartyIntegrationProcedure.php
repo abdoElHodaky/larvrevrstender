@@ -446,8 +446,10 @@ trait ThirdPartyIntegrationProcedure
             // Add more integration types here
             // case 'mailgun':
             //     return new MailgunIntegration($serviceName, $config);
-            // case 'twilio':
-            //     return new TwilioIntegration($serviceName, $config);
+            // case 'unifonic':
+            //     return new UnifonicIntegration($serviceName, $config);
+            // case 'msegat':
+            //     return new MsegatIntegration($serviceName, $config);
             
             default:
                 return null;
@@ -465,4 +467,3 @@ trait ThirdPartyIntegrationProcedure
         return $this->integrations[$serviceName] ?? null;
     }
 }
-
