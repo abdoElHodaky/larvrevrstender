@@ -29,8 +29,11 @@
     25 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
     26 => 'Termwind\\Laravel\\TermwindServiceProvider',
     27 => 'Sajya\\Server\\ServerServiceProvider',
-    28 => 'App\\Providers\\AppServiceProvider',
-    29 => 'App\\Providers\\RpcServiceProvider',
+    28 => 'Shared\\Providers\\SharedServiceProvider',
+    29 => 'Shared\\RPC\\Providers\\RpcServiceProvider',
+    30 => 'App\\Providers\\AppServiceProvider',
+    31 => 'App\\Providers\\EventServiceProvider',
+    32 => 'App\\Providers\\RpcServiceProvider',
   ),
   'eager' => 
   array (
@@ -49,8 +52,11 @@
     12 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
     13 => 'Termwind\\Laravel\\TermwindServiceProvider',
     14 => 'Sajya\\Server\\ServerServiceProvider',
-    15 => 'App\\Providers\\AppServiceProvider',
-    16 => 'App\\Providers\\RpcServiceProvider',
+    15 => 'Shared\\Providers\\SharedServiceProvider',
+    16 => 'Shared\\RPC\\Providers\\RpcServiceProvider',
+    17 => 'App\\Providers\\AppServiceProvider',
+    18 => 'App\\Providers\\EventServiceProvider',
+    19 => 'App\\Providers\\RpcServiceProvider',
   ),
   'deferred' => 
   array (

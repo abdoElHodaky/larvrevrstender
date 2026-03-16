@@ -16,7 +16,14 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register service-specific bindings
         $this->app->singleton('auth.service', function ($app) {
-            return new \App\Services\AuthService;
+            return $app->make(\App\Services\AuthService::class);
+        });
+
+        // Bind AuthService with RPC client dependency
+        $this->app->singleton(\App\Services\AuthService::class, function ($app) {
+            return new \App\Services\AuthService(
+                $app->make(\Shared\RPC\Clients\AuthServiceClient::class)
+            );
         });
 
         // Register JWT service

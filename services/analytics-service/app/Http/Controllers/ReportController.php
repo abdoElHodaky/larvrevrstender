@@ -378,7 +378,7 @@ class ReportController extends Controller
             'revenue' => $this->generateRevenueData($dateFrom, $dateTo, $filters),
             'system_health' => $this->generateSystemHealthData($dateFrom, $dateTo, $filters),
             default => ['error' => 'Unknown report type']
-        }
+        };
     }
 
     /**

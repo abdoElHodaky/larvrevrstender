@@ -29,7 +29,7 @@ class HealthChecker
         private readonly DatabaseManager $database,
         private readonly RedisManager $redis,
         private readonly QueueManager $queue,
-        private readonly array $rpcClients = []
+        private array $rpcClients = []
     ) {}
 
     /**

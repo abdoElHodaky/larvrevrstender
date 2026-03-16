@@ -40,9 +40,10 @@
     36 => 'Spatie\\MediaLibrary\\MediaLibraryServiceProvider',
     37 => 'Spatie\\Permission\\PermissionServiceProvider',
     38 => 'Shared\\Providers\\SharedServiceProvider',
-    39 => 'App\\Providers\\AppServiceProvider',
-    40 => 'App\\Providers\\EventServiceProvider',
-    41 => 'App\\Providers\\RpcServiceProvider',
+    39 => 'Shared\\RPC\\Providers\\RpcServiceProvider',
+    40 => 'App\\Providers\\AppServiceProvider',
+    41 => 'App\\Providers\\EventServiceProvider',
+    42 => 'App\\Providers\\RpcServiceProvider',
   ),
   'eager' => 
   array (
@@ -70,9 +71,10 @@
     21 => 'Spatie\\MediaLibrary\\MediaLibraryServiceProvider',
     22 => 'Spatie\\Permission\\PermissionServiceProvider',
     23 => 'Shared\\Providers\\SharedServiceProvider',
-    24 => 'App\\Providers\\AppServiceProvider',
-    25 => 'App\\Providers\\EventServiceProvider',
-    26 => 'App\\Providers\\RpcServiceProvider',
+    24 => 'Shared\\RPC\\Providers\\RpcServiceProvider',
+    25 => 'App\\Providers\\AppServiceProvider',
+    26 => 'App\\Providers\\EventServiceProvider',
+    27 => 'App\\Providers\\RpcServiceProvider',
   ),
   'deferred' => 
   array (

@@ -11,7 +11,7 @@ class UserServiceDatabaseFailoverHandler extends BaseDatabaseFailoverHandler
     /**
      * Handle user service specific database failover logic.
      */
-    protected function handleServiceSpecificFailover(DatabaseFailoverEvent $event): void
+    protected function handleServiceSpecificFailover(DatabaseFailoverEvent $event, string $strategy = 'standard'): void
     {
         // Set user service to failover mode
         $this->setFailoverMode($event);

@@ -17,7 +17,7 @@ class AuthServiceAdapter
 
     public function __construct()
     {
-        $this->authRpc = app('AuthRpc');
+        $this->authRpc = app(\Shared\RPC\Clients\AuthServiceClient::class);
     }
 
     /**
@@ -31,15 +31,13 @@ class AuthServiceAdapter
         try {
             $this->logRpcCall('validateToken', ['token' => '[REDACTED]'], $correlationId);
             
-            $response = $this->authRpc->call('auth.validateToken', [
-                'token' => $token
-            ]);
+            $response = $this->authRpc->validateToken($token);
             
             $duration = round((microtime(true) - $startTime) * 1000, 2);
             $this->logRpcCall('validateToken', ['duration_ms' => $duration], $correlationId, 'success');
             
-            if (isset($response['success']) && $response['success']) {
-                return $response['data'] ?? null;
+            if ($response->isSuccess()) {
+                return $response->getData();
             }
             
             return null;
@@ -244,4 +242,3 @@ class AuthServiceAdapter
         ]);
     }
 }
-
