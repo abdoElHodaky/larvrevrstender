@@ -1,31 +1,35 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Http\Resources\VehicleResource;
 use App\Services\CustomerService;
-use App\Services\VinOcrService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Shared\RPC\Clients\VinOcrServiceClient;
+use Shared\RPC\Exceptions\RpcException;
 
+/**
+ * VIN OCR Controller - PHP 8.3 & Laravel 12 Implementation
+ * 
+ * Handles VIN OCR operations via RPC communication with dedicated vin-ocr-service.
+ * Uses modern PHP 8.3 constructor property promotion and proper typing.
+ */
 class VinOcrController extends Controller
 {
-    private VinOcrService $vinOcrService;
-
-    private CustomerService $customerService;
-
-    public function __construct(VinOcrService $vinOcrService, CustomerService $customerService)
-    {
-        $this->vinOcrService = $vinOcrService;
-        $this->customerService = $customerService;
-    }
+    public function __construct(
+        private readonly VinOcrServiceClient $vinOcrClient,
+        private readonly CustomerService $customerService
+    ) {}
 
     /**
-     * Process VIN from uploaded image.
+     * Process VIN from uploaded image via RPC.
      */
     public function processImage(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240', // 10MB max
         ]);
 
@@ -33,19 +37,39 @@ class VinOcrController extends Controller
             $userId = $request->user()->id;
             $customer = $this->customerService->getProfile($userId);
 
-            $result = $this->vinOcrService->processVinFromImage($customer->id, $request->file('image'));
+            // Prepare image data for RPC call
+            $imageData = [
+                'image' => base64_encode(file_get_contents($validated['image']->path())),
+                'image_name' => $validated['image']->getClientOriginalName(),
+                'image_mime' => $validated['image']->getMimeType(),
+                'user_id' => $customer->id,
+                'vehicle_id' => $request->input('vehicle_id'),
+                'preprocessing' => $request->boolean('preprocessing', true),
+                'confidence_threshold' => $request->input('confidence_threshold', 0.8),
+            ];
+
+            $rpcResponse = $this->vinOcrClient->processVinImage($imageData);
+
+            if (!$rpcResponse->isSuccessful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to process VIN from image',
+                    'error' => $rpcResponse->getError(),
+                ], $rpcResponse->getStatusCode());
+            }
+
+            $result = $rpcResponse->getData();
 
             $response = [
-                'success' => $result['success'],
-                'vin' => $result['vin'],
-                'confidence' => $result['confidence'],
+                'success' => $result['success'] ?? true,
+                'vin' => $result['vin'] ?? null,
+                'confidence' => $result['confidence'] ?? null,
                 'image_path' => $result['image_path'] ?? null,
             ];
 
-            if (! $result['success']) {
+            if (!($result['success'] ?? true)) {
                 $response['error'] = $result['error'] ?? 'Failed to process VIN from image';
                 $response['validation_errors'] = $result['validation_errors'] ?? [];
-
                 return response()->json($response, 422);
             }
 
@@ -60,20 +84,26 @@ class VinOcrController extends Controller
 
             return response()->json($response, 201);
 
+        } catch (RpcException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'RPC communication failed: ' . $e->getMessage(),
+                'error_code' => 'rpc_error',
+            ], 503);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process VIN from image: '.$e->getMessage(),
+                'message' => 'Failed to process VIN from image: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Process VIN from text input.
+     * Process VIN from text input via RPC.
      */
     public function processText(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'vin' => 'required|string|min:17|max:17',
         ]);
 
@@ -81,18 +111,31 @@ class VinOcrController extends Controller
             $userId = $request->user()->id;
             $customer = $this->customerService->getProfile($userId);
 
-            $result = $this->vinOcrService->processVinFromText($customer->id, $request->vin);
+            $rpcResponse = $this->vinOcrClient->processVinText(
+                $validated['vin'],
+                $customer->id,
+                $request->input('vehicle_id')
+            );
+
+            if (!$rpcResponse->isSuccessful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to process VIN',
+                    'error' => $rpcResponse->getError(),
+                ], $rpcResponse->getStatusCode());
+            }
+
+            $result = $rpcResponse->getData();
 
             $response = [
-                'success' => $result['success'],
-                'vin' => $result['vin'],
-                'confidence' => $result['confidence'],
+                'success' => $result['success'] ?? true,
+                'vin' => $result['vin'] ?? $validated['vin'],
+                'confidence' => $result['confidence'] ?? null,
             ];
 
-            if (! $result['success']) {
+            if (!($result['success'] ?? true)) {
                 $response['error'] = $result['error'] ?? 'Failed to process VIN';
                 $response['validation_errors'] = $result['validation_errors'] ?? [];
-
                 return response()->json($response, 422);
             }
 
@@ -105,27 +148,43 @@ class VinOcrController extends Controller
 
             return response()->json($response, 201);
 
+        } catch (RpcException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'RPC communication failed: ' . $e->getMessage(),
+                'error_code' => 'rpc_error',
+            ], 503);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process VIN: '.$e->getMessage(),
+                'message' => 'Failed to process VIN: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Reprocess VIN with manual corrections.
+     * Reprocess VIN with manual corrections via RPC.
      */
     public function reprocess(Request $request, int $vehicleId): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'corrected_vin' => 'required|string|min:17|max:17',
         ]);
 
         try {
-            $result = $this->vinOcrService->reprocessVinWithCorrections($vehicleId, $request->corrected_vin);
+            $rpcResponse = $this->vinOcrClient->reprocessVin($vehicleId, $validated['corrected_vin']);
 
-            if (! $result['success']) {
+            if (!$rpcResponse->isSuccessful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to reprocess VIN',
+                    'error' => $rpcResponse->getError(),
+                ], $rpcResponse->getStatusCode());
+            }
+
+            $result = $rpcResponse->getData();
+
+            if (!($result['success'] ?? true)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to reprocess VIN',
@@ -140,153 +199,130 @@ class VinOcrController extends Controller
                 'extracted_data' => $result['extracted_data'] ?? [],
             ]);
 
+        } catch (RpcException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'RPC communication failed: ' . $e->getMessage(),
+                'error_code' => 'rpc_error',
+            ], 503);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to reprocess VIN: '.$e->getMessage(),
+                'message' => 'Failed to reprocess VIN: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Get OCR processing statistics.
+     * Get OCR processing statistics via RPC.
      */
-    public function stats(): JsonResponse
+    public function stats(Request $request): JsonResponse
     {
         try {
-            $stats = $this->vinOcrService->getOcrStats();
+            $userId = $request->user()?->id;
+            $rpcResponse = $this->vinOcrClient->getOcrStats($userId);
+
+            if (!$rpcResponse->isSuccessful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to get OCR statistics',
+                    'error' => $rpcResponse->getError(),
+                ], $rpcResponse->getStatusCode());
+            }
 
             return response()->json([
                 'success' => true,
-                'data' => $stats,
+                'data' => $rpcResponse->getData(),
             ]);
+
+        } catch (RpcException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'RPC communication failed: ' . $e->getMessage(),
+                'error_code' => 'rpc_error',
+            ], 503);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get OCR statistics: '.$e->getMessage(),
+                'message' => 'Failed to get OCR statistics: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Validate VIN format.
+     * Validate VIN format via RPC.
      */
     public function validateVin(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'vin' => 'required|string|min:17|max:17',
         ]);
 
         try {
-            // Use the VIN OCR service's validation logic
-            $cleanVin = strtoupper(trim($request->vin));
-            $cleanVin = preg_replace('/[^A-HJ-NPR-Z0-9]/', '', $cleanVin);
+            $rpcResponse = $this->vinOcrClient->validateVin($validated['vin']);
 
-            $errors = [];
-
-            // Check length
-            if (strlen($cleanVin) !== 17) {
-                $errors[] = 'VIN must be exactly 17 characters long';
+            if (!$rpcResponse->isSuccessful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to validate VIN',
+                    'error' => $rpcResponse->getError(),
+                ], $rpcResponse->getStatusCode());
             }
-
-            // Check for invalid characters
-            if (preg_match('/[IOQ]/', $cleanVin)) {
-                $errors[] = 'VIN contains invalid characters (I, O, Q are not allowed)';
-            }
-
-            // Check format
-            if (! preg_match('/^[A-HJ-NPR-Z0-9]{17}$/', $cleanVin)) {
-                $errors[] = 'VIN format is invalid';
-            }
-
-            $valid = empty($errors);
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'vin' => $cleanVin,
-                    'valid' => $valid,
-                    'errors' => $errors,
-                    'original_vin' => $request->vin,
-                ],
+                'data' => $rpcResponse->getData(),
             ]);
 
+        } catch (RpcException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'RPC communication failed: ' . $e->getMessage(),
+                'error_code' => 'rpc_error',
+            ], 503);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to validate VIN: '.$e->getMessage(),
+                'message' => 'Failed to validate VIN: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Extract vehicle data from VIN.
+     * Extract vehicle data from VIN via RPC.
      */
     public function extractData(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'vin' => 'required|string|min:17|max:17',
         ]);
 
         try {
-            $cleanVin = strtoupper(trim($request->vin));
-            $cleanVin = preg_replace('/[^A-HJ-NPR-Z0-9]/', '', $cleanVin);
+            $rpcResponse = $this->vinOcrClient->extractVinData($validated['vin']);
 
-            if (strlen($cleanVin) !== 17) {
+            if (!$rpcResponse->isSuccessful()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid VIN length',
-                ], 422);
+                    'message' => 'Failed to extract data from VIN',
+                    'error' => $rpcResponse->getError(),
+                ], $rpcResponse->getStatusCode());
             }
-
-            // Extract basic information from VIN structure
-            $wmi = substr($cleanVin, 0, 3); // World Manufacturer Identifier
-            $vds = substr($cleanVin, 3, 6); // Vehicle Descriptor Section
-            $vis = substr($cleanVin, 9, 8); // Vehicle Identifier Section
-
-            // Decode year from position 10
-            $yearCodes = [
-                'A' => 2010, 'B' => 2011, 'C' => 2012, 'D' => 2013, 'E' => 2014,
-                'F' => 2015, 'G' => 2016, 'H' => 2017, 'J' => 2018, 'K' => 2019,
-                'L' => 2020, 'M' => 2021, 'N' => 2022, 'P' => 2023, 'R' => 2024,
-                '1' => 2001, '2' => 2002, '3' => 2003, '4' => 2004, '5' => 2005,
-                '6' => 2006, '7' => 2007, '8' => 2008, '9' => 2009,
-            ];
-
-            $year = $yearCodes[$cleanVin[9]] ?? null;
-
-            // Try to match brand from WMI
-            $wmiBrands = [
-                '1HG' => 'Honda', '1G1' => 'Chevrolet', 'JH4' => 'Acura',
-                'WBA' => 'BMW', 'WDD' => 'Mercedes-Benz', '4T1' => 'Toyota',
-                'JN1' => 'Nissan', 'KMH' => 'Hyundai', 'KNA' => 'Kia',
-                '5NP' => 'Hyundai', 'SAL' => 'Land Rover', 'WAU' => 'Audi',
-                'WVW' => 'Volkswagen',
-            ];
-
-            $brandName = $wmiBrands[$wmi] ?? null;
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'vin' => $cleanVin,
-                    'year' => $year,
-                    'brand_name' => $brandName,
-                    'wmi' => $wmi,
-                    'vds' => $vds,
-                    'vis' => $vis,
-                    'decoded_sections' => [
-                        'world_manufacturer_identifier' => $wmi,
-                        'vehicle_descriptor_section' => $vds,
-                        'vehicle_identifier_section' => $vis,
-                    ],
-                ],
+                'data' => $rpcResponse->getData(),
             ]);
 
+        } catch (RpcException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'RPC communication failed: ' . $e->getMessage(),
+                'error_code' => 'rpc_error',
+            ], 503);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to extract data from VIN: '.$e->getMessage(),
+                'message' => 'Failed to extract data from VIN: ' . $e->getMessage(),
             ], 500);
         }
     }

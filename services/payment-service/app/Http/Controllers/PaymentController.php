@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
@@ -11,16 +13,19 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Payment Controller - PHP 8.3 & Laravel 12 Implementation
+ * 
+ * Handles payment operations for the payment-service.
+ * Uses modern PHP 8.3 constructor property promotion and proper typing.
+ * Provides both REST endpoints for external consumers and RPC methods for inter-service communication.
+ */
 class PaymentController extends Controller
 {
-    private PaymentService $paymentService;
-    private PaymentGatewayService $gatewayService;
-
-    public function __construct(PaymentService $paymentService, PaymentGatewayService $gatewayService)
-    {
-        $this->paymentService = $paymentService;
-        $this->gatewayService = $gatewayService;
-    }
+    public function __construct(
+        private readonly PaymentService $paymentService,
+        private readonly PaymentGatewayService $gatewayService
+    ) {}
 
     /**
      * List payments for authenticated user (REST API).
