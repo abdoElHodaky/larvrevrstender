@@ -53,32 +53,20 @@ class RpcServiceProvider extends ServiceProvider
 
     /**
      * Register RPC clients for inter-service communication
+     * 
+     * DEPRECATED: RPC clients are now registered via Shared\RPC\Providers\RpcServiceProvider
+     * using modern enum-based service discovery with environment-aware URL generation.
      */
     private function registerRpcClients(): void
     {
-        // Analytics Service RPC Client
-        $this->app->singleton(AnalyticsServiceClient::class, function ($app) {
-            return new AnalyticsServiceClient(
-                config('rpc.analytics_service.base_url', 'http://analytics-service:8080'),
-                config('rpc.analytics_service.timeout', 30)
-            );
-        });
-
-        // VIN OCR Service RPC Client
-        $this->app->singleton(VinOcrServiceClient::class, function ($app) {
-            return new VinOcrServiceClient(
-                config('rpc.vin_ocr_service.base_url', 'http://vin-ocr-service:8080'),
-                config('rpc.vin_ocr_service.timeout', 60)
-            );
-        });
-
-        // Payment Service RPC Client
-        $this->app->singleton(PaymentServiceClient::class, function ($app) {
-            return new PaymentServiceClient(
-                config('rpc.payment_service.base_url', 'http://payment-service:8080'),
-                config('rpc.payment_service.timeout', 30)
-            );
-        });
+        // Legacy RPC client registrations removed - using modern RPC clients via Shared\RPC\Providers\RpcServiceProvider
+        
+        // The following clients are now automatically registered by the shared provider:
+        // - AnalyticsServiceClient (analytics-service:8007)
+        // - VinOcrServiceClient (vin-ocr-service:8008) 
+        // - PaymentServiceClient (payment-service:8004)
+        //
+        // URLs are generated based on environment (local/docker/kubernetes) using ServiceType enum
     }
 
     /**

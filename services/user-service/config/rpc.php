@@ -42,27 +42,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Service Base URLs
+    | Service Base URLs - DEPRECATED
     |--------------------------------------------------------------------------
     |
-    | Base URLs for each microservice in the ecosystem. These can be
-    | overridden per environment using environment variables.
+    | Service URLs are now automatically generated using ServiceType enum
+    | with environment-aware discovery (local/docker/kubernetes).
+    | 
+    | Modern approach uses:
+    | - analytics-service:8007 (not :8080)
+    | - payment-service:8004 (not :8080) 
+    | - vin-ocr-service:8008 (not :8080)
+    |
+    | URLs are resolved via Shared\RPC\Enums\ServiceType::getBaseUrl()
     |
     */
-    'analytics_service' => [
-        'base_url' => env('RPC_ANALYTICS_SERVICE_URL', 'http://analytics-service:8080'),
-        'timeout' => env('RPC_ANALYTICS_SERVICE_TIMEOUT', 30),
-    ],
-
-    'payment_service' => [
-        'base_url' => env('RPC_PAYMENT_SERVICE_URL', 'http://payment-service:8080'),
-        'timeout' => env('RPC_PAYMENT_SERVICE_TIMEOUT', 30),
-    ],
-
-    'vin_ocr_service' => [
-        'base_url' => env('RPC_VIN_OCR_SERVICE_URL', 'http://vin-ocr-service:8080'),
-        'timeout' => env('RPC_VIN_OCR_SERVICE_TIMEOUT', 60),
-    ],
 
     /*
     |--------------------------------------------------------------------------
