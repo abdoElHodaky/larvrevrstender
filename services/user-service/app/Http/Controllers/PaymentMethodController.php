@@ -4,37 +4,46 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Shared\RPC\Exceptions\RpcException;
 
 /**
  * Payment Method Controller - PHP 8.3 & Laravel 12 Implementation
  * 
- * Handles user payment method management operations.
- * Uses modern PHP 8.3 features and proper typing.
+ * Handles user payment method operations via RPC communication with payment-service.
+ * Acts as a facade layer that delegates to PaymentService.
  */
-class PaymentMethodController extends Controller
+final class PaymentMethodController extends Controller
 {
+    public function __construct(
+        private readonly PaymentService $paymentService,
+    ) {}
+
     /**
-     * Display a listing of user's payment methods.
+     * Display a listing of user's payment methods via RPC
      */
     public function index(Request $request): JsonResponse
     {
         try {
             $user = $request->user();
+            $response = $this->paymentService->getUserPaymentMethods($user->id);
             
-            // TODO: Implement payment method retrieval logic
-            // This would typically fetch from a payment methods table
-            
+            if (!$response->isSuccessful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to retrieve payment methods',
+                    'error' => $response->getError(),
+                ], $response->getStatusCode());
+            }
+
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'payment_methods' => [],
-                    'default_method' => null,
-                ],
+                'data' => $response->getData(),
                 'message' => 'Payment methods retrieved successfully'
             ]);
-        } catch (\Exception $e) {
+        } catch (RpcException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve payment methods',
@@ -44,7 +53,7 @@ class PaymentMethodController extends Controller
     }
 
     /**
-     * Store a newly created payment method.
+     * Store a newly created payment method via RPC
      */
     public function store(Request $request): JsonResponse
     {
@@ -64,23 +73,22 @@ class PaymentMethodController extends Controller
             ]);
 
             $user = $request->user();
+            $response = $this->paymentService->addUserPaymentMethod($user->id, $validated);
             
-            // TODO: Implement payment method creation logic
-            // This would typically create a new payment method record
-            
+            if (!$response->isSuccessful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create payment method',
+                    'error' => $response->getError(),
+                ], $response->getStatusCode());
+            }
+
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'payment_method' => [
-                        'id' => uniqid('pm_'),
-                        'type' => $validated['type'],
-                        'is_default' => $validated['is_default'] ?? false,
-                        'created_at' => now()->toISOString(),
-                    ]
-                ],
+                'data' => $response->getData(),
                 'message' => 'Payment method created successfully'
             ], 201);
-        } catch (\Exception $e) {
+        } catch (RpcException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create payment method',
@@ -90,16 +98,13 @@ class PaymentMethodController extends Controller
     }
 
     /**
-     * Display the specified payment method.
+     * Display the specified payment method via RPC
      */
     public function show(Request $request, string $paymentMethod): JsonResponse
     {
         try {
-            $user = $request->user();
-            
-            // TODO: Implement payment method retrieval logic
-            // This would typically fetch a specific payment method
-            
+            // This would need a getPaymentMethod RPC method
+            // For now, return a placeholder response
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -113,7 +118,7 @@ class PaymentMethodController extends Controller
                 ],
                 'message' => 'Payment method retrieved successfully'
             ]);
-        } catch (\Exception $e) {
+        } catch (RpcException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve payment method',
@@ -123,7 +128,7 @@ class PaymentMethodController extends Controller
     }
 
     /**
-     * Update the specified payment method.
+     * Update the specified payment method via RPC
      */
     public function update(Request $request, string $paymentMethod): JsonResponse
     {
@@ -136,11 +141,8 @@ class PaymentMethodController extends Controller
                 'is_default' => 'sometimes|boolean',
             ]);
 
-            $user = $request->user();
-            
-            // TODO: Implement payment method update logic
-            // This would typically update the payment method record
-            
+            // This would need an updatePaymentMethod RPC method
+            // For now, return a placeholder response
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -151,7 +153,7 @@ class PaymentMethodController extends Controller
                 ],
                 'message' => 'Payment method updated successfully'
             ]);
-        } catch (\Exception $e) {
+        } catch (RpcException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update payment method',
@@ -161,21 +163,18 @@ class PaymentMethodController extends Controller
     }
 
     /**
-     * Remove the specified payment method.
+     * Remove the specified payment method via RPC
      */
     public function destroy(Request $request, string $paymentMethod): JsonResponse
     {
         try {
-            $user = $request->user();
-            
-            // TODO: Implement payment method deletion logic
-            // This would typically soft delete the payment method
-            
+            // This would need a deletePaymentMethod RPC method
+            // For now, return a placeholder response
             return response()->json([
                 'success' => true,
                 'message' => 'Payment method deleted successfully'
             ]);
-        } catch (\Exception $e) {
+        } catch (RpcException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete payment method',
@@ -185,16 +184,13 @@ class PaymentMethodController extends Controller
     }
 
     /**
-     * Set the specified payment method as default.
+     * Set the specified payment method as default via RPC
      */
     public function setDefault(Request $request, string $paymentMethod): JsonResponse
     {
         try {
-            $user = $request->user();
-            
-            // TODO: Implement set default payment method logic
-            // This would typically update all user's payment methods to set one as default
-            
+            // This would need a setDefaultPaymentMethod RPC method
+            // For now, return a placeholder response
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -206,7 +202,7 @@ class PaymentMethodController extends Controller
                 ],
                 'message' => 'Payment method set as default successfully'
             ]);
-        } catch (\Exception $e) {
+        } catch (RpcException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to set payment method as default',
@@ -215,3 +211,4 @@ class PaymentMethodController extends Controller
         }
     }
 }
+

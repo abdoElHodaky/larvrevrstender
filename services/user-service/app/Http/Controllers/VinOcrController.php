@@ -6,9 +6,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\VehicleResource;
 use App\Services\CustomerService;
+use App\Services\VinOcrService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Shared\RPC\Clients\VinOcrServiceClient;
 use Shared\RPC\Exceptions\RpcException;
 
 /**
@@ -20,7 +20,7 @@ use Shared\RPC\Exceptions\RpcException;
 class VinOcrController extends Controller
 {
     public function __construct(
-        private readonly VinOcrServiceClient $vinOcrClient,
+        private readonly VinOcrService $vinOcrService,
         private readonly CustomerService $customerService
     ) {}
 
@@ -48,7 +48,7 @@ class VinOcrController extends Controller
                 'confidence_threshold' => $request->input('confidence_threshold', 0.8),
             ];
 
-            $rpcResponse = $this->vinOcrClient->processVinImage($imageData);
+            $rpcResponse = $this->vinOcrService->processVinFromImage($imageData);
 
             if (!$rpcResponse->isSuccessful()) {
                 return response()->json([
@@ -111,7 +111,7 @@ class VinOcrController extends Controller
             $userId = $request->user()->id;
             $customer = $this->customerService->getProfile($userId);
 
-            $rpcResponse = $this->vinOcrClient->processVinText(
+            $rpcResponse = $this->vinOcrService->processVinFromText(
                 $validated['vin'],
                 $customer->id,
                 $request->input('vehicle_id')
@@ -172,7 +172,7 @@ class VinOcrController extends Controller
         ]);
 
         try {
-            $rpcResponse = $this->vinOcrClient->reprocessVin($vehicleId, $validated['corrected_vin']);
+            $rpcResponse = $this->vinOcrService->reprocessVin($vehicleId, $validated['corrected_vin']);
 
             if (!$rpcResponse->isSuccessful()) {
                 return response()->json([
@@ -220,7 +220,7 @@ class VinOcrController extends Controller
     {
         try {
             $userId = $request->user()?->id;
-            $rpcResponse = $this->vinOcrClient->getOcrStats($userId);
+            $rpcResponse = $this->vinOcrService->getOcrStats($userId);
 
             if (!$rpcResponse->isSuccessful()) {
                 return response()->json([
@@ -259,7 +259,7 @@ class VinOcrController extends Controller
         ]);
 
         try {
-            $rpcResponse = $this->vinOcrClient->validateVin($validated['vin']);
+            $rpcResponse = $this->vinOcrService->validateVin($validated['vin']);
 
             if (!$rpcResponse->isSuccessful()) {
                 return response()->json([
@@ -298,7 +298,7 @@ class VinOcrController extends Controller
         ]);
 
         try {
-            $rpcResponse = $this->vinOcrClient->extractVinData($validated['vin']);
+            $rpcResponse = $this->vinOcrService->extractVinData($validated['vin']);
 
             if (!$rpcResponse->isSuccessful()) {
                 return response()->json([
