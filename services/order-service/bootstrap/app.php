@@ -41,6 +41,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
             'db.failover' => \Shared\Middleware\DatabaseFailoverMiddleware::class,
+            // Inter-service Authentication
+            'service.auth' => \App\Http\Middleware\ServiceAuthentication::class,
             // Modern RPC Middleware
             'rpc.correlation' => \Shared\RPC\Middleware\CorrelationIdMiddleware::class,
             'rpc.auth' => \Shared\RPC\Middleware\RpcAuthMiddleware::class,
