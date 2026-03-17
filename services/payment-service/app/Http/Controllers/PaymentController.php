@@ -50,18 +50,19 @@ class PaymentController extends Controller
             Log::error('Failed to list payments', [
                 'user_id' => $request->user()?->id,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
             
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to retrieve payments',
+                'error' => 'payment_list_failed',
                 'message' => 'An error occurred while fetching your payments.',
             ], 500);
         }
     }
 
     /**
-     * Create a new payment (REST API).
+     * Create a new payment (REST API) - PHP 8.3 Enhanced.
      */
     public function create(Request $request): JsonResponse
     {
@@ -86,7 +87,9 @@ class PaymentController extends Controller
                     'payment' => $payment,
                     'payment_reference' => $payment->payment_reference,
                     'status' => $payment->status,
-                    'requires_3ds' => $payment->requires_3ds,
+                    'requires_3ds' => $payment->requires_3ds ?? false,
+                    'amount' => $payment->amount,
+                    'currency' => $payment->currency,
                 ],
                 'message' => 'Payment initiated successfully',
             ], 201);
@@ -100,20 +103,22 @@ class PaymentController extends Controller
             ], 422);
         } catch (\Exception $e) {
             Log::error('Failed to create payment', [
-                'request_data' => $request->all(),
+                'request_data' => $request->except(['card_token', 'mobile_number']), // Exclude sensitive data
+                'user_id' => $request->user()?->id,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'error' => 'payment_creation_failed',
-                'message' => $e->getMessage(),
+                'message' => 'Failed to create payment. Please try again.',
             ], 400);
         }
     }
 
     /**
-     * Show payment details (REST API).
+     * Show payment details (REST API) - PHP 8.3 Enhanced.
      */
     public function show(Request $request, Payment $payment): JsonResponse
     {
@@ -134,6 +139,11 @@ class PaymentController extends Controller
                 'data' => [
                     'payment' => $payment->load(['invoice']),
                     'stats' => $paymentStats,
+                    'meta' => [
+                        'can_refund' => $payment->canBeRefunded(),
+                        'can_cancel' => $payment->canBeCancelled(),
+                        'is_successful' => $payment->isSuccessful(),
+                    ],
                 ],
             ]);
         } catch (\Exception $e) {
@@ -141,6 +151,7 @@ class PaymentController extends Controller
                 'payment_id' => $payment->id,
                 'user_id' => $request->user()?->id,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -369,7 +380,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * Get payment status for inter-service communication.
+     * Get payment status for inter-service communication (RPC) - PHP 8.3 Enhanced.
      */
     public function getPaymentStatus(Request $request, int $paymentId): JsonResponse
     {
@@ -385,7 +396,15 @@ class PaymentController extends Controller
                     'status' => $payment->status,
                     'amount' => $payment->amount,
                     'currency' => $payment->currency,
+                    'customer_id' => $payment->customer_id,
+                    'created_at' => $payment->created_at,
+                    'updated_at' => $payment->updated_at,
                     'stats' => $stats,
+                    'meta' => [
+                        'is_successful' => $payment->isSuccessful(),
+                        'is_pending' => $payment->isPending(),
+                        'can_be_refunded' => $payment->canBeRefunded(),
+                    ],
                 ],
             ]);
 
@@ -399,6 +418,7 @@ class PaymentController extends Controller
             Log::error('RPC payment status retrieval failed', [
                 'payment_id' => $paymentId,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -410,7 +430,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * Refund payment for inter-service communication.
+     * Refund payment for inter-service communication (RPC) - PHP 8.3 Enhanced.
      */
     public function refundPayment(Request $request, int $paymentId): JsonResponse
     {
@@ -419,6 +439,7 @@ class PaymentController extends Controller
                 'amount' => 'required|numeric|min:0.01',
                 'reason' => 'nullable|string|max:255',
                 'workflow_id' => 'nullable|string',
+                'refund_type' => 'nullable|string|in:full,partial',
             ]);
 
             $refund = $this->paymentService->processRefund(
@@ -432,23 +453,35 @@ class PaymentController extends Controller
                 'data' => [
                     'refund_id' => $refund->id,
                     'refund_reference' => $refund->payment_reference,
+                    'original_payment_id' => $paymentId,
                     'amount' => $refund->amount,
                     'status' => $refund->status,
+                    'reason' => $validated['reason'] ?? 'Refund requested via RPC',
                     'workflow_id' => $validated['workflow_id'] ?? null,
+                    'processed_at' => $refund->created_at,
                 ],
+                'message' => 'Refund processed successfully',
             ]);
 
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'validation_failed',
+                'message' => 'Invalid refund data provided.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             Log::error('RPC payment refund failed', [
                 'payment_id' => $paymentId,
-                'request_data' => $request->all(),
+                'request_data' => $request->except(['workflow_id']), // Exclude internal workflow data
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'error' => 'rpc_refund_failed',
-                'message' => $e->getMessage(),
+                'message' => 'Failed to process refund. Please try again.',
             ], 400);
         }
     }
@@ -543,17 +576,18 @@ class PaymentController extends Controller
     }
 
     /**
-     * Validate payment data for inter-service communication.
+     * Validate payment data for inter-service communication (RPC) - PHP 8.3 Enhanced.
      */
     public function validatePayment(Request $request): JsonResponse
     {
         try {
             $paymentData = $request->validate([
-                'payment_method' => 'required|string',
-                'amount' => 'required|numeric|min:0.01',
-                'currency' => 'required|string|size:3',
+                'payment_method' => 'required|string|in:card,bank_transfer,wallet,cash',
+                'amount' => 'required|numeric|min:0.01|max:999999.99',
+                'currency' => 'required|string|size:3|in:USD,EUR,SAR,AED',
                 'card_last_four' => 'required_if:payment_method,card|string|size:4',
-                'card_brand' => 'required_if:payment_method,card|string',
+                'card_brand' => 'required_if:payment_method,card|string|in:visa,mastercard,amex,mada',
+                'payment_provider' => 'nullable|string|in:stripe,paypal,mada,stc_pay',
             ]);
 
             // Use existing validation logic from PaymentService
@@ -564,15 +598,31 @@ class PaymentController extends Controller
                 'data' => [
                     'valid' => $validation['valid'],
                     'errors' => $validation['errors'] ?? [],
+                    'warnings' => $validation['warnings'] ?? [],
+                    'validated_data' => $validation['valid'] ? $paymentData : null,
                 ],
+                'message' => $validation['valid'] ? 'Payment data is valid' : 'Payment data validation failed',
             ]);
 
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'validation_failed',
+                'message' => 'Invalid payment data format.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
+            Log::error('RPC payment validation failed', [
+                'request_data' => $request->except(['card_last_four']), // Exclude sensitive data
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'error' => 'validation_error',
-                'message' => $e->getMessage(),
-            ], 400);
+                'message' => 'Payment validation service error.',
+            ], 500);
         }
     }
 
