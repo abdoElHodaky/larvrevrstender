@@ -6,6 +6,10 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Shared\Services\FileUploadService;
+use App\Services\PaymentService;
+use App\Services\VinOcrService;
+use Shared\RPC\Clients\PaymentServiceClient;
+use Shared\RPC\Clients\VinOcrServiceClient;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,6 +26,20 @@ class AppServiceProvider extends ServiceProvider
         // Register FileUploadService for user-service
         $this->app->singleton(FileUploadService::class, function ($app) {
             return new FileUploadService('user-service');
+        });
+
+        // Register PaymentService with PaymentServiceClient dependency
+        $this->app->singleton(PaymentService::class, function ($app) {
+            return new PaymentService(
+                $app->make(PaymentServiceClient::class)
+            );
+        });
+
+        // Register VinOcrService with VinOcrServiceClient dependency
+        $this->app->singleton(VinOcrService::class, function ($app) {
+            return new VinOcrService(
+                $app->make(VinOcrServiceClient::class)
+            );
         });
     }
 

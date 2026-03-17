@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Sajya\Server\ServerServiceProvider;
+use Shared\RPC\Clients\PaymentServiceClient;
+use Shared\RPC\Clients\VinOcrServiceClient;
+use Shared\RPC\Clients\AnalyticsServiceClient;
 
 class RpcServiceProvider extends ServiceProvider
 {
@@ -54,11 +57,28 @@ class RpcServiceProvider extends ServiceProvider
     private function registerRpcClients(): void
     {
         // Analytics Service RPC Client
+        $this->app->singleton(AnalyticsServiceClient::class, function ($app) {
+            return new AnalyticsServiceClient(
+                config('rpc.analytics_service.base_url', 'http://analytics-service:8080'),
+                config('rpc.analytics_service.timeout', 30)
+            );
+        });
 
         // VIN OCR Service RPC Client
+        $this->app->singleton(VinOcrServiceClient::class, function ($app) {
+            return new VinOcrServiceClient(
+                config('rpc.vin_ocr_service.base_url', 'http://vin-ocr-service:8080'),
+                config('rpc.vin_ocr_service.timeout', 60)
+            );
+        });
 
-        // Register RPC clients with interface bindings for dependency injection
-
+        // Payment Service RPC Client
+        $this->app->singleton(PaymentServiceClient::class, function ($app) {
+            return new PaymentServiceClient(
+                config('rpc.payment_service.base_url', 'http://payment-service:8080'),
+                config('rpc.payment_service.timeout', 30)
+            );
+        });
     }
 
     /**

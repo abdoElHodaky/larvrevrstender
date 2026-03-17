@@ -136,4 +136,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{paymentMethod}', [App\Http\Controllers\PaymentMethodController::class, 'destroy']);
         Route::post('/{paymentMethod}/set-default', [App\Http\Controllers\PaymentMethodController::class, 'setDefault']);
     });
+
+    // VIN OCR Processing routes
+    Route::prefix('vin-ocr')->group(function () {
+        Route::post('/process-image', [App\Http\Controllers\VinOcrController::class, 'processImage']);
+        Route::post('/process-text', [App\Http\Controllers\VinOcrController::class, 'processText']);
+        Route::post('/validate', [App\Http\Controllers\VinOcrController::class, 'validateVin']);
+        Route::post('/reprocess/{vehicleId}', [App\Http\Controllers\VinOcrController::class, 'reprocessVin']);
+        Route::get('/stats', [App\Http\Controllers\VinOcrController::class, 'getStats']);
+        Route::post('/extract-data', [App\Http\Controllers\VinOcrController::class, 'extractData']);
+    });
 });
