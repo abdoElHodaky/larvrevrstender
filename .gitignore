@@ -3,13 +3,14 @@
 .env.local
 .env.production
 .env.staging
-.env.testing
+# .env.testing - Allow testing configs (safe, standardized)
 
 # Service-specific environment files
 services/*/.env
 services/*/.env.local
 services/*/.env.production
 services/*/.env.staging
+# services/*/.env.testing - Allow testing configs (safe, standardized)
 
 # Laravel specific
 /vendor/
