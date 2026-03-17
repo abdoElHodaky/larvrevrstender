@@ -40,9 +40,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'jwt.auth' => \Tymon\JWTAuth\Http\Middleware\Authenticate::class,
             'jwt.refresh' => \Tymon\JWTAuth\Http\Middleware\RefreshToken::class,
             'db.failover' => \Shared\Middleware\DatabaseFailoverMiddleware::class,
+            // Inter-service Authentication
+            'service.auth' => \App\Http\Middleware\ServiceAuthentication::class,
             // Modern RPC Middleware
             'rpc.correlation' => \Shared\RPC\Middleware\CorrelationIdMiddleware::class,
             'rpc.auth' => \Shared\RPC\Middleware\RpcAuthMiddleware::class,
+            'rpc.performance' => \App\Http\Middleware\RpcPerformanceMiddleware::class,
+            'rpc.logging' => \App\Http\Middleware\RpcLoggingMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
