@@ -42,6 +42,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Service Base URLs
+    |--------------------------------------------------------------------------
+    |
+    | Base URLs for each microservice in the ecosystem. These can be
+    | overridden per environment using environment variables.
+    |
+    */
+    'analytics_service' => [
+        'base_url' => env('RPC_ANALYTICS_SERVICE_URL', 'http://analytics-service:8080'),
+        'timeout' => env('RPC_ANALYTICS_SERVICE_TIMEOUT', 30),
+    ],
+
+    'payment_service' => [
+        'base_url' => env('RPC_PAYMENT_SERVICE_URL', 'http://payment-service:8080'),
+        'timeout' => env('RPC_PAYMENT_SERVICE_TIMEOUT', 30),
+    ],
+
+    'vin_ocr_service' => [
+        'base_url' => env('RPC_VIN_OCR_SERVICE_URL', 'http://vin-ocr-service:8080'),
+        'timeout' => env('RPC_VIN_OCR_SERVICE_TIMEOUT', 60),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Timeouts & Retries
     |--------------------------------------------------------------------------
     |
