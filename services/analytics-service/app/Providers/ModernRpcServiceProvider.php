@@ -13,6 +13,7 @@ use Shared\RPC\Clients\BiddingServiceClient;
 use Shared\RPC\Clients\PaymentServiceClient;
 use Shared\RPC\Clients\OrderServiceClient;
 use Shared\RPC\Clients\NotificationServiceClient;
+use Shared\RPC\Clients\VinOcrServiceClient;
 
 /**
  * Modern RPC Service Provider - PHP 8.3 & Laravel 12 Implementation
@@ -66,6 +67,10 @@ class ModernRpcServiceProvider extends ServiceProvider
 
         $this->app->bind('rpc.notification', function ($app) {
             return $app->make(NotificationServiceClient::class);
+        });
+
+        $this->app->bind('rpc.vin-ocr', function ($app) {
+            return $app->make(VinOcrServiceClient::class);
         });
     }
 

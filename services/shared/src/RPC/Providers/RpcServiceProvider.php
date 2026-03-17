@@ -14,6 +14,7 @@ use Shared\RPC\Clients\NotificationServiceClient;
 use Shared\RPC\Clients\OrderServiceClient;
 use Shared\RPC\Clients\PaymentServiceClient;
 use Shared\RPC\Clients\UserServiceClient;
+use Shared\RPC\Clients\VinOcrServiceClient;
 use Shared\Health\HealthChecker;
 
 /**
@@ -89,6 +90,11 @@ class RpcServiceProvider extends ServiceProvider
         $this->app->singleton(AnalyticsServiceClient::class, function ($app) use ($environment) {
             return new AnalyticsServiceClient($app->make(HttpFactory::class), $environment);
         });
+
+        // VIN OCR Service Client
+        $this->app->singleton(VinOcrServiceClient::class, function ($app) use ($environment) {
+            return new VinOcrServiceClient($app->make(HttpFactory::class), $environment);
+        });
     }
 
     /**
@@ -114,6 +120,7 @@ class RpcServiceProvider extends ServiceProvider
                 'order' => $app->make(OrderServiceClient::class),
                 'notification' => $app->make(NotificationServiceClient::class),
                 'analytics' => $app->make(AnalyticsServiceClient::class),
+                'vin-ocr' => $app->make(VinOcrServiceClient::class),
             ];
 
             foreach ($rpcClients as $name => $client) {
@@ -139,6 +146,7 @@ class RpcServiceProvider extends ServiceProvider
                 'order' => $app->make(OrderServiceClient::class),
                 'notification' => $app->make(NotificationServiceClient::class),
                 'analytics' => $app->make(AnalyticsServiceClient::class),
+                'vin-ocr' => $app->make(VinOcrServiceClient::class),
             ];
         });
     }
@@ -179,6 +187,7 @@ class RpcServiceProvider extends ServiceProvider
             OrderServiceClient::class,
             NotificationServiceClient::class,
             AnalyticsServiceClient::class,
+            VinOcrServiceClient::class,
             HealthChecker::class,
             'rpc.clients',
         ];
