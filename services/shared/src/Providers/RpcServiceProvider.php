@@ -6,14 +6,14 @@ namespace Shared\Providers;
 
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\ServiceProvider;
-use Shared\Clients\AnalyticsServiceClient;
-use Shared\Clients\AuctionServiceClient;
-use Shared\Clients\AuthServiceClient;
-use Shared\Clients\BiddingServiceClient;
-use Shared\Clients\NotificationServiceClient;
-use Shared\Clients\OrderServiceClient;
-use Shared\Clients\PaymentServiceClient;
-use Shared\Clients\UserServiceClient;
+use Shared\RPC\Clients\AnalyticsServiceClient;
+use Shared\RPC\Clients\AuctionServiceClient;
+use Shared\RPC\Clients\AuthServiceClient;
+use Shared\RPC\Clients\BiddingServiceClient;
+use Shared\RPC\Clients\NotificationServiceClient;
+use Shared\RPC\Clients\OrderServiceClient;
+use Shared\RPC\Clients\PaymentServiceClient;
+use Shared\RPC\Clients\UserServiceClient;
 use Shared\RPC\Clients\VinOcrServiceClient;
 use Shared\Health\HealthChecker;
 
