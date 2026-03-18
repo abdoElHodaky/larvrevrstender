@@ -20,6 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // Database Failover Middleware - CRITICAL for system reliability
         $middleware->append(\Shared\Middleware\DatabaseFailoverMiddleware::class);
+        
+        // Custom CORS Middleware - Enhanced security for Laravel 12 & PHP 8.3
+        $middleware->append(\Shared\Http\Middleware\CustomCorsMiddleware::class);
 
         // API middleware stack with Sanctum for stateful requests
         $middleware->api(prepend: [
@@ -41,6 +44,9 @@ return Application::configure(basePath: dirname(__DIR__))
             // Modern RPC Middleware
             'rpc.correlation' => \Shared\RPC\Middleware\CorrelationIdMiddleware::class,
             'rpc.auth' => \Shared\RPC\Middleware\RpcAuthMiddleware::class,
+            'rpc.ratelimit' => \Shared\Middleware\RpcRateLimitMiddleware::class,
+            // Custom CORS Middleware
+            'cors.custom' => \Shared\Http\Middleware\CustomCorsMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
