@@ -8,6 +8,7 @@ use App\Services\OtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Mockery;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class AuthServiceIntegrationTest extends TestCase
@@ -33,7 +34,7 @@ class AuthServiceIntegrationTest extends TestCase
         parent::tearDown();
     }
 
-    /** @test */
+    #[Test]
     public function it_can_register_a_new_user_successfully()
     {
         // Mock OTP service
@@ -83,7 +84,7 @@ class AuthServiceIntegrationTest extends TestCase
         $this->assertTrue($user->metadata['marketing_consent']);
     }
 
-    /** @test */
+    #[Test]
     public function it_prevents_duplicate_phone_registration()
     {
         // Create existing user
@@ -103,7 +104,7 @@ class AuthServiceIntegrationTest extends TestCase
         $this->assertEquals('Phone number already registered', $result['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_login_with_security_features()
     {
         // Create test user
@@ -132,7 +133,7 @@ class AuthServiceIntegrationTest extends TestCase
         $this->assertEquals(1, $user->login_count);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_login_for_inactive_users()
     {
         // Create inactive user
@@ -152,7 +153,7 @@ class AuthServiceIntegrationTest extends TestCase
         $this->assertEquals('Account is not active', $result['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_send_password_reset_otp()
     {
         // Create test user
@@ -176,7 +177,7 @@ class AuthServiceIntegrationTest extends TestCase
         $this->assertStringContainsString('reset code sent', $result['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_supports_login_with_both_phone_and_email()
     {
         // Create test user

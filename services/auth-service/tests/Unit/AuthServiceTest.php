@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Services\OtpService;
 use Mockery;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class AuthServiceTest extends TestCase
@@ -24,13 +25,13 @@ class AuthServiceTest extends TestCase
         parent::tearDown();
     }
 
-    /** @test */
+    #[Test]
     public function it_can_instantiate_otp_service()
     {
         $this->assertInstanceOf(OtpService::class, $this->otpService);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_saudi_phone_number_format()
     {
         // Test valid Saudi phone number formats
@@ -60,7 +61,7 @@ class AuthServiceTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_password_strength_requirements()
     {
         // Test password validation logic
@@ -103,7 +104,7 @@ class AuthServiceTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_email_format()
     {
         $validEmails = [
@@ -130,7 +131,7 @@ class AuthServiceTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_name_length_requirements()
     {
         // Test name length validation logic

@@ -3471,3 +3471,189 @@
 [2026-03-18 10:14:55] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
 [2026-03-18 10:14:55] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
 [2026-03-18 10:14:55] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:55:47] testing.ERROR: Registration failed: Phone number already registered  
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:55:47] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-03-18 10:55:47] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:55:47] testing.WARNING: Login attempt failed {"identifier":"+966501234567","ip":"127.0.0.1","error":"Account is not active"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:47] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:55:47] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-03-18 10:55:47] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-03-18 10:55:47] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-03-18 10:55:47] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:55:54] testing.ERROR: Registration failed: Phone number already registered  
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:55:54] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-03-18 10:55:54] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:55:54] testing.WARNING: Login attempt failed {"identifier":"+966501234567","ip":"127.0.0.1","error":"Account is not active"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:55:54] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:55:54] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-03-18 10:55:54] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-03-18 10:55:54] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-03-18 10:55:54] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:57:50] testing.ERROR: Registration failed: Phone number already registered  
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:57:50] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-03-18 10:57:50] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:57:50] testing.WARNING: Login attempt failed {"identifier":"+966501234567","ip":"127.0.0.1","error":"Account is not active"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:57:50] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:57:50] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-03-18 10:57:50] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
+[2026-03-18 10:57:50] testing.WARNING: Token creation failed, using fallback {"error":"Call to undefined method App\\Models\\User::createToken()"} 
+[2026-03-18 10:57:50] testing.INFO: User logged in successfully {"user_id":1,"ip":"127.0.0.1","user_agent":"Symfony"} 
