@@ -89,3 +89,769 @@
 [2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
 [2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
 [2026-03-16 12:13:44] local.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:12:15] production.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:12:15] production.ERROR: Command "test" is not defined.
+
+Did you mean one of these?
+    make:test
+    schedule:test {"exception":"[object] (Symfony\\Component\\Console\\Exception\\CommandNotFoundException(code: 0): Command \"test\" is not defined.
+
+Did you mean one of these?
+    make:test
+    schedule:test at /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/symfony/console/Application.php:759)
+[stacktrace]
+#0 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/symfony/console/Application.php(298): Symfony\\Component\\Console\\Application->find()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/symfony/console/Application.php(195): Symfony\\Component\\Console\\Application->doRun()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
+#4 {main}
+"} 
+[2026-03-18 09:12:20] production.ERROR: could not find driver (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: laravel, SQL: select count(*) as aggregate from `telescope_entries` where `type` = exception and `family_hash` = ae5ea3862197ae176f562e0543d51f08) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 0): could not find driver (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: laravel, SQL: select count(*) as aggregate from `telescope_entries` where `type` = exception and `family_hash` = ae5ea3862197ae176f562e0543d51f08) at /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connection.php:838)
+[stacktrace]
+#0 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connection.php(794): Illuminate\\Database\\Connection->runQueryCallback()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connection.php(411): Illuminate\\Database\\Connection->run()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3438): Illuminate\\Database\\Connection->select()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3423): Illuminate\\Database\\Query\\Builder->runSelect()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(4013): Illuminate\\Database\\Query\\Builder->Illuminate\\Database\\Query\\{closure}()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3422): Illuminate\\Database\\Query\\Builder->onceWithColumns()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3937): Illuminate\\Database\\Query\\Builder->get()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3865): Illuminate\\Database\\Query\\Builder->aggregate()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Storage/DatabaseEntriesRepository.php(123): Illuminate\\Database\\Query\\Builder->count()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Storage/DatabaseEntriesRepository.php(165): Laravel\\Telescope\\Storage\\DatabaseEntriesRepository->countExceptionOccurences()
+#10 [internal function]: Laravel\\Telescope\\Storage\\DatabaseEntriesRepository->Laravel\\Telescope\\Storage\\{closure}()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Collections/Arr.php(840): array_map()
+#12 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Collections/Collection.php(829): Illuminate\\Support\\Arr::map()
+#13 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Storage/DatabaseEntriesRepository.php(164): Illuminate\\Support\\Collection->map()
+#14 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Collections/Traits/EnumeratesValues.php(275): Laravel\\Telescope\\Storage\\DatabaseEntriesRepository->Laravel\\Telescope\\Storage\\{closure}()
+#15 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Storage/DatabaseEntriesRepository.php(163): Illuminate\\Support\\Collection->each()
+#16 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Storage/DatabaseEntriesRepository.php(140): Laravel\\Telescope\\Storage\\DatabaseEntriesRepository->storeExceptions()
+#17 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Telescope.php(664): Laravel\\Telescope\\Storage\\DatabaseEntriesRepository->store()
+#18 [internal function]: Laravel\\Telescope\\Telescope::Laravel\\Telescope\\{closure}()
+#19 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Telescope.php(289): call_user_func()
+#20 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Telescope.php(656): Laravel\\Telescope\\Telescope::withoutRecording()
+#21 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/ListensForStorageOpportunities.php(65): Laravel\\Telescope\\Telescope::store()
+#22 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Laravel\\Telescope\\Telescope::Laravel\\Telescope\\{closure}()
+#23 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#24 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(84): Illuminate\\Container\\Util::unwrapIfClosure()
+#25 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#26 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(799): Illuminate\\Container\\BoundMethod::call()
+#27 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1466): Illuminate\\Container\\Container->call()
+#28 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(219): Illuminate\\Foundation\\Application->terminate()
+#29 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/artisan(51): Illuminate\\Foundation\\Console\\Kernel->terminate()
+#30 {main}
+
+[previous exception] [object] (PDOException(code: 0): could not find driver at /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connectors/Connector.php:66)
+[stacktrace]
+#0 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connectors/Connector.php(66): PDO->__construct()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connectors/Connector.php(44): Illuminate\\Database\\Connectors\\Connector->createPdoConnection()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connectors/MySqlConnector.php(24): Illuminate\\Database\\Connectors\\Connector->createConnection()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php(186): Illuminate\\Database\\Connectors\\MySqlConnector->connect()
+#4 [internal function]: Illuminate\\Database\\Connectors\\ConnectionFactory->Illuminate\\Database\\Connectors\\{closure}()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connection.php(1257): call_user_func()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connection.php(1295): Illuminate\\Database\\Connection->getPdo()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connection.php(525): Illuminate\\Database\\Connection->getReadPdo()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connection.php(420): Illuminate\\Database\\Connection->getPdoForSelect()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connection.php(827): Illuminate\\Database\\Connection->Illuminate\\Database\\{closure}()
+#10 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connection.php(794): Illuminate\\Database\\Connection->runQueryCallback()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Connection.php(411): Illuminate\\Database\\Connection->run()
+#12 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3438): Illuminate\\Database\\Connection->select()
+#13 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3423): Illuminate\\Database\\Query\\Builder->runSelect()
+#14 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(4013): Illuminate\\Database\\Query\\Builder->Illuminate\\Database\\Query\\{closure}()
+#15 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3422): Illuminate\\Database\\Query\\Builder->onceWithColumns()
+#16 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3937): Illuminate\\Database\\Query\\Builder->get()
+#17 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3865): Illuminate\\Database\\Query\\Builder->aggregate()
+#18 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Storage/DatabaseEntriesRepository.php(123): Illuminate\\Database\\Query\\Builder->count()
+#19 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Storage/DatabaseEntriesRepository.php(165): Laravel\\Telescope\\Storage\\DatabaseEntriesRepository->countExceptionOccurences()
+#20 [internal function]: Laravel\\Telescope\\Storage\\DatabaseEntriesRepository->Laravel\\Telescope\\Storage\\{closure}()
+#21 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Collections/Arr.php(840): array_map()
+#22 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Collections/Collection.php(829): Illuminate\\Support\\Arr::map()
+#23 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Storage/DatabaseEntriesRepository.php(164): Illuminate\\Support\\Collection->map()
+#24 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Collections/Traits/EnumeratesValues.php(275): Laravel\\Telescope\\Storage\\DatabaseEntriesRepository->Laravel\\Telescope\\Storage\\{closure}()
+#25 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Storage/DatabaseEntriesRepository.php(163): Illuminate\\Support\\Collection->each()
+#26 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Storage/DatabaseEntriesRepository.php(140): Laravel\\Telescope\\Storage\\DatabaseEntriesRepository->storeExceptions()
+#27 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Telescope.php(664): Laravel\\Telescope\\Storage\\DatabaseEntriesRepository->store()
+#28 [internal function]: Laravel\\Telescope\\Telescope::Laravel\\Telescope\\{closure}()
+#29 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Telescope.php(289): call_user_func()
+#30 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/Telescope.php(656): Laravel\\Telescope\\Telescope::withoutRecording()
+#31 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/telescope/src/ListensForStorageOpportunities.php(65): Laravel\\Telescope\\Telescope::store()
+#32 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Laravel\\Telescope\\Telescope::Laravel\\Telescope\\{closure}()
+#33 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#34 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(84): Illuminate\\Container\\Util::unwrapIfClosure()
+#35 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#36 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Container/Container.php(799): Illuminate\\Container\\BoundMethod::call()
+#37 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1466): Illuminate\\Container\\Container->call()
+#38 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(219): Illuminate\\Foundation\\Application->terminate()
+#39 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/artisan(51): Illuminate\\Foundation\\Console\\Kernel->terminate()
+#40 {main}
+"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:17:25] production.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:17:25] production.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:48:57] production.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:33] testing.INFO: ValidatePaymentDataActivity started {"saga_id":"workflow-123","order_id":null} 
+[2026-03-18 09:49:33] testing.ERROR: RPC Activity Error {"activity":"App\\Workflows\\Activities\\ValidatePaymentDataActivity","saga_id":"workflow-123","service":null,"method":null,"error":"Required field 'order_id' is missing from activity data","trace":"#0 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/app/Workflows/Activities/ValidatePaymentDataActivity.php(40): App\\Workflows\\Activities\\BaseRpcActivity->validateData()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/tests/Unit/Activities/ValidatePaymentDataActivityTest.php(66): App\\Workflows\\Activities\\ValidatePaymentDataActivity->execute()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests\\Unit\\Activities\\ValidatePaymentDataActivityTest->test_validation_with_missing_required_fields()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit\\Framework\\TestCase->runTest()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit\\Framework\\TestCase->runBare()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit\\Framework\\TestRunner->run()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestCase->run()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit\\Framework\\TestSuite->run()
+#10 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit\\TextUI\\TestRunner->run()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/phpunit(104): PHPUnit\\TextUI\\Application->run()
+#12 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/bin/phpunit(123): include('...')
+#13 {main}"} 
+[2026-03-18 09:49:33] testing.ERROR: ValidatePaymentDataActivity failed {"saga_id":"workflow-123","order_id":null,"error":"Required field 'order_id' is missing from activity data"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:33] testing.INFO: ValidatePaymentDataActivity started {"saga_id":"workflow-123","order_id":12345} 
+[2026-03-18 09:49:33] testing.ERROR: RPC Activity Error {"activity":"App\\Workflows\\Activities\\ValidatePaymentDataActivity","saga_id":"workflow-123","service":null,"method":null,"error":"Payment amount must be greater than zero","trace":"#0 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/tests/Unit/Activities/ValidatePaymentDataActivityTest.php(99): App\\Workflows\\Activities\\ValidatePaymentDataActivity->execute()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests\\Unit\\Activities\\ValidatePaymentDataActivityTest->test_validation_with_invalid_amount()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit\\Framework\\TestCase->runTest()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit\\Framework\\TestCase->runBare()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit\\Framework\\TestRunner->run()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestCase->run()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit\\Framework\\TestSuite->run()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit\\TextUI\\TestRunner->run()
+#10 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/phpunit(104): PHPUnit\\TextUI\\Application->run()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/bin/phpunit(123): include('...')
+#12 {main}"} 
+[2026-03-18 09:49:33] testing.ERROR: ValidatePaymentDataActivity failed {"saga_id":"workflow-123","order_id":12345,"error":"Payment amount must be greater than zero"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:33] testing.INFO: ValidatePaymentDataActivity started {"saga_id":"workflow-123","order_id":12345} 
+[2026-03-18 09:49:33] testing.ERROR: RPC Activity Error {"activity":"App\\Workflows\\Activities\\ValidatePaymentDataActivity","saga_id":"workflow-123","service":null,"method":null,"error":"Unsupported currency: INVALID","trace":"#0 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/tests/Unit/Activities/ValidatePaymentDataActivityTest.php(132): App\\Workflows\\Activities\\ValidatePaymentDataActivity->execute()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests\\Unit\\Activities\\ValidatePaymentDataActivityTest->test_validation_with_invalid_currency()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit\\Framework\\TestCase->runTest()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit\\Framework\\TestCase->runBare()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit\\Framework\\TestRunner->run()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestCase->run()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit\\Framework\\TestSuite->run()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit\\TextUI\\TestRunner->run()
+#10 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/phpunit(104): PHPUnit\\TextUI\\Application->run()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/bin/phpunit(123): include('...')
+#12 {main}"} 
+[2026-03-18 09:49:33] testing.ERROR: ValidatePaymentDataActivity failed {"saga_id":"workflow-123","order_id":12345,"error":"Unsupported currency: INVALID"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:33] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:33] testing.WARNING: Database health check attempt 1/3 failed for neon_postgresql: Database connection [neon_postgresql] not configured.  
+[2026-03-18 09:49:34] testing.WARNING: Database health check attempt 2/3 failed for neon_postgresql: Database connection [neon_postgresql] not configured.  
+[2026-03-18 09:49:35] testing.WARNING: Database health check attempt 3/3 failed for neon_postgresql: Database connection [neon_postgresql] not configured.  
+[2026-03-18 09:49:35] testing.WARNING: Database health check attempt 1/3 failed for cloud_postgresql: Database connection [cloud_postgresql] not configured.  
+[2026-03-18 09:49:36] testing.WARNING: Database health check attempt 2/3 failed for cloud_postgresql: Database connection [cloud_postgresql] not configured.  
+[2026-03-18 09:49:37] testing.WARNING: Database health check attempt 3/3 failed for cloud_postgresql: Database connection [cloud_postgresql] not configured.  
+[2026-03-18 09:49:37] testing.WARNING: Database health check attempt 1/3 failed for mongodb_atlas: Database connection [mongodb_atlas] not configured.  
+[2026-03-18 09:49:38] testing.WARNING: Database health check attempt 2/3 failed for mongodb_atlas: Database connection [mongodb_atlas] not configured.  
+[2026-03-18 09:49:39] testing.WARNING: Database health check attempt 3/3 failed for mongodb_atlas: Database connection [mongodb_atlas] not configured.  
+[2026-03-18 09:49:39] testing.INFO: Database failover event: all_connections_failed {"timestamp":"2026-03-18 09:49:39","attempted_connections":{"primary":"neon_postgresql","secondary":"cloud_postgresql","fallback":"mongodb_atlas"}} 
+[2026-03-18 09:49:39] testing.ERROR: Failed to ensure healthy database connection: All database connections are unhealthy  
+[2026-03-18 09:49:39] testing.ERROR: No healthy connections available and graceful degradation disabled for service: payment-service  
+[2026-03-18 09:49:39] testing.WARNING: Database exception detected, attempting failover: All database connections are unhealthy  
+[2026-03-18 09:49:39] testing.WARNING: Triggering database failover from neon_postgresql  
+[2026-03-18 09:49:39] testing.INFO: Database failover event: failover_failed {"from_connection":"neon_postgresql","timestamp":"2026-03-18 09:49:39","reason":"No healthy connections available"} 
+[2026-03-18 09:49:39] testing.ERROR: Failover attempt failed: Failover failed: No healthy connections available  
+[2026-03-18 09:49:39] testing.ERROR: All database connections are unhealthy {"exception":"[object] (RuntimeException(code: 0): All database connections are unhealthy at /tmp/abdoElHodaky/larvrevrstender/services/shared/src/Services/DatabaseFailoverManager.php:79)
+[stacktrace]
+#0 /tmp/abdoElHodaky/larvrevrstender/services/shared/src/Middleware/DatabaseFailoverMiddleware.php(75): Shared\\Services\\DatabaseFailoverManager->getHealthyConnection()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/shared/src/Middleware/DatabaseFailoverMiddleware.php(50): Shared\\Middleware\\DatabaseFailoverMiddleware->ensureHealthyConnection()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Shared\\Middleware\\DatabaseFailoverMiddleware->handle()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#10 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePostSize->handle()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#12 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle()
+#13 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(61): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#14 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\HandleCors->handle()
+#15 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#16 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\TrustProxies->handle()
+#17 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#18 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\InvokeDeferredCallbacks->handle()
+#19 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#20 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePathEncoding->handle()
+#21 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#22 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\\Pipeline\\Pipeline->then()
+#23 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter()
+#24 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(607): Illuminate\\Foundation\\Http\\Kernel->handle()
+#25 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(368): Illuminate\\Foundation\\Testing\\TestCase->call()
+#26 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/tests/Feature/ExampleTest.php(14): Illuminate\\Foundation\\Testing\\TestCase->get()
+#27 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests\\Feature\\ExampleTest->test_the_application_returns_a_successful_response()
+#28 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit\\Framework\\TestCase->runTest()
+#29 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit\\Framework\\TestCase->runBare()
+#30 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit\\Framework\\TestRunner->run()
+#31 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestCase->run()
+#32 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#33 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#34 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit\\Framework\\TestSuite->run()
+#35 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit\\TextUI\\TestRunner->run()
+#36 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/phpunit/phpunit/phpunit(104): PHPUnit\\TextUI\\Application->run()
+#37 /tmp/abdoElHodaky/larvrevrstender/services/payment-service/vendor/bin/phpunit(123): include('...')
+#38 {main}
+"} 
+[2026-03-18 09:49:40] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:40] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: PaymentProcessingSaga started {"workflow_id":2,"order_id":12345,"customer_id":67890,"amount":100.0,"payment_method":"card"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.reserveFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.captureFunds","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.processPayment","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.issueRefund","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getReservationStatus","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getUserPaymentMethods","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.calculateFees","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.sendInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getInvoice","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.createEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.fundEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.releaseEscrow","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"payment.getEscrowByOrderId","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 09:49:41] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 

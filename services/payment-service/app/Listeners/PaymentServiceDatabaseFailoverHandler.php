@@ -11,7 +11,7 @@ class PaymentServiceDatabaseFailoverHandler extends BaseDatabaseFailoverHandler
     /**
      * Handle payment service specific database failover logic.
      */
-    protected function handleServiceSpecificFailover(DatabaseFailoverEvent $event): void
+    protected function handleServiceSpecificFailover(DatabaseFailoverEvent $event, string $strategy = 'standard'): void
     {
         // Set payment service to failover mode
         $this->setFailoverMode($event);

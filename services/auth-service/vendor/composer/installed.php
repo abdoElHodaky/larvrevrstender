@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'reversetender/auth-service',
-        'pretty_version' => 'dev-main',
-        'version' => 'dev-main',
-        'reference' => '26d1a53e58c64f89c24f52e94a53768f536654d6',
+        'pretty_version' => '2.x-dev',
+        'version' => '2.9999999.9999999.9999999-dev',
+        'reference' => '3c0e664287e0197cabaf5c9b2735d79e9c111fd2',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -977,9 +977,9 @@
             'dev_requirement' => false,
         ),
         'reversetender/auth-service' => array(
-            'pretty_version' => 'dev-main',
-            'version' => 'dev-main',
-            'reference' => '26d1a53e58c64f89c24f52e94a53768f536654d6',
+            'pretty_version' => '2.x-dev',
+            'version' => '2.9999999.9999999.9999999-dev',
+            'reference' => '3c0e664287e0197cabaf5c9b2735d79e9c111fd2',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

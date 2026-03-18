@@ -11,7 +11,7 @@ class BiddingServiceDatabaseFailoverHandler extends BaseDatabaseFailoverHandler
     /**
      * Handle bidding service specific database failover logic.
      */
-    protected function handleServiceSpecificFailover(DatabaseFailoverEvent $event): void
+    protected function handleServiceSpecificFailover(DatabaseFailoverEvent $event, string $strategy = 'standard'): void
     {
         // Set bidding service to failover mode
         $this->setFailoverMode($event);

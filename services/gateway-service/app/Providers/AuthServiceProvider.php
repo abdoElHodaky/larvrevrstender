@@ -15,7 +15,7 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        User::class => UserPolicy::class,
+        // User policies removed - gateway service should not manage users
     ];
 
     /**

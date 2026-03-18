@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Services\AuthService;
-use App\Services\SocialAuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -14,12 +12,9 @@ class AuthController extends Controller
 {
     private AuthService $authService;
 
-    private SocialAuthService $socialAuthService;
-
-    public function __construct(AuthService $authService, SocialAuthService $socialAuthService)
+    public function __construct(AuthService $authService)
     {
         $this->authService = $authService;
-        $this->socialAuthService = $socialAuthService;
     }
 
     /**
@@ -261,76 +256,9 @@ class AuthController extends Controller
         return response()->success(null, 'All sessions revoked successfully');
     }
 
-    /**
-     * Get all users (Admin only)
-     */
-    public function getUsers(Request $request): JsonResponse
-    {
-        // Check authorization using gate
-        if (! Gate::allows('manage-users')) {
-            return response()->error('Unauthorized', null, 403);
-        }
-
-        $users = User::with(['customerProfile', 'merchantProfile'])
-            ->paginate($request->get('per_page', 15));
-
-        return response()->success($users, 'Users retrieved');
-    }
-
-    /**
-     * Get specific user (Admin only)
-     */
-    public function getUser(Request $request, $userId): JsonResponse
-    {
-        $targetUser = User::findOrFail($userId);
-
-        // Check authorization using policy
-        $this->authorize('view', $targetUser);
-
-        return response()->success($targetUser, 'User retrieved');
-    }
-
-    /**
-     * Update user status (Admin only)
-     */
-    public function updateUserStatus(Request $request, $userId): JsonResponse
-    {
-        $targetUser = User::findOrFail($userId);
-
-        // Check authorization using policy
-        $this->authorize('changeStatus', $targetUser);
-
-        $validator = Validator::make($request->all(), [
-            'status' => 'required|in:active,inactive,suspended,banned',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->error('Validation failed', $validator->errors(), 422);
-        }
-
-        $targetUser->update(['status' => $request->status]);
-
-        return response()->success($targetUser, 'User status updated');
-    }
-
-    /**
-     * Delete user (Admin only)
-     */
-    public function deleteUser(Request $request, $userId): JsonResponse
-    {
-        $targetUser = User::findOrFail($userId);
-
-        // Check authorization using policy
-        $this->authorize('delete', $targetUser);
-
-        // Revoke all user tokens
-        $targetUser->tokens()->delete();
-
-        // Soft delete the user
-        $targetUser->delete();
-
-        return response()->success(null, 'User deleted successfully');
-    }
+    // NOTE: User management operations removed from gateway service
+    // These operations should be handled by auth-service directly
+    // Gateway service should only handle routing and token validation
 
     /**
      * Get all sessions (Admin only)
