@@ -17,5 +17,5 @@ use App\RPC\Procedures\VinOcrProcedure;
 if (class_exists('Sajya\Server\Route')) {
     \Sajya\Server\Route::rpc('/', [
         VinOcrProcedure::class,
-    ])->middleware(['rpc.correlation', 'rpc.performance', 'rpc.logging', 'rpc.auth']);
+    ])->middleware(['rpc.correlation', 'rpc.ratelimit', 'rpc.performance', 'rpc.logging', 'rpc.auth']);
 }
