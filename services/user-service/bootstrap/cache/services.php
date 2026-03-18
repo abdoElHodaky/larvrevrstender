@@ -43,7 +43,6 @@
     39 => 'Shared\\RPC\\Providers\\RpcServiceProvider',
     40 => 'App\\Providers\\AppServiceProvider',
     41 => 'App\\Providers\\EventServiceProvider',
-    42 => 'App\\Providers\\RpcServiceProvider',
   ),
   'eager' => 
   array (
@@ -74,7 +73,6 @@
     24 => 'Shared\\RPC\\Providers\\RpcServiceProvider',
     25 => 'App\\Providers\\AppServiceProvider',
     26 => 'App\\Providers\\EventServiceProvider',
-    27 => 'App\\Providers\\RpcServiceProvider',
   ),
   'deferred' => 
   array (

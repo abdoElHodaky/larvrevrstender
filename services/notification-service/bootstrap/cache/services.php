@@ -37,9 +37,10 @@
     33 => 'Sajya\\Server\\ServerServiceProvider',
     34 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
     35 => 'Shared\\Providers\\SharedServiceProvider',
-    36 => 'App\\Providers\\AppServiceProvider',
-    37 => 'App\\Providers\\EventServiceProvider',
-    38 => 'App\\Providers\\RpcServiceProvider',
+    36 => 'Shared\\RPC\\Providers\\RpcServiceProvider',
+    37 => 'App\\Providers\\AppServiceProvider',
+    38 => 'App\\Providers\\EventServiceProvider',
+    39 => 'App\\Providers\\RpcServiceProvider',
   ),
   'eager' => 
   array (
@@ -64,9 +65,10 @@
     18 => 'Sajya\\Server\\ServerServiceProvider',
     19 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
     20 => 'Shared\\Providers\\SharedServiceProvider',
-    21 => 'App\\Providers\\AppServiceProvider',
-    22 => 'App\\Providers\\EventServiceProvider',
-    23 => 'App\\Providers\\RpcServiceProvider',
+    21 => 'Shared\\RPC\\Providers\\RpcServiceProvider',
+    22 => 'App\\Providers\\AppServiceProvider',
+    23 => 'App\\Providers\\EventServiceProvider',
+    24 => 'App\\Providers\\RpcServiceProvider',
   ),
   'deferred' => 
   array (

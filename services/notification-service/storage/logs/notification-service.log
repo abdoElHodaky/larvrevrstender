@@ -94,3 +94,85 @@
 [2026-03-07 11:19:20] local.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
 [2026-03-07 11:19:20] local.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
 [2026-03-07 11:19:20] local.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"notification.sendEmail","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"notification.sendSms","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"notification.sendPushNotification","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"notification.sendMultiChannel","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"notification.sendBidConfirmation","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"notification.sendOutbidNotification","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"notification.sendAuctionWonNotification","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"notification.sendPaymentReminder","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"notification.getStatus","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 10:14:56] testing.WARNING: Database health check attempt 1/3 failed for neon_postgresql: Database connection [neon_postgresql] not configured.  
+[2026-03-18 10:14:57] testing.WARNING: Database health check attempt 2/3 failed for neon_postgresql: Database connection [neon_postgresql] not configured.  
+[2026-03-18 10:14:58] testing.WARNING: Database health check attempt 3/3 failed for neon_postgresql: Database connection [neon_postgresql] not configured.  
+[2026-03-18 10:14:58] testing.WARNING: Database health check attempt 1/3 failed for cloud_postgresql: Database connection [cloud_postgresql] not configured.  
+[2026-03-18 10:14:59] testing.WARNING: Database health check attempt 2/3 failed for cloud_postgresql: Database connection [cloud_postgresql] not configured.  
+[2026-03-18 10:15:00] testing.WARNING: Database health check attempt 3/3 failed for cloud_postgresql: Database connection [cloud_postgresql] not configured.  
+[2026-03-18 10:15:00] testing.WARNING: Database health check attempt 1/3 failed for mongodb_atlas: Database connection [mongodb_atlas] not configured.  
+[2026-03-18 10:15:01] testing.WARNING: Database health check attempt 2/3 failed for mongodb_atlas: Database connection [mongodb_atlas] not configured.  
+[2026-03-18 10:15:02] testing.WARNING: Database health check attempt 3/3 failed for mongodb_atlas: Database connection [mongodb_atlas] not configured.  
+[2026-03-18 10:15:02] testing.INFO: Database failover event: all_connections_failed {"timestamp":"2026-03-18 10:15:02","attempted_connections":{"primary":"neon_postgresql","secondary":"cloud_postgresql","fallback":"mongodb_atlas"}} 
+[2026-03-18 10:15:02] testing.ERROR: Failed to ensure healthy database connection: All database connections are unhealthy  
+[2026-03-18 10:15:02] testing.WARNING: No healthy connections available, enabling graceful degradation for service: notification-service  
+[2026-03-18 10:15:02] testing.ERROR: Shared\Http\Middleware\CustomCorsMiddleware::addCorsHeaders(): Argument #2 ($response) must be of type Illuminate\Http\Response, Illuminate\Http\JsonResponse given, called in /tmp/abdoElHodaky/larvrevrstender/services/shared/src/Http/Middleware/CustomCorsMiddleware.php on line 37 {"exception":"[object] (TypeError(code: 0): Shared\\Http\\Middleware\\CustomCorsMiddleware::addCorsHeaders(): Argument #2 ($response) must be of type Illuminate\\Http\\Response, Illuminate\\Http\\JsonResponse given, called in /tmp/abdoElHodaky/larvrevrstender/services/shared/src/Http/Middleware/CustomCorsMiddleware.php on line 37 at /tmp/abdoElHodaky/larvrevrstender/services/shared/src/Http/Middleware/CustomCorsMiddleware.php:79)
+[stacktrace]
+#0 /tmp/abdoElHodaky/larvrevrstender/services/shared/src/Http/Middleware/CustomCorsMiddleware.php(37): Shared\\Http\\Middleware\\CustomCorsMiddleware->addCorsHeaders()
+#1 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Shared\\Http\\Middleware\\CustomCorsMiddleware->handle()
+#2 /tmp/abdoElHodaky/larvrevrstender/services/shared/src/Middleware/DatabaseFailoverMiddleware.php(53): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#3 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Shared\\Middleware\\DatabaseFailoverMiddleware->handle()
+#4 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#5 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#6 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle()
+#7 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#8 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#9 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle()
+#10 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#11 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePostSize->handle()
+#12 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#13 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle()
+#14 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(61): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#15 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\HandleCors->handle()
+#16 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#17 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\TrustProxies->handle()
+#18 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#19 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\InvokeDeferredCallbacks->handle()
+#20 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#21 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePathEncoding->handle()
+#22 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#23 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\\Pipeline\\Pipeline->then()
+#24 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter()
+#25 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(607): Illuminate\\Foundation\\Http\\Kernel->handle()
+#26 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php(368): Illuminate\\Foundation\\Testing\\TestCase->call()
+#27 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/tests/Feature/ExampleTest.php(14): Illuminate\\Foundation\\Testing\\TestCase->get()
+#28 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(1667): Tests\\Feature\\ExampleTest->test_the_application_returns_a_successful_response()
+#29 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(519): PHPUnit\\Framework\\TestCase->runTest()
+#30 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/phpunit/phpunit/src/Framework/TestRunner/TestRunner.php(87): PHPUnit\\Framework\\TestCase->runBare()
+#31 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/phpunit/phpunit/src/Framework/TestCase.php(365): PHPUnit\\Framework\\TestRunner->run()
+#32 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestCase->run()
+#33 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#34 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/phpunit/phpunit/src/Framework/TestSuite.php(369): PHPUnit\\Framework\\TestSuite->run()
+#35 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/phpunit/phpunit/src/TextUI/TestRunner.php(64): PHPUnit\\Framework\\TestSuite->run()
+#36 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/phpunit/phpunit/src/TextUI/Application.php(211): PHPUnit\\TextUI\\TestRunner->run()
+#37 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/phpunit/phpunit/phpunit(104): PHPUnit\\TextUI\\Application->run()
+#38 /tmp/abdoElHodaky/larvrevrstender/services/notification-service/vendor/bin/phpunit(122): include('...')
+#39 {main}
+"} 
+[2026-03-18 10:15:04] testing.WARNING: Response indicates potential database issues, checking connection health  
+[2026-03-18 10:15:04] testing.WARNING: Current connection is unhealthy, triggering failover  
+[2026-03-18 10:15:04] testing.WARNING: Triggering database failover from neon_postgresql  
+[2026-03-18 10:15:04] testing.INFO: Database failover event: failover_failed {"from_connection":"neon_postgresql","timestamp":"2026-03-18 10:15:04","reason":"No healthy connections available"} 
+[2026-03-18 10:15:04] testing.ERROR: Post-request health check failed: Failover failed: No healthy connections available  

@@ -41,10 +41,11 @@
     37 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
     38 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
     39 => 'Shared\\Providers\\SharedServiceProvider',
-    40 => 'App\\Providers\\AppServiceProvider',
-    41 => 'App\\Providers\\EventServiceProvider',
-    42 => 'App\\Providers\\RpcServiceProvider',
-    43 => 'App\\Providers\\TelescopeServiceProvider',
+    40 => 'Shared\\RPC\\Providers\\RpcServiceProvider',
+    41 => 'App\\Providers\\AppServiceProvider',
+    42 => 'App\\Providers\\EventServiceProvider',
+    43 => 'App\\Providers\\RpcServiceProvider',
+    44 => 'App\\Providers\\TelescopeServiceProvider',
   ),
   'eager' => 
   array (
@@ -73,10 +74,11 @@
     22 => 'Spatie\\ModelStates\\ModelStatesServiceProvider',
     23 => 'Spatie\\StructureDiscoverer\\StructureDiscovererServiceProvider',
     24 => 'Shared\\Providers\\SharedServiceProvider',
-    25 => 'App\\Providers\\AppServiceProvider',
-    26 => 'App\\Providers\\EventServiceProvider',
-    27 => 'App\\Providers\\RpcServiceProvider',
-    28 => 'App\\Providers\\TelescopeServiceProvider',
+    25 => 'Shared\\RPC\\Providers\\RpcServiceProvider',
+    26 => 'App\\Providers\\AppServiceProvider',
+    27 => 'App\\Providers\\EventServiceProvider',
+    28 => 'App\\Providers\\RpcServiceProvider',
+    29 => 'App\\Providers\\TelescopeServiceProvider',
   ),
   'deferred' => 
   array (

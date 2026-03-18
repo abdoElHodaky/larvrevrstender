@@ -26,15 +26,20 @@
     22 => 'Illuminate\\View\\ViewServiceProvider',
     23 => 'Laravel\\Horizon\\HorizonServiceProvider',
     24 => 'Laravel\\Octane\\OctaneServiceProvider',
-    25 => 'Laravel\\Sanctum\\SanctumServiceProvider',
-    26 => 'Laravel\\Telescope\\TelescopeServiceProvider',
-    27 => 'Laravel\\Tinker\\TinkerServiceProvider',
-    28 => 'Carbon\\Laravel\\ServiceProvider',
-    29 => 'Termwind\\Laravel\\TermwindServiceProvider',
-    30 => 'Sajya\\Server\\ServerServiceProvider',
-    31 => 'Shared\\Providers\\SharedServiceProvider',
-    32 => 'App\\Providers\\AppServiceProvider',
-    33 => 'App\\Providers\\RpcServiceProvider',
+    25 => 'Laravel\\Pail\\PailServiceProvider',
+    26 => 'Laravel\\Sail\\SailServiceProvider',
+    27 => 'Laravel\\Sanctum\\SanctumServiceProvider',
+    28 => 'Laravel\\Telescope\\TelescopeServiceProvider',
+    29 => 'Laravel\\Tinker\\TinkerServiceProvider',
+    30 => 'Carbon\\Laravel\\ServiceProvider',
+    31 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
+    32 => 'Termwind\\Laravel\\TermwindServiceProvider',
+    33 => 'Sajya\\Server\\ServerServiceProvider',
+    34 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
+    35 => 'Shared\\Providers\\SharedServiceProvider',
+    36 => 'Shared\\RPC\\Providers\\RpcServiceProvider',
+    37 => 'App\\Providers\\AppServiceProvider',
+    38 => 'App\\Providers\\RpcServiceProvider',
   ),
   'eager' => 
   array (
@@ -50,14 +55,18 @@
     9 => 'Illuminate\\View\\ViewServiceProvider',
     10 => 'Laravel\\Horizon\\HorizonServiceProvider',
     11 => 'Laravel\\Octane\\OctaneServiceProvider',
-    12 => 'Laravel\\Sanctum\\SanctumServiceProvider',
-    13 => 'Laravel\\Telescope\\TelescopeServiceProvider',
-    14 => 'Carbon\\Laravel\\ServiceProvider',
-    15 => 'Termwind\\Laravel\\TermwindServiceProvider',
-    16 => 'Sajya\\Server\\ServerServiceProvider',
-    17 => 'Shared\\Providers\\SharedServiceProvider',
-    18 => 'App\\Providers\\AppServiceProvider',
-    19 => 'App\\Providers\\RpcServiceProvider',
+    12 => 'Laravel\\Pail\\PailServiceProvider',
+    13 => 'Laravel\\Sanctum\\SanctumServiceProvider',
+    14 => 'Laravel\\Telescope\\TelescopeServiceProvider',
+    15 => 'Carbon\\Laravel\\ServiceProvider',
+    16 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
+    17 => 'Termwind\\Laravel\\TermwindServiceProvider',
+    18 => 'Sajya\\Server\\ServerServiceProvider',
+    19 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
+    20 => 'Shared\\Providers\\SharedServiceProvider',
+    21 => 'Shared\\RPC\\Providers\\RpcServiceProvider',
+    22 => 'App\\Providers\\AppServiceProvider',
+    23 => 'App\\Providers\\RpcServiceProvider',
   ),
   'deferred' => 
   array (
@@ -215,6 +224,8 @@
     'validator' => 'Illuminate\\Validation\\ValidationServiceProvider',
     'validation.presence' => 'Illuminate\\Validation\\ValidationServiceProvider',
     'Illuminate\\Contracts\\Validation\\UncompromisedVerifier' => 'Illuminate\\Validation\\ValidationServiceProvider',
+    'Laravel\\Sail\\Console\\InstallCommand' => 'Laravel\\Sail\\SailServiceProvider',
+    'Laravel\\Sail\\Console\\PublishCommand' => 'Laravel\\Sail\\SailServiceProvider',
     'command.tinker' => 'Laravel\\Tinker\\TinkerServiceProvider',
   ),
   'when' => 
@@ -256,6 +267,9 @@
     array (
     ),
     'Illuminate\\Validation\\ValidationServiceProvider' => 
+    array (
+    ),
+    'Laravel\\Sail\\SailServiceProvider' => 
     array (
     ),
     'Laravel\\Tinker\\TinkerServiceProvider' => 
