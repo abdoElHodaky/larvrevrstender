@@ -20,7 +20,7 @@ class UserServiceAdapter
     public function __construct()
     {
         $this->userRpc = app('UserRpc');
-        $this->correlationId = uniqid('analytics-user-', true);
+        $this->correlationId = 'analytics-user-' . bin2hex(random_bytes(16));
     }
 
     /**

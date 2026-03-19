@@ -20,7 +20,7 @@ class OrderServiceAdapter
     public function __construct()
     {
         $this->orderRpc = app('OrderRpc');
-        $this->correlationId = uniqid('analytics-order-', true);
+        $this->correlationId = 'analytics-order-' . bin2hex(random_bytes(16));
     }
 
     /**

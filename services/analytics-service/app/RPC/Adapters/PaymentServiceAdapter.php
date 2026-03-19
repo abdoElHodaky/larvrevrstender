@@ -20,7 +20,7 @@ class PaymentServiceAdapter
     public function __construct()
     {
         $this->paymentRpc = app('PaymentRpc');
-        $this->correlationId = uniqid('analytics-payment-', true);
+        $this->correlationId = 'analytics-payment-' . bin2hex(random_bytes(16));
     }
 
     /**

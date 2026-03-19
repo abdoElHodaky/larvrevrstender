@@ -94,7 +94,7 @@ abstract class BaseServiceClient
 
     protected function generateRequestId(): string
     {
-        return uniqid('req_', true);
+        return 'req_' . bin2hex(random_bytes(16));
     }
 
     public function healthCheck(): bool
@@ -119,4 +119,3 @@ abstract class BaseServiceClient
         }
     }
 }
-

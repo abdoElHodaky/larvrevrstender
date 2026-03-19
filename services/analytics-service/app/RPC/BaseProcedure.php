@@ -33,7 +33,7 @@ if (class_exists('Sajya\Server\Procedure')) {
          */
         protected function getCorrelationId(): string
         {
-            return request()->header('X-Correlation-ID', uniqid('rpc_', true));
+            return request()->header('X-Correlation-ID', 'rpc_' . bin2hex(random_bytes(16)));
         }
 
         /**
@@ -91,7 +91,7 @@ if (class_exists('Sajya\Server\Procedure')) {
 
         protected function getCorrelationId(): string
         {
-            return uniqid('rpc_fallback_', true);
+            return 'rpc_fallback_' . bin2hex(random_bytes(16));
         }
 
         protected function logPerformance(string $method, array $params, $result, float $startTime): void

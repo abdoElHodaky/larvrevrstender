@@ -20,7 +20,7 @@ class AuctionServiceAdapter
     public function __construct()
     {
         $this->auctionRpc = app('AuctionRpc');
-        $this->correlationId = uniqid('analytics-auction-', true);
+        $this->correlationId = 'analytics-auction-' . bin2hex(random_bytes(16));
     }
 
     /**

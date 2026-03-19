@@ -540,7 +540,15 @@ class ReportController extends Controller
 
         $filePath = storage_path('app/' . $report->file_path);
         
-        if (!file_exists($filePath)) {
+        // Validate file path to prevent directory traversal
+        $realPath = realpath($filePath);
+        $storagePath = realpath(storage_path('app'));
+        
+        if (!$realPath || !$storagePath || strpos($realPath, $storagePath) !== 0) {
+            return null;
+        }
+        
+        if (!file_exists($realPath)) {
             return null;
         }
 
@@ -548,13 +556,13 @@ class ReportController extends Controller
         $format = $parameters['format'] ?? 'json';
 
         if ($format === 'json') {
-            $content = file_get_contents($filePath);
+            $content = file_get_contents($realPath);
             return json_decode($content, true);
         }
 
         // For other formats, return file info
         return [
-            'file_size' => filesize($filePath),
+            'file_size' => filesize($realPath),
             'format' => $format,
             'download_available' => true,
         ];
