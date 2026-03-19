@@ -1,5 +1,5 @@
 {
-    "name": "larvrevrstender/gateway-service",
+    "name": "reversetender/gateway-service",
     "description": "Gateway Service for RPC microservices architecture",
     "type": "project",
     "require": {
