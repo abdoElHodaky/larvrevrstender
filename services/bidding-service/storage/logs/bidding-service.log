@@ -311,3 +311,30 @@
 [2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
 [2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
 [2026-03-18 10:14:56] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Procedure registered {"name":"events","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Procedure registered {"name":"cache","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Procedure registered {"name":"notification","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Procedure registered {"name":"validation","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Procedure registered {"name":"security","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Procedure registered {"name":"circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Procedure registered {"name":"queue_circuit_breaker","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Procedure registered {"name":"third_party_integration","class":"Shared\\Procedures\\CrossServiceProcedure","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Procedure registered {"name":"workflow","class":"Shared\\Procedures\\CrossServiceProcedure","type":"macro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"bid.getByAuction","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"bid.getHighest","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"bid.place","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"bid.updateStatus","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"bid.cancel","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"bid.getHistory","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"bid.checkActive","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"bid.getStatistics","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"auction.initialize","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"auction.updateHighestBid","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"auction.validateBidEligibility","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"auction.getStatus","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"auction.close","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"auction.isActive","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"health.check","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"system.info","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"system.metrics","type":"micro"} 
+[2026-03-18 11:13:41] testing.INFO: Callable procedure registered {"name":"system.ping","type":"micro"} 

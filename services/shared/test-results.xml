@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
-  <testsuite name="/tmp/abdoElHodaky/larvrevrstender/services/shared/phpunit.xml" tests="2" assertions="2" errors="0" failures="0" skipped="0" time="0.002079">
-    <testsuite name="Shared Service Test Suite" tests="2" assertions="2" errors="0" failures="0" skipped="0" time="0.002079">
-      <testsuite name="Shared\Tests\ExampleTest" file="/tmp/abdoElHodaky/larvrevrstender/services/shared/tests/ExampleTest.php" tests="2" assertions="2" errors="0" failures="0" skipped="0" time="0.002079">
-        <testcase name="test_that_true_is_true" file="/tmp/abdoElHodaky/larvrevrstender/services/shared/tests/ExampleTest.php" line="12" class="Shared\Tests\ExampleTest" classname="Shared.Tests.ExampleTest" assertions="1" time="0.002004"/>
-        <testcase name="test_shared_service_exists" file="/tmp/abdoElHodaky/larvrevrstender/services/shared/tests/ExampleTest.php" line="20" class="Shared\Tests\ExampleTest" classname="Shared.Tests.ExampleTest" assertions="1" time="0.000076"/>
+  <testsuite name="/tmp/abdoElHodaky/larvrevrstender/services/shared/phpunit.xml" tests="2" assertions="2" errors="0" failures="0" skipped="0" time="0.084334">
+    <testsuite name="Shared Service Test Suite" tests="2" assertions="2" errors="0" failures="0" skipped="0" time="0.084334">
+      <testsuite name="Shared\Tests\ExampleTest" file="/tmp/abdoElHodaky/larvrevrstender/services/shared/tests/ExampleTest.php" tests="2" assertions="2" errors="0" failures="0" skipped="0" time="0.084334">
+        <testcase name="test_that_true_is_true" file="/tmp/abdoElHodaky/larvrevrstender/services/shared/tests/ExampleTest.php" line="12" class="Shared\Tests\ExampleTest" classname="Shared.Tests.ExampleTest" assertions="1" time="0.084162"/>
+        <testcase name="test_shared_service_exists" file="/tmp/abdoElHodaky/larvrevrstender/services/shared/tests/ExampleTest.php" line="20" class="Shared\Tests\ExampleTest" classname="Shared.Tests.ExampleTest" assertions="1" time="0.000173"/>
       </testsuite>
     </testsuite>
   </testsuite>
