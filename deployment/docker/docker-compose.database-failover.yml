@@ -98,8 +98,8 @@ services:
   # =============================================================================
   # AUTH SERVICE WITH DATABASE FAILOVER
   # =============================================================================
-  auth-service:
-    image: reversetender/auth-service:${APP_VERSION:-latest}
+  auth:
+    image: reversetender/auth:${APP_VERSION:-latest}
     container_name: rt_auth_service_failover
     ports:
       - "${AUTH_SERVICE_PORT:-8001}:8001"
@@ -134,7 +134,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       
     volumes:
-      - ./logs/auth-service:/var/www/storage/logs
+      - ./logs/auth:/var/www/storage/logs
     networks:
       - reverse-tender-network
     depends_on:

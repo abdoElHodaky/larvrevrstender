@@ -62,8 +62,8 @@ services:
       start_period: 60s
 
   # Gateway Service - RPC Gateway with Cross-Service Infrastructure
-  gateway-service:
-    image: reversetender/gateway-service:${APP_VERSION:-latest}
+  gateway:
+    image: reversetender/gateway:${APP_VERSION:-latest}
     container_name: rt_gateway_service
     ports:
       - "${GATEWAY_SERVICE_PORT:-8000}:8000"
@@ -95,15 +95,15 @@ services:
       - WORKFLOW_TIMEOUT=${WORKFLOW_TIMEOUT:-300}
       # Service Discovery
       - SERVICE_DISCOVERY_ENABLED=${SERVICE_DISCOVERY_ENABLED:-true}
-      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth-service:8001}
-      - USER_SERVICE_URL=${USER_SERVICE_URL:-http://user-service:8002}
-      - ANALYTICS_SERVICE_URL=${ANALYTICS_SERVICE_URL:-http://analytics-service:8003}
-      - PAYMENT_SERVICE_URL=${PAYMENT_SERVICE_URL:-http://payment-service:8004}
-      - BIDDING_SERVICE_URL=${BIDDING_SERVICE_URL:-http://bidding-service:8005}
-      - NOTIFICATION_SERVICE_URL=${NOTIFICATION_SERVICE_URL:-http://notification-service:8006}
-      - ORDER_SERVICE_URL=${ORDER_SERVICE_URL:-http://order-service:8007}
-      - VIN_OCR_SERVICE_URL=${VIN_OCR_SERVICE_URL:-http://vin-ocr-service:8008}
-      - AUCTION_SERVICE_URL=${AUCTION_SERVICE_URL:-http://auction-service:8009}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth:8001}
+      - USER_SERVICE_URL=${USER_SERVICE_URL:-http://users:8002}
+      - ANALYTICS_SERVICE_URL=${ANALYTICS_SERVICE_URL:-http://analytics:8003}
+      - PAYMENT_SERVICE_URL=${PAYMENT_SERVICE_URL:-http://payments:8004}
+      - BIDDING_SERVICE_URL=${BIDDING_SERVICE_URL:-http://bidding:8005}
+      - NOTIFICATION_SERVICE_URL=${NOTIFICATION_SERVICE_URL:-http://notifications:8006}
+      - ORDER_SERVICE_URL=${ORDER_SERVICE_URL:-http://orders:8007}
+      - VIN_OCR_SERVICE_URL=${VIN_OCR_SERVICE_URL:-http://vin-ocr:8008}
+      - AUCTION_SERVICE_URL=${AUCTION_SERVICE_URL:-http://auctions:8009}
       # Laravel Octane Configuration
       - OCTANE_SERVER=${OCTANE_SERVER:-frankenphp}
       - OCTANE_HTTPS=${OCTANE_HTTPS:-true}
@@ -120,7 +120,7 @@ services:
       - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
       - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
-      - ./logs/gateway-service:/var/www/storage/logs
+      - ./logs/gateway:/var/www/storage/logs
       - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
@@ -144,8 +144,8 @@ services:
       start_period: 60s
 
   # Auth Service - Authentication and authorization
-  auth-service:
-    image: reversetender/auth-service:${APP_VERSION:-latest}
+  auth:
+    image: reversetender/auth:${APP_VERSION:-latest}
     container_name: rt_auth_service
     ports:
       - "${AUTH_SERVICE_PORT:-8001}:8001"
@@ -180,7 +180,7 @@ services:
       # RPC Configuration
       - RPC_ENABLED=${RPC_ENABLED:-true}
       - RPC_PORT=${AUTH_SERVICE_PORT:-8001}
-      - GATEWAY_SERVICE_URL=${GATEWAY_SERVICE_URL:-http://gateway-service:8000}
+      - GATEWAY_SERVICE_URL=${GATEWAY_SERVICE_URL:-http://gateway:8000}
       # Circuit Breaker Configuration
       - CIRCUIT_BREAKER_ENABLED=${CIRCUIT_BREAKER_ENABLED:-true}
       # Laravel Octane Configuration
@@ -199,13 +199,13 @@ services:
       - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
       - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
-      - ./logs/auth-service:/var/www/storage/logs
+      - ./logs/auth:/var/www/storage/logs
       - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
     depends_on:
       - redis-primary
-      - gateway-service
+      - gateway
       # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
@@ -224,8 +224,8 @@ services:
       start_period: 60s
 
   # Bidding Service - Real-time bidding system with Laravel Reverb
-  bidding-service:
-    image: reversetender/bidding-service:${APP_VERSION:-latest}
+  bidding:
+    image: reversetender/bidding:${APP_VERSION:-latest}
     container_name: rt_bidding_service
     ports:
       - "${BIDDING_SERVICE_PORT:-8005}:8005"
@@ -265,7 +265,7 @@ services:
       - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
       - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
-      - ./logs/bidding-service:/var/www/storage/logs
+      - ./logs/bidding:/var/www/storage/logs
       - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
@@ -289,8 +289,8 @@ services:
       start_period: 60s
 
   # User Service - User and profile management
-  user-service:
-    image: reversetender/user-service:${APP_VERSION:-latest}
+  users:
+    image: reversetender/users:${APP_VERSION:-latest}
     container_name: rt_user_service
     ports:
       - "${USER_SERVICE_PORT:-8002}:8002"
@@ -326,7 +326,7 @@ services:
       - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
       - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
-      - ./logs/user-service:/var/www/storage/logs
+      - ./logs/users:/var/www/storage/logs
       - ./uploads:/var/www/storage/uploads
       - ./config/frankenphp:/etc/frankenphp:ro
     networks:
@@ -351,8 +351,8 @@ services:
       start_period: 60s
 
   # Order Service - Order and request management
-  order-service:
-    image: reversetender/order-service:${APP_VERSION:-latest}
+  orders:
+    image: reversetender/orders:${APP_VERSION:-latest}
     container_name: rt_order_service
     ports:
       - "${ORDER_SERVICE_PORT:-8007}:8007"
@@ -387,7 +387,7 @@ services:
       - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
       - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
-      - ./logs/order-service:/var/www/storage/logs
+      - ./logs/orders:/var/www/storage/logs
       - ./uploads:/var/www/storage/uploads
       - ./config/frankenphp:/etc/frankenphp:ro
     networks:
@@ -412,8 +412,8 @@ services:
       start_period: 60s
 
   # Notification Service - Multi-channel notifications
-  notification-service:
-    image: reversetender/notification-service:${APP_VERSION:-latest}
+  notifications:
+    image: reversetender/notifications:${APP_VERSION:-latest}
     container_name: rt_notification_service
     ports:
       - "${NOTIFICATION_SERVICE_PORT:-8006}:8006"
@@ -460,7 +460,7 @@ services:
       - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
       - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
-      - ./logs/notification-service:/var/www/storage/logs
+      - ./logs/notifications:/var/www/storage/logs
       - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
@@ -484,8 +484,8 @@ services:
       start_period: 60s
 
   # Payment Service - Enterprise Payment Processing Infrastructure
-  payment-service:
-    image: reversetender/payment-service:${APP_VERSION:-latest}
+  payments:
+    image: reversetender/payments:${APP_VERSION:-latest}
     container_name: rt_payment_service
     ports:
       - "${PAYMENT_SERVICE_PORT:-8004}:8004"
@@ -599,9 +599,9 @@ services:
       - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
       - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
-      - ./logs/payment-service:/var/www/storage/logs
+      - ./logs/payments:/var/www/storage/logs
       - ./config/frankenphp:/etc/frankenphp:ro
-      - ./config/payment-service:/var/www/config:ro
+      - ./config/payments:/var/www/config:ro
     networks:
       - reverse-tender-network
     depends_on:
@@ -624,8 +624,8 @@ services:
       start_period: 90s
 
   # Analytics Service - Business intelligence
-  analytics-service:
-    image: reversetender/analytics-service:${APP_VERSION:-latest}
+  analytics:
+    image: reversetender/analytics:${APP_VERSION:-latest}
     container_name: rt_analytics_service
     ports:
       - "${ANALYTICS_SERVICE_PORT:-8003}:8003"
@@ -657,7 +657,7 @@ services:
       - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
       - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
-      - ./logs/analytics-service:/var/www/storage/logs
+      - ./logs/analytics:/var/www/storage/logs
       - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
@@ -681,8 +681,8 @@ services:
       start_period: 60s
 
   # VIN OCR Service - Vehicle identification
-  vin-ocr-service:
-    image: reversetender/vin-ocr-service:${APP_VERSION:-latest}
+  vin-ocr:
+    image: reversetender/vin-ocr:${APP_VERSION:-latest}
     container_name: rt_vin_ocr_service
     ports:
       - "${VIN_OCR_SERVICE_PORT:-8008}:8008"
@@ -719,7 +719,7 @@ services:
       - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
       - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
-      - ./logs/vin-ocr-service:/var/www/storage/logs
+      - ./logs/vin-ocr:/var/www/storage/logs
       - ./uploads:/var/www/storage/uploads
       - ./config/frankenphp:/etc/frankenphp:ro
     networks:
@@ -744,8 +744,8 @@ services:
       start_period: 60s
 
   # Auction Service - Auction management
-  auction-service:
-    image: reversetender/auction-service:${APP_VERSION:-latest}
+  auctions:
+    image: reversetender/auctions:${APP_VERSION:-latest}
     container_name: rt_auction_service
     ports:
       - "${AUCTION_SERVICE_PORT:-8009}:8009"
@@ -764,7 +764,7 @@ services:
       # RPC Configuration
       - RPC_ENABLED=${RPC_ENABLED:-true}
       - RPC_PORT=${AUCTION_SERVICE_PORT:-8009}
-      - GATEWAY_SERVICE_URL=${GATEWAY_SERVICE_URL:-http://gateway-service:8000}
+      - GATEWAY_SERVICE_URL=${GATEWAY_SERVICE_URL:-http://gateway:8000}
       # Circuit Breaker Configuration
       - CIRCUIT_BREAKER_ENABLED=${CIRCUIT_BREAKER_ENABLED:-true}
       # Third-party Integration
@@ -785,13 +785,13 @@ services:
       - PHP_OPCACHE_MAX_ACCELERATED_FILES=${PHP_OPCACHE_MAX_ACCELERATED_FILES:-20000}
       - PHP_OPCACHE_VALIDATE_TIMESTAMPS=${PHP_OPCACHE_VALIDATE_TIMESTAMPS:-0}
     volumes:
-      - ./logs/auction-service:/var/www/storage/logs
+      - ./logs/auctions:/var/www/storage/logs
       - ./config/frankenphp:/etc/frankenphp:ro
     networks:
       - reverse-tender-network
     depends_on:
       - redis-primary
-      - gateway-service
+      - gateway
       # mysql-primary removed - using cloud-managed Neon PostgreSQL
     restart: unless-stopped
     deploy:
@@ -853,7 +853,7 @@ services:
       # RPC Handler Configuration
       - RPC_HANDLER_ENABLED=true
       - SERVICE_DISCOVERY_ENABLED=true
-      - SERVICE_REGISTRY_URL=http://gateway-service:8000/registry
+      - SERVICE_REGISTRY_URL=http://gateway:8000/registry
       - HEALTH_CHECK_INTERVAL=30
       - SERVICE_DISCOVERY_TIMEOUT=5
       # Caching Configuration

@@ -9,7 +9,7 @@ I have successfully implemented all missing integration bridges to complete the 
 ## ✅ **IMPLEMENTED COMPONENTS**
 
 ### **1. OrderInvoiceService** 📄
-**File**: `services/order-service/app/Services/OrderInvoiceService.php`
+**File**: `services/orders/app/Services/OrderInvoiceService.php`
 
 **Purpose**: Bridges orders to the existing payment service invoice system
 
@@ -34,7 +34,7 @@ I have successfully implemented all missing integration bridges to complete the 
 ```
 
 ### **2. OrderEscrowService** 🔒
-**File**: `services/order-service/app/Services/OrderEscrowService.php`
+**File**: `services/orders/app/Services/OrderEscrowService.php`
 
 **Purpose**: Manages automatic escrow account creation for buyer protection
 
@@ -56,7 +56,7 @@ I have successfully implemented all missing integration bridges to complete the 
 ```
 
 ### **3. OrderCreatedEvent** 📡
-**File**: `services/order-service/app/Events/OrderCreatedEvent.php`
+**File**: `services/orders/app/Events/OrderCreatedEvent.php`
 
 **Purpose**: Event fired when orders are created to trigger payment workflows
 
@@ -77,7 +77,7 @@ I have successfully implemented all missing integration bridges to complete the 
 ```
 
 ### **4. Enhanced OrderCreatedListener** 🎭
-**File**: `services/order-service/app/Listeners/OrderCreatedListener.php`
+**File**: `services/orders/app/Listeners/OrderCreatedListener.php`
 
 **Purpose**: Orchestrates complete payment workflow when orders are created
 
@@ -97,7 +97,7 @@ I have successfully implemented all missing integration bridges to complete the 
 4. **Prepare Escrow** → OrderEscrowService
 
 ### **5. Updated OrderCreationService** 🔄
-**File**: `services/order-service/app/Services/OrderCreationService.php`
+**File**: `services/orders/app/Services/OrderCreationService.php`
 
 **Purpose**: Enhanced to fire OrderCreatedEvent for payment workflow triggering
 

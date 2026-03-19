@@ -29,9 +29,9 @@ services:
       retries: 10
 
   # Gateway Service for Testing
-  gateway-service:
+  gateway:
     build:
-      context: ./services/gateway-service
+      context: ./services/gateway
       dockerfile: Dockerfile
     environment:
       - APP_ENV=testing

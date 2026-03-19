@@ -4,83 +4,83 @@ version: '3.8'
 # This builds from repository root to include both services and shared directories
 
 services:
-  gateway-service:
+  gateway:
     build:
       context: .
-      dockerfile: services/gateway-service/Dockerfile
+      dockerfile: services/gateway/Dockerfile
       args:
-        SERVICE_NAME: gateway-service
-    image: larvrevrstender/gateway-service:latest
+        SERVICE_NAME: gateway
+    image: larvrevrstender/gateway:latest
 
-  analytics-service:
+  analytics:
     build:
       context: .
-      dockerfile: services/analytics-service/Dockerfile
+      dockerfile: services/analytics/Dockerfile
       args:
-        SERVICE_NAME: analytics-service
-    image: larvrevrstender/analytics-service:latest
+        SERVICE_NAME: analytics
+    image: larvrevrstender/analytics:latest
 
-  auth-service:
+  auth:
     build:
       context: .
-      dockerfile: services/auth-service/Dockerfile
+      dockerfile: services/auth/Dockerfile
       args:
-        SERVICE_NAME: auth-service
-    image: larvrevrstender/auth-service:latest
+        SERVICE_NAME: auth
+    image: larvrevrstender/auth:latest
 
-  user-service:
+  users:
     build:
       context: .
-      dockerfile: services/user-service/Dockerfile
+      dockerfile: services/users/Dockerfile
       args:
-        SERVICE_NAME: user-service
-    image: larvrevrstender/user-service:latest
+        SERVICE_NAME: users
+    image: larvrevrstender/users:latest
 
-  payment-service:
+  payments:
     build:
       context: .
-      dockerfile: services/payment-service/Dockerfile
+      dockerfile: services/payments/Dockerfile
       args:
-        SERVICE_NAME: payment-service
-    image: larvrevrstender/payment-service:latest
+        SERVICE_NAME: payments
+    image: larvrevrstender/payments:latest
 
-  order-service:
+  orders:
     build:
       context: .
-      dockerfile: services/order-service/Dockerfile
+      dockerfile: services/orders/Dockerfile
       args:
-        SERVICE_NAME: order-service
-    image: larvrevrstender/order-service:latest
+        SERVICE_NAME: orders
+    image: larvrevrstender/orders:latest
 
-  bidding-service:
+  bidding:
     build:
       context: .
-      dockerfile: services/bidding-service/Dockerfile
+      dockerfile: services/bidding/Dockerfile
       args:
-        SERVICE_NAME: bidding-service
-    image: larvrevrstender/bidding-service:latest
+        SERVICE_NAME: bidding
+    image: larvrevrstender/bidding:latest
 
-  notification-service:
+  notifications:
     build:
       context: .
-      dockerfile: services/notification-service/Dockerfile
+      dockerfile: services/notifications/Dockerfile
       args:
-        SERVICE_NAME: notification-service
-    image: larvrevrstender/notification-service:latest
+        SERVICE_NAME: notifications
+    image: larvrevrstender/notifications:latest
 
-  auction-service:
+  auctions:
     build:
       context: .
-      dockerfile: services/auction-service/Dockerfile
+      dockerfile: services/auctions/Dockerfile
       args:
-        SERVICE_NAME: auction-service
-    image: larvrevrstender/auction-service:latest
+        SERVICE_NAME: auctions
+    image: larvrevrstender/auctions:latest
 
-  vin-ocr-service:
+  vin-ocr:
     build:
       context: .
-      dockerfile: services/vin-ocr-service/Dockerfile
+      dockerfile: services/vin-ocr/Dockerfile
       args:
-        SERVICE_NAME: vin-ocr-service
-    image: larvrevrstender/vin-ocr-service:latest
+        SERVICE_NAME: vin-ocr
+    image: larvrevrstender/vin-ocr:latest
 

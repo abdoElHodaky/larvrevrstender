@@ -8,8 +8,8 @@ The **Dual Controller Pattern** is an intentional architectural design implement
 
 ### Services Using This Pattern
 
-- **auction-service**: `AuctionController` + `Api\AuctionController`
-- **bidding-service**: `BiddingController` + `Api\BiddingController`
+- **auctions**: `AuctionController` + `Api\AuctionController`
+- **bidding**: `BiddingController` + `Api\BiddingController`
 
 ## Architecture Explanation
 
@@ -26,7 +26,7 @@ The **Dual Controller Pattern** is an intentional architectural design implement
 - Optimized for performance and simplicity
 - Direct model interactions
 
-**Example**: `services/auction-service/app/Http/Controllers/AuctionController.php`
+**Example**: `services/auctions/app/Http/Controllers/AuctionController.php`
 
 ```php
 <?php
@@ -70,7 +70,7 @@ class AuctionController extends Controller
 - Manages inter-service communication
 - Provides comprehensive error handling across services
 
-**Example**: `services/auction-service/app/Http/Controllers/Api/AuctionController.php`
+**Example**: `services/auctions/app/Http/Controllers/Api/AuctionController.php`
 
 ```php
 <?php

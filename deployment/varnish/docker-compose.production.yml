@@ -38,16 +38,16 @@ services:
       -p feature=+esi_ignore_https
       -p vcc_allow_inline_c=on
     depends_on:
-      - gateway-service
-      - auth-service
-      - user-service
-      - auction-service
-      - bidding-service
-      - order-service
-      - payment-service
-      - notification-service
-      - analytics-service
-      - vin-ocr-service
+      - gateway
+      - auth
+      - users
+      - auctions
+      - bidding
+      - orders
+      - payments
+      - notifications
+      - analytics
+      - vin-ocr
     networks:
       - reverse-tender-network
     restart: unless-stopped

@@ -27,9 +27,9 @@ services:
       - reverse_tender_network
 
   # Gateway Service - RPC Gateway with Laravel Octane + FrankenPHP
-  gateway-service:
+  gateway:
     build:
-      context: ./services/gateway-service
+      context: ./services/gateway
       dockerfile: Dockerfile
     container_name: gateway_service_octane
     restart: unless-stopped
@@ -63,14 +63,14 @@ services:
       - WORKFLOW_TIMEOUT=300
       # Service Discovery
       - SERVICE_DISCOVERY_ENABLED=true
-      - AUTH_SERVICE_URL=http://auth-service:8001
-      - USER_SERVICE_URL=http://user-service:8002
-      - BIDDING_SERVICE_URL=http://bidding-service:8003
-      - ORDER_SERVICE_URL=http://order-service:8004
-      - PAYMENT_SERVICE_URL=http://payment-service:8005
-      - ANALYTICS_SERVICE_URL=http://analytics-service:8006
-      - VIN_OCR_SERVICE_URL=http://vin-ocr-service:8007
-      - NOTIFICATION_SERVICE_URL=http://notification-service:8008
+      - AUTH_SERVICE_URL=http://auth:8001
+      - USER_SERVICE_URL=http://users:8002
+      - BIDDING_SERVICE_URL=http://bidding:8003
+      - ORDER_SERVICE_URL=http://orders:8004
+      - PAYMENT_SERVICE_URL=http://payments:8005
+      - ANALYTICS_SERVICE_URL=http://analytics:8006
+      - VIN_OCR_SERVICE_URL=http://vin-ocr:8007
+      - NOTIFICATION_SERVICE_URL=http://notifications:8008
       # Laravel Octane Configuration
       - OCTANE_SERVER=frankenphp
       - OCTANE_HTTPS=false
@@ -85,14 +85,14 @@ services:
       - mysql
       - redis
     volumes:
-      - ./services/gateway-service:/var/www/html
+      - ./services/gateway:/var/www/html
     networks:
       - reverse_tender_network
 
   # Microservices with Laravel Octane + FrankenPHP
-  auth-service:
+  auth:
     build:
-      context: ./services/auth-service
+      context: ./services/auth
       dockerfile: Dockerfile
     container_name: auth_service_octane
     restart: unless-stopped
@@ -114,7 +114,7 @@ services:
       # RPC Configuration
       - RPC_ENABLED=true
       - RPC_PORT=8001
-      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      - GATEWAY_SERVICE_URL=http://gateway:8000
       # Circuit Breaker Configuration
       - CIRCUIT_BREAKER_ENABLED=true
       - OCTANE_SERVER=frankenphp
@@ -125,7 +125,7 @@ services:
       - mysql
       - redis
     volumes:
-      - ./services/auth-service:/app
+      - ./services/auth:/app
     networks:
       - reverse_tender_network
     healthcheck:
@@ -134,9 +134,9 @@ services:
       timeout: 10s
       retries: 3
 
-  user-service:
+  users:
     build:
-      context: ./services/user-service
+      context: ./services/users
       dockerfile: Dockerfile
     container_name: user_service_octane
     restart: unless-stopped
@@ -163,7 +163,7 @@ services:
       - mysql
       - redis
     volumes:
-      - ./services/user-service:/app
+      - ./services/users:/app
     networks:
       - reverse_tender_network
     healthcheck:
@@ -172,9 +172,9 @@ services:
       timeout: 10s
       retries: 3
 
-  bidding-service:
+  bidding:
     build:
-      context: ./services/bidding-service
+      context: ./services/bidding
       dockerfile: Dockerfile
     container_name: bidding_service_octane
     restart: unless-stopped
@@ -202,7 +202,7 @@ services:
       - mysql
       - redis
     volumes:
-      - ./services/bidding-service:/app
+      - ./services/bidding:/app
     networks:
       - reverse_tender_network
     healthcheck:
@@ -211,9 +211,9 @@ services:
       timeout: 10s
       retries: 3
 
-  order-service:
+  orders:
     build:
-      context: ./services/order-service
+      context: ./services/orders
       dockerfile: Dockerfile
     container_name: order_service_octane
     restart: unless-stopped
@@ -240,7 +240,7 @@ services:
       - mysql
       - redis
     volumes:
-      - ./services/order-service:/app
+      - ./services/orders:/app
     networks:
       - reverse_tender_network
     healthcheck:
@@ -249,9 +249,9 @@ services:
       timeout: 10s
       retries: 3
 
-  payment-service:
+  payments:
     build:
-      context: ./services/payment-service
+      context: ./services/payments
       dockerfile: Dockerfile
     container_name: payment_service_octane
     restart: unless-stopped
@@ -278,7 +278,7 @@ services:
       - mysql
       - redis
     volumes:
-      - ./services/payment-service:/app
+      - ./services/payments:/app
     networks:
       - reverse_tender_network
     healthcheck:
@@ -287,9 +287,9 @@ services:
       timeout: 10s
       retries: 3
 
-  analytics-service:
+  analytics:
     build:
-      context: ./services/analytics-service
+      context: ./services/analytics
       dockerfile: Dockerfile
     container_name: analytics_service_octane
     restart: unless-stopped
@@ -316,7 +316,7 @@ services:
       - mysql
       - redis
     volumes:
-      - ./services/analytics-service:/app
+      - ./services/analytics:/app
     networks:
       - reverse_tender_network
     healthcheck:
@@ -325,9 +325,9 @@ services:
       timeout: 10s
       retries: 3
 
-  vin-ocr-service:
+  vin-ocr:
     build:
-      context: ./services/vin-ocr-service
+      context: ./services/vin-ocr
       dockerfile: Dockerfile
     container_name: vin_ocr_service_octane
     restart: unless-stopped
@@ -354,7 +354,7 @@ services:
       - mysql
       - redis
     volumes:
-      - ./services/vin-ocr-service:/app
+      - ./services/vin-ocr:/app
     networks:
       - reverse_tender_network
     healthcheck:
@@ -363,9 +363,9 @@ services:
       timeout: 10s
       retries: 3
 
-  notification-service:
+  notifications:
     build:
-      context: ./services/notification-service
+      context: ./services/notifications
       dockerfile: Dockerfile
     container_name: notification_service_octane
     restart: unless-stopped
@@ -392,7 +392,7 @@ services:
       - mysql
       - redis
     volumes:
-      - ./services/notification-service:/app
+      - ./services/notifications:/app
     networks:
       - reverse_tender_network
     healthcheck:
@@ -414,14 +414,14 @@ services:
       - ./docker/nginx/conf.d:/etc/nginx/conf.d
       - ./docker/ssl:/etc/nginx/ssl
     depends_on:
-      - auth-service
-      - user-service
-      - bidding-service
-      - order-service
-      - payment-service
-      - analytics-service
-      - vin-ocr-service
-      - notification-service
+      - auth
+      - users
+      - bidding
+      - orders
+      - payments
+      - analytics
+      - vin-ocr
+      - notifications
     networks:
       - reverse_tender_network
 
@@ -433,7 +433,7 @@ services:
     ports:
       - "9000:9000"
     environment:
-      - MONITOR_SERVICES=auth-service:8000,user-service:8001,bidding-service:8002,order-service:8003,payment-service:8004,analytics-service:8005,vin-ocr-service:8006,notification-service:8007
+      - MONITOR_SERVICES=auth:8000,users:8001,bidding:8002,orders:8003,payments:8004,analytics:8005,vin-ocr:8006,notifications:8007
     volumes:
       - ./monitoring:/app
     networks:
@@ -469,7 +469,7 @@ services:
   # Queue Workers with Horizon
   horizon:
     build:
-      context: ./services/auth-service
+      context: ./services/auth
       dockerfile: Dockerfile
     container_name: reverse_tender_horizon_octane
     restart: unless-stopped
@@ -481,7 +481,7 @@ services:
     depends_on:
       - redis
     volumes:
-      - ./services/auth-service:/app
+      - ./services/auth:/app
     networks:
       - reverse_tender_network
 
