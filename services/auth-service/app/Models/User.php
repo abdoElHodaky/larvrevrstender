@@ -397,27 +397,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->last_login_at->diffForHumans();
     }
 
-    /**
-     * Social accounts relationship
-     */
-    public function socialAccounts()
-    {
-        return $this->hasMany(SocialAccount::class);
-    }
-
-    /**
-     * Login sessions relationship
-     */
-    public function sessions()
-    {
-        return $this->hasMany(UserSession::class);
-    }
-
-    /**
-     * OTP codes relationship
-     */
-    public function otpCodes()
-    {
-        return $this->hasMany(OtpCode::class);
-    }
+    // Note: Social accounts, user sessions, and OTP codes relationships
+    // have been removed as part of the consolidation effort.
+    // These features are now handled through different mechanisms.
 }
