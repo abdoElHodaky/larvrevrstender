@@ -1,0 +1,221 @@
+version: '3.8'
+
+# Production Varnish Configuration
+# Optimized for high-traffic production environments
+
+services:
+  varnish-prod:
+    image: varnish:7.4
+    container_name: varnish-production
+    ports:
+      - "80:80"
+      - "6081:6081"
+    volumes:
+      - ./production.vcl:/etc/varnish/default.vcl:ro
+      - varnish_storage:/var/lib/varnish
+      - varnish_logs:/var/log/varnish
+    environment:
+      - VARNISH_SIZE=4G
+      - VARNISH_HTTP_PORT=80
+      - VARNISH_ADMIN_PORT=6081
+      - VARNISH_THREADS=8
+      - VARNISH_TTL=600
+    command: >
+      varnishd -F
+      -f /etc/varnish/default.vcl
+      -s malloc,4G
+      -a :80
+      -T :6081
+      -p default_ttl=600
+      -p default_grace=3600
+      -p thread_pools=8
+      -p thread_pool_min=200
+      -p thread_pool_max=2000
+      -p workspace_backend=256k
+      -p workspace_client=256k
+      -p http_max_hdr=128
+      -p http_req_hdr_len=16384
+      -p feature=+esi_ignore_https
+      -p vcc_allow_inline_c=on
+    depends_on:
+      - gateway
+      - auth
+      - users
+      - auctions
+      - bidding
+      - orders
+      - payments
+      - notifications
+      - analytics
+      - vin-ocr
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+          cpus: '4.0'
+        reservations:
+          memory: 4G
+          cpus: '2.0'
+
+  # Production monitoring with Prometheus metrics
+  varnish-exporter-prod:
+    image: prom/varnish-exporter:latest
+    container_name: varnish-exporter-production
+    ports:
+      - "9131:9131"
+    command:
+      - '--varnish.instance=varnish-prod:6081'
+      - '--web.listen-address=0.0.0.0:9131'
+      - '--web.telemetry-path=/metrics'
+      - '--varnish.timeout=10s'
+    depends_on:
+      - varnish-prod
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9131/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Production log aggregation
+  varnish-log-aggregator:
+    image: fluent/fluent-bit:latest
+    container_name: varnish-logs-production
+    volumes:
+      - varnish_logs:/var/log/varnish:ro
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+    depends_on:
+      - varnish-prod
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Production health check service
+  varnish-health-checker:
+    image: alpine/curl:latest
+    container_name: varnish-health-production
+    command: >
+      sh -c "
+      while true; do
+        echo 'Health check at $(date)';
+        curl -f http://varnish-prod:80/health || echo 'Health check failed';
+        curl -f http://varnish-exporter-prod:9131/metrics > /dev/null || echo 'Metrics check failed';
+        sleep 60;
+      done"
+    depends_on:
+      - varnish-prod
+      - varnish-exporter-prod
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # Production cache warmer
+  varnish-cache-warmer:
+    image: alpine/curl:latest
+    container_name: varnish-warmer-production
+    command: >
+      sh -c "
+      echo 'Starting cache warmer...';
+      sleep 120;
+      while true; do
+        echo 'Warming cache at $(date)';
+        curl -s http://varnish-prod:80/api/auctions > /dev/null;
+        curl -s http://varnish-prod:80/api/users > /dev/null;
+        curl -s http://varnish-prod:80/api/categories > /dev/null;
+        sleep 300;
+      done"
+    depends_on:
+      - varnish-prod
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+volumes:
+  varnish_storage:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/varnish/storage
+  varnish_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/varnish/logs
+
+networks:
+  reverse-tender-network:
+    external: true
+
+# Production-specific configurations
+x-production-config:
+  # Resource allocation
+  memory_limit: "6G"
+  cpu_limit: "4.0"
+  
+  # Scaling configuration
+  replicas: 1  # Use load balancer for multiple instances
+  
+  # Backup configuration
+  backup_schedule: "0 2 * * *"  # Daily at 2 AM
+  backup_retention: "7d"
+  
+  # Monitoring thresholds
+  alerts:
+    cache_hit_ratio_min: 80
+    response_time_max: 500
+    memory_usage_max: 90
+    cpu_usage_max: 80
+  
+  # Security settings
+  admin_access:
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+  
+  # Performance tuning
+  varnish_params:
+    thread_pools: 8
+    thread_pool_min: 200
+    thread_pool_max: 2000
+    workspace_backend: "256k"
+    workspace_client: "256k"
+    default_ttl: 600
+    default_grace: 3600

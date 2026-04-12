@@ -1,0 +1,555 @@
+# Laravel Microservice Orb
+# Reusable commands and jobs for Laravel microservices testing and deployment
+# Version: 1.0.0
+
+version: 2.1
+
+description: |
+  Laravel Microservice Orb provides reusable commands and jobs for testing,
+  building, and deploying Laravel microservices in a CI/CD pipeline.
+  
+  Features:
+  - PHP environment setup with extensions
+  - Composer dependency management with caching
+  - Database migrations and seeding
+  - PHPUnit testing with coverage
+  - Docker image building with layer caching
+  - Security scanning and code quality checks
+
+display:
+  home_url: "https://github.com/abdoElHodaky/larvrevrstender"
+  source_url: "https://github.com/abdoElHodaky/larvrevrstender"
+
+# ============================================================================
+# EXECUTORS
+# ============================================================================
+executors:
+  laravel-php83:
+    description: "PHP 8.3 environment with PostgreSQL and Redis for Laravel testing"
+    docker:
+      - image: cimg/php:8.3-node
+      - image: cimg/postgres:15.0
+        environment:
+          POSTGRES_USER: laravel
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: laravel_test
+      - image: cimg/redis:7.0
+    environment:
+      PHP_VERSION: "8.3"
+      NODE_VERSION: "18"
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: laravel_test
+      DB_USERNAME: laravel
+      DB_PASSWORD: secret
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+
+  laravel-php82:
+    description: "PHP 8.2 environment with PostgreSQL and Redis for Laravel testing"
+    docker:
+      - image: cimg/php:8.2-node
+      - image: cimg/postgres:15.0
+        environment:
+          POSTGRES_USER: laravel
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: laravel_test
+      - image: cimg/redis:7.0
+    environment:
+      PHP_VERSION: "8.2"
+      NODE_VERSION: "18"
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: laravel_test
+      DB_USERNAME: laravel
+      DB_PASSWORD: secret
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+
+  docker-builder:
+    description: "Docker environment for building images with layer caching"
+    docker:
+      - image: cimg/php:8.3-node
+    resource_class: large
+    environment:
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+
+# ============================================================================
+# COMMANDS
+# ============================================================================
+commands:
+  setup-laravel-environment:
+    description: "Setup Laravel environment with PHP extensions and dependencies"
+    parameters:
+      php_version:
+        type: string
+        default: "8.3"
+        description: "PHP version to install extensions for"
+      service_path:
+        type: string
+        default: "."
+        description: "Path to the Laravel service"
+    steps:
+      - run:
+          name: Install PHP extensions
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y \
+              php<< parameters.php_version >>-pgsql \
+              php<< parameters.php_version >>-redis \
+              php<< parameters.php_version >>-gd \
+              php<< parameters.php_version >>-zip \
+              php<< parameters.php_version >>-xml \
+              php<< parameters.php_version >>-mbstring \
+              php<< parameters.php_version >>-curl \
+              php<< parameters.php_version >>-bcmath \
+              php<< parameters.php_version >>-intl \
+              php<< parameters.php_version >>-sqlite3
+            
+            # Verify PHP configuration
+            php -v
+            php -m | grep -E "(pdo_pgsql|redis|gd|zip)"
+      
+      - restore_cache:
+          keys:
+            - laravel-composer-v3-{{ checksum "<< parameters.service_path >>/composer.lock" }}
+            - laravel-composer-v3-
+      
+      - run:
+          name: Install Composer dependencies
+          command: |
+            cd << parameters.service_path >>
+            composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+            
+      - save_cache:
+          key: laravel-composer-v3-{{ checksum "<< parameters.service_path >>/composer.lock" }}
+          paths:
+            - << parameters.service_path >>/vendor
+            - ~/.composer/cache
+
+  setup-laravel-testing:
+    description: "Setup Laravel application for testing"
+    parameters:
+      service_path:
+        type: string
+        default: "."
+        description: "Path to the Laravel service"
+      run_migrations:
+        type: boolean
+        default: true
+        description: "Whether to run database migrations"
+      run_seeders:
+        type: boolean
+        default: true
+        description: "Whether to run database seeders"
+    steps:
+      - run:
+          name: Setup Laravel test environment
+          command: |
+            cd << parameters.service_path >>
+            
+            # Copy environment file
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            else
+              echo "No environment file found, creating basic .env"
+              cat > .env << EOF
+            APP_NAME=Laravel
+            APP_ENV=testing
+            APP_KEY=
+            APP_DEBUG=true
+            APP_URL=http://localhost
+            
+            DB_CONNECTION=pgsql
+            DB_HOST=localhost
+            DB_PORT=5432
+            DB_DATABASE=laravel_test
+            DB_USERNAME=laravel
+            DB_PASSWORD=secret
+            
+            REDIS_HOST=localhost
+            REDIS_PASSWORD=null
+            REDIS_PORT=6379
+            EOF
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear caches
+            php artisan cache:clear || true
+            php artisan view:clear || true
+            php artisan route:clear || true
+      
+      - when:
+          condition: << parameters.run_migrations >>
+          steps:
+            - run:
+                name: Run database migrations
+                command: |
+                  cd << parameters.service_path >>
+                  php artisan migrate --force
+      
+      - when:
+          condition: << parameters.run_seeders >>
+          steps:
+            - run:
+                name: Run database seeders
+                command: |
+                  cd << parameters.service_path >>
+                  php artisan db:seed --force || echo "No seeders found or seeding failed"
+
+  run-laravel-tests:
+    description: "Run Laravel PHPUnit tests with coverage"
+    parameters:
+      service_path:
+        type: string
+        default: "."
+        description: "Path to the Laravel service"
+      service_name:
+        type: string
+        description: "Name of the service for artifacts"
+      coverage_threshold:
+        type: integer
+        default: 80
+        description: "Minimum code coverage percentage"
+      parallel_processes:
+        type: integer
+        default: 4
+        description: "Number of parallel test processes"
+    steps:
+      - run:
+          name: Run PHPUnit tests
+          command: |
+            cd << parameters.service_path >>
+            
+            # Run tests with coverage
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --coverage-text \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html \
+              --processes=<< parameters.parallel_processes >>
+            
+            # Check coverage threshold
+            COVERAGE=$(php -r "
+              \$xml = simplexml_load_file('coverage.xml');
+              \$metrics = \$xml->project->metrics;
+              \$percentage = (\$metrics['coveredstatements'] / \$metrics['statements']) * 100;
+              echo round(\$percentage, 2);
+            ")
+            
+            echo "Code coverage: ${COVERAGE}%"
+            if (( $(echo "${COVERAGE} < << parameters.coverage_threshold >>" | bc -l) )); then
+              echo "Coverage ${COVERAGE}% is below threshold << parameters.coverage_threshold >>%"
+              exit 1
+            fi
+      
+      - run:
+          name: Run Feature tests
+          command: |
+            cd << parameters.service_path >>
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml \
+                --testdox-html=feature-testdox.html
+            fi
+      
+      - store_test_results:
+          path: << parameters.service_path >>/test-results.xml
+      
+      - store_test_results:
+          path: << parameters.service_path >>/feature-test-results.xml
+      
+      - store_artifacts:
+          path: << parameters.service_path >>/coverage-html
+          destination: coverage-<< parameters.service_name >>
+      
+      - store_artifacts:
+          path: << parameters.service_path >>/testdox.html
+          destination: testdox-<< parameters.service_name >>.html
+      
+      - store_artifacts:
+          path: << parameters.service_path >>/feature-testdox.html
+          destination: feature-testdox-<< parameters.service_name >>.html
+
+  build-laravel-docker:
+    description: "Build Laravel Docker image with multi-stage optimization"
+    parameters:
+      service_path:
+        type: string
+        default: "."
+        description: "Path to the Laravel service"
+      service_name:
+        type: string
+        description: "Name of the service"
+      registry:
+        type: string
+        default: "ghcr.io"
+        description: "Docker registry"
+      image_name:
+        type: string
+        description: "Base image name"
+      dockerfile:
+        type: string
+        default: "Dockerfile"
+        description: "Dockerfile name"
+      build_args:
+        type: string
+        default: ""
+        description: "Additional build arguments"
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+      
+      - run:
+          name: Build Laravel Docker image
+          command: |
+            cd << parameters.service_path >>
+            
+            # Pull cache images for layer caching
+            docker pull << parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >>:cache || true
+            docker pull << parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >>:latest || true
+            
+            # Build multi-stage image with caching
+            docker build \
+              --file << parameters.dockerfile >> \
+              --cache-from=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >>:cache \
+              --cache-from=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >>:latest \
+              --target=production \
+              --tag=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >>:${CIRCLE_SHA1} \
+              --tag=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >>:latest \
+              --tag=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >>:cache \
+              --build-arg BUILDKIT_INLINE_CACHE=1 \
+              << parameters.build_args >> \
+              .
+            
+            # Analyze image size and layers
+            echo "=== << parameters.service_name >> Image Analysis ==="
+            docker images << parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >> \
+              --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"
+            
+            # Show image history for optimization insights
+            docker history << parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >>:${CIRCLE_SHA1} \
+              --format "table {{.CreatedBy}}\t{{.Size}}" | head -10
+
+  security-scan-laravel:
+    description: "Run security scans on Laravel application and Docker image"
+    parameters:
+      service_path:
+        type: string
+        default: "."
+        description: "Path to the Laravel service"
+      service_name:
+        type: string
+        description: "Name of the service"
+      registry:
+        type: string
+        default: "ghcr.io"
+        description: "Docker registry"
+      image_name:
+        type: string
+        description: "Base image name"
+      fail_on_high:
+        type: boolean
+        default: false
+        description: "Fail build on HIGH severity vulnerabilities"
+      fail_on_critical:
+        type: boolean
+        default: true
+        description: "Fail build on CRITICAL severity vulnerabilities"
+    steps:
+      - run:
+          name: Install security scanning tools
+          command: |
+            # Install Trivy
+            sudo apt-get update
+            sudo apt-get install wget apt-transport-https gnupg lsb-release
+            wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+            echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+            sudo apt-get update
+            sudo apt-get install trivy
+      
+      - run:
+          name: Scan filesystem for vulnerabilities
+          command: |
+            cd << parameters.service_path >>
+            
+            # Scan filesystem
+            trivy fs --format json --output trivy-fs-results.json .
+            trivy fs --format table .
+            
+            # Scan composer dependencies
+            if [ -f composer.lock ]; then
+              composer audit --format=json > composer-audit.json || true
+              composer audit || true
+            fi
+      
+      - run:
+          name: Scan Docker image for vulnerabilities
+          command: |
+            EXIT_CODE=0
+            SEVERITY_FLAGS=""
+            
+            if [ "<< parameters.fail_on_critical >>" = "true" ]; then
+              SEVERITY_FLAGS="${SEVERITY_FLAGS}CRITICAL,"
+            fi
+            
+            if [ "<< parameters.fail_on_high >>" = "true" ]; then
+              SEVERITY_FLAGS="${SEVERITY_FLAGS}HIGH,"
+            fi
+            
+            # Remove trailing comma
+            SEVERITY_FLAGS=${SEVERITY_FLAGS%,}
+            
+            if [ -n "$SEVERITY_FLAGS" ]; then
+              EXIT_CODE=1
+            fi
+            
+            # Scan Docker image
+            trivy image \
+              --exit-code $EXIT_CODE \
+              --severity $SEVERITY_FLAGS \
+              --format json \
+              --output trivy-image-results.json \
+              << parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >>:${CIRCLE_SHA1}
+            
+            # Show table format for readability
+            trivy image \
+              --exit-code 0 \
+              --format table \
+              << parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >>:${CIRCLE_SHA1}
+      
+      - store_artifacts:
+          path: << parameters.service_path >>/trivy-fs-results.json
+          destination: security/trivy-fs-<< parameters.service_name >>.json
+      
+      - store_artifacts:
+          path: trivy-image-results.json
+          destination: security/trivy-image-<< parameters.service_name >>.json
+      
+      - store_artifacts:
+          path: << parameters.service_path >>/composer-audit.json
+          destination: security/composer-audit-<< parameters.service_name >>.json
+
+# ============================================================================
+# JOBS
+# ============================================================================
+jobs:
+  test-laravel-service:
+    description: "Complete Laravel service testing job"
+    executor: laravel-php83
+    parameters:
+      service_path:
+        type: string
+        description: "Path to the Laravel service"
+      service_name:
+        type: string
+        description: "Name of the service"
+      php_version:
+        type: string
+        default: "8.3"
+        description: "PHP version"
+      coverage_threshold:
+        type: integer
+        default: 80
+        description: "Minimum code coverage percentage"
+    steps:
+      - checkout
+      - setup-laravel-environment:
+          php_version: << parameters.php_version >>
+          service_path: << parameters.service_path >>
+      - setup-laravel-testing:
+          service_path: << parameters.service_path >>
+      - run-laravel-tests:
+          service_path: << parameters.service_path >>
+          service_name: << parameters.service_name >>
+          coverage_threshold: << parameters.coverage_threshold >>
+
+  build-laravel-service:
+    description: "Complete Laravel service Docker build job"
+    executor: docker-builder
+    parameters:
+      service_path:
+        type: string
+        description: "Path to the Laravel service"
+      service_name:
+        type: string
+        description: "Name of the service"
+      registry:
+        type: string
+        default: "ghcr.io"
+        description: "Docker registry"
+      image_name:
+        type: string
+        description: "Base image name"
+      run_security_scan:
+        type: boolean
+        default: true
+        description: "Whether to run security scans"
+    steps:
+      - checkout
+      - build-laravel-docker:
+          service_path: << parameters.service_path >>
+          service_name: << parameters.service_name >>
+          registry: << parameters.registry >>
+          image_name: << parameters.image_name >>
+      - when:
+          condition: << parameters.run_security_scan >>
+          steps:
+            - security-scan-laravel:
+                service_path: << parameters.service_path >>
+                service_name: << parameters.service_name >>
+                registry: << parameters.registry >>
+                image_name: << parameters.image_name >>
+      - run:
+          name: Push Docker images
+          command: |
+            # Login to registry
+            echo $GITHUB_TOKEN | docker login << parameters.registry >> -u $GITHUB_USERNAME --password-stdin
+            
+            # Push all tags
+            docker push << parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >>:${CIRCLE_SHA1}
+            docker push << parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >>:latest
+            docker push << parameters.registry >>/<< parameters.image_name >>/<< parameters.service_name >>:cache
+
+# ============================================================================
+# EXAMPLES
+# ============================================================================
+examples:
+  test-microservice:
+    description: "Test a Laravel microservice"
+    usage:
+      version: 2.1
+      orbs:
+        laravel: your-org/laravel-microservice@1.0.0
+      workflows:
+        test-and-build:
+          jobs:
+            - laravel/test-laravel-service:
+                service_path: "services/auth"
+                service_name: "auth"
+                coverage_threshold: 85
+
+  build-microservice:
+    description: "Build and push a Laravel microservice Docker image"
+    usage:
+      version: 2.1
+      orbs:
+        laravel: your-org/laravel-microservice@1.0.0
+      workflows:
+        test-and-build:
+          jobs:
+            - laravel/build-laravel-service:
+                service_path: "services/auth"
+                service_name: "auth"
+                image_name: "larvrevrstender"

@@ -1,0 +1,21 @@
+# Comprehensive Pending Merges for v2 Integration
+# Generated using: git branch -r --no-merged origin/v2
+# Delete each line after successful merge and verification
+
+## Remote Branches Not Yet Merged to v2:
+origin/codegen-bot/consolidated-rpc-migration-merge
+origin/codegen-bot/multi-cloud-integration-1771330233
+origin/codegen-bot/rpc-adapters-phase6-7-implementation-1771420714
+origin/pr-72-branch
+origin/v2-final
+origin/v2-integration
+origin/v2-rpc-clients-migrate
+
+## Main Branch Status:
+origin/main (needs to be checked against v2)
+
+## Analysis Notes:
+- These branches contain unmerged commits relative to origin/v2
+- Each branch should be analyzed for content before merging
+- Use atomic merge pattern with --no-ff --no-commit for safety
+

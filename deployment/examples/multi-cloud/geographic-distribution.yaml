@@ -1,0 +1,557 @@
+# Geographic Distribution Multi-Cloud Deployment Example
+# GCP (US), Azure (Europe), DigitalOcean (Asia) for global presence
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: geographic-distribution-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: multi-cloud-config
+    deployment.scenario: "geographic-distribution"
+data:
+  deployment-config.yaml: |
+    # Geographic Distribution Multi-Cloud Configuration
+    scenario: "geographic-distribution"
+    description: "Global deployment across GCP (US), Azure (Europe), DigitalOcean (Asia)"
+    
+    # Regional deployments
+    regions:
+      us_region:
+        provider: "gcp"
+        location: "us-central1"
+        environment: "production"
+        traffic_percentage: 40
+        target_audience: "North America"
+        
+        gateway_config:
+          gateway_class: "reverse-tender-gke-gateway-class"
+          load_balancer_type: "EXTERNAL_MANAGED"
+          ssl_policy: "modern"
+          cdn_enabled: true
+          security_policy: "reverse-tender-security-policy"
+          
+        dns_config:
+          regional_domain: "us-api.reversetender.com"
+          global_domain: "api.reversetender.com"
+          geo_routing: "north-america"
+          ttl: 300
+          
+        performance_targets:
+          latency: "< 50ms"
+          availability: "99.95%"
+          throughput: "10000 rps"
+      
+      eu_region:
+        provider: "azure"
+        location: "westeurope"
+        environment: "production"
+        traffic_percentage: 35
+        target_audience: "Europe, Middle East, Africa"
+        
+        gateway_config:
+          gateway_class: "reverse-tender-azure-gateway-class"
+          application_gateway_sku: "WAF_v2"
+          waf_enabled: true
+          front_door_enabled: true
+          
+        dns_config:
+          regional_domain: "eu-api.reversetender.com"
+          global_domain: "api.reversetender.com"
+          geo_routing: "europe"
+          ttl: 300
+          
+        performance_targets:
+          latency: "< 75ms"
+          availability: "99.9%"
+          throughput: "8000 rps"
+      
+      asia_region:
+        provider: "digitalocean"
+        location: "sgp1"
+        environment: "production"
+        traffic_percentage: 25
+        target_audience: "Asia Pacific"
+        
+        gateway_config:
+          gateway_class: "reverse-tender-do-gateway-class"
+          load_balancer_size: "lb-large"
+          sticky_sessions: true
+          firewall_enabled: true
+          
+        dns_config:
+          regional_domain: "asia-api.reversetender.com"
+          global_domain: "api.reversetender.com"
+          geo_routing: "asia-pacific"
+          ttl: 300
+          
+        performance_targets:
+          latency: "< 100ms"
+          availability: "99.9%"
+          throughput: "6000 rps"
+    
+    # Global traffic management
+    traffic_management:
+      routing_strategy: "geographic"
+      load_balancing:
+        algorithm: "geographic_proximity"
+        health_check_interval: "30_seconds"
+        failover_enabled: true
+        
+      dns_configuration:
+        provider: "cloudflare"  # Global DNS provider
+        geo_routing_enabled: true
+        health_checks_enabled: true
+        
+      cdn_configuration:
+        enabled: true
+        provider: "multi_provider"
+        cache_strategy: "regional"
+        
+    # Data synchronization
+    data_sync:
+      strategy: "eventual_consistency"
+      replication_lag: "< 5_minutes"
+      conflict_resolution: "last_write_wins"
+      
+      database_sync:
+        primary_region: "us_region"
+        read_replicas:
+          - "eu_region"
+          - "asia_region"
+        sync_frequency: "real_time"
+        
+      cache_sync:
+        strategy: "invalidation_based"
+        ttl: "300_seconds"
+        cross_region_invalidation: true
+    
+    # Compliance and regulations
+    compliance:
+      gdpr:
+        applicable_regions: ["eu_region"]
+        data_residency: "europe"
+        privacy_controls: "enhanced"
+        
+      ccpa:
+        applicable_regions: ["us_region"]
+        data_residency: "united_states"
+        privacy_controls: "standard"
+        
+      pdpa:
+        applicable_regions: ["asia_region"]
+        data_residency: "singapore"
+        privacy_controls: "standard"
+
+---
+# US Region Gateway (GCP)
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: reverse-tender-us-gateway
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    deployment.region: "us"
+    deployment.provider: "gcp"
+  annotations:
+    # GCP-specific annotations
+    networking.gke.io/load-balancer-type: "EXTERNAL_MANAGED"
+    networking.gke.io/load-balancer-ip-addresses: "reverse-tender-us-ip"
+    cloud.google.com/neg: '{"ingress": true}'
+    
+    # Geographic annotations
+    geo.reversetender.com/region: "us"
+    geo.reversetender.com/target-audience: "north-america"
+    geo.reversetender.com/traffic-percentage: "40"
+spec:
+  gatewayClassName: reverse-tender-gke-gateway-class
+  
+  listeners:
+    - name: https-us-api
+      hostname: "us-api.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: us-api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    - name: https-global-api-us
+      hostname: "api.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: global-api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+  addresses:
+    - type: NamedAddress
+      value: reverse-tender-us-ip
+
+---
+# Europe Region Gateway (Azure)
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: reverse-tender-eu-gateway
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    deployment.region: "eu"
+    deployment.provider: "azure"
+  annotations:
+    # Azure-specific annotations
+    appgw.ingress.kubernetes.io/backend-path-prefix: "/"
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+    service.beta.kubernetes.io/azure-load-balancer-resource-group: "reverse-tender-eu-rg"
+    
+    # Geographic annotations
+    geo.reversetender.com/region: "eu"
+    geo.reversetender.com/target-audience: "europe-middle-east-africa"
+    geo.reversetender.com/traffic-percentage: "35"
+    
+    # GDPR compliance
+    compliance.reversetender.com/gdpr: "enabled"
+    compliance.reversetender.com/data-residency: "europe"
+spec:
+  gatewayClassName: reverse-tender-azure-gateway-class
+  
+  listeners:
+    - name: https-eu-api
+      hostname: "eu-api.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: eu-api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    - name: https-global-api-eu
+      hostname: "api.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: global-api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+  addresses:
+    - type: IPAddress
+      value: "${AZURE_EU_PUBLIC_IP}"
+
+---
+# Asia Region Gateway (DigitalOcean)
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: reverse-tender-asia-gateway
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    deployment.region: "asia"
+    deployment.provider: "digitalocean"
+  annotations:
+    # DigitalOcean-specific annotations
+    service.beta.kubernetes.io/do-loadbalancer-protocol: "http"
+    service.beta.kubernetes.io/do-loadbalancer-algorithm: "round_robin"
+    service.beta.kubernetes.io/do-loadbalancer-size-slug: "lb-large"
+    service.beta.kubernetes.io/do-loadbalancer-sticky-sessions-type: "cookies"
+    
+    # Geographic annotations
+    geo.reversetender.com/region: "asia"
+    geo.reversetender.com/target-audience: "asia-pacific"
+    geo.reversetender.com/traffic-percentage: "25"
+    
+    # PDPA compliance
+    compliance.reversetender.com/pdpa: "enabled"
+    compliance.reversetender.com/data-residency: "singapore"
+spec:
+  gatewayClassName: reverse-tender-do-gateway-class
+  
+  listeners:
+    - name: https-asia-api
+      hostname: "asia-api.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: asia-api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    - name: https-global-api-asia
+      hostname: "api.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: global-api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+  addresses:
+    - type: IPAddress
+      value: "${DO_ASIA_LOAD_BALANCER_IP}"
+
+---
+# Global Traffic Management HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: global-api-routes
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    deployment.scope: "global"
+  annotations:
+    geo.reversetender.com/routing-strategy: "geographic"
+    geo.reversetender.com/health-check-enabled: "true"
+spec:
+  parentRefs:
+    - name: reverse-tender-us-gateway
+      sectionName: https-global-api-us
+    - name: reverse-tender-eu-gateway
+      sectionName: https-global-api-eu
+    - name: reverse-tender-asia-gateway
+      sectionName: https-global-api-asia
+  
+  hostnames:
+    - "api.reversetender.com"
+  
+  rules:
+    # RPC API routes with geographic load balancing
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/api/v1/rpc"
+      backendRefs:
+        # US backend (40% traffic)
+        - name: api-gateway-service-us
+          port: 8000
+          weight: 40
+          filters:
+            - type: ResponseHeaderModifier
+              responseHeaderModifier:
+                add:
+                  - name: "X-Served-By-Region"
+                    value: "us"
+                  - name: "X-Cloud-Provider"
+                    value: "gcp"
+        
+        # EU backend (35% traffic)
+        - name: api-gateway-service-eu
+          port: 8000
+          weight: 35
+          filters:
+            - type: ResponseHeaderModifier
+              responseHeaderModifier:
+                add:
+                  - name: "X-Served-By-Region"
+                    value: "eu"
+                  - name: "X-Cloud-Provider"
+                    value: "azure"
+        
+        # Asia backend (25% traffic)
+        - name: api-gateway-service-asia
+          port: 8000
+          weight: 25
+          filters:
+            - type: ResponseHeaderModifier
+              responseHeaderModifier:
+                add:
+                  - name: "X-Served-By-Region"
+                    value: "asia"
+                  - name: "X-Cloud-Provider"
+                    value: "digitalocean"
+
+---
+# Global Health Check Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: global-health-check
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: health-check
+    deployment.scope: "global"
+  annotations:
+    geo.reversetender.com/monitor-regions: "us,eu,asia"
+    geo.reversetender.com/health-check-interval: "30s"
+spec:
+  selector:
+    app.kubernetes.io/name: global-health-check-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+
+---
+# Geographic Traffic Monitor CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: geographic-traffic-monitor
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: traffic-monitor
+spec:
+  schedule: "*/5 * * * *"  # Check every 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: traffic-monitor
+        spec:
+          containers:
+            - name: traffic-monitor
+              image: curlimages/curl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # Health check all regions
+                  US_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://us-api.reversetender.com/health || echo "000")
+                  EU_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://eu-api.reversetender.com/health || echo "000")
+                  ASIA_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://asia-api.reversetender.com/health || echo "000")
+                  
+                  echo "Regional health status:"
+                  echo "US (GCP): $US_HEALTH"
+                  echo "EU (Azure): $EU_HEALTH"
+                  echo "Asia (DigitalOcean): $ASIA_HEALTH"
+                  
+                  # Calculate healthy regions and adjust traffic weights
+                  HEALTHY_REGIONS=0
+                  [ "$US_HEALTH" = "200" ] && HEALTHY_REGIONS=$((HEALTHY_REGIONS + 1))
+                  [ "$EU_HEALTH" = "200" ] && HEALTHY_REGIONS=$((HEALTHY_REGIONS + 1))
+                  [ "$ASIA_HEALTH" = "200" ] && HEALTHY_REGIONS=$((HEALTHY_REGIONS + 1))
+                  
+                  echo "Healthy regions: $HEALTHY_REGIONS/3"
+                  
+                  # Update traffic weights based on health status
+                  if [ $HEALTHY_REGIONS -eq 3 ]; then
+                    echo "All regions healthy - maintaining normal traffic distribution"
+                  elif [ $HEALTHY_REGIONS -eq 2 ]; then
+                    echo "One region unhealthy - redistributing traffic"
+                    # In production, this would update HTTPRoute weights
+                  elif [ $HEALTHY_REGIONS -eq 1 ]; then
+                    echo "Two regions unhealthy - emergency traffic routing"
+                    # In production, this would route all traffic to healthy region
+                  else
+                    echo "All regions unhealthy - critical alert needed"
+                  fi
+              resources:
+                requests:
+                  cpu: "10m"
+                  memory: "16Mi"
+                limits:
+                  cpu: "50m"
+                  memory: "64Mi"
+          restartPolicy: OnFailure
+
+---
+# DNS Configuration for Geographic Distribution
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: geographic-dns-config
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: dns-config
+data:
+  dns-records.yaml: |
+    # DNS configuration for geographic distribution
+    # Managed by Cloudflare or similar global DNS provider
+    
+    global_records:
+      - name: "api.reversetender.com"
+        type: "A"
+        ttl: 300
+        geo_routing:
+          - location: "north-america"
+            value: "${GCP_US_LOAD_BALANCER_IP}"
+            health_check: "https://us-api.reversetender.com/health"
+          - location: "europe"
+            value: "${AZURE_EU_LOAD_BALANCER_IP}"
+            health_check: "https://eu-api.reversetender.com/health"
+          - location: "asia-pacific"
+            value: "${DO_ASIA_LOAD_BALANCER_IP}"
+            health_check: "https://asia-api.reversetender.com/health"
+        
+    regional_records:
+      - name: "us-api.reversetender.com"
+        type: "A"
+        ttl: 300
+        value: "${GCP_US_LOAD_BALANCER_IP}"
+        health_check: "https://us-api.reversetender.com/health"
+        
+      - name: "eu-api.reversetender.com"
+        type: "A"
+        ttl: 300
+        value: "${AZURE_EU_LOAD_BALANCER_IP}"
+        health_check: "https://eu-api.reversetender.com/health"
+        
+      - name: "asia-api.reversetender.com"
+        type: "A"
+        ttl: 300
+        value: "${DO_ASIA_LOAD_BALANCER_IP}"
+        health_check: "https://asia-api.reversetender.com/health"
+    
+    failover_policy:
+      health_check_interval: 30
+      failure_threshold: 3
+      automatic_failover: true
+      traffic_redistribution: "proportional"
+

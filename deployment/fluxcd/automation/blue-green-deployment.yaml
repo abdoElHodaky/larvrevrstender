@@ -1,0 +1,254 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: blue-green-deployment
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: blue-green-deployment
+    app.kubernetes.io/part-of: flux
+spec:
+  interval: 5m0s
+  path: ./deployment/k8s/overlays/blue
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  healthChecks:
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+    namespace: reverse-tender
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: auth-service
+    namespace: reverse-tender
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: user-service
+    namespace: reverse-tender
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: payment-service
+    namespace: reverse-tender
+  validation: client
+  timeout: 10m0s
+  postBuild:
+    substitute:
+      ENVIRONMENT_COLOR: "blue"
+      DEPLOYMENT_TIMESTAMP: "2024-02-20T14:00:00Z"
+    substituteFrom:
+    - kind: ConfigMap
+      name: blue-green-config
+      optional: false
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: green-environment-standby
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: green-environment-standby
+    app.kubernetes.io/part-of: flux
+spec:
+  interval: 5m0s
+  path: ./deployment/k8s/overlays/green
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  suspend: true  # Initially suspended, activated during blue-green switch
+  healthChecks:
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+    namespace: reverse-tender
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: auth-service
+    namespace: reverse-tender
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: user-service
+    namespace: reverse-tender
+  - apiVersion: apps/v1
+    kind: Deployment
+    name: payment-service
+    namespace: reverse-tender
+  validation: client
+  timeout: 10m0s
+  postBuild:
+    substitute:
+      ENVIRONMENT_COLOR: "green"
+      DEPLOYMENT_TIMESTAMP: "2024-02-20T14:30:00Z"
+    substituteFrom:
+    - kind: ConfigMap
+      name: blue-green-config
+      optional: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blue-green-automation-config
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: blue-green-automation-config
+    app.kubernetes.io/part-of: flux
+data:
+  # Blue-green deployment configuration
+  HEALTH_CHECK_TIMEOUT: "300"
+  TRAFFIC_SWITCH_TIMEOUT: "60"
+  ROLLBACK_ENABLED: "true"
+  VALIDATION_REQUIRED: "true"
+  MIN_HEALTHY_SERVICES: "7"  # Out of 9 critical services
+  MAX_ERROR_RATE: "5"        # 5% maximum error rate
+  MIN_SUCCESS_RATE: "95"     # 95% minimum success rate
+  
+  # Automation scripts
+  pre_deployment_script: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    echo "🔍 Pre-deployment validation starting..."
+    
+    # Check current environment health
+    CURRENT_COLOR=$(kubectl get configmap blue-green-config -n reverse-tender -o jsonpath='{.data.ENVIRONMENT_COLOR}')
+    echo "Current active environment: $CURRENT_COLOR"
+    
+    # Validate service discovery health
+    kubectl exec -n reverse-tender deployment/api-gateway -- curl -f http://localhost/health/deep || {
+      echo "❌ Current environment health check failed"
+      exit 1
+    }
+    
+    echo "✅ Pre-deployment validation completed"
+  
+  post_deployment_script: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    NEW_COLOR=$1
+    echo "🔍 Post-deployment validation starting for $NEW_COLOR environment..."
+    
+    # Wait for deployments to be ready
+    kubectl wait --for=condition=available --timeout=300s deployment/api-gateway -n reverse-tender
+    kubectl wait --for=condition=available --timeout=300s deployment/auth-service -n reverse-tender
+    kubectl wait --for=condition=available --timeout=300s deployment/user-service -n reverse-tender
+    kubectl wait --for=condition=available --timeout=300s deployment/payment-service -n reverse-tender
+    
+    # Validate new environment health
+    kubectl exec -n reverse-tender deployment/api-gateway -- curl -f http://localhost/health/deep || {
+      echo "❌ New environment health check failed"
+      exit 1
+    }
+    
+    # Validate cross-environment connectivity
+    kubectl exec -n reverse-tender deployment/api-gateway -- curl -f http://localhost/health/cross-environment || {
+      echo "❌ Cross-environment health check failed"
+      exit 1
+    }
+    
+    echo "✅ Post-deployment validation completed for $NEW_COLOR environment"
+  
+  traffic_switch_script: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    NEW_COLOR=$1
+    OLD_COLOR=$2
+    
+    echo "🔄 Starting traffic switch from $OLD_COLOR to $NEW_COLOR..."
+    
+    # Update ingress to point to new environment
+    kubectl patch ingress reverse-tender-ingress -n reverse-tender --patch "
+    spec:
+      rules:
+      - host: api.reversetender.com
+        http:
+          paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway-$NEW_COLOR
+                port:
+                  number: 80
+    "
+    
+    # Update blue-green config
+    kubectl patch configmap blue-green-config -n reverse-tender --patch "
+    data:
+      ENVIRONMENT_COLOR: \"$NEW_COLOR\"
+      PREVIOUS_COLOR: \"$OLD_COLOR\"
+      DEPLOYMENT_TIMESTAMP: \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+    "
+    
+    # Wait for traffic switch to take effect
+    sleep 30
+    
+    # Validate traffic is flowing to new environment
+    for i in {1..10}; do
+      RESPONSE=$(curl -s -H "Host: api.reversetender.com" http://localhost/health | jq -r '.environment_color')
+      if [ "$RESPONSE" = "$NEW_COLOR" ]; then
+        echo "✅ Traffic successfully switched to $NEW_COLOR environment"
+        exit 0
+      fi
+      echo "Waiting for traffic switch... (attempt $i/10)"
+      sleep 5
+    done
+    
+    echo "❌ Traffic switch validation failed"
+    exit 1
+  
+  rollback_script: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    echo "🚨 Initiating emergency rollback..."
+    
+    PREVIOUS_COLOR=$(kubectl get configmap blue-green-config -n reverse-tender -o jsonpath='{.data.PREVIOUS_COLOR}')
+    CURRENT_COLOR=$(kubectl get configmap blue-green-config -n reverse-tender -o jsonpath='{.data.ENVIRONMENT_COLOR}')
+    
+    if [ -z "$PREVIOUS_COLOR" ]; then
+      echo "❌ No previous environment color found for rollback"
+      exit 1
+    fi
+    
+    echo "Rolling back from $CURRENT_COLOR to $PREVIOUS_COLOR environment..."
+    
+    # Switch ingress back
+    kubectl patch ingress reverse-tender-ingress -n reverse-tender --patch "
+    spec:
+      rules:
+      - host: api.reversetender.com
+        http:
+          paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway-$PREVIOUS_COLOR
+                port:
+                  number: 80
+    "
+    
+    # Update ConfigMap
+    kubectl patch configmap blue-green-config -n reverse-tender --patch "
+    data:
+      ENVIRONMENT_COLOR: \"$PREVIOUS_COLOR\"
+      ROLLBACK_TIMESTAMP: \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+    "
+    
+    # Validate rollback
+    sleep 30
+    for i in {1..5}; do
+      RESPONSE=$(curl -s -H "Host: api.reversetender.com" http://localhost/health | jq -r '.environment_color')
+      if [ "$RESPONSE" = "$PREVIOUS_COLOR" ]; then
+        echo "✅ Rollback to $PREVIOUS_COLOR environment completed successfully"
+        exit 0
+      fi
+      echo "Waiting for rollback validation... (attempt $i/5)"
+      sleep 5
+    done
+    
+    echo "❌ Rollback validation failed"
+    exit 1

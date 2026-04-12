@@ -1,0 +1,24 @@
+<?php
+
+use App\RPC\Procedures\OrderProcedure;
+
+// use App\RPC\Procedures\EnhancedOrderProcedure;
+
+/*
+|--------------------------------------------------------------------------
+| RPC Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register RPC procedures for your application.
+| These procedures are loaded by the RpcServiceProvider within a group
+| which contains the "rpc" middleware group.
+|
+*/
+
+// Check if Sajya Server is available before registering routes
+if (class_exists('Sajya\Server\Route')) {
+    \Sajya\Server\Route::rpc('/', [
+        OrderProcedure::class,
+        // EnhancedOrderProcedure::class, // TODO: Review if this is needed or can be merged with OrderProcedure
+    ])->middleware(['rpc.correlation', 'rpc.ratelimit', 'rpc.performance', 'rpc.logging', 'rpc.auth']);
+}

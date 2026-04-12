@@ -1,0 +1,634 @@
+# Docker Optimization Orb
+# Advanced Docker image optimization and analysis for microservices
+# Version: 1.0.0
+
+version: 2.1
+
+description: |
+  Docker Optimization Orb provides advanced Docker image optimization,
+  analysis, and security scanning capabilities for microservices.
+  
+  Features:
+  - Multi-stage build optimization
+  - Layer caching strategies
+  - Image size analysis and reduction
+  - Security vulnerability scanning
+  - Registry management and cleanup
+  - Performance benchmarking
+
+display:
+  home_url: "https://github.com/abdoElHodaky/larvrevrstender"
+  source_url: "https://github.com/abdoElHodaky/larvrevrstender"
+
+# ============================================================================
+# EXECUTORS
+# ============================================================================
+executors:
+  docker-optimizer:
+    description: "Docker environment optimized for image building and analysis"
+    docker:
+      - image: cimg/base:stable
+    resource_class: large
+    environment:
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+      BUILDX_EXPERIMENTAL: 1
+
+# ============================================================================
+# COMMANDS
+# ============================================================================
+commands:
+  setup-docker-buildx:
+    description: "Setup Docker Buildx for advanced building features"
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Setup Docker Buildx
+          command: |
+            # Create and use buildx builder
+            docker buildx create --name optimizer --use --bootstrap
+            docker buildx inspect --bootstrap
+            
+            # Enable experimental features
+            echo '{"experimental": true}' | sudo tee /etc/docker/daemon.json
+            sudo systemctl reload docker || true
+
+  analyze-image-layers:
+    description: "Analyze Docker image layers for optimization opportunities"
+    parameters:
+      image_name:
+        type: string
+        description: "Full image name with tag"
+      output_format:
+        type: string
+        default: "table"
+        description: "Output format (table, json)"
+    steps:
+      - run:
+          name: Analyze image layers
+          command: |
+            echo "=== Image Layer Analysis for << parameters.image_name >> ==="
+            
+            # Basic image information
+            docker images << parameters.image_name >> --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"
+            
+            # Detailed layer history
+            echo ""
+            echo "=== Layer History ==="
+            docker history << parameters.image_name >> --format "table {{.CreatedBy}}\t{{.Size}}\t{{.Comment}}" --no-trunc
+            
+            # Layer size analysis
+            echo ""
+            echo "=== Layer Size Analysis ==="
+            docker history << parameters.image_name >> --format "{{.Size}}\t{{.CreatedBy}}" | \
+              sort -hr | head -10
+            
+            # Export analysis to file
+            docker history << parameters.image_name >> --format "json" > layer-analysis.json
+            
+            # Calculate total uncompressed size
+            TOTAL_SIZE=$(docker image inspect << parameters.image_name >> --format='{{.Size}}')
+            echo ""
+            echo "Total uncompressed size: $(numfmt --to=iec $TOTAL_SIZE)"
+      
+      - store_artifacts:
+          path: layer-analysis.json
+          destination: optimization/layer-analysis.json
+
+  optimize-dockerfile:
+    description: "Analyze and suggest Dockerfile optimizations"
+    parameters:
+      dockerfile_path:
+        type: string
+        default: "Dockerfile"
+        description: "Path to Dockerfile"
+      service_name:
+        type: string
+        description: "Service name for reporting"
+    steps:
+      - run:
+          name: Analyze Dockerfile for optimization opportunities
+          command: |
+            DOCKERFILE="<< parameters.dockerfile_path >>"
+            SERVICE="<< parameters.service_name >>"
+            
+            echo "=== Dockerfile Optimization Analysis for $SERVICE ==="
+            
+            # Check for common optimization opportunities
+            cat > dockerfile-analysis.sh << 'EOF'
+            #!/bin/bash
+            DOCKERFILE=$1
+            SERVICE=$2
+            
+            echo "Analyzing $DOCKERFILE for $SERVICE..."
+            echo ""
+            
+            # Check for multi-stage builds
+            if grep -q "FROM.*AS" "$DOCKERFILE"; then
+              echo "✅ Multi-stage build detected"
+            else
+              echo "⚠️  Consider using multi-stage builds for smaller images"
+            fi
+            
+            # Check for layer optimization
+            RUN_COUNT=$(grep -c "^RUN" "$DOCKERFILE")
+            if [ "$RUN_COUNT" -gt 5 ]; then
+              echo "⚠️  $RUN_COUNT RUN instructions found - consider combining for fewer layers"
+            else
+              echo "✅ Good layer count ($RUN_COUNT RUN instructions)"
+            fi
+            
+            # Check for cache optimization
+            if grep -q "COPY.*package.*json" "$DOCKERFILE" && grep -q "RUN.*npm install" "$DOCKERFILE"; then
+              echo "✅ Package files copied before dependencies (good for caching)"
+            fi
+            
+            if grep -q "COPY.*composer.*json" "$DOCKERFILE" && grep -q "RUN.*composer install" "$DOCKERFILE"; then
+              echo "✅ Composer files copied before dependencies (good for caching)"
+            fi
+            
+            # Check for .dockerignore
+            if [ -f "$(dirname "$DOCKERFILE")/.dockerignore" ]; then
+              echo "✅ .dockerignore file found"
+            else
+              echo "⚠️  No .dockerignore file found - consider adding one"
+            fi
+            
+            # Check for specific optimizations
+            if grep -q "apt-get update.*apt-get install" "$DOCKERFILE"; then
+              echo "✅ apt-get update and install combined"
+            fi
+            
+            if grep -q "rm -rf /var/lib/apt/lists" "$DOCKERFILE"; then
+              echo "✅ APT cache cleanup detected"
+            fi
+            
+            # Security checks
+            if grep -q "USER.*root" "$DOCKERFILE" || ! grep -q "USER" "$DOCKERFILE"; then
+              echo "⚠️  Running as root - consider using non-root user"
+            else
+              echo "✅ Non-root user specified"
+            fi
+            
+            # Generate recommendations
+            echo ""
+            echo "=== Optimization Recommendations ==="
+            echo "1. Use multi-stage builds to separate build and runtime environments"
+            echo "2. Combine RUN instructions to reduce layers"
+            echo "3. Copy dependency files before source code for better caching"
+            echo "4. Use .dockerignore to exclude unnecessary files"
+            echo "5. Clean up package manager caches in the same RUN instruction"
+            echo "6. Use specific base image tags instead of 'latest'"
+            echo "7. Run as non-root user for security"
+            EOF
+            
+            chmod +x dockerfile-analysis.sh
+            ./dockerfile-analysis.sh "$DOCKERFILE" "$SERVICE" | tee dockerfile-optimization-report.txt
+      
+      - store_artifacts:
+          path: dockerfile-optimization-report.txt
+          destination: optimization/dockerfile-<< parameters.service_name >>-report.txt
+
+  benchmark-image-performance:
+    description: "Benchmark Docker image performance metrics"
+    parameters:
+      image_name:
+        type: string
+        description: "Full image name with tag"
+      service_name:
+        type: string
+        description: "Service name for reporting"
+    steps:
+      - run:
+          name: Benchmark image performance
+          command: |
+            IMAGE="<< parameters.image_name >>"
+            SERVICE="<< parameters.service_name >>"
+            
+            echo "=== Performance Benchmark for $SERVICE ==="
+            
+            # Measure image pull time
+            echo "Measuring image pull time..."
+            docker rmi "$IMAGE" 2>/dev/null || true
+            START_TIME=$(date +%s.%N)
+            docker pull "$IMAGE"
+            END_TIME=$(date +%s.%N)
+            PULL_TIME=$(echo "$END_TIME - $START_TIME" | bc)
+            echo "Image pull time: ${PULL_TIME}s"
+            
+            # Measure container startup time
+            echo ""
+            echo "Measuring container startup time..."
+            START_TIME=$(date +%s.%N)
+            CONTAINER_ID=$(docker run -d "$IMAGE" sleep 10)
+            docker wait "$CONTAINER_ID" >/dev/null
+            END_TIME=$(date +%s.%N)
+            STARTUP_TIME=$(echo "$END_TIME - $START_TIME" | bc)
+            echo "Container startup time: ${STARTUP_TIME}s"
+            docker rm "$CONTAINER_ID" >/dev/null
+            
+            # Image size metrics
+            IMAGE_SIZE=$(docker image inspect "$IMAGE" --format='{{.Size}}')
+            COMPRESSED_SIZE=$(docker image inspect "$IMAGE" --format='{{.VirtualSize}}')
+            
+            echo ""
+            echo "=== Size Metrics ==="
+            echo "Uncompressed size: $(numfmt --to=iec $IMAGE_SIZE)"
+            echo "Virtual size: $(numfmt --to=iec $COMPRESSED_SIZE)"
+            
+            # Generate performance report
+            cat > performance-report.json << EOF
+            {
+              "service": "$SERVICE",
+              "image": "$IMAGE",
+              "metrics": {
+                "pull_time_seconds": $PULL_TIME,
+                "startup_time_seconds": $STARTUP_TIME,
+                "uncompressed_size_bytes": $IMAGE_SIZE,
+                "virtual_size_bytes": $COMPRESSED_SIZE
+              },
+              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            }
+            EOF
+            
+            echo ""
+            echo "Performance report saved to performance-report.json"
+            cat performance-report.json
+      
+      - store_artifacts:
+          path: performance-report.json
+          destination: optimization/performance-<< parameters.service_name >>.json
+
+  security-scan-image:
+    description: "Comprehensive security scanning of Docker image"
+    parameters:
+      image_name:
+        type: string
+        description: "Full image name with tag"
+      service_name:
+        type: string
+        description: "Service name for reporting"
+      fail_on_critical:
+        type: boolean
+        default: true
+        description: "Fail on critical vulnerabilities"
+      fail_on_high:
+        type: boolean
+        default: false
+        description: "Fail on high severity vulnerabilities"
+    steps:
+      - run:
+          name: Install security scanning tools
+          command: |
+            # Install Trivy
+            sudo apt-get update
+            sudo apt-get install wget apt-transport-https gnupg lsb-release
+            wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+            echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+            sudo apt-get update
+            sudo apt-get install trivy
+      
+      - run:
+          name: Security scan with Trivy
+          command: |
+            IMAGE="<< parameters.image_name >>"
+            SERVICE="<< parameters.service_name >>"
+            
+            echo "=== Security Scan for $SERVICE ==="
+            
+            # Determine exit code based on parameters
+            EXIT_CODE=0
+            SEVERITY_FLAGS=""
+            
+            if [ "<< parameters.fail_on_critical >>" = "true" ]; then
+              SEVERITY_FLAGS="${SEVERITY_FLAGS}CRITICAL,"
+              EXIT_CODE=1
+            fi
+            
+            if [ "<< parameters.fail_on_high >>" = "true" ]; then
+              SEVERITY_FLAGS="${SEVERITY_FLAGS}HIGH,"
+              EXIT_CODE=1
+            fi
+            
+            # Remove trailing comma
+            SEVERITY_FLAGS=${SEVERITY_FLAGS%,}
+            
+            # Run comprehensive scan
+            trivy image \
+              --exit-code 0 \
+              --format json \
+              --output "security-scan-$SERVICE.json" \
+              "$IMAGE"
+            
+            # Run scan with severity filtering for potential failure
+            if [ -n "$SEVERITY_FLAGS" ]; then
+              trivy image \
+                --exit-code $EXIT_CODE \
+                --severity "$SEVERITY_FLAGS" \
+                --format table \
+                "$IMAGE"
+            fi
+            
+            # Generate security summary
+            trivy image \
+              --format table \
+              --severity HIGH,CRITICAL \
+              "$IMAGE" > "security-summary-$SERVICE.txt"
+            
+            echo ""
+            echo "Security scan completed for $SERVICE"
+            echo "Results saved to security-scan-$SERVICE.json"
+      
+      - store_artifacts:
+          path: security-scan-<< parameters.service_name >>.json
+          destination: security/scan-<< parameters.service_name >>.json
+      
+      - store_artifacts:
+          path: security-summary-<< parameters.service_name >>.txt
+          destination: security/summary-<< parameters.service_name >>.txt
+
+  cleanup-registry:
+    description: "Clean up old images from registry"
+    parameters:
+      registry:
+        type: string
+        default: "ghcr.io"
+        description: "Docker registry"
+      image_name:
+        type: string
+        description: "Base image name"
+      service_name:
+        type: string
+        description: "Service name"
+      keep_tags:
+        type: integer
+        default: 10
+        description: "Number of recent tags to keep"
+    steps:
+      - run:
+          name: Registry cleanup
+          command: |
+            REGISTRY="<< parameters.registry >>"
+            IMAGE_NAME="<< parameters.image_name >>"
+            SERVICE="<< parameters.service_name >>"
+            KEEP_TAGS=<< parameters.keep_tags >>
+            
+            echo "=== Registry Cleanup for $SERVICE ==="
+            echo "Registry: $REGISTRY"
+            echo "Image: $IMAGE_NAME/$SERVICE"
+            echo "Keeping $KEEP_TAGS most recent tags"
+            
+            # Note: This is a placeholder for registry cleanup logic
+            # Actual implementation would depend on the registry API
+            echo "Registry cleanup would be implemented here based on registry type"
+            echo "For GitHub Container Registry, this would use the GitHub API"
+            echo "For Docker Hub, this would use the Docker Hub API"
+            
+            # Log current tags (for demonstration)
+            echo ""
+            echo "Current tags for $SERVICE:"
+            docker images "$REGISTRY/$IMAGE_NAME/$SERVICE" --format "table {{.Tag}}\t{{.CreatedAt}}\t{{.Size}}"
+
+# ============================================================================
+# JOBS
+# ============================================================================
+jobs:
+  optimize-docker-images:
+    description: "Comprehensive Docker image optimization analysis"
+    executor: docker-optimizer
+    parameters:
+      services:
+        type: string
+        description: "Space-separated list of services to optimize"
+      registry:
+        type: string
+        default: "ghcr.io"
+        description: "Docker registry"
+      image_name:
+        type: string
+        description: "Base image name"
+    steps:
+      - checkout
+      - setup-docker-buildx
+      
+      - run:
+          name: Process services for optimization
+          command: |
+            SERVICES="<< parameters.services >>"
+            REGISTRY="<< parameters.registry >>"
+            IMAGE_NAME="<< parameters.image_name >>"
+            
+            echo "=== Docker Image Optimization ==="
+            echo "Services to optimize: $SERVICES"
+            echo "Registry: $REGISTRY"
+            echo "Base image name: $IMAGE_NAME"
+            echo ""
+            
+            # Create optimization summary
+            cat > optimization-summary.json << EOF
+            {
+              "optimization_run": {
+                "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                "services": [],
+                "registry": "$REGISTRY",
+                "base_image": "$IMAGE_NAME"
+              }
+            }
+            EOF
+            
+            # Process each service
+            for service in $SERVICES; do
+              echo "Processing $service..."
+              
+              # Check if service directory exists
+              if [ -d "services/$service" ]; then
+                echo "✅ Service directory found: services/$service"
+                
+                # Analyze Dockerfile if it exists
+                if [ -f "services/$service/Dockerfile" ]; then
+                  echo "Analyzing Dockerfile for $service..."
+                fi
+                
+                # Pull and analyze image if it exists
+                IMAGE_TAG="$REGISTRY/$IMAGE_NAME/$service:latest"
+                if docker pull "$IMAGE_TAG" 2>/dev/null; then
+                  echo "✅ Image found: $IMAGE_TAG"
+                  
+                  # Add service to summary
+                  jq --arg service "$service" \
+                     --arg status "analyzed" \
+                     '.optimization_run.services += [{"name": $service, "status": $status}]' \
+                     optimization-summary.json > temp.json && mv temp.json optimization-summary.json
+                else
+                  echo "⚠️  Image not found: $IMAGE_TAG"
+                  
+                  # Add service to summary with warning
+                  jq --arg service "$service" \
+                     --arg status "image_not_found" \
+                     '.optimization_run.services += [{"name": $service, "status": $status}]' \
+                     optimization-summary.json > temp.json && mv temp.json optimization-summary.json
+                fi
+              else
+                echo "⚠️  Service directory not found: services/$service"
+              fi
+              
+              echo ""
+            done
+            
+            echo "Optimization analysis completed"
+            cat optimization-summary.json
+      
+      - store_artifacts:
+          path: optimization-summary.json
+          destination: optimization/summary.json
+
+  security-scan-all-images:
+    description: "Security scan all service images"
+    executor: docker-optimizer
+    parameters:
+      services:
+        type: string
+        description: "Space-separated list of services to scan"
+      registry:
+        type: string
+        default: "ghcr.io"
+        description: "Docker registry"
+      image_name:
+        type: string
+        description: "Base image name"
+      fail_on_critical:
+        type: boolean
+        default: true
+        description: "Fail on critical vulnerabilities"
+    steps:
+      - checkout
+      - setup-docker-buildx
+      
+      - run:
+          name: Install security tools
+          command: |
+            # Install Trivy
+            sudo apt-get update
+            sudo apt-get install wget apt-transport-https gnupg lsb-release
+            wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+            echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+            sudo apt-get update
+            sudo apt-get install trivy
+      
+      - run:
+          name: Security scan all images
+          command: |
+            SERVICES="<< parameters.services >>"
+            REGISTRY="<< parameters.registry >>"
+            IMAGE_NAME="<< parameters.image_name >>"
+            FAIL_ON_CRITICAL="<< parameters.fail_on_critical >>"
+            
+            echo "=== Security Scan All Images ==="
+            echo "Services: $SERVICES"
+            echo ""
+            
+            OVERALL_EXIT_CODE=0
+            
+            # Create security summary
+            cat > security-summary.json << EOF
+            {
+              "security_scan": {
+                "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                "services": [],
+                "fail_on_critical": $FAIL_ON_CRITICAL
+              }
+            }
+            EOF
+            
+            for service in $SERVICES; do
+              echo "Scanning $service..."
+              IMAGE_TAG="$REGISTRY/$IMAGE_NAME/$service:latest"
+              
+              if docker pull "$IMAGE_TAG" 2>/dev/null; then
+                # Run security scan
+                EXIT_CODE=0
+                if [ "$FAIL_ON_CRITICAL" = "true" ]; then
+                  EXIT_CODE=1
+                fi
+                
+                trivy image \
+                  --exit-code 0 \
+                  --format json \
+                  --output "security-$service.json" \
+                  "$IMAGE_TAG"
+                
+                # Check for critical vulnerabilities
+                CRITICAL_COUNT=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' "security-$service.json")
+                HIGH_COUNT=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' "security-$service.json")
+                
+                echo "  Critical vulnerabilities: $CRITICAL_COUNT"
+                echo "  High vulnerabilities: $HIGH_COUNT"
+                
+                # Add to summary
+                jq --arg service "$service" \
+                   --argjson critical "$CRITICAL_COUNT" \
+                   --argjson high "$HIGH_COUNT" \
+                   '.security_scan.services += [{"name": $service, "critical": $critical, "high": $high}]' \
+                   security-summary.json > temp.json && mv temp.json security-summary.json
+                
+                if [ "$FAIL_ON_CRITICAL" = "true" ] && [ "$CRITICAL_COUNT" -gt 0 ]; then
+                  echo "  ❌ Critical vulnerabilities found in $service"
+                  OVERALL_EXIT_CODE=1
+                else
+                  echo "  ✅ $service scan completed"
+                fi
+              else
+                echo "  ⚠️  Image not found: $IMAGE_TAG"
+              fi
+              
+              echo ""
+            done
+            
+            echo "Security scan summary:"
+            cat security-summary.json
+            
+            if [ $OVERALL_EXIT_CODE -ne 0 ]; then
+              echo ""
+              echo "❌ Security scan failed due to critical vulnerabilities"
+              exit $OVERALL_EXIT_CODE
+            fi
+      
+      - store_artifacts:
+          path: security-summary.json
+          destination: security/summary.json
+      
+      - store_artifacts:
+          path: security-*.json
+          destination: security/
+
+# ============================================================================
+# EXAMPLES
+# ============================================================================
+examples:
+  optimize-microservices:
+    description: "Optimize all microservice Docker images"
+    usage:
+      version: 2.1
+      orbs:
+        docker-opt: your-org/docker-optimization@1.0.0
+      workflows:
+        optimize:
+          jobs:
+            - docker-opt/optimize-docker-images:
+                services: "auth user auction bidding payment"
+                image_name: "larvrevrstender"
+
+  security-scan-all:
+    description: "Security scan all microservice images"
+    usage:
+      version: 2.1
+      orbs:
+        docker-opt: your-org/docker-optimization@1.0.0
+      workflows:
+        security:
+          jobs:
+            - docker-opt/security-scan-all-images:
+                services: "auth user auction bidding payment"
+                image_name: "larvrevrstender"
+                fail_on_critical: true

@@ -2,7 +2,7 @@
 
 # <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">📱 Notification Service Documentation</span>
 
-<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Multi-channel messaging capabilities <strong>optimized for the MENA region</strong>, offering alternatives to Twilio with local and regional providers for better delivery rates, compliance, and cost-effectiveness.</p>
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Multi-channel messaging capabilities <strong>optimized for the MENA region</strong>, using regional providers like Unifonic, Msegat, Oursms, and Infobip for better delivery rates, compliance, and cost-effectiveness.</p>
 
 ## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Service Architecture Overview</span>
 

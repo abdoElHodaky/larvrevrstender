@@ -1,8 +1,28 @@
 <div style="max-width: 38.2rem; line-height: 1.618; font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;">
 
 # <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🚀 Deployment Infrastructure</span>
+## <span style="font-size: 20px; font-weight: 500; line-height: 1.618; color: #4ECDC4;">Version 2.0 - Multi-Tier Caching Architecture</span>
 
-<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Complete deployment infrastructure for the <strong>Reverse Tender Platform</strong>, a Laravel 12 + Octane microservices architecture supporting multiple environments and cloud providers with enterprise-grade performance optimization.</p>
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">Complete deployment infrastructure for the <strong>Reverse Tender Platform V2</strong>, a Laravel 12 + Octane microservices architecture with <strong>multi-tier caching system</strong> supporting multiple environments and cloud providers with enterprise-grade performance optimization.</p>
+
+<div style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #FF6B6B10, #4ECDC410); border-radius: 12px; border-left: 4px solid #FF6B6B;">
+
+### <span style="font-size: 18px; font-weight: 600; color: #FF6B6B;">🚀 V2 Deployment Features</span>
+
+**Multi-Tier Caching Infrastructure:**
+- **L1 (Varnish)**: HTTP cache server deployment across all cloud providers
+- **L2 (Upstash Redis)**: Managed cloud Redis integration with TLS
+- **L3 (MongoDB Atlas)**: Serverless database deployment with auto-scaling
+- **Cache Orchestration**: Intelligent cache coordination and failover
+
+**Cloud Provider Support:**
+- **DigitalOcean**: Optimized droplet configurations with Varnish
+- **Linode**: Enhanced compute instances with multi-tier caching
+- **Azure**: Container instances with cache layer integration
+- **GCP**: Cloud Run services with intelligent caching
+- **OpenStack**: Private cloud deployment with cache optimization
+
+</div>
 
 ## <span style="font-size: 26px; font-weight: 600; line-height: 1.618;">🎯 Infrastructure Strategy Overview</span>
 
@@ -36,12 +56,14 @@ This deployment infrastructure is fully optimized for Laravel 12 with Octane usi
 8. **Analytics Service** (Port 8007) - Data analytics and reporting
 9. **VIN OCR Service** (Port 8008) - Vehicle identification and OCR processing
 
-### Infrastructure Components
+### V2 Infrastructure Components
+- **Varnish Cache** - L1 HTTP caching with 2GB allocation
+- **Upstash Redis** - L2 managed cloud Redis with TLS
+- **MongoDB Atlas** - L3 serverless database with auto-scaling
 - **MySQL 8.0** - Primary database with per-service databases
-- **Redis** - Caching, sessions, and queue management
 - **Laravel Reverb** - WebSocket server for real-time features
-- **Prometheus + Grafana** - Monitoring and observability
-- **Jaeger** - Distributed tracing
+- **Prometheus + Grafana** - Multi-tier cache monitoring and observability
+- **Jaeger** - Distributed tracing with cache layer visibility
 
 ---
 

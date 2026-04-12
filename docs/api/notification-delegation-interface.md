@@ -210,7 +210,7 @@ graph LR
     subgraph "📱 SMS PROCESSING"
         SMS_REQUEST["📤 SMS Request<br/>Phone + Message<br/>323px"]
         SMS_VALIDATE["🔍 Validation<br/>Phone Format<br/>200px"]
-        SMS_PROVIDER["📡 SMS Provider<br/>Twilio/Nexmo<br/>200px"]
+        SMS_PROVIDER["📡 SMS Provider<br/>MENA Providers<br/>200px"]
         SMS_RESPONSE["✅ Delivery Status<br/>Message ID<br/>200px"]
     end
     
@@ -596,4 +596,3 @@ public function healthCheck(array $params = [], array $context = []): array
 
 </div>
 <!-- End Golden Ratio Container -->
-

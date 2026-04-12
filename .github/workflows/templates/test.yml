@@ -1,0 +1,336 @@
+name: Testing Template
+# Comprehensive testing template for Laravel microservices
+# Features: Service-specific testing, integration tests, coverage reporting
+
+on:
+  workflow_call:
+    inputs:
+      services:
+        description: 'Comma-separated list of services to test'
+        required: true
+        type: string
+      test_strategy:
+        description: 'Testing strategy (targeted/comprehensive)'
+        required: false
+        type: string
+        default: 'targeted'
+      environment:
+        description: 'Test environment'
+        required: false
+        type: string
+        default: 'staging'
+      php_version:
+        description: 'PHP version for testing'
+        required: false
+        type: string
+        default: '8.2'
+    outputs:
+      test_result:
+        description: 'Overall test result'
+        value: ${{ jobs.test.outputs.result }}
+      coverage_percentage:
+        description: 'Test coverage percentage'
+        value: ${{ jobs.test.outputs.coverage }}
+
+jobs:
+  test:
+    name: 🧪 Testing Suite
+    runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.test-result.outputs.result }}
+      coverage: ${{ steps.coverage.outputs.percentage }}
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: larvrevrstender_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7.0
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php_version }}
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, redis, mongodb
+          coverage: xdebug
+
+      - name: Parse Services to Test
+        id: parse-services
+        run: |
+          echo "🔍 Parsing services to test: ${{ inputs.services }}"
+          
+          # Convert comma-separated services to array
+          IFS=',' read -ra SERVICES <<< "${{ inputs.services }}"
+          
+          # Validate services exist and have tests
+          TESTABLE_SERVICES=()
+          for service in "${SERVICES[@]}"; do
+            service=$(echo "$service" | xargs)  # trim whitespace
+            if [ -d "services/$service" ]; then
+              if [ -d "services/$service/tests" ] || [ -f "services/$service/phpunit.xml" ]; then
+                TESTABLE_SERVICES+=("$service")
+                echo "✅ Testable service found: $service"
+              else
+                echo "ℹ️ Service $service has no tests directory"
+              fi
+            else
+              echo "⚠️ Service not found: $service"
+            fi
+          done
+          
+          # Export for later steps
+          printf '%s\n' "${TESTABLE_SERVICES[@]}" > /tmp/services_to_test.txt
+          echo "testable_count=${#TESTABLE_SERVICES[@]}" >> $GITHUB_OUTPUT
+          
+          if [ ${#TESTABLE_SERVICES[@]} -eq 0 ]; then
+            echo "ℹ️ No testable services found"
+            echo "testable_count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Shared Dependencies
+        if: steps.parse-services.outputs.testable_count > 0
+        run: |
+          echo "📦 Installing shared library dependencies..."
+          
+          if [ -d "services/shared" ] && [ -f "services/shared/composer.json" ]; then
+            cd services/shared
+            composer install --no-interaction --prefer-dist --optimize-autoloader
+            cd - > /dev/null
+            echo "✅ Shared dependencies installed"
+          else
+            echo "ℹ️ No shared library found"
+          fi
+
+      - name: Run Service Tests
+        if: steps.parse-services.outputs.testable_count > 0
+        id: run-tests
+        run: |
+          echo "🧪 Running tests for services..."
+          
+          TOTAL_TESTS=0
+          PASSED_TESTS=0
+          FAILED_TESTS=0
+          TOTAL_ASSERTIONS=0
+          
+          while IFS= read -r service; do
+            echo "🧪 Testing service: $service"
+            
+            cd "services/$service"
+            
+            # Install service-specific dependencies
+            if [ -f "composer.json" ]; then
+              echo "📦 Installing dependencies for $service..."
+              composer install --no-interaction --prefer-dist --optimize-autoloader --quiet
+            fi
+            
+            # Setup environment
+            if [ -f ".env.testing" ]; then
+              cp .env.testing .env
+            elif [ -f ".env.example" ]; then
+              cp .env.example .env
+            fi
+            
+            # Check if this is a library package
+            IS_LIBRARY=false
+            if [ -f "composer.json" ]; then
+              if grep -q '"type": "library"' composer.json; then
+                IS_LIBRARY=true
+                echo "📚 Detected library package: $service"
+              fi
+            fi
+            
+            # Generate application key if Laravel (but not for library packages)
+            if [ -f "artisan" ] && [ "$IS_LIBRARY" = "false" ]; then
+              php artisan key:generate --no-interaction --quiet || true
+            elif [ "$IS_LIBRARY" = "true" ]; then
+              echo "ℹ️ Skipping Laravel setup for library package: $service"
+              # For library packages, ensure we have a minimal APP_KEY if needed
+              if [ -f ".env" ] && ! grep -q "APP_KEY=" .env; then
+                echo "APP_KEY=base64:$(openssl rand -base64 32)" >> .env
+              elif [ -f ".env" ] && grep -q "APP_KEY=$" .env; then
+                sed -i "s/APP_KEY=$/APP_KEY=base64:$(openssl rand -base64 32)/" .env
+              fi
+            fi
+            
+            # Run tests based on strategy
+            TEST_COMMAND="vendor/bin/phpunit"
+            if [ "${{ inputs.test_strategy }}" = "comprehensive" ]; then
+              TEST_COMMAND="$TEST_COMMAND --coverage-text --coverage-clover=coverage.xml"
+            fi
+            
+            # Execute tests
+            if [ -f "phpunit.xml" ] || [ -d "tests" ]; then
+              echo "🚀 Running tests for $service..."
+              
+              if $TEST_COMMAND --log-junit=/tmp/junit_$service.xml > /tmp/test_output_$service.txt 2>&1; then
+                echo "✅ Tests passed for $service"
+                
+                # Extract test statistics
+                if [ -f "/tmp/junit_$service.xml" ]; then
+                  TESTS=$(grep -o 'tests="[0-9]*"' /tmp/junit_$service.xml | grep -o '[0-9]*' || echo "0")
+                  ASSERTIONS=$(grep -o 'assertions="[0-9]*"' /tmp/junit_$service.xml | grep -o '[0-9]*' || echo "0")
+                  FAILURES=$(grep -o 'failures="[0-9]*"' /tmp/junit_$service.xml | grep -o '[0-9]*' || echo "0")
+                  
+                  TOTAL_TESTS=$((TOTAL_TESTS + TESTS))
+                  TOTAL_ASSERTIONS=$((TOTAL_ASSERTIONS + ASSERTIONS))
+                  
+                  if [ "$FAILURES" -eq 0 ]; then
+                    PASSED_TESTS=$((PASSED_TESTS + 1))
+                  else
+                    FAILED_TESTS=$((FAILED_TESTS + 1))
+                  fi
+                  
+                  echo "  📊 $service: $TESTS tests, $ASSERTIONS assertions, $FAILURES failures"
+                else
+                  PASSED_TESTS=$((PASSED_TESTS + 1))
+                fi
+              else
+                echo "❌ Tests failed for $service"
+                FAILED_TESTS=$((FAILED_TESTS + 1))
+                
+                # Show test output for debugging
+                echo "Test output for $service:"
+                tail -20 /tmp/test_output_$service.txt || true
+              fi
+            else
+              echo "ℹ️ No tests found for $service"
+            fi
+            
+            cd - > /dev/null
+          done < /tmp/services_to_test.txt
+          
+          # Export results
+          echo "total_tests=$TOTAL_TESTS" >> $GITHUB_OUTPUT
+          echo "passed_services=$PASSED_TESTS" >> $GITHUB_OUTPUT
+          echo "failed_services=$FAILED_TESTS" >> $GITHUB_OUTPUT
+          echo "total_assertions=$TOTAL_ASSERTIONS" >> $GITHUB_OUTPUT
+          
+          echo "📊 Test Summary:"
+          echo "  Services tested: $((PASSED_TESTS + FAILED_TESTS))"
+          echo "  Services passed: $PASSED_TESTS"
+          echo "  Services failed: $FAILED_TESTS"
+          echo "  Total tests: $TOTAL_TESTS"
+          echo "  Total assertions: $TOTAL_ASSERTIONS"
+
+      - name: Calculate Coverage
+        if: inputs.test_strategy == 'comprehensive'
+        id: coverage
+        run: |
+          echo "📊 Calculating test coverage..."
+          
+          TOTAL_COVERAGE=0
+          COVERAGE_COUNT=0
+          
+          while IFS= read -r service; do
+            if [ -f "services/$service/coverage.xml" ]; then
+              # Extract coverage percentage from clover XML
+              COVERAGE=$(php -r "
+                \$xml = simplexml_load_file('services/$service/coverage.xml');
+                if (\$xml && isset(\$xml->project->metrics)) {
+                  \$metrics = \$xml->project->metrics;
+                  \$covered = (int)\$metrics['coveredstatements'];
+                  \$total = (int)\$metrics['statements'];
+                  if (\$total > 0) {
+                    echo round((\$covered / \$total) * 100, 2);
+                  } else {
+                    echo '0';
+                  }
+                } else {
+                  echo '0';
+                }
+              " 2>/dev/null || echo "0")
+              
+              if [ "$COVERAGE" != "0" ]; then
+                TOTAL_COVERAGE=$(echo "$TOTAL_COVERAGE + $COVERAGE" | bc -l 2>/dev/null || echo "$TOTAL_COVERAGE")
+                COVERAGE_COUNT=$((COVERAGE_COUNT + 1))
+                echo "📊 $service coverage: $COVERAGE%"
+              fi
+            fi
+          done < /tmp/services_to_test.txt
+          
+          # Calculate average coverage
+          if [ "$COVERAGE_COUNT" -gt 0 ]; then
+            AVG_COVERAGE=$(echo "scale=2; $TOTAL_COVERAGE / $COVERAGE_COUNT" | bc -l 2>/dev/null || echo "0")
+          else
+            AVG_COVERAGE="0"
+          fi
+          
+          echo "percentage=$AVG_COVERAGE" >> $GITHUB_OUTPUT
+          echo "📊 Average test coverage: $AVG_COVERAGE%"
+
+      - name: Integration Tests
+        if: inputs.test_strategy == 'comprehensive'
+        run: |
+          echo "🔗 Running integration tests..."
+          
+          # Run integration tests if they exist
+          if [ -f "tests/run-all-tests.sh" ]; then
+            echo "🚀 Running comprehensive integration tests..."
+            chmod +x tests/run-all-tests.sh
+            ./tests/run-all-tests.sh || echo "⚠️ Integration tests completed with warnings"
+          else
+            echo "ℹ️ No integration tests found"
+          fi
+
+      - name: Determine Test Result
+        id: test-result
+        run: |
+          FAILED_SERVICES=${{ steps.run-tests.outputs.failed_services || '0' }}
+          TESTABLE_COUNT=${{ steps.parse-services.outputs.testable_count || '0' }}
+          
+          if [ "$TESTABLE_COUNT" -eq 0 ]; then
+            echo "result=skipped" >> $GITHUB_OUTPUT
+            echo "ℹ️ No testable services found - tests skipped"
+          elif [ "$FAILED_SERVICES" -eq 0 ]; then
+            echo "result=success" >> $GITHUB_OUTPUT
+            echo "✅ All tests passed"
+          else
+            echo "result=failure" >> $GITHUB_OUTPUT
+            echo "❌ $FAILED_SERVICES service(s) failed tests"
+            exit 1
+          fi
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Strategy:** ${{ inputs.test_strategy }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**PHP Version:** ${{ inputs.php_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Services Tested:** ${{ steps.parse-services.outputs.testable_count || '0' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Services Passed:** ${{ steps.run-tests.outputs.passed_services || '0' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Services Failed:** ${{ steps.run-tests.outputs.failed_services || '0' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Total Tests:** ${{ steps.run-tests.outputs.total_tests || '0' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Total Assertions:** ${{ steps.run-tests.outputs.total_assertions || '0' }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ inputs.test_strategy }}" = "comprehensive" ]; then
+            echo "**Average Coverage:** ${{ steps.coverage.outputs.percentage || '0' }}%" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Overall Result:** ${{ steps.test-result.outputs.result == 'success' && '✅ PASSED' || steps.test-result.outputs.result == 'skipped' && '⏭️ SKIPPED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY

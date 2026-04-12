@@ -1,0 +1,365 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-config
+  namespace: monitoring
+data:
+  slo-rules.yml: |
+    groups:
+    - name: slo.deployment
+      interval: 30s
+      rules:
+      # Deployment Success Rate SLI
+      - record: deployment_success_rate_5m
+        expr: |
+          (
+            sum(rate(deployment_total{status="success"}[5m])) /
+            sum(rate(deployment_total[5m]))
+          ) * 100
+
+      - record: deployment_success_rate_1h
+        expr: |
+          (
+            sum(rate(deployment_total{status="success"}[1h])) /
+            sum(rate(deployment_total[1h]))
+          ) * 100
+
+      - record: deployment_success_rate_24h
+        expr: |
+          (
+            sum(rate(deployment_total{status="success"}[24h])) /
+            sum(rate(deployment_total[24h]))
+          ) * 100
+
+      # Deployment Duration SLI
+      - record: deployment_duration_p50_5m
+        expr: histogram_quantile(0.50, rate(deployment_duration_seconds_bucket[5m]))
+
+      - record: deployment_duration_p95_5m
+        expr: histogram_quantile(0.95, rate(deployment_duration_seconds_bucket[5m]))
+
+      - record: deployment_duration_p99_5m
+        expr: histogram_quantile(0.99, rate(deployment_duration_seconds_bucket[5m]))
+
+      # Blue-Green Switch Success Rate SLI
+      - record: blue_green_switch_success_rate_5m
+        expr: |
+          (
+            sum(rate(blue_green_switch_total{status="success"}[5m])) /
+            sum(rate(blue_green_switch_total[5m]))
+          ) * 100
+
+      # Service Availability SLI
+      - record: service_availability_5m
+        expr: |
+          (
+            sum(rate(probe_success{job=~".*-health"}[5m])) /
+            sum(rate(probe_duration_seconds_count{job=~".*-health"}[5m]))
+          ) * 100
+
+      # Error Budget Calculations
+      - record: error_budget_remaining
+        expr: |
+          (
+            1 - (
+              (1 - (deployment_success_rate_24h / 100)) /
+              (1 - 0.95)  # SLO target of 95%
+            )
+          ) * 100
+
+      - record: error_budget_burn_rate_1h
+        expr: |
+          (1 - (deployment_success_rate_1h / 100)) /
+          (1 - 0.95) * 24  # 24 hours in a day
+
+      - record: error_budget_burn_rate_5m
+        expr: |
+          (1 - (deployment_success_rate_5m / 100)) /
+          (1 - 0.95) * 288  # 288 five-minute periods in a day
+
+    - name: slo.fluxcd
+      interval: 30s
+      rules:
+      # FluxCD Reconciliation Success Rate
+      - record: fluxcd_reconciliation_success_rate_5m
+        expr: |
+          (
+            sum(rate(gotk_reconcile_condition{type="Ready",status="True"}[5m])) /
+            sum(rate(gotk_reconcile_condition{type="Ready"}[5m]))
+          ) * 100
+
+      # FluxCD Reconciliation Duration
+      - record: fluxcd_reconciliation_duration_p95_5m
+        expr: histogram_quantile(0.95, rate(gotk_reconcile_duration_seconds_bucket[5m]))
+
+    - name: slo.ingress
+      interval: 30s
+      rules:
+      # Ingress Success Rate (non-5xx responses)
+      - record: ingress_success_rate_5m
+        expr: |
+          (
+            sum(rate(nginx_ingress_controller_requests{status!~"5.."}[5m])) /
+            sum(rate(nginx_ingress_controller_requests[5m]))
+          ) * 100
+
+      # Ingress Response Time
+      - record: ingress_response_time_p95_5m
+        expr: histogram_quantile(0.95, rate(nginx_ingress_controller_request_duration_seconds_bucket[5m]))
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-dashboard-config
+  namespace: monitoring
+data:
+  slo-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Blue-Green Deployment SLOs",
+        "tags": ["slo", "blue-green", "deployment"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Deployment Success Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "deployment_success_rate_5m",
+                "legendFormat": "5m"
+              },
+              {
+                "expr": "deployment_success_rate_1h",
+                "legendFormat": "1h"
+              },
+              {
+                "expr": "deployment_success_rate_24h",
+                "legendFormat": "24h"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 95},
+                    {"color": "green", "value": 99}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Deployment Duration",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "deployment_duration_p50_5m",
+                "legendFormat": "p50"
+              },
+              {
+                "expr": "deployment_duration_p95_5m",
+                "legendFormat": "p95"
+              },
+              {
+                "expr": "deployment_duration_p99_5m",
+                "legendFormat": "p99"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 300},
+                    {"color": "red", "value": 600}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Error Budget Remaining",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "error_budget_remaining",
+                "legendFormat": "Error Budget"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 10},
+                    {"color": "green", "value": 50}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Error Budget Burn Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "error_budget_burn_rate_5m",
+                "legendFormat": "5m burn rate"
+              },
+              {
+                "expr": "error_budget_burn_rate_1h",
+                "legendFormat": "1h burn rate"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Burn Rate",
+                "min": 0
+              }
+            ],
+            "gridPos": {"h": 8, "w": 16, "x": 8, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Blue-Green Switch Success Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "blue_green_switch_success_rate_5m",
+                "legendFormat": "Switch Success Rate"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 95},
+                    {"color": "green", "value": 99}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Service Availability",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "service_availability_5m",
+                "legendFormat": "Service Availability"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 99},
+                    {"color": "green", "value": 99.9}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: slo-report-generator
+  namespace: monitoring
+spec:
+  schedule: "0 9 * * 1"  # Every Monday at 9 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: slo-reporter
+            image: prom/prometheus:v2.45.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Generate weekly SLO report
+              WEEK_START=$(date -d "last monday" +%Y-%m-%dT00:00:00Z)
+              WEEK_END=$(date -d "next sunday" +%Y-%m-%dT23:59:59Z)
+              
+              # Query Prometheus for SLO metrics
+              DEPLOYMENT_SUCCESS_RATE=$(promtool query instant 'deployment_success_rate_24h' --time="$WEEK_END")
+              DEPLOYMENT_DURATION_P95=$(promtool query instant 'deployment_duration_p95_5m' --time="$WEEK_END")
+              ERROR_BUDGET_REMAINING=$(promtool query instant 'error_budget_remaining' --time="$WEEK_END")
+              
+              # Generate report
+              cat > /tmp/slo-report.md << EOF
+              # Weekly SLO Report
+              
+              **Week:** $WEEK_START to $WEEK_END
+              
+              ## SLO Performance
+              
+              ### Deployment Success Rate
+              - **Current:** ${DEPLOYMENT_SUCCESS_RATE}%
+              - **Target:** 95%
+              - **Status:** $([ ${DEPLOYMENT_SUCCESS_RATE%.*} -ge 95 ] && echo "✅ MEETING SLO" || echo "❌ BELOW SLO")
+              
+              ### Deployment Duration (P95)
+              - **Current:** ${DEPLOYMENT_DURATION_P95}s
+              - **Target:** 300s
+              - **Status:** $([ ${DEPLOYMENT_DURATION_P95%.*} -le 300 ] && echo "✅ MEETING SLO" || echo "❌ ABOVE SLO")
+              
+              ### Error Budget
+              - **Remaining:** ${ERROR_BUDGET_REMAINING}%
+              - **Status:** $([ ${ERROR_BUDGET_REMAINING%.*} -gt 10 ] && echo "✅ HEALTHY" || echo "⚠️ LOW")
+              
+              ## Recommendations
+              
+              $([ ${DEPLOYMENT_SUCCESS_RATE%.*} -lt 95 ] && echo "- Investigate deployment failures and improve reliability")
+              $([ ${DEPLOYMENT_DURATION_P95%.*} -gt 300 ] && echo "- Optimize deployment pipeline to reduce duration")
+              $([ ${ERROR_BUDGET_REMAINING%.*} -lt 10 ] && echo "- Focus on reliability improvements to restore error budget")
+              
+              EOF
+              
+              # Send report (placeholder - integrate with your notification system)
+              echo "SLO Report generated at /tmp/slo-report.md"
+              cat /tmp/slo-report.md
+            env:
+            - name: PROMETHEUS_URL
+              value: "http://prometheus:9090"
+          restartPolicy: OnFailure
+

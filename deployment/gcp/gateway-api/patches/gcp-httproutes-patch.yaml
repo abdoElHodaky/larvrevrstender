@@ -1,0 +1,165 @@
+# GCP-specific patches for HTTPRoutes
+# Adds GCP-specific annotations and backend configurations
+
+# Patch for API HTTPRoute - RPC optimizations
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: api-routes
+  annotations:
+    # GCP Backend Configuration for RPC optimization
+    cloud.google.com/backend-config: '{"default": "reverse-tender-backend-config"}'
+    # Managed SSL certificates
+    networking.gke.io/managed-certificates: "reverse-tender-ssl-cert"
+    # Load balancer optimization
+    cloud.google.com/neg: '{"ingress": true}'
+    # Connection timeout for RPC calls
+    networking.gke.io/connection-idle-timeout: "300s"
+spec:
+  parentRefs:
+    - name: reverse-tender-gke-gateway
+      sectionName: https-rpc-api
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/api/v1/rpc"
+      backendRefs:
+        - name: api-gateway-service
+          port: 8000
+          weight: 100
+          # GCP-specific backend configuration
+          filters:
+            - type: ResponseHeaderModifier
+              responseHeaderModifier:
+                add:
+                  - name: "X-Cloud-Provider"
+                    value: "gcp"
+                  - name: "X-Load-Balancer"
+                    value: "gcp-global-lb"
+
+---
+# Patch for App HTTPRoute - Web application optimizations
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: app-routes
+  annotations:
+    cloud.google.com/backend-config: '{"default": "reverse-tender-app-backend-config"}'
+    networking.gke.io/managed-certificates: "reverse-tender-ssl-cert"
+    cloud.google.com/neg: '{"ingress": true}'
+spec:
+  parentRefs:
+    - name: reverse-tender-gke-gateway
+      sectionName: https-app
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/"
+      backendRefs:
+        - name: frontend-service
+          port: 3000
+          weight: 100
+          filters:
+            - type: ResponseHeaderModifier
+              responseHeaderModifier:
+                add:
+                  - name: "X-Cloud-Provider"
+                    value: "gcp"
+                  - name: "Cache-Control"
+                    value: "public, max-age=3600"
+
+---
+# Patch for Admin HTTPRoute - Enhanced security
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: admin-routes
+  annotations:
+    cloud.google.com/backend-config: '{"default": "reverse-tender-admin-backend-config"}'
+    networking.gke.io/managed-certificates: "reverse-tender-ssl-cert"
+    networking.gke.io/security-policy: "reverse-tender-admin-security-policy"
+    cloud.google.com/neg: '{"ingress": true}'
+spec:
+  parentRefs:
+    - name: reverse-tender-gke-gateway
+      sectionName: https-admin
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/admin"
+      backendRefs:
+        - name: admin-service
+          port: 8080
+          weight: 100
+          filters:
+            - type: ResponseHeaderModifier
+              responseHeaderModifier:
+                add:
+                  - name: "X-Cloud-Provider"
+                    value: "gcp"
+                  - name: "X-Frame-Options"
+                    value: "DENY"
+                  - name: "X-Content-Type-Options"
+                    value: "nosniff"
+
+---
+# Patch for WebSocket HTTPRoute - Real-time optimizations
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: websocket-routes
+  annotations:
+    cloud.google.com/backend-config: '{"default": "reverse-tender-websocket-backend-config"}'
+    networking.gke.io/managed-certificates: "reverse-tender-ssl-cert"
+    cloud.google.com/neg: '{"ingress": true}'
+    # WebSocket-specific timeout
+    networking.gke.io/connection-idle-timeout: "300s"
+spec:
+  parentRefs:
+    - name: reverse-tender-gke-gateway
+      sectionName: https-websocket
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/ws"
+        - headers:
+            - name: "Upgrade"
+              value: "websocket"
+      backendRefs:
+        - name: websocket-service
+          port: 8080
+          weight: 100
+          filters:
+            - type: ResponseHeaderModifier
+              responseHeaderModifier:
+                add:
+                  - name: "X-Cloud-Provider"
+                    value: "gcp"
+
+---
+# HTTP to HTTPS redirect route
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: http-redirect-routes
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+spec:
+  parentRefs:
+    - name: reverse-tender-gke-gateway
+      sectionName: http-redirect
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "/"
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+

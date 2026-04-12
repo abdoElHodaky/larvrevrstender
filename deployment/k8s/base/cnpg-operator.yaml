@@ -1,0 +1,290 @@
+# Cloud-Native PostgreSQL (CNPG) Operator Deployment
+# Provides self-hosted PostgreSQL with automatic failover and replication
+# Updated for comprehensive database failover architecture v3.0
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cnpg-system
+  labels:
+    app.kubernetes.io/name: cnpg-operator
+    app.kubernetes.io/component: operator-namespace
+    database.kubernetes.io/provider: cnpg
+    database.kubernetes.io/type: postgresql
+
+---
+# CNPG Operator ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cnpg-operator
+  namespace: cnpg-system
+  labels:
+    app.kubernetes.io/name: cnpg-operator
+    app.kubernetes.io/component: operator-serviceaccount
+
+---
+# CNPG Operator ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cnpg-operator
+  labels:
+    app.kubernetes.io/name: cnpg-operator
+    app.kubernetes.io/component: operator-clusterrole
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "persistentvolumeclaims", "events", "configmaps", "secrets"]
+  verbs: ["*"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "daemonsets", "replicasets", "statefulsets"]
+  verbs: ["*"]
+- apiGroups: ["postgresql.cnpg.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["servicemonitors", "podmonitors"]
+  verbs: ["*"]
+- apiGroups: ["policy"]
+  resources: ["poddisruptionbudgets"]
+  verbs: ["*"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["*"]
+
+---
+# CNPG Operator ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cnpg-operator
+  labels:
+    app.kubernetes.io/name: cnpg-operator
+    app.kubernetes.io/component: operator-clusterrolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cnpg-operator
+subjects:
+- kind: ServiceAccount
+  name: cnpg-operator
+  namespace: cnpg-system
+
+---
+# CNPG Operator Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cnpg-operator
+  namespace: cnpg-system
+  labels:
+    app.kubernetes.io/name: cnpg-operator
+    app.kubernetes.io/component: operator-deployment
+    app.kubernetes.io/version: "1.22.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cnpg-operator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cnpg-operator
+        app.kubernetes.io/component: operator-pod
+    spec:
+      serviceAccountName: cnpg-operator
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: manager
+        image: ghcr.io/cloudnative-pg/cloudnative-pg:1.22.0
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 10001
+          runAsGroup: 10001
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: OPERATOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: MONITORING_ENABLED
+          value: "true"
+        - name: LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: webhook-certs
+          mountPath: /tmp/k8s-webhook-server/serving-certs
+          readOnly: true
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: cnpg-webhook-certs
+          optional: true
+      terminationGracePeriodSeconds: 10
+
+---
+# CNPG Operator Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: cnpg-operator-service
+  namespace: cnpg-system
+  labels:
+    app.kubernetes.io/name: cnpg-operator
+    app.kubernetes.io/component: operator-service
+spec:
+  selector:
+    app.kubernetes.io/name: cnpg-operator
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: webhook-server
+    port: 443
+    targetPort: 9443
+    protocol: TCP
+
+---
+# CNPG Operator ValidatingAdmissionWebhook
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionWebhook
+metadata:
+  name: cnpg-validating-webhook
+  labels:
+    app.kubernetes.io/name: cnpg-operator
+    app.kubernetes.io/component: validating-webhook
+webhooks:
+- name: vcluster.postgresql.cnpg.io
+  clientConfig:
+    service:
+      name: cnpg-operator-service
+      namespace: cnpg-system
+      path: "/validate-postgresql-cnpg-io-v1-cluster"
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["postgresql.cnpg.io"]
+    apiVersions: ["v1"]
+    resources: ["clusters"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail
+
+---
+# CNPG Operator MutatingAdmissionWebhook
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionWebhook
+metadata:
+  name: cnpg-mutating-webhook
+  labels:
+    app.kubernetes.io/name: cnpg-operator
+    app.kubernetes.io/component: mutating-webhook
+webhooks:
+- name: mcluster.postgresql.cnpg.io
+  clientConfig:
+    service:
+      name: cnpg-operator-service
+      namespace: cnpg-system
+      path: "/mutate-postgresql-cnpg-io-v1-cluster"
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["postgresql.cnpg.io"]
+    apiVersions: ["v1"]
+    resources: ["clusters"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail
+
+---
+# CNPG Custom Resource Definitions
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusters.postgresql.cnpg.io
+  labels:
+    app.kubernetes.io/name: cnpg-operator
+    app.kubernetes.io/component: crd
+spec:
+  group: postgresql.cnpg.io
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              instances:
+                type: integer
+                minimum: 1
+                maximum: 1000
+              postgresql:
+                type: object
+                properties:
+                  parameters:
+                    type: object
+                    additionalProperties:
+                      type: string
+              bootstrap:
+                type: object
+              storage:
+                type: object
+                properties:
+                  size:
+                    type: string
+                  storageClass:
+                    type: string
+              monitoring:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+          status:
+            type: object
+    subresources:
+      status: {}
+  scope: Namespaced
+  names:
+    plural: clusters
+    singular: cluster
+    kind: Cluster

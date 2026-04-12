@@ -33,10 +33,10 @@ services/shared/
 ├── src/Procedures/Micro/QueueCircuitBreakerProcedure.php  # Updated to use new classes
 └── config/fuse.php                                  # Comprehensive circuit breaker configuration
 
-services/notification-service/
+services/notifications/
 └── app/Jobs/SendEmailNotificationJob.php            # Example email job with circuit breaker
 
-services/payment-service/
+services/payments/
 └── app/Jobs/ProcessPaymentJob.php                   # Example payment job with circuit breaker
 
 diagrams/
@@ -304,38 +304,38 @@ class MyJob extends BaseQueueJob
 Each service needs job classes created:
 
 ```
-services/notification-service/app/Jobs/
+services/notifications/app/Jobs/
 ├── SendEmailNotificationJob.php      ✅ Created
 ├── SendSMSNotificationJob.php        ❌ Needed
 ├── SendPushNotificationJob.php       ❌ Needed
 └── SendSignalNotificationJob.php     ❌ Needed
 
-services/payment-service/app/Jobs/
+services/payments/app/Jobs/
 ├── ProcessPaymentJob.php             ✅ Created
 ├── CreateEscrowJob.php               ❌ Needed
 └── ReleaseEscrowJob.php              ❌ Needed
 
-services/bidding-service/app/Jobs/
+services/bidding/app/Jobs/
 ├── ValidateBidJob.php                ❌ Needed
 ├── ProcessAutoBidJob.php             ❌ Needed
 └── HandleBidConflictJob.php          ❌ Needed
 
-services/vin-ocr-service/app/Jobs/
+services/vin-ocr/app/Jobs/
 ├── PreprocessImageJob.php            ❌ Needed
 ├── ProcessOCRJob.php                 ❌ Needed
 └── ValidateVINJob.php                ❌ Needed
 
-services/analytics-service/app/Jobs/
+services/analytics/app/Jobs/
 ├── ProcessRealtimeAnalyticsJob.php   ❌ Needed
 ├── GenerateReportJob.php             ❌ Needed
 └── AggregateDataJob.php              ❌ Needed
 
-services/auth-service/app/Jobs/
+services/auth/app/Jobs/
 ├── SendPasswordResetEmailJob.php     ❌ Needed
 ├── SendEmailVerificationJob.php      ❌ Needed
 └── CleanupExpiredTokensJob.php       ❌ Needed
 
-services/user-service/app/Jobs/
+services/users/app/Jobs/
 ├── ProcessKYCDocumentJob.php         ❌ Needed
 ├── SendKYCStatusNotificationJob.php  ❌ Needed
 └── ProcessProfileUpdateJob.php       ❌ Needed

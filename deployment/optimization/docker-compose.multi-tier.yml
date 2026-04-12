@@ -1,0 +1,405 @@
+version: '3.8'
+
+# Multi-Tier Caching Architecture
+# Varnish → Upstash Redis → MongoDB Atlas
+
+services:
+  # Laravel Application
+  app:
+    build: .
+    container_name: reverse-tender-app
+    environment:
+      # Multi-tier configuration
+      - CACHE_DRIVER=multi_tier
+      - QUEUE_CONNECTION=multi_tier
+      - SESSION_DRIVER=multi_tier
+      - BROADCAST_DRIVER=redis
+      
+      # Database connections
+      - DB_CONNECTION=mysql
+      - MONGODB_DSN=${MONGODB_DSN}
+      - MONGODB_DATABASE=${MONGODB_DATABASE}
+      
+      # Redis connections (using Upstash)
+      - REDIS_HOST=${UPSTASH_REDIS_HOST}
+      - REDIS_PASSWORD=${UPSTASH_REDIS_PASSWORD}
+      - REDIS_PORT=${UPSTASH_REDIS_PORT}
+      
+      # Upstash Redis
+      - UPSTASH_REDIS_URL=${UPSTASH_REDIS_URL}
+      - UPSTASH_REDIS_HOST=${UPSTASH_REDIS_HOST}
+      - UPSTASH_REDIS_PASSWORD=${UPSTASH_REDIS_PASSWORD}
+      - UPSTASH_REDIS_PORT=${UPSTASH_REDIS_PORT}
+      
+      # Cache configuration
+      - CACHE_PREFIX=rt_multi
+      - VARNISH_HOST=varnish
+      - VARNISH_PORT=6081
+    depends_on:
+      - mysql
+      - varnish
+    networks:
+      - multi-tier-network
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "8080:8080"
+
+  # Varnish Cache (L1)
+  varnish:
+    image: varnish:7.4
+    container_name: varnish-multi-tier
+    ports:
+      - "80:80"
+      - "6081:6081"
+    volumes:
+      - ./varnish-upstash-integration.vcl:/etc/varnish/default.vcl:ro
+      - varnish_storage:/var/lib/varnish
+    environment:
+      - VARNISH_SIZE=2G
+      - VARNISH_HTTP_PORT=80
+      - VARNISH_ADMIN_PORT=6081
+    command: >
+      varnishd -F
+      -f /etc/varnish/default.vcl
+      -s malloc,2G
+      -a :80
+      -T :6081
+      -p default_ttl=300
+      -p default_grace=1800
+      -p thread_pools=4
+      -p thread_pool_min=100
+      -p thread_pool_max=500
+      -p workspace_backend=256k
+      -p workspace_client=256k
+      -p http_max_hdr=128
+      -p feature=+esi_ignore_https
+    depends_on:
+      - app
+    networks:
+      - multi-tier-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # Upstash Redis Connection Test Service
+  upstash-test:
+    image: redis:7-alpine
+    container_name: upstash-connection-test
+    command: >
+      sh -c "
+      echo 'Testing Upstash Redis connection...';
+      redis-cli -h ${UPSTASH_REDIS_HOST} -p ${UPSTASH_REDIS_PORT} -a ${UPSTASH_REDIS_PASSWORD} --tls ping;
+      echo 'Upstash Redis connection test completed';
+      sleep infinity"
+    environment:
+      - UPSTASH_REDIS_HOST=${UPSTASH_REDIS_HOST}
+      - UPSTASH_REDIS_PORT=${UPSTASH_REDIS_PORT}
+      - UPSTASH_REDIS_PASSWORD=${UPSTASH_REDIS_PASSWORD}
+    networks:
+      - multi-tier-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "1"
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-primary
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql.cnf:/etc/mysql/conf.d/custom.cnf:ro
+    ports:
+      - "3306:3306"
+    networks:
+      - multi-tier-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # Queue Workers (Multi-tier)
+  queue-worker-high:
+    build: .
+    container_name: queue-worker-high-priority
+    command: php artisan queue:work multi_tier --queue=high --sleep=1 --tries=3 --max-time=3600 --memory=512
+    environment:
+      - QUEUE_CONNECTION=multi_tier
+      - REDIS_HOST=${UPSTASH_REDIS_HOST}
+      - REDIS_PASSWORD=${UPSTASH_REDIS_PASSWORD}
+      - REDIS_PORT=${UPSTASH_REDIS_PORT}
+      - MONGODB_DSN=${MONGODB_DSN}
+      - UPSTASH_REDIS_URL=${UPSTASH_REDIS_URL}
+    depends_on:
+      - mysql
+      - app
+    networks:
+      - multi-tier-network
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  queue-worker-default:
+    build: .
+    container_name: queue-worker-default
+    command: php artisan queue:work multi_tier --queue=default --sleep=3 --tries=3 --max-time=3600 --memory=512
+    environment:
+      - QUEUE_CONNECTION=multi_tier
+      - REDIS_HOST=${UPSTASH_REDIS_HOST}
+      - REDIS_PASSWORD=${UPSTASH_REDIS_PASSWORD}
+      - REDIS_PORT=${UPSTASH_REDIS_PORT}
+      - MONGODB_DSN=${MONGODB_DSN}
+      - UPSTASH_REDIS_URL=${UPSTASH_REDIS_URL}
+    depends_on:
+      - mysql
+      - app
+    networks:
+      - multi-tier-network
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  queue-worker-low:
+    build: .
+    container_name: queue-worker-low-priority
+    command: php artisan queue:work multi_tier --queue=low --sleep=5 --tries=2 --max-time=3600 --memory=256
+    environment:
+      - QUEUE_CONNECTION=multi_tier
+      - REDIS_HOST=${UPSTASH_REDIS_HOST}
+      - REDIS_PASSWORD=${UPSTASH_REDIS_PASSWORD}
+      - REDIS_PORT=${UPSTASH_REDIS_PORT}
+      - MONGODB_DSN=${MONGODB_DSN}
+      - UPSTASH_REDIS_URL=${UPSTASH_REDIS_URL}
+    depends_on:
+      - mysql
+      - app
+    networks:
+      - multi-tier-network
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # Cache Warmer Service
+  cache-warmer:
+    image: alpine/curl:latest
+    container_name: cache-warmer-multi-tier
+    command: >
+      sh -c "
+      echo 'Starting multi-tier cache warmer...';
+      sleep 120;
+      while true; do
+        echo 'Warming cache at $(date)';
+        # Warm Varnish cache
+        curl -s http://varnish:80/api/auctions > /dev/null;
+        curl -s http://varnish:80/api/categories > /dev/null;
+        curl -s http://varnish:80/api/users > /dev/null;
+        # Warm static assets
+        curl -s http://varnish:80/css/app.css > /dev/null;
+        curl -s http://varnish:80/js/app.js > /dev/null;
+        sleep 300;
+      done"
+    depends_on:
+      - varnish
+      - app
+    networks:
+      - multi-tier-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "1"
+
+  # Multi-tier Monitoring
+  monitoring:
+    image: prom/prometheus:latest
+    container_name: multi-tier-monitoring
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+    networks:
+      - multi-tier-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # Upstash Redis Exporter for monitoring
+  upstash-redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: upstash-redis-exporter
+    environment:
+      - REDIS_ADDR=rediss://${UPSTASH_REDIS_HOST}:${UPSTASH_REDIS_PORT}
+      - REDIS_PASSWORD=${UPSTASH_REDIS_PASSWORD}
+      - REDIS_EXPORTER_TLS_CLIENT_KEY_FILE=""
+      - REDIS_EXPORTER_TLS_CLIENT_CERT_FILE=""
+      - REDIS_EXPORTER_SKIP_TLS_VERIFICATION=true
+    ports:
+      - "9121:9121"
+    networks:
+      - multi-tier-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "1"
+
+  # Varnish Exporter for monitoring
+  varnish-exporter:
+    image: prom/varnish-exporter:latest
+    container_name: varnish-exporter
+    ports:
+      - "9131:9131"
+    command:
+      - '--varnish.instance=varnish:6081'
+      - '--web.listen-address=0.0.0.0:9131'
+      - '--web.telemetry-path=/metrics'
+    depends_on:
+      - varnish
+    networks:
+      - multi-tier-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "1"
+
+  # Log Aggregation
+  fluent-bit:
+    image: fluent/fluent-bit:latest
+    container_name: fluent-bit-multi-tier
+    volumes:
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - multi-tier-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # Health Check Service
+  healthcheck:
+    image: alpine/curl:latest
+    container_name: multi-tier-healthcheck
+    command: >
+      sh -c "
+      while true; do
+        echo 'Health check at $(date)';
+        # Check Varnish
+        curl -f http://varnish:80/health || echo 'Varnish unhealthy';
+        # Check Upstash Redis
+        redis-cli -h ${UPSTASH_REDIS_HOST} -p ${UPSTASH_REDIS_PORT} -a ${UPSTASH_REDIS_PASSWORD} --tls ping || echo 'Upstash Redis unhealthy';
+        # Check MySQL
+        mysqladmin ping -h mysql -u ${DB_USERNAME} -p${DB_PASSWORD} || echo 'MySQL unhealthy';
+        # Check Application
+        curl -f http://app:8080/health || echo 'App unhealthy';
+        sleep 60;
+      done"
+    depends_on:
+      - varnish
+      - mysql
+      - app
+    networks:
+      - multi-tier-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "1"
+
+volumes:
+  varnish_storage:
+    driver: local
+  mysql_data:
+    driver: local
+  prometheus_data:
+    driver: local
+
+networks:
+  multi-tier-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Multi-tier configuration metadata
+x-multi-tier-config:
+  architecture:
+    caching: "Varnish (L1) → Upstash Redis (L2) → Application"
+    jobs_queues: "Upstash Redis (Primary) → MongoDB Atlas (Fallback)"
+    sessions: "Upstash Redis (Primary) → MongoDB Atlas (Fallback)"
+  
+  performance_targets:
+    cache_hit_ratio: "95%+"
+    response_time: "<50ms"
+    queue_throughput: "10,000+ jobs/second"
+    concurrent_sessions: "50,000+"
+  
+  cost_optimization:
+    upstash_redis: "Pay-per-request pricing for all Redis operations"
+    mongodb_atlas: "Serverless pricing for fallback storage"
+    varnish: "In-memory caching layer (self-hosted)"
+    infrastructure: "Reduced complexity with managed services"
+  
+  monitoring:
+    prometheus: "Metrics collection"
+    upstash_redis_exporter: "Upstash Redis metrics"
+    varnish_exporter: "Varnish cache metrics"
+    fluent_bit: "Log aggregation"
+    healthcheck: "Multi-service health monitoring"

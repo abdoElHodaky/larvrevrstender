@@ -1,0 +1,346 @@
+# OpenStack Gateway Configuration for Reverse Tender Platform
+# Optimized for OpenStack Octavia Load Balancer with NGINX Gateway Fabric
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: reverse-tender-openstack-gateway
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/cloud-provider: "openstack"
+  annotations:
+    # OpenStack Load Balancer annotations
+    service.beta.kubernetes.io/openstack-internal-load-balancer: "false"
+    loadbalancer.openstack.org/class: "amphora"
+    loadbalancer.openstack.org/member-subnet-id: "${OPENSTACK_SUBNET_ID}"
+    loadbalancer.openstack.org/network-id: "${OPENSTACK_NETWORK_ID}"
+    
+    # Health monitor configuration
+    loadbalancer.openstack.org/health-monitor-delay: "10"
+    loadbalancer.openstack.org/health-monitor-timeout: "5"
+    loadbalancer.openstack.org/health-monitor-max-retries: "3"
+    loadbalancer.openstack.org/health-monitor-url-path: "/health"
+    
+    # Session persistence
+    loadbalancer.openstack.org/session-persistence-type: "HTTP_COOKIE"
+    loadbalancer.openstack.org/session-persistence-cookie-name: "openstack-lb-session"
+    
+    # SSL/TLS configuration
+    loadbalancer.openstack.org/default-tls-container-ref: "${BARBICAN_CONTAINER_REF}"
+    loadbalancer.openstack.org/tls-ciphers: "ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS"
+    loadbalancer.openstack.org/tls-protocols: "TLSv1.2,TLSv1.3"
+    
+    # Description
+    gateway.networking.k8s.io/description: "OpenStack-optimized gateway for JSON-RPC/tRPC microservices with Octavia Load Balancer"
+spec:
+  # Reference to the OpenStack-optimized GatewayClass
+  gatewayClassName: reverse-tender-openstack-gateway-class
+  
+  # OpenStack-optimized listeners configuration
+  listeners:
+    # Primary HTTPS listener - optimized for RPC API traffic
+    - name: https-rpc-api
+      hostname: "api.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        # OpenStack-specific TLS configuration
+        options:
+          # Barbican certificate container reference
+          loadbalancer.openstack.org/tls-container-ref: "${BARBICAN_API_CONTAINER_REF}"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # Frontend application HTTPS listener
+    - name: https-app
+      hostname: "app.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: app-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          loadbalancer.openstack.org/tls-container-ref: "${BARBICAN_APP_CONTAINER_REF}"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # Admin panel HTTPS listener
+    - name: https-admin
+      hostname: "admin.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: admin-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          loadbalancer.openstack.org/tls-container-ref: "${BARBICAN_ADMIN_CONTAINER_REF}"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # WebSocket HTTPS listener - optimized for real-time bidding
+    - name: https-websocket
+      hostname: "ws.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: ws-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          loadbalancer.openstack.org/tls-container-ref: "${BARBICAN_WS_CONTAINER_REF}"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # HTTP listener for redirects
+    - name: http-redirect
+      hostname: "*.reversetender.com"
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+  # OpenStack-specific addresses configuration
+  addresses:
+    - type: IPAddress
+      value: "${OPENSTACK_FLOATING_IP}"
+
+---
+# OpenStack Heat Template Integration ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reverse-tender-openstack-heat-template
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "openstack"
+data:
+  load-balancer-template.yaml: |
+    # OpenStack Heat Template for Load Balancer Infrastructure
+    heat_template_version: 2018-08-31
+    
+    description: >
+      Heat template for Reverse Tender Platform Load Balancer infrastructure
+      with Octavia Load Balancer and Neutron networking
+    
+    parameters:
+      key_name:
+        type: string
+        description: Name of keypair to assign to servers
+        default: reverse-tender-key
+      
+      image:
+        type: string
+        description: Name of image to use for servers
+        default: ubuntu-20.04
+      
+      flavor:
+        type: string
+        description: Flavor to use for servers
+        default: m1.medium
+      
+      public_net:
+        type: string
+        description: ID or name of public network for which floating IP addresses will be allocated
+        default: public
+      
+      private_net_name:
+        type: string
+        description: Name of private network to be created
+        default: reverse-tender-private-net
+      
+      private_net_cidr:
+        type: string
+        description: Private network address (CIDR notation)
+        default: 10.0.0.0/24
+      
+      private_net_gateway:
+        type: string
+        description: Private network gateway address
+        default: 10.0.0.1
+      
+      private_net_pool_start:
+        type: string
+        description: Start of private network IP address allocation pool
+        default: 10.0.0.10
+      
+      private_net_pool_end:
+        type: string
+        description: End of private network IP address allocation pool
+        default: 10.0.0.250
+    
+    resources:
+      # Private network
+      private_net:
+        type: OS::Neutron::Net
+        properties:
+          name: { get_param: private_net_name }
+      
+      # Private subnet
+      private_subnet:
+        type: OS::Neutron::Subnet
+        properties:
+          network_id: { get_resource: private_net }
+          cidr: { get_param: private_net_cidr }
+          gateway_ip: { get_param: private_net_gateway }
+          allocation_pools:
+            - start: { get_param: private_net_pool_start }
+              end: { get_param: private_net_pool_end }
+      
+      # Router
+      router:
+        type: OS::Neutron::Router
+        properties:
+          external_gateway_info:
+            network: { get_param: public_net }
+      
+      # Router interface
+      router_interface:
+        type: OS::Neutron::RouterInterface
+        properties:
+          router_id: { get_resource: router }
+          subnet_id: { get_resource: private_subnet }
+      
+      # Security group
+      server_security_group:
+        type: OS::Neutron::SecurityGroup
+        properties:
+          description: Security group for Reverse Tender Platform
+          name: reverse-tender-security-group
+          rules:
+            - remote_ip_prefix: 0.0.0.0/0
+              protocol: tcp
+              port_range_min: 22
+              port_range_max: 22
+            - remote_ip_prefix: 0.0.0.0/0
+              protocol: tcp
+              port_range_min: 80
+              port_range_max: 80
+            - remote_ip_prefix: 0.0.0.0/0
+              protocol: tcp
+              port_range_min: 443
+              port_range_max: 443
+            - remote_ip_prefix: 0.0.0.0/0
+              protocol: icmp
+      
+      # Load balancer
+      load_balancer:
+        type: OS::Octavia::LoadBalancer
+        properties:
+          vip_subnet: { get_resource: private_subnet }
+          name: reverse-tender-lb
+          description: Load balancer for Reverse Tender Platform
+      
+      # Load balancer listeners
+      lb_listener_http:
+        type: OS::Octavia::Listener
+        properties:
+          loadbalancer: { get_resource: load_balancer }
+          protocol: HTTP
+          protocol_port: 80
+          name: reverse-tender-http-listener
+      
+      lb_listener_https:
+        type: OS::Octavia::Listener
+        properties:
+          loadbalancer: { get_resource: load_balancer }
+          protocol: TERMINATED_HTTPS
+          protocol_port: 443
+          name: reverse-tender-https-listener
+          default_tls_container_ref: { get_param: barbican_container_ref }
+      
+      # Load balancer pools
+      lb_pool_http:
+        type: OS::Octavia::Pool
+        properties:
+          listener: { get_resource: lb_listener_http }
+          lb_algorithm: ROUND_ROBIN
+          protocol: HTTP
+          name: reverse-tender-http-pool
+      
+      lb_pool_https:
+        type: OS::Octavia::Pool
+        properties:
+          listener: { get_resource: lb_listener_https }
+          lb_algorithm: ROUND_ROBIN
+          protocol: HTTP
+          name: reverse-tender-https-pool
+      
+      # Health monitors
+      lb_monitor_http:
+        type: OS::Octavia::HealthMonitor
+        properties:
+          pool: { get_resource: lb_pool_http }
+          type: HTTP
+          delay: 10
+          max_retries: 3
+          timeout: 5
+          url_path: /health
+      
+      lb_monitor_https:
+        type: OS::Octavia::HealthMonitor
+        properties:
+          pool: { get_resource: lb_pool_https }
+          type: HTTP
+          delay: 10
+          max_retries: 3
+          timeout: 5
+          url_path: /health
+      
+      # Floating IP for load balancer
+      lb_floating_ip:
+        type: OS::Neutron::FloatingIP
+        properties:
+          floating_network: { get_param: public_net }
+          port_id: { get_attr: [load_balancer, vip_port_id] }
+    
+    outputs:
+      lb_vip_address:
+        description: VIP address of the load balancer
+        value: { get_attr: [load_balancer, vip_address] }
+      
+      lb_floating_ip:
+        description: Floating IP address of the load balancer
+        value: { get_attr: [lb_floating_ip, floating_ip_address] }
+      
+      private_subnet_id:
+        description: ID of the private subnet
+        value: { get_resource: private_subnet }
+      
+      security_group_id:
+        description: ID of the security group
+        value: { get_resource: server_security_group }
+

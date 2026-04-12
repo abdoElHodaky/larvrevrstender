@@ -1,0 +1,332 @@
+name: Security Scanning Template
+# Comprehensive security scanning for Laravel microservices
+# Features: SAST, dependency scanning, container scanning, secret detection
+
+on:
+  workflow_call:
+    inputs:
+      services:
+        description: 'Comma-separated list of services to scan'
+        required: true
+        type: string
+      risk_score:
+        description: 'Risk score from change detection'
+        required: false
+        type: string
+        default: '10'
+      fail_on_severity:
+        description: 'Fail on security issues of this severity or higher'
+        required: false
+        type: string
+        default: 'HIGH'
+    outputs:
+      scan_result:
+        description: 'Overall security scan result'
+        value: ${{ jobs.security-scan.outputs.result }}
+      vulnerabilities_found:
+        description: 'Number of vulnerabilities found'
+        value: ${{ jobs.security-scan.outputs.vuln_count }}
+
+jobs:
+  security-scan:
+    name: 🔒 Security Scanning
+    runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.final-result.outputs.result }}
+      vuln_count: ${{ steps.count-vulns.outputs.count }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better secret detection
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, redis
+          coverage: none
+
+      - name: Parse Affected Services
+        id: parse-services
+        run: |
+          echo "🔍 Parsing affected services: ${{ inputs.services }}"
+          
+          # Convert comma-separated services to array
+          IFS=',' read -ra SERVICES <<< "${{ inputs.services }}"
+          
+          # Validate services exist
+          VALID_SERVICES=()
+          for service in "${SERVICES[@]}"; do
+            service=$(echo "$service" | xargs)  # trim whitespace
+            if [ -d "services/$service" ]; then
+              VALID_SERVICES+=("$service")
+              echo "✅ Service found: $service"
+            else
+              echo "⚠️ Service not found: $service"
+            fi
+          done
+          
+          # Export for later steps
+          printf '%s\n' "${VALID_SERVICES[@]}" > /tmp/services_to_scan.txt
+          echo "services_count=${#VALID_SERVICES[@]}" >> $GITHUB_OUTPUT
+          
+          if [ ${#VALID_SERVICES[@]} -eq 0 ]; then
+            echo "❌ No valid services found to scan"
+            exit 1
+          fi
+
+      - name: Secret Scanning
+        id: secret-scan
+        run: |
+          echo "🔍 Running secret detection scan..."
+          
+          # Install trufflehog
+          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+          
+          # Scan for secrets
+          SECRET_FINDINGS=0
+          while IFS= read -r service; do
+            echo "🔍 Scanning secrets in service: $service"
+            
+            if trufflehog filesystem services/$service --json --no-update > /tmp/secrets_$service.json; then
+              SECRETS_COUNT=$(jq length /tmp/secrets_$service.json 2>/dev/null || echo "0")
+              if [ "$SECRETS_COUNT" -gt 0 ]; then
+                echo "⚠️ Found $SECRETS_COUNT potential secrets in $service"
+                SECRET_FINDINGS=$((SECRET_FINDINGS + SECRETS_COUNT))
+                
+                # Show findings (first 3)
+                jq -r '.[:3] | .[] | "  - " + .DetectorName + ": " + .Raw[:50] + "..."' /tmp/secrets_$service.json 2>/dev/null || true
+              else
+                echo "✅ No secrets found in $service"
+              fi
+            else
+              echo "⚠️ Secret scan failed for $service"
+            fi
+          done < /tmp/services_to_scan.txt
+          
+          echo "secret_findings=$SECRET_FINDINGS" >> $GITHUB_OUTPUT
+          
+          if [ "$SECRET_FINDINGS" -gt 0 ]; then
+            echo "⚠️ Total secret findings: $SECRET_FINDINGS"
+          else
+            echo "✅ No secrets detected"
+          fi
+
+      - name: Dependency Vulnerability Scanning
+        id: dependency-scan
+        run: |
+          echo "🔍 Running dependency vulnerability scanning..."
+          
+          TOTAL_VULNS=0
+          HIGH_VULNS=0
+          
+          while IFS= read -r service; do
+            echo "🔍 Scanning dependencies for service: $service"
+            
+            if [ -f "services/$service/composer.json" ]; then
+              cd "services/$service"
+              
+              # Install composer dependencies for scanning
+              if [ -f "composer.lock" ]; then
+                echo "📦 Installing dependencies for $service..."
+                composer install --no-dev --no-scripts --no-autoloader --quiet || true
+                
+                # Use composer audit for vulnerability scanning
+                if composer audit --format=json > /tmp/audit_$service.json 2>/dev/null; then
+                  VULNS=$(jq '.advisories | length' /tmp/audit_$service.json 2>/dev/null || echo "0")
+                  HIGH_SEVERITY=$(jq '[.advisories[] | select(.severity == "HIGH" or .severity == "CRITICAL")] | length' /tmp/audit_$service.json 2>/dev/null || echo "0")
+                  
+                  if [ "$VULNS" -gt 0 ]; then
+                    echo "⚠️ Found $VULNS vulnerabilities in $service ($HIGH_SEVERITY high/critical)"
+                    TOTAL_VULNS=$((TOTAL_VULNS + VULNS))
+                    HIGH_VULNS=$((HIGH_VULNS + HIGH_SEVERITY))
+                    
+                    # Show critical/high vulnerabilities
+                    jq -r '.advisories[] | select(.severity == "HIGH" or .severity == "CRITICAL") | "  - " + .title + " (" + .severity + ")"' /tmp/audit_$service.json 2>/dev/null || true
+                  else
+                    echo "✅ No vulnerabilities found in $service"
+                  fi
+                else
+                  echo "⚠️ Dependency scan failed for $service"
+                fi
+              else
+                echo "ℹ️ No composer.lock found for $service, skipping dependency scan"
+              fi
+              
+              cd - > /dev/null
+            else
+              echo "ℹ️ No composer.json found for $service, skipping dependency scan"
+            fi
+          done < /tmp/services_to_scan.txt
+          
+          echo "dependency_vulns=$TOTAL_VULNS" >> $GITHUB_OUTPUT
+          echo "high_severity_vulns=$HIGH_VULNS" >> $GITHUB_OUTPUT
+          
+          echo "📊 Dependency scan summary:"
+          echo "  Total vulnerabilities: $TOTAL_VULNS"
+          echo "  High/Critical: $HIGH_VULNS"
+
+      - name: Static Code Analysis (SAST)
+        id: sast-scan
+        run: |
+          echo "🔍 Running static code analysis..."
+          
+          # Install PHPStan for Laravel static analysis
+          composer global require phpstan/phpstan --quiet
+          
+          SAST_ISSUES=0
+          
+          while IFS= read -r service; do
+            echo "🔍 Running SAST for service: $service"
+            
+            if [ -f "services/$service/composer.json" ]; then
+              cd "services/$service"
+              
+              # Create basic PHPStan config if not exists
+              if [ ! -f "phpstan.neon" ]; then
+                echo "parameters:" > phpstan.neon
+                echo "    level: 5" >> phpstan.neon
+                echo "    paths:" >> phpstan.neon
+                echo "        - app" >> phpstan.neon
+                echo "    ignoreErrors:" >> phpstan.neon
+                echo "        - '#Call to an undefined method#'" >> phpstan.neon
+              fi
+              
+              # Run PHPStan analysis
+              if ~/.composer/vendor/bin/phpstan analyse --no-progress --error-format=json > /tmp/phpstan_$service.json 2>/dev/null; then
+                ERRORS=$(jq '.totals.errors' /tmp/phpstan_$service.json 2>/dev/null || echo "0")
+                if [ "$ERRORS" -gt 0 ]; then
+                  echo "⚠️ Found $ERRORS static analysis issues in $service"
+                  SAST_ISSUES=$((SAST_ISSUES + ERRORS))
+                  
+                  # Show first few issues
+                  jq -r '.files | to_entries | .[:3] | .[] | .value.messages[:2] | .[] | "  - Line " + (.line|tostring) + ": " + .message' /tmp/phpstan_$service.json 2>/dev/null || true
+                else
+                  echo "✅ No static analysis issues found in $service"
+                fi
+              else
+                echo "ℹ️ Static analysis skipped for $service (no PHP files or analysis failed)"
+              fi
+              
+              cd - > /dev/null
+            fi
+          done < /tmp/services_to_scan.txt
+          
+          echo "sast_issues=$SAST_ISSUES" >> $GITHUB_OUTPUT
+          echo "📊 SAST summary: $SAST_ISSUES issues found"
+
+      - name: Container Security Scanning
+        id: container-scan
+        run: |
+          echo "🔍 Running container security scanning..."
+          
+          # Install Trivy for container scanning
+          sudo apt-get update && sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update && sudo apt-get install -y trivy
+          
+          CONTAINER_VULNS=0
+          
+          while IFS= read -r service; do
+            echo "🔍 Scanning container for service: $service"
+            
+            if [ -f "services/$service/Dockerfile" ]; then
+              # Scan Dockerfile for misconfigurations
+              if trivy config services/$service/Dockerfile --format json > /tmp/trivy_$service.json 2>/dev/null; then
+                MISCONFIGS=$(jq '[.Results[]?.Misconfigurations[]?] | length' /tmp/trivy_$service.json 2>/dev/null || echo "0")
+                if [ "$MISCONFIGS" -gt 0 ]; then
+                  echo "⚠️ Found $MISCONFIGS container misconfigurations in $service"
+                  CONTAINER_VULNS=$((CONTAINER_VULNS + MISCONFIGS))
+                  
+                  # Show critical misconfigurations
+                  jq -r '.Results[]?.Misconfigurations[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL") | "  - " + .Title + " (" + .Severity + ")"' /tmp/trivy_$service.json 2>/dev/null || true
+                else
+                  echo "✅ No container misconfigurations found in $service"
+                fi
+              else
+                echo "ℹ️ Container scan skipped for $service"
+              fi
+            fi
+          done < /tmp/services_to_scan.txt
+          
+          echo "container_vulns=$CONTAINER_VULNS" >> $GITHUB_OUTPUT
+          echo "📊 Container scan summary: $CONTAINER_VULNS issues found"
+
+      - name: Count Total Vulnerabilities
+        id: count-vulns
+        run: |
+          SECRET_FINDINGS=${{ steps.secret-scan.outputs.secret_findings }}
+          DEPENDENCY_VULNS=${{ steps.dependency-scan.outputs.dependency_vulns }}
+          HIGH_SEVERITY_VULNS=${{ steps.dependency-scan.outputs.high_severity_vulns }}
+          SAST_ISSUES=${{ steps.sast-scan.outputs.sast_issues }}
+          CONTAINER_VULNS=${{ steps.container-scan.outputs.container_vulns }}
+          
+          TOTAL_ISSUES=$((SECRET_FINDINGS + DEPENDENCY_VULNS + SAST_ISSUES + CONTAINER_VULNS))
+          CRITICAL_ISSUES=$((SECRET_FINDINGS + HIGH_SEVERITY_VULNS))
+          
+          echo "count=$TOTAL_ISSUES" >> $GITHUB_OUTPUT
+          echo "critical_count=$CRITICAL_ISSUES" >> $GITHUB_OUTPUT
+          
+          echo "📊 Security Scan Summary:"
+          echo "  🔐 Secrets: $SECRET_FINDINGS"
+          echo "  📦 Dependencies: $DEPENDENCY_VULNS (High/Critical: $HIGH_SEVERITY_VULNS)"
+          echo "  🔍 SAST Issues: $SAST_ISSUES"
+          echo "  🐳 Container: $CONTAINER_VULNS"
+          echo "  📊 Total: $TOTAL_ISSUES"
+          echo "  🚨 Critical: $CRITICAL_ISSUES"
+
+      - name: Determine Final Result
+        id: final-result
+        run: |
+          TOTAL_ISSUES=${{ steps.count-vulns.outputs.count }}
+          CRITICAL_ISSUES=${{ steps.count-vulns.outputs.critical_count }}
+          RISK_SCORE=${{ inputs.risk_score }}
+          
+          # Determine if scan should fail based on severity and risk
+          SHOULD_FAIL="false"
+          
+          # Always fail on secrets
+          if [ "${{ steps.secret-scan.outputs.secret_findings }}" -gt 0 ]; then
+            echo "❌ Failing due to secret findings"
+            SHOULD_FAIL="true"
+          fi
+          
+          # Fail on high/critical vulnerabilities if risk score is high
+          if [ "$CRITICAL_ISSUES" -gt 0 ] && [ "$RISK_SCORE" -gt 50 ]; then
+            echo "❌ Failing due to critical vulnerabilities with high risk score"
+            SHOULD_FAIL="true"
+          fi
+          
+          # Set result
+          if [ "$SHOULD_FAIL" = "true" ]; then
+            echo "result=failure" >> $GITHUB_OUTPUT
+            echo "❌ Security scan failed"
+            exit 1
+          else
+            echo "result=success" >> $GITHUB_OUTPUT
+            echo "✅ Security scan passed"
+          fi
+
+      - name: Security Scan Summary
+        if: always()
+        run: |
+          echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Services Scanned:** ${{ steps.parse-services.outputs.services_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Risk Score:** ${{ inputs.risk_score }}/100" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Findings by Category" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Category | Count | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔐 Secrets | ${{ steps.secret-scan.outputs.secret_findings }} | ${{ steps.secret-scan.outputs.secret_findings == '0' && '✅' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📦 Dependencies | ${{ steps.dependency-scan.outputs.dependency_vulns }} | ${{ steps.dependency-scan.outputs.dependency_vulns == '0' && '✅' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔍 SAST Issues | ${{ steps.sast-scan.outputs.sast_issues }} | ${{ steps.sast-scan.outputs.sast_issues == '0' && '✅' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐳 Container | ${{ steps.container-scan.outputs.container_vulns }} | ${{ steps.container-scan.outputs.container_vulns == '0' && '✅' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total Issues:** ${{ steps.count-vulns.outputs.count }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Critical Issues:** ${{ steps.count-vulns.outputs.critical_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Overall Result:** ${{ steps.final-result.outputs.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY

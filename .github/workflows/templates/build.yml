@@ -1,0 +1,331 @@
+name: Service Build Template
+# Microservices build template with dependency management
+# Features: Per-service builds, dependency validation, caching optimization
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: 'Name of the service to build'
+        required: true
+        type: string
+      php_version:
+        description: 'PHP version to use'
+        required: false
+        type: string
+        default: '8.2'
+      environment:
+        description: 'Target environment'
+        required: false
+        type: string
+        default: 'staging'
+      registry:
+        description: 'Container registry'
+        required: false
+        type: string
+        default: 'ghcr.io'
+      image_name:
+        description: 'Base image name'
+        required: true
+        type: string
+      push_image:
+        description: 'Push image to registry'
+        required: false
+        type: boolean
+        default: true
+      dependency_graph:
+        description: 'Service dependency graph JSON'
+        required: false
+        type: string
+        default: '{}'
+      deployment_order:
+        description: 'Deployment order JSON array'
+        required: false
+        type: string
+        default: '[]'
+    secrets:
+      registry_username:
+        description: 'Registry username'
+        required: false
+      registry_password:
+        description: 'Registry password'
+        required: false
+    outputs:
+      image_tag:
+        description: 'Built image tag'
+        value: ${{ jobs.build.outputs.tag }}
+      build_status:
+        description: 'Build status'
+        value: ${{ jobs.build.outputs.status }}
+
+env:
+  DOCKER_BUILDKIT: 1
+  BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+
+jobs:
+  build:
+    name: 🏗️ Build ${{ inputs.service_name }}
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tags }}
+      status: ${{ steps.build-result.outputs.status }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Validate Service Structure
+        id: validate
+        run: |
+          echo "🔍 Validating service: ${{ inputs.service_name }}"
+          
+          SERVICE_PATH="services/${{ inputs.service_name }}"
+          
+          # Check if service directory exists
+          if [ ! -d "$SERVICE_PATH" ]; then
+            echo "❌ Service directory not found: $SERVICE_PATH"
+            echo "exists=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Check for Dockerfile
+          if [ ! -f "$SERVICE_PATH/Dockerfile" ]; then
+            echo "❌ Dockerfile not found in $SERVICE_PATH"
+            echo "dockerfile_exists=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Check for composer.json and determine service type
+          if [ -f "$SERVICE_PATH/composer.json" ]; then
+            # Check if this is a library package
+            if grep -q '"type": "library"' "$SERVICE_PATH/composer.json"; then
+              echo "📚 Library package detected (type: library)"
+              echo "is_laravel=false" >> $GITHUB_OUTPUT
+              echo "is_library=true" >> $GITHUB_OUTPUT
+            else
+              echo "✅ Laravel service detected (composer.json found)"
+              echo "is_laravel=true" >> $GITHUB_OUTPUT
+              echo "is_library=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "ℹ️ Non-Laravel service (no composer.json)"
+            echo "is_laravel=false" >> $GITHUB_OUTPUT
+            echo "is_library=false" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "dockerfile_exists=true" >> $GITHUB_OUTPUT
+          echo "service_path=$SERVICE_PATH" >> $GITHUB_OUTPUT
+          
+          echo "✅ Service validation passed"
+
+      - name: Setup PHP (Laravel Services & Library Packages)
+        if: steps.validate.outputs.is_laravel == 'true' || steps.validate.outputs.is_library == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php_version }}
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, redis
+          coverage: none
+
+      - name: Validate Dependencies (Laravel Services)
+        if: steps.validate.outputs.is_laravel == 'true'
+        working-directory: ${{ steps.validate.outputs.service_path }}
+        run: |
+          echo "🔍 Validating Laravel dependencies..."
+          
+          # Check composer.json syntax
+          if ! php -r "json_decode(file_get_contents('composer.json'), true, 512, JSON_THROW_ON_ERROR);"; then
+            echo "❌ Invalid composer.json syntax"
+            exit 1
+          fi
+          
+          # Check for shared library dependency
+          if grep -q '"Shared\\\\": "../shared/src/"' composer.json; then
+            echo "✅ Shared library dependency found"
+            
+            # Validate shared library exists
+            if [ ! -d "../shared/src" ]; then
+              echo "❌ Shared library not found at ../shared/src"
+              exit 1
+            fi
+            echo "✅ Shared library validated"
+          fi
+          
+          # Validate critical Laravel dependencies
+          REQUIRED_DEPS=("laravel/framework" "php")
+          for dep in "${REQUIRED_DEPS[@]}"; do
+            if ! grep -q "\"$dep\":" composer.json; then
+              echo "❌ Missing required dependency: $dep"
+              exit 1
+            fi
+          done
+          
+          echo "✅ Dependencies validation passed"
+
+      - name: Validate Dependencies (Library Packages)
+        if: steps.validate.outputs.is_library == 'true'
+        working-directory: ${{ steps.validate.outputs.service_path }}
+        run: |
+          echo "🔍 Validating library package dependencies..."
+          
+          # Check composer.json syntax
+          if ! php -r "json_decode(file_get_contents('composer.json'), true, 512, JSON_THROW_ON_ERROR);"; then
+            echo "❌ Invalid composer.json syntax"
+            exit 1
+          fi
+          
+          # Validate library-specific dependencies
+          REQUIRED_DEPS=("php")
+          for dep in "${REQUIRED_DEPS[@]}"; do
+            if ! grep -q "\"$dep\":" composer.json; then
+              echo "❌ Missing required dependency: $dep"
+              exit 1
+            fi
+          done
+          
+          # Check if autoload is properly configured
+          if ! grep -q '"autoload"' composer.json; then
+            echo "❌ Missing autoload configuration"
+            exit 1
+          fi
+          
+          echo "✅ Library dependencies validation passed"
+
+      - name: Service Dependency Analysis
+        id: dependency-check
+        run: |
+          echo "🔗 Analyzing service dependencies for ${{ inputs.service_name }}..."
+          
+          # Parse dependency graph
+          DEPENDENCY_GRAPH='${{ inputs.dependency_graph }}'
+          DEPLOYMENT_ORDER='${{ inputs.deployment_order }}'
+          
+          if [ "$DEPENDENCY_GRAPH" != "{}" ] && [ "$DEPLOYMENT_ORDER" != "[]" ]; then
+            # Get service dependencies
+            SERVICE_DEPS=$(echo "$DEPENDENCY_GRAPH" | jq -r ".\"${{ inputs.service_name }}\".dependencies // \"\"")
+            SERVICE_CRITICALITY=$(echo "$DEPENDENCY_GRAPH" | jq -r ".\"${{ inputs.service_name }}\".criticality // 3")
+            SERVICE_STARTUP_TIME=$(echo "$DEPENDENCY_GRAPH" | jq -r ".\"${{ inputs.service_name }}\".startup_time // 30")
+            
+            # Get deployment order position
+            DEPLOYMENT_POSITION=$(echo "$DEPLOYMENT_ORDER" | jq -r "to_entries | map(select(.value == \"${{ inputs.service_name }}\")) | .[0].key // -1")
+            
+            echo "📊 Service Analysis Results:"
+            echo "  Service: ${{ inputs.service_name }}"
+            echo "  Dependencies: $SERVICE_DEPS"
+            echo "  Criticality: $SERVICE_CRITICALITY/5"
+            echo "  Startup Time: ${SERVICE_STARTUP_TIME}s"
+            echo "  Deployment Order: $((DEPLOYMENT_POSITION + 1))"
+            
+            # Validate dependencies are available
+            if [ -n "$SERVICE_DEPS" ] && [ "$SERVICE_DEPS" != "null" ]; then
+              IFS=',' read -ra DEPS <<< "$SERVICE_DEPS"
+              for dep in "${DEPS[@]}"; do
+                dep=$(echo "$dep" | xargs)  # trim whitespace
+                if [ -n "$dep" ]; then
+                  if [ -d "services/$dep" ]; then
+                    echo "✅ Dependency available: $dep"
+                  else
+                    echo "❌ Missing dependency: $dep"
+                    exit 1
+                  fi
+                fi
+              done
+            else
+              echo "ℹ️ No dependencies required for ${{ inputs.service_name }}"
+            fi
+            
+            # Export for build process
+            echo "dependencies=$SERVICE_DEPS" >> $GITHUB_OUTPUT
+            echo "criticality=$SERVICE_CRITICALITY" >> $GITHUB_OUTPUT
+            echo "startup_time=$SERVICE_STARTUP_TIME" >> $GITHUB_OUTPUT
+            echo "deployment_position=$DEPLOYMENT_POSITION" >> $GITHUB_OUTPUT
+          else
+            echo "ℹ️ No dependency graph provided, skipping dependency analysis"
+            echo "dependencies=" >> $GITHUB_OUTPUT
+            echo "criticality=3" >> $GITHUB_OUTPUT
+            echo "startup_time=30" >> $GITHUB_OUTPUT
+            echo "deployment_position=-1" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        if: steps.validate.outputs.is_library != 'true'
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+
+      - name: Log in to Container Registry
+        if: inputs.push_image && steps.validate.outputs.is_library != 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ secrets.registry_username || github.actor }}
+          password: ${{ secrets.registry_password || secrets.GITHUB_TOKEN }}
+
+      - name: Extract Metadata
+        id: meta
+        if: steps.validate.outputs.is_library != 'true'
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ inputs.registry }}/${{ inputs.image_name }}-${{ inputs.service_name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ inputs.environment }}
+
+      - name: Build and Push Docker Image
+        id: build
+        if: steps.validate.outputs.is_library != 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.validate.outputs.service_path }}
+          file: ${{ steps.validate.outputs.service_path }}/Dockerfile
+          push: ${{ inputs.push_image }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha,scope=${{ inputs.service_name }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.service_name }}
+          build-args: |
+            PHP_VERSION=${{ inputs.php_version }}
+            ENVIRONMENT=${{ inputs.environment }}
+            SERVICE_NAME=${{ inputs.service_name }}
+
+      - name: Skip Docker Build for Library Package
+        id: build-skip
+        if: steps.validate.outputs.is_library == 'true'
+        run: |
+          echo "📚 Skipping Docker build for library package: ${{ inputs.service_name }}"
+          echo "Library packages are distributed via Composer, not as Docker images."
+          echo "status=skipped" >> $GITHUB_OUTPUT
+
+      - name: Set Build Result
+        id: build-result
+        run: |
+          if [ "${{ steps.build-skip.outcome }}" = "success" ]; then
+            echo "status=skipped" >> $GITHUB_OUTPUT
+            echo "⏭️ Build skipped for library package: ${{ inputs.service_name }}"
+          elif [ "${{ steps.build.outcome }}" = "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "✅ Build completed successfully for ${{ inputs.service_name }}"
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "❌ Build failed for ${{ inputs.service_name }}"
+            exit 1
+          fi
+
+      - name: Service Build Summary
+        run: |
+          echo "## 🏗️ Service Build Summary: ${{ inputs.service_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Service:** ${{ inputs.service_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**PHP Version:** ${{ inputs.php_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tags:** ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Details:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Registry: ${{ inputs.registry }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: ${{ inputs.registry }}/${{ inputs.image_name }}-${{ inputs.service_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Digest: ${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY

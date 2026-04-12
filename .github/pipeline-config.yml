@@ -1,0 +1,109 @@
+# Pipeline Migration Configuration
+# Controls gradual traffic switching from legacy workflows to unified pipeline
+
+pipeline_migration:
+  # Global migration settings
+  enabled: true
+  default_pipeline: "unified" # Options: legacy | unified | shadow
+  migration_phase: "full"     # Options: shadow | canary | partial | majority | full
+  
+  # Service-specific overrides for gradual migration
+  service_overrides:
+    # Phase 3A: Low Risk Services (COMPLETE!)
+    analytics-service: "unified"     # MIGRATED: First service moved to unified pipeline
+    notification-service: "unified"  # MIGRATED: Second service moved to unified pipeline
+    vin-ocr-service: "unified"       # MIGRATED: Third service moved to unified pipeline
+    
+    # Phase 3B: Medium Risk Services (COMPLETE!)
+    order-service: "unified"         # MIGRATED: Business logic, moderate risk
+    bidding-service: "unified"       # MIGRATED: Core functionality
+    user-service: "unified"          # MIGRATED: Important but stable
+    
+    # Phase 3C: High Risk Services (COMPLETE!)
+    auth-service: "unified"          # MIGRATED: Critical authentication
+    payment-service: "unified"       # MIGRATED: Financial transactions
+    auction-service: "unified"       # MIGRATED: Core business logic
+    gateway-service: "unified"       # MIGRATED: Entry point, affects all services
+  
+  # Traffic percentage for gradual rollout (when migration_phase != "shadow")
+  traffic_percentage:
+    canary: 10    # 10% of builds use unified pipeline
+    partial: 25   # 25% of builds use unified pipeline
+    majority: 75  # 75% of builds use unified pipeline
+    full: 100     # 100% of builds use unified pipeline
+  
+  # Automatic rollback triggers
+  rollback_triggers:
+    failure_threshold: 20           # Rollback if failure rate > 20%
+    timeout_threshold: 1800         # Rollback if execution time > 30 minutes
+    consecutive_failures: 3         # Rollback after 3 consecutive failures
+    performance_degradation: 1.5    # Rollback if 50% slower than baseline
+    
+  # Monitoring and alerting configuration
+  monitoring:
+    comparison_window: "24h"        # Time window for performance comparison
+    alert_channels: 
+      - "slack"
+      - "email"
+    metrics_retention: "30d"        # How long to keep migration metrics
+    dashboard_enabled: true
+    
+  # Migration timeline and milestones
+  timeline:
+    phase_3a_start: "2026-02-24"    # Low risk services
+    phase_3b_start: "2026-03-03"    # Medium risk services  
+    phase_3c_start: "2026-03-10"    # High risk services
+    phase_3d_start: "2026-03-17"    # Validation & cleanup
+    migration_complete: "2026-03-24"
+    
+  # Success criteria for each migration phase
+  success_criteria:
+    performance_threshold: 1.1      # Unified pipeline must be ≤ 110% of legacy time
+    reliability_threshold: 0.95     # Unified pipeline must have ≥ 95% success rate
+    stability_period: "72h"         # Must be stable for 72 hours before next phase
+    zero_downtime: true             # No service disruptions allowed
+    
+  # Emergency contacts and escalation
+  emergency:
+    primary_contact: "devops-team"
+    escalation_path:
+      - "team-lead"
+      - "engineering-manager" 
+      - "cto"
+    rollback_authority: "team-lead"  # Who can authorize emergency rollbacks
+    
+# Legacy workflow deprecation schedule
+deprecation:
+  # Workflows to be deprecated after successful migration
+  legacy_workflows:
+    - "rpc-deployment-optimized.yml"
+    - "consolidated-deployment.yml"
+    # Keep ci-cd-pipeline.yml as baseline until full validation
+    
+  deprecation_timeline:
+    disable_date: "2026-03-31"      # Disable legacy workflows
+    archive_date: "2026-04-30"      # Archive workflow files
+    cleanup_date: "2026-05-31"      # Remove deprecated files
+    
+# Feature flags for advanced functionality
+feature_flags:
+  advanced_caching: true           # Enable advanced Docker layer caching
+  parallel_testing: true          # Enable parallel service testing
+  blue_green_deployment: false    # Disable blue-green until Phase 4
+  performance_monitoring: true    # Enable detailed performance tracking
+  automatic_rollback: true        # Enable automatic rollback on failures
+  
+# Validation and testing configuration
+validation:
+  shadow_mode_duration: "7d"      # How long to run in shadow mode
+  canary_duration: "24h"          # How long to run canary testing
+  partial_duration: "48h"         # How long to run partial migration
+  majority_duration: "72h"        # How long to run majority migration
+  
+  # Test scenarios to validate during migration
+  test_scenarios:
+    - "basic_functionality"
+    - "performance_baseline"
+    - "error_handling"
+    - "rollback_procedures"
+    - "monitoring_alerts"

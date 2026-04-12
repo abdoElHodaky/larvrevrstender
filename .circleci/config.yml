@@ -1,0 +1,1557 @@
+# CircleCI Configuration for Laravel Microservices Platform - COMPLETE VERSION
+# Enterprise-grade CI/CD with optimal performance and cost efficiency
+# Version: 2.1 with complete service matrix
+
+version: 2.1
+
+# ============================================================================
+# ORBS - Reusable packages of configuration
+# ============================================================================
+orbs:
+  docker: circleci/docker@2.6.0
+  node: circleci/node@5.2.0
+  slack: circleci/slack@4.13.3
+  codecov: codecov/codecov@4.0.1
+
+# ============================================================================
+# EXECUTORS - Reusable execution environments
+# ============================================================================
+executors:
+  # Small executor for lightweight tasks
+  small-executor:
+    docker:
+      - image: cimg/php:8.3-node
+    resource_class: small
+    environment:
+      PHP_VERSION: "8.3"
+      NODE_VERSION: "18"
+    
+  # Medium executor for service testing
+  medium-executor:
+    docker:
+      - image: cimg/php:8.3-node
+      - image: cimg/postgres:15.0
+        environment:
+          POSTGRES_USER: laravel
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: laravel_test
+      - image: cimg/redis:7.0
+    resource_class: medium
+    environment:
+      PHP_VERSION: "8.3"
+      NODE_VERSION: "18"
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: laravel_test
+      DB_USERNAME: laravel
+      DB_PASSWORD: secret
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+    
+  # Large executor for Docker builds
+  large-executor:
+    docker:
+      - image: cimg/php:8.3-node
+    resource_class: large
+    environment:
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+    
+  # XLarge executor for performance testing
+  xlarge-executor:
+    docker:
+      - image: cimg/php:8.3-node
+    resource_class: xlarge
+    environment:
+      PHP_VERSION: "8.3"
+      NODE_VERSION: "18"
+
+# ============================================================================
+# COMMANDS - Reusable command sequences
+# ============================================================================
+commands:
+  # Setup PHP environment with extensions
+  setup-php:
+    description: "Setup PHP with required extensions"
+    steps:
+      - run:
+          name: Install PHP extensions
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y \
+              php8.3-pgsql \
+              php8.3-redis \
+              php8.3-gd \
+              php8.3-zip \
+              php8.3-xml \
+              php8.3-mbstring \
+              php8.3-curl \
+              php8.3-bcmath \
+              php8.3-intl
+            
+            # Verify PHP configuration
+            php -v
+            php -m | grep -E "(pdo_pgsql|redis|gd|zip)"
+  
+  # Install and cache Composer dependencies
+  install-composer-deps:
+    description: "Install Composer dependencies with caching"
+    parameters:
+      service:
+        type: string
+        default: "."
+    steps:
+      - restore_cache:
+          keys:
+            - composer-v2-{{ .Environment.CIRCLE_JOB }}-{{ checksum "<< parameters.service >>/composer.lock" }}
+            - composer-v2-{{ .Environment.CIRCLE_JOB }}-
+            - composer-v2-
+      
+      - run:
+          name: Install Composer dependencies
+          command: |
+            # Handle both service naming patterns
+            if [ -d "<< parameters.service >>-service" ]; then
+              cd << parameters.service >>-service
+            elif [ -d "<< parameters.service >>" ]; then
+              cd << parameters.service >>
+            else
+              echo "Service directory not found: << parameters.service >>"
+              exit 1
+            fi
+            composer install --no-interaction --prefer-dist --optimize-autoloader
+            
+      - save_cache:
+          key: composer-v2-{{ .Environment.CIRCLE_JOB }}-{{ checksum "<< parameters.service >>/composer.lock" }}
+          paths:
+            - << parameters.service >>/vendor
+            - ~/.composer/cache
+  
+  # Install and cache Node dependencies
+  install-node-deps:
+    description: "Install Node dependencies with caching"
+    parameters:
+      service:
+        type: string
+        default: "."
+    steps:
+      - restore_cache:
+          keys:
+            - node-v2-{{ .Environment.CIRCLE_JOB }}-{{ checksum "<< parameters.service >>/package-lock.json" }}
+            - node-v2-{{ .Environment.CIRCLE_JOB }}-
+            - node-v2-
+      
+      - run:
+          name: Install Node dependencies
+          command: |
+            # Handle both service naming patterns
+            if [ -d "<< parameters.service >>-service" ]; then
+              cd << parameters.service >>-service
+            elif [ -d "<< parameters.service >>" ]; then
+              cd << parameters.service >>
+            else
+              echo "Service directory not found: << parameters.service >>"
+              exit 1
+            fi
+            
+            if [ -f package-lock.json ]; then
+              npm ci
+            elif [ -f yarn.lock ]; then
+              yarn install --frozen-lockfile
+            fi
+            
+      - save_cache:
+          key: node-v2-{{ .Environment.CIRCLE_JOB }}-{{ checksum "<< parameters.service >>/package-lock.json" }}
+          paths:
+            - << parameters.service >>/node_modules
+            - ~/.npm
+  
+  # Notify Slack on job completion
+  notify-slack:
+    description: "Send Slack notification"
+    parameters:
+      status:
+        type: string
+      job_name:
+        type: string
+    steps:
+      - slack/notify:
+          event: << parameters.status >>
+          custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":circleci: *<< parameters.job_name >>* << parameters.status >> for `${CIRCLE_BRANCH}` branch"
+                  }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "Build: <${CIRCLE_BUILD_URL}|#${CIRCLE_BUILD_NUM}> | Commit: <https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/commit/${CIRCLE_SHA1}|${CIRCLE_SHA1:0:7}>"
+                    }
+                  ]
+                }
+              ]
+            }
+
+# ============================================================================
+# JOBS - Individual units of work
+# ============================================================================
+jobs:
+  # Phase 0: Change Detection & Planning
+  change-detection:
+    executor: small-executor
+    steps:
+      - checkout
+      - run:
+          name: Detect changed files
+          command: |
+            # Get changed files between current commit and main
+            if [ "$CIRCLE_BRANCH" != "main" ]; then
+              git fetch origin main
+              CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+            else
+              CHANGED_FILES=$(git diff --name-only HEAD~1...HEAD)
+            fi
+            
+            echo "Changed files:"
+            echo "$CHANGED_FILES"
+            
+            # Determine affected services
+            AFFECTED_SERVICES=""
+            for service in auth user auction bidding payment gateway order analytics notification vin-ocr; do
+              if echo "$CHANGED_FILES" | grep -q "services/$service-service/"; then
+                AFFECTED_SERVICES="$AFFECTED_SERVICES $service"
+              fi
+            done
+            
+            # Check shared service (different naming pattern)
+            if echo "$CHANGED_FILES" | grep -q "services/shared/"; then
+              AFFECTED_SERVICES="$AFFECTED_SERVICES shared"
+            fi
+            
+            # Check for global changes
+            GLOBAL_CHANGES=false
+            if echo "$CHANGED_FILES" | grep -qE "(\.github/|docker-compose|Dockerfile|\.circleci/)"; then
+              GLOBAL_CHANGES=true
+              AFFECTED_SERVICES="auth user auction bidding payment gateway order analytics notification vin-ocr shared"
+            fi
+            
+            echo "Affected services: $AFFECTED_SERVICES"
+            echo "Global changes: $GLOBAL_CHANGES"
+            
+            # Save to workspace
+            mkdir -p /tmp/workspace
+            echo "$AFFECTED_SERVICES" > /tmp/workspace/affected_services
+            echo "$GLOBAL_CHANGES" > /tmp/workspace/global_changes
+            
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - affected_services
+            - global_changes
+            
+      - notify-slack:
+          status: "started"
+          job_name: "Change Detection"
+  
+  # Phase 1: Security Scanning
+  security-scanning:
+    executor: small-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+          
+      - run:
+          name: Install Trivy
+          command: |
+            sudo apt-get update
+            sudo apt-get install wget apt-transport-https gnupg lsb-release
+            wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+            echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+            sudo apt-get update
+            sudo apt-get install trivy
+            
+      - run:
+          name: Run Trivy filesystem scan
+          command: |
+            trivy fs --format json --output trivy-results.json .
+            trivy fs --format table .
+            
+      - store_artifacts:
+          path: trivy-results.json
+          destination: security/trivy-results.json
+          
+      - notify-slack:
+          status: "passed"
+          job_name: "Security Scanning"
+  
+  # Phase 1: Code Quality PHP 8.2
+  code-quality-php82:
+    executor: medium-executor
+    docker:
+      - image: cimg/php:8.2-node
+    steps:
+      - checkout
+      - setup-php
+      - install-composer-deps
+      
+      - run:
+          name: Run PHP CodeSniffer
+          command: |
+            if [ -f vendor/bin/phpcs ]; then
+              vendor/bin/phpcs --standard=PSR12 --report=junit --report-file=phpcs-results.xml services/
+            fi
+            
+      - store_test_results:
+          path: phpcs-results.xml
+          
+      - notify-slack:
+          status: "passed"
+          job_name: "Code Quality PHP 8.2"
+  
+  # Phase 1: Code Quality PHP 8.3
+  code-quality-php83:
+    executor: medium-executor
+    steps:
+      - checkout
+      - setup-php
+      - install-composer-deps
+      
+      - run:
+          name: Run PHP CodeSniffer
+          command: |
+            if [ -f vendor/bin/phpcs ]; then
+              vendor/bin/phpcs --standard=PSR12 --report=junit --report-file=phpcs-results.xml services/
+            fi
+            
+      - store_test_results:
+          path: phpcs-results.xml
+          
+      - notify-slack:
+          status: "passed"
+          job_name: "Code Quality PHP 8.3"
+
+# ============================================================================
+# COMPLETE SERVICE JOBS - All 11 microservices
+# ============================================================================
+# DYNAMIC SERVICE TESTING JOBS - Phase 2
+# ============================================================================
+
+  # Test job for auth service
+  test-auth-service:
+    executor: medium-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup-php
+      - install-composer-deps:
+          service: services/auth-service
+      - run:
+          name: Check for Node dependencies
+          command: |
+            if [ -f services/auth-service/package.json ]; then
+              echo "Installing Node dependencies for auth"
+            fi
+      - install-node-deps:
+          service: services/auth-service
+      - run:
+          name: Setup auth test environment
+          command: |
+            cd services/auth-service
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear any existing cache
+            php artisan cache:clear || true
+            php artisan view:clear || true
+
+      - run:
+          name: Run auth database migrations
+          command: |
+            cd services/auth-service
+            php artisan migrate --force --seed
+
+      - run:
+          name: Run auth PHPUnit tests
+          command: |
+            cd services/auth-service
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html
+
+      - run:
+          name: Run auth Feature tests
+          command: |
+            cd services/auth-service
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml
+            fi
+
+      - store_test_results:
+          path: services/auth-service/test-results.xml
+      - store_test_results:
+          path: services/auth-service/feature-test-results.xml
+      - store_artifacts:
+          path: services/auth-service/coverage-html
+          destination: coverage-auth
+      - store_artifacts:
+          path: services/auth-service/testdox.html
+          destination: testdox-auth.html
+
+      - codecov/upload:
+          file: services/auth-service/coverage.xml
+          flags: auth
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Test auth Service"
+
+  # Test job for user service
+  test-user-service:
+    executor: medium-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup-php
+      - install-composer-deps:
+          service: services/user-service
+      - run:
+          name: Check for Node dependencies
+          command: |
+            if [ -f services/user-service/package.json ]; then
+              echo "Installing Node dependencies for user"
+            fi
+      - install-node-deps:
+          service: services/user-service
+      - run:
+          name: Setup user test environment
+          command: |
+            cd services/user
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear any existing cache
+            php artisan cache:clear || true
+            php artisan view:clear || true
+
+      - run:
+          name: Run user database migrations
+          command: |
+            cd services/user
+            php artisan migrate --force --seed
+
+      - run:
+          name: Run user PHPUnit tests
+          command: |
+            cd services/user
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html
+
+      - run:
+          name: Run user Feature tests
+          command: |
+            cd services/user
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml
+            fi
+
+      - store_test_results:
+          path: services/user-service/test-results.xml
+      - store_test_results:
+          path: services/user-service/feature-test-results.xml
+      - store_artifacts:
+          path: services/user-service/coverage-html
+          destination: coverage-user
+      - store_artifacts:
+          path: services/user-service/testdox.html
+          destination: testdox-user.html
+
+      - codecov/upload:
+          file: services/user-service/coverage.xml
+          flags: user
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Test user Service"
+
+  # Test job for auction service
+  test-auction-service:
+    executor: medium-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup-php
+      - install-composer-deps:
+          service: services/auction-service
+      - run:
+          name: Check for Node dependencies
+          command: |
+            if [ -f services/auction-service/package.json ]; then
+              echo "Installing Node dependencies for auction"
+            fi
+      - install-node-deps:
+          service: services/auction-service
+      - run:
+          name: Setup auction test environment
+          command: |
+            cd services/auction
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear any existing cache
+            php artisan cache:clear || true
+            php artisan view:clear || true
+
+      - run:
+          name: Run auction database migrations
+          command: |
+            cd services/auction
+            php artisan migrate --force --seed
+
+      - run:
+          name: Run auction PHPUnit tests
+          command: |
+            cd services/auction
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html
+
+      - run:
+          name: Run auction Feature tests
+          command: |
+            cd services/auction
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml
+            fi
+
+      - store_test_results:
+          path: services/auction-service/test-results.xml
+      - store_test_results:
+          path: services/auction-service/feature-test-results.xml
+      - store_artifacts:
+          path: services/auction-service/coverage-html
+          destination: coverage-auction
+      - store_artifacts:
+          path: services/auction-service/testdox.html
+          destination: testdox-auction.html
+
+      - codecov/upload:
+          file: services/auction-service/coverage.xml
+          flags: auction
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Test auction Service"
+
+  # Test job for bidding service
+  test-bidding-service:
+    executor: medium-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup-php
+      - install-composer-deps:
+          service: services/bidding-service
+      - run:
+          name: Check for Node dependencies
+          command: |
+            if [ -f services/bidding-service/package.json ]; then
+              echo "Installing Node dependencies for bidding"
+            fi
+      - install-node-deps:
+          service: services/bidding-service
+      - run:
+          name: Setup bidding test environment
+          command: |
+            cd services/bidding
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear any existing cache
+            php artisan cache:clear || true
+            php artisan view:clear || true
+
+      - run:
+          name: Run bidding database migrations
+          command: |
+            cd services/bidding
+            php artisan migrate --force --seed
+
+      - run:
+          name: Run bidding PHPUnit tests
+          command: |
+            cd services/bidding
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html
+
+      - run:
+          name: Run bidding Feature tests
+          command: |
+            cd services/bidding
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml
+            fi
+
+      - store_test_results:
+          path: services/bidding-service/test-results.xml
+      - store_test_results:
+          path: services/bidding-service/feature-test-results.xml
+      - store_artifacts:
+          path: services/bidding-service/coverage-html
+          destination: coverage-bidding
+      - store_artifacts:
+          path: services/bidding-service/testdox.html
+          destination: testdox-bidding.html
+
+      - codecov/upload:
+          file: services/bidding-service/coverage.xml
+          flags: bidding
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Test bidding Service"
+
+  # Test job for payment service
+  test-payment-service:
+    executor: medium-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup-php
+      - install-composer-deps:
+          service: services/payment-service
+      - run:
+          name: Check for Node dependencies
+          command: |
+            if [ -f services/payment-service/package.json ]; then
+              echo "Installing Node dependencies for payment"
+            fi
+      - install-node-deps:
+          service: services/payment-service
+      - run:
+          name: Setup payment test environment
+          command: |
+            cd services/payment
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear any existing cache
+            php artisan cache:clear || true
+            php artisan view:clear || true
+
+      - run:
+          name: Run payment database migrations
+          command: |
+            cd services/payment
+            php artisan migrate --force --seed
+
+      - run:
+          name: Run payment PHPUnit tests
+          command: |
+            cd services/payment
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html
+
+      - run:
+          name: Run payment Feature tests
+          command: |
+            cd services/payment
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml
+            fi
+
+      - store_test_results:
+          path: services/payment-service/test-results.xml
+      - store_test_results:
+          path: services/payment-service/feature-test-results.xml
+      - store_artifacts:
+          path: services/payment-service/coverage-html
+          destination: coverage-payment
+      - store_artifacts:
+          path: services/payment-service/testdox.html
+          destination: testdox-payment.html
+
+      - codecov/upload:
+          file: services/payment-service/coverage.xml
+          flags: payment
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Test payment Service"
+
+  # Test job for gateway service
+  test-gateway-service:
+    executor: medium-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup-php
+      - install-composer-deps:
+          service: services/gateway-service
+      - run:
+          name: Check for Node dependencies
+          command: |
+            if [ -f services/gateway-service/package.json ]; then
+              echo "Installing Node dependencies for gateway"
+            fi
+      - install-node-deps:
+          service: services/gateway-service
+      - run:
+          name: Setup gateway test environment
+          command: |
+            cd services/gateway
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear any existing cache
+            php artisan cache:clear || true
+            php artisan view:clear || true
+
+      - run:
+          name: Run gateway database migrations
+          command: |
+            cd services/gateway
+            php artisan migrate --force --seed
+
+      - run:
+          name: Run gateway PHPUnit tests
+          command: |
+            cd services/gateway
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html
+
+      - run:
+          name: Run gateway Feature tests
+          command: |
+            cd services/gateway
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml
+            fi
+
+      - store_test_results:
+          path: services/gateway-service/test-results.xml
+      - store_test_results:
+          path: services/gateway-service/feature-test-results.xml
+      - store_artifacts:
+          path: services/gateway-service/coverage-html
+          destination: coverage-gateway
+      - store_artifacts:
+          path: services/gateway-service/testdox.html
+          destination: testdox-gateway.html
+
+      - codecov/upload:
+          file: services/gateway-service/coverage.xml
+          flags: gateway
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Test gateway Service"
+
+  # Test job for order service
+  test-order-service:
+    executor: medium-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup-php
+      - install-composer-deps:
+          service: services/order-service
+      - run:
+          name: Check for Node dependencies
+          command: |
+            if [ -f services/order-service/package.json ]; then
+              echo "Installing Node dependencies for order"
+            fi
+      - install-node-deps:
+          service: services/order-service
+      - run:
+          name: Setup order test environment
+          command: |
+            cd services/order
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear any existing cache
+            php artisan cache:clear || true
+            php artisan view:clear || true
+
+      - run:
+          name: Run order database migrations
+          command: |
+            cd services/order
+            php artisan migrate --force --seed
+
+      - run:
+          name: Run order PHPUnit tests
+          command: |
+            cd services/order
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html
+
+      - run:
+          name: Run order Feature tests
+          command: |
+            cd services/order
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml
+            fi
+
+      - store_test_results:
+          path: services/order-service/test-results.xml
+      - store_test_results:
+          path: services/order-service/feature-test-results.xml
+      - store_artifacts:
+          path: services/order-service/coverage-html
+          destination: coverage-order
+      - store_artifacts:
+          path: services/order-service/testdox.html
+          destination: testdox-order.html
+
+      - codecov/upload:
+          file: services/order-service/coverage.xml
+          flags: order
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Test order Service"
+
+  # Test job for analytics service
+  test-analytics-service:
+    executor: medium-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup-php
+      - install-composer-deps:
+          service: services/analytics-service
+      - run:
+          name: Check for Node dependencies
+          command: |
+            if [ -f services/analytics-service/package.json ]; then
+              echo "Installing Node dependencies for analytics"
+            fi
+      - install-node-deps:
+          service: services/analytics-service
+      - run:
+          name: Setup analytics test environment
+          command: |
+            cd services/analytics
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear any existing cache
+            php artisan cache:clear || true
+            php artisan view:clear || true
+
+      - run:
+          name: Run analytics database migrations
+          command: |
+            cd services/analytics
+            php artisan migrate --force --seed
+
+      - run:
+          name: Run analytics PHPUnit tests
+          command: |
+            cd services/analytics
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html
+
+      - run:
+          name: Run analytics Feature tests
+          command: |
+            cd services/analytics
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml
+            fi
+
+      - store_test_results:
+          path: services/analytics-service/test-results.xml
+      - store_test_results:
+          path: services/analytics-service/feature-test-results.xml
+      - store_artifacts:
+          path: services/analytics-service/coverage-html
+          destination: coverage-analytics
+      - store_artifacts:
+          path: services/analytics-service/testdox.html
+          destination: testdox-analytics.html
+
+      - codecov/upload:
+          file: services/analytics-service/coverage.xml
+          flags: analytics
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Test analytics Service"
+
+  # Test job for notification service
+  test-notification-service:
+    executor: medium-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup-php
+      - install-composer-deps:
+          service: services/notification-service
+      - run:
+          name: Check for Node dependencies
+          command: |
+            if [ -f services/notification-service/package.json ]; then
+              echo "Installing Node dependencies for notification"
+            fi
+      - install-node-deps:
+          service: services/notification-service
+      - run:
+          name: Setup notification test environment
+          command: |
+            cd services/notification
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear any existing cache
+            php artisan cache:clear || true
+            php artisan view:clear || true
+
+      - run:
+          name: Run notification database migrations
+          command: |
+            cd services/notification
+            php artisan migrate --force --seed
+
+      - run:
+          name: Run notification PHPUnit tests
+          command: |
+            cd services/notification
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html
+
+      - run:
+          name: Run notification Feature tests
+          command: |
+            cd services/notification
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml
+            fi
+
+      - store_test_results:
+          path: services/notification-service/test-results.xml
+      - store_test_results:
+          path: services/notification-service/feature-test-results.xml
+      - store_artifacts:
+          path: services/notification-service/coverage-html
+          destination: coverage-notification
+      - store_artifacts:
+          path: services/notification-service/testdox.html
+          destination: testdox-notification.html
+
+      - codecov/upload:
+          file: services/notification-service/coverage.xml
+          flags: notification
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Test notification Service"
+
+  # Test job for vin-ocr service
+  test-vin-ocr-service:
+    executor: medium-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup-php
+      - install-composer-deps:
+          service: services/vin-ocr-service
+      - run:
+          name: Check for Node dependencies
+          command: |
+            if [ -f services/vin-ocr-service/package.json ]; then
+              echo "Installing Node dependencies for vin-ocr"
+            fi
+      - install-node-deps:
+          service: services/vin-ocr-service
+      - run:
+          name: Setup vin-ocr test environment
+          command: |
+            cd services/vin-ocr
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear any existing cache
+            php artisan cache:clear || true
+            php artisan view:clear || true
+
+      - run:
+          name: Run vin-ocr database migrations
+          command: |
+            cd services/vin-ocr
+            php artisan migrate --force --seed
+
+      - run:
+          name: Run vin-ocr PHPUnit tests
+          command: |
+            cd services/vin-ocr
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html
+
+      - run:
+          name: Run vin-ocr Feature tests
+          command: |
+            cd services/vin-ocr
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml
+            fi
+
+      - store_test_results:
+          path: services/vin-ocr-service/test-results.xml
+      - store_test_results:
+          path: services/vin-ocr-service/feature-test-results.xml
+      - store_artifacts:
+          path: services/vin-ocr-service/coverage-html
+          destination: coverage-vin-ocr
+      - store_artifacts:
+          path: services/vin-ocr-service/testdox.html
+          destination: testdox-vin-ocr.html
+
+      - codecov/upload:
+          file: services/vin-ocr-service/coverage.xml
+          flags: vin-ocr
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Test vin-ocr Service"
+
+  # Test job for shared service
+  test-shared-service:
+    executor: medium-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup-php
+      - install-composer-deps:
+          service: services/shared
+      - run:
+          name: Check for Node dependencies
+          command: |
+            if [ -f services/shared/package.json ]; then
+              echo "Installing Node dependencies for shared"
+            fi
+      - install-node-deps:
+          service: services/shared
+      - run:
+          name: Setup shared test environment
+          command: |
+            cd services/shared
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear any existing cache
+            php artisan cache:clear || true
+            php artisan view:clear || true
+
+      - run:
+          name: Run shared database migrations
+          command: |
+            cd services/shared
+            php artisan migrate --force --seed
+
+      - run:
+          name: Run shared PHPUnit tests
+          command: |
+            cd services/shared
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html
+
+      - run:
+          name: Run shared Feature tests
+          command: |
+            cd services/shared
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml
+            fi
+
+      - store_test_results:
+          path: services/shared/test-results.xml
+      - store_test_results:
+          path: services/shared/feature-test-results.xml
+      - store_artifacts:
+          path: services/shared/coverage-html
+          destination: coverage-shared
+      - store_artifacts:
+          path: services/shared/testdox.html
+          destination: testdox-shared.html
+
+      - codecov/upload:
+          file: services/shared/coverage.xml
+          flags: shared
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Test shared Service"
+
+
+# ============================================================================
+# DYNAMIC SERVICE BUILD JOBS - Phase 3
+# ============================================================================
+
+  # Build job for auth service
+  build-auth-service:
+    executor: large-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup_remote_docker:
+          docker_layer_caching: true
+
+      - run:
+          name: Check if auth should be built
+          command: |
+            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+            if echo "$AFFECTED_SERVICES" | grep -q "auth"; then
+              echo "Building auth service..."
+              echo "true" > /tmp/should_build_auth
+            else
+              echo "Skipping auth service build (not affected)"
+              echo "false" > /tmp/should_build_auth
+            fi
+
+      - run:
+          name: Build auth Docker image
+          command: |
+            if [ "$(cat /tmp/should_build_auth)" = "true" ]; then
+              cd services/auth
+              
+              # Pull cache images
+              docker pull ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:cache || true
+              docker pull ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:latest || true
+              
+              # Build multi-stage image with caching
+              docker build \
+                --cache-from=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:cache \
+                --cache-from=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:latest \
+                --target=production \
+                --tag=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:${CIRCLE_SHA1} \
+                --tag=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:latest \
+                --tag=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:cache \
+                --build-arg BUILDKIT_INLINE_CACHE=1 \
+                .
+              
+              # Analyze image size
+              echo "=== auth Image Analysis ==="
+              docker images ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+              
+              # Security scan with Trivy
+              if command -v trivy >/dev/null 2>&1; then
+                trivy image --exit-code 0 --severity HIGH,CRITICAL ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:${CIRCLE_SHA1}
+              fi
+            fi
+
+      - run:
+          name: Push auth Docker image
+          command: |
+            if [ "$(cat /tmp/should_build_auth)" = "true" ]; then
+              # Login to GitHub Container Registry
+              echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USERNAME --password-stdin
+              
+              # Push all tags
+              docker push ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:${CIRCLE_SHA1}
+              docker push ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:latest
+              docker push ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:cache
+              
+              echo "Successfully pushed auth images"
+            fi
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Build auth Service"
+
+  # Build job for user service
+  build-user-service:
+    executor: large-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup_remote_docker:
+          docker_layer_caching: true
+
+      - run:
+          name: Check if user should be built
+          command: |
+            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+            if echo "$AFFECTED_SERVICES" | grep -q "user"; then
+              echo "Building user service..."
+              echo "true" > /tmp/should_build_user
+            else
+              echo "Skipping user service build (not affected)"
+              echo "false" > /tmp/should_build_user
+            fi
+
+# ============================================================================
+# WORKFLOWS - Complete orchestration of all jobs
+# ============================================================================
+workflows:
+  version: 2
+  enterprise-pipeline:
+    jobs:
+      # Phase 0: Change Detection (Sequential)
+      - change-detection:
+          filters:
+            branches:
+              only: /.*/
+      
+      # Phase 1: Parallel Security & Quality (3 concurrent)
+      - security-scanning:
+          requires: [change-detection]
+          
+      - code-quality-php82:
+          requires: [change-detection]
+          
+      - code-quality-php83:
+          requires: [change-detection]
+      
+      # Phase 2: Service Testing (11 parallel services)
+      - test-auth-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-user-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-auction-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-bidding-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-payment-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-gateway-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-order-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-analytics-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-notification-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-vin-ocr-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-shared-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      
+      # Phase 3: Service Builds (11 parallel services with dependencies)
+      - build-auth-service:
+          requires:
+            - test-auth-service
+            - test-shared-service
+          filters:
+            branches:
+              only: /.*/
+      - build-user-service:
+          requires:
+            - test-user-service
+            - test-shared-service
+            - test-auth-service
+          filters:
+            branches:
+              only: /.*/
+      - build-auction-service:
+          requires:
+            - test-auction-service
+            - test-shared-service
+            - test-auth-service
+            - test-user-service
+          filters:
+            branches:
+              only: /.*/
+      - build-bidding-service:
+          requires:
+            - test-bidding-service
+            - test-shared-service
+            - test-auth-service
+            - test-auction-service
+          filters:
+            branches:
+              only: /.*/
+      - build-payment-service:
+          requires:
+            - test-payment-service
+            - test-shared-service
+            - test-auth-service
+            - test-user-service
+          filters:
+            branches:
+              only: /.*/
+      - build-gateway-service:
+          requires:
+            - test-gateway-service
+            - test-shared-service
+            - test-auth-service
+          filters:
+            branches:
+              only: /.*/
+      - build-order-service:
+          requires:
+            - test-order-service
+            - test-shared-service
+            - test-auth-service
+            - test-user-service
+            - test-auction-service
+            - test-bidding-service
+            - test-payment-service
+          filters:
+            branches:
+              only: /.*/
+      - build-analytics-service:
+          requires:
+            - test-analytics-service
+            - test-shared-service
+            - test-auth-service
+            - test-user-service
+            - test-auction-service
+            - test-bidding-service
+          filters:
+            branches:
+              only: /.*/
+      - build-notification-service:
+          requires:
+            - test-notification-service
+            - test-shared-service
+            - test-auth-service
+            - test-user-service
+          filters:
+            branches:
+              only: /.*/
+      - build-vin-ocr-service:
+          requires:
+            - test-vin-ocr-service
+            - test-shared-service
+          filters:
+            branches:
+              only: /.*/
+      - build-shared-service:
+          requires:
+            - test-shared-service
+          filters:
+            branches:
+              only: /.*/

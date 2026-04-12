@@ -1,9 +1,28 @@
-# Troubleshooting Guide
+# <span style="font-size: 42px; font-weight: 700; line-height: 1.618;">🔧 Troubleshooting Guide</span>
+## <span style="font-size: 20px; font-weight: 500; line-height: 1.618; color: #4ECDC4;">Version 2.0 - Multi-Tier Caching Architecture</span>
 
-This guide helps diagnose and resolve common issues with the Reverse Tender Platform deployment and operation.
+<p style="font-size: 16px; line-height: 1.618; margin-bottom: 2rem;">This guide helps diagnose and resolve common issues with the <strong>Reverse Tender Platform V2</strong> deployment and operation, including <strong>multi-tier caching troubleshooting</strong>.</p>
+
+<div style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #FF6B6B10, #4ECDC410); border-radius: 12px; border-left: 4px solid #FF6B6B;">
+
+### <span style="font-size: 18px; font-weight: 600; color: #FF6B6B;">🚀 V2 Troubleshooting Features</span>
+
+**Multi-Tier Cache Monitoring:**
+- **L1 (Varnish)**: HTTP cache hit/miss ratios, response times, VCL errors
+- **L2 (Upstash Redis)**: Connection health, memory usage, command latency
+- **L3 (MongoDB Atlas)**: Cluster status, query performance, connection pooling
+- **Cache Coordination**: Cross-tier invalidation, fallback mechanisms
+
+**Performance Diagnostics:**
+- Cache layer performance metrics and bottleneck identification
+- Multi-tier cache hit ratio analysis and optimization recommendations
+- Intelligent cache warming and invalidation troubleshooting
+
+</div>
 
 ## 📋 Table of Contents
 
+- [Multi-Tier Caching Issues](#multi-tier-caching-issues) **🆕 V2**
 - [Common Issues](#common-issues)
 - [Deployment Problems](#deployment-problems)
 - [Service Discovery Issues](#service-discovery-issues)
@@ -11,6 +30,109 @@ This guide helps diagnose and resolve common issues with the Reverse Tender Plat
 - [Performance Issues](#performance-issues)
 - [Monitoring and Debugging](#monitoring-and-debugging)
 - [Emergency Procedures](#emergency-procedures)
+
+## 🚀 Multi-Tier Caching Issues
+
+### Varnish Cache (L1) Problems
+
+#### Symptoms
+- High cache miss ratios (below 90%)
+- Slow response times despite caching
+- VCL compilation errors
+
+#### Diagnosis
+```bash
+# Check Varnish cache statistics
+varnishstat -1
+
+# Monitor cache hit/miss ratios
+varnishstat -f MAIN.cache_hit -f MAIN.cache_miss
+
+# Check VCL configuration
+varnishadm vcl.list
+varnishadm vcl.show <vcl-name>
+
+# Monitor Varnish logs
+varnishlog -q "VCL_Error"
+```
+
+#### Solutions
+```bash
+# Restart Varnish service
+docker-compose restart varnish
+
+# Reload VCL configuration
+varnishadm vcl.load new_config /etc/varnish/default.vcl
+varnishadm vcl.use new_config
+
+# Clear Varnish cache
+varnishadm ban req.url ~ ".*"
+```
+
+### Upstash Redis (L2) Problems
+
+#### Symptoms
+- Connection timeouts to Redis
+- High memory usage warnings
+- Slow Redis command execution
+
+#### Diagnosis
+```bash
+# Check Redis connection
+redis-cli -h <upstash-host> -p <port> --tls ping
+
+# Monitor Redis memory usage
+redis-cli -h <upstash-host> -p <port> --tls info memory
+
+# Check command latency
+redis-cli -h <upstash-host> -p <port> --tls --latency
+
+# Monitor slow queries
+redis-cli -h <upstash-host> -p <port> --tls slowlog get 10
+```
+
+#### Solutions
+```bash
+# Clear Redis cache
+redis-cli -h <upstash-host> -p <port> --tls flushall
+
+# Check connection pool settings
+# Update REDIS_POOL_SIZE in .env files
+
+# Monitor connection health
+redis-cli -h <upstash-host> -p <port> --tls client list
+```
+
+### MongoDB Atlas (L3) Problems
+
+#### Symptoms
+- Slow database queries
+- Connection pool exhaustion
+- Atlas cluster scaling issues
+
+#### Diagnosis
+```bash
+# Check MongoDB connection
+mongosh "mongodb+srv://<cluster-url>" --eval "db.runCommand('ping')"
+
+# Monitor query performance
+# Use MongoDB Atlas Performance Advisor
+
+# Check connection pool status
+# Monitor application logs for connection errors
+```
+
+#### Solutions
+```bash
+# Optimize database indexes
+# Use MongoDB Atlas Index Advisor
+
+# Scale cluster resources
+# Adjust cluster tier in Atlas dashboard
+
+# Update connection string settings
+# Increase maxPoolSize in connection string
+```
 
 ## 🚨 Common Issues
 

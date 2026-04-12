@@ -1,0 +1,620 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: disaster-recovery-system
+---
+# Velero Backup System
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: velero
+  namespace: disaster-recovery-system
+  labels:
+    app: velero
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: velero
+  template:
+    metadata:
+      labels:
+        app: velero
+    spec:
+      serviceAccountName: velero
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+      - name: velero
+        image: velero/velero:v1.12.1
+        ports:
+        - containerPort: 8085
+          name: metrics
+        command:
+        - /velero
+        args:
+        - server
+        - --log-level=info
+        - --log-format=json
+        - --metrics-address=0.0.0.0:8085
+        - --plugin-dir=/plugins
+        - --backup-sync-period=60m
+        - --fs-backup-timeout=240m
+        - --default-backup-storage-location=default
+        - --default-volume-snapshot-locations=default
+        - --store-validation-frequency=168h
+        - --uploader-type=restic
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          capabilities:
+            drop:
+            - ALL
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        resources:
+          requests:
+            cpu: 500m
+            memory: 128Mi
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+        volumeMounts:
+        - name: plugins
+          mountPath: /plugins
+        - name: scratch
+          mountPath: /scratch
+        - name: cloud-credentials
+          mountPath: /credentials
+          readOnly: true
+        env:
+        - name: VELERO_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: VELERO_SCRATCH_DIR
+          value: /scratch
+        - name: AWS_SHARED_CREDENTIALS_FILE
+          value: /credentials/cloud
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /credentials/cloud
+        - name: AZURE_CREDENTIALS_FILE
+          value: /credentials/cloud
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 8085
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 8085
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: plugins
+        emptyDir: {}
+      - name: scratch
+        emptyDir: {}
+      - name: cloud-credentials
+        secret:
+          secretName: cloud-credentials
+      initContainers:
+      - name: velero-plugin-for-aws
+        image: velero/velero-plugin-for-aws:v1.8.2
+        volumeMounts:
+        - mountPath: /target
+          name: plugins
+      - name: velero-plugin-for-gcp
+        image: velero/velero-plugin-for-gcp:v1.8.2
+        volumeMounts:
+        - mountPath: /target
+          name: plugins
+      - name: velero-plugin-for-microsoft-azure
+        image: velero/velero-plugin-for-microsoft-azure:v1.8.2
+        volumeMounts:
+        - mountPath: /target
+          name: plugins
+---
+# Service Account and RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: velero
+  namespace: disaster-recovery-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: velero
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+- nonResourceURLs: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: velero
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: velero
+subjects:
+- kind: ServiceAccount
+  name: velero
+  namespace: disaster-recovery-system
+---
+# Backup Storage Locations
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: aws-primary
+  namespace: disaster-recovery-system
+spec:
+  provider: aws
+  objectStorage:
+    bucket: reverse-tender-backups-primary
+    prefix: velero
+  config:
+    region: us-west-2
+    s3ForcePathStyle: "false"
+    s3Url: https://s3.us-west-2.amazonaws.com
+    kmsKeyId: arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012
+    serverSideEncryption: AES256
+  credential:
+    name: cloud-credentials
+    key: cloud
+---
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: aws-secondary
+  namespace: disaster-recovery-system
+spec:
+  provider: aws
+  objectStorage:
+    bucket: reverse-tender-backups-secondary
+    prefix: velero
+  config:
+    region: us-east-1
+    s3ForcePathStyle: "false"
+    s3Url: https://s3.us-east-1.amazonaws.com
+    kmsKeyId: arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+    serverSideEncryption: AES256
+  credential:
+    name: cloud-credentials
+    key: cloud
+---
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: gcp-dr
+  namespace: disaster-recovery-system
+spec:
+  provider: gcp
+  objectStorage:
+    bucket: reverse-tender-backups-dr
+    prefix: velero
+  config:
+    serviceAccount: velero-backup@reverse-tender-project.iam.gserviceaccount.com
+  credential:
+    name: cloud-credentials
+    key: cloud
+---
+# Volume Snapshot Locations
+apiVersion: velero.io/v1
+kind: VolumeSnapshotLocation
+metadata:
+  name: aws-primary
+  namespace: disaster-recovery-system
+spec:
+  provider: aws
+  config:
+    region: us-west-2
+    profile: default
+---
+apiVersion: velero.io/v1
+kind: VolumeSnapshotLocation
+metadata:
+  name: aws-secondary
+  namespace: disaster-recovery-system
+spec:
+  provider: aws
+  config:
+    region: us-east-1
+    profile: default
+---
+# Scheduled Backups
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily-backup
+  namespace: disaster-recovery-system
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  template:
+    metadata:
+      labels:
+        backup-type: daily
+    spec:
+      includedNamespaces:
+      - reverse-tender-blue
+      - reverse-tender-green
+      - monitoring
+      - flux-system
+      excludedResources:
+      - events
+      - events.events.k8s.io
+      - backups.velero.io
+      - restores.velero.io
+      - resticrepositories.velero.io
+      storageLocation: aws-primary
+      volumeSnapshotLocations:
+      - aws-primary
+      ttl: 720h  # 30 days
+      snapshotVolumes: true
+      includeClusterResources: true
+      hooks:
+        resources:
+        - name: mysql-backup-hook
+          includedNamespaces:
+          - reverse-tender-blue
+          - reverse-tender-green
+          includedResources:
+          - pods
+          labelSelector:
+            matchLabels:
+              app: mysql
+          pre:
+          - exec:
+              command:
+              - /bin/bash
+              - -c
+              - "mysqldump --single-transaction --routines --triggers --all-databases > /tmp/mysql-backup.sql"
+              container: mysql
+              timeout: 3m
+          post:
+          - exec:
+              command:
+              - /bin/bash
+              - -c
+              - "rm -f /tmp/mysql-backup.sql"
+              container: mysql
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: weekly-backup
+  namespace: disaster-recovery-system
+spec:
+  schedule: "0 3 * * 0"  # Weekly on Sunday at 3 AM
+  template:
+    metadata:
+      labels:
+        backup-type: weekly
+    spec:
+      includedNamespaces:
+      - reverse-tender-blue
+      - reverse-tender-green
+      - monitoring
+      - flux-system
+      - disaster-recovery-system
+      - security
+      - scalability
+      storageLocation: aws-secondary
+      volumeSnapshotLocations:
+      - aws-secondary
+      ttl: 2160h  # 90 days
+      snapshotVolumes: true
+      includeClusterResources: true
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: monthly-backup
+  namespace: disaster-recovery-system
+spec:
+  schedule: "0 4 1 * *"  # Monthly on 1st at 4 AM
+  template:
+    metadata:
+      labels:
+        backup-type: monthly
+    spec:
+      includedNamespaces: []  # All namespaces
+      storageLocation: gcp-dr
+      ttl: 8760h  # 365 days
+      snapshotVolumes: true
+      includeClusterResources: true
+---
+# Cross-Region Backup Replication
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cross-region-backup-replication
+  namespace: disaster-recovery-system
+spec:
+  schedule: "0 6 * * *"  # Daily at 6 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: backup-replication
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            fsGroup: 65534
+          containers:
+          - name: backup-replicator
+            image: amazon/aws-cli:2.13.25
+            command:
+            - /bin/bash
+            - -c
+            - |
+              # Replicate backups from primary to secondary region
+              echo "Starting cross-region backup replication..."
+              
+              # Sync daily backups
+              aws s3 sync s3://reverse-tender-backups-primary/velero/backups/ \
+                         s3://reverse-tender-backups-secondary/velero/backups/ \
+                         --region us-west-2 \
+                         --exclude "*" \
+                         --include "*daily*" \
+                         --delete
+              
+              # Sync weekly backups to DR region
+              aws s3 sync s3://reverse-tender-backups-primary/velero/backups/ \
+                         s3://reverse-tender-backups-dr/velero/backups/ \
+                         --region us-west-2 \
+                         --exclude "*" \
+                         --include "*weekly*" \
+                         --delete
+              
+              # Verify backup integrity
+              BACKUP_COUNT_PRIMARY=$(aws s3 ls s3://reverse-tender-backups-primary/velero/backups/ --recursive | wc -l)
+              BACKUP_COUNT_SECONDARY=$(aws s3 ls s3://reverse-tender-backups-secondary/velero/backups/ --recursive | wc -l)
+              
+              echo "Primary backups: $BACKUP_COUNT_PRIMARY"
+              echo "Secondary backups: $BACKUP_COUNT_SECONDARY"
+              
+              if [ $BACKUP_COUNT_SECONDARY -lt $((BACKUP_COUNT_PRIMARY * 80 / 100)) ]; then
+                echo "ERROR: Secondary backup count is less than 80% of primary"
+                exit 1
+              fi
+              
+              echo "Cross-region backup replication completed successfully"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 65534
+              capabilities:
+                drop:
+                - ALL
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 500m
+                memory: 1Gi
+            volumeMounts:
+            - name: aws-credentials
+              mountPath: /root/.aws
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          volumes:
+          - name: aws-credentials
+            secret:
+              secretName: aws-credentials
+          - name: tmp
+            emptyDir: {}
+          restartPolicy: OnFailure
+---
+# Database Backup System
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup
+  namespace: disaster-recovery-system
+spec:
+  schedule: "0 1 * * *"  # Daily at 1 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: database-backup
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            fsGroup: 65534
+          containers:
+          - name: mysql-backup
+            image: mysql:8.0
+            command:
+            - /bin/bash
+            - -c
+            - |
+              # Create timestamped backup
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_FILE="mysql_backup_${TIMESTAMP}.sql"
+              
+              echo "Starting MySQL backup: $BACKUP_FILE"
+              
+              # Create backup with compression
+              mysqldump --single-transaction \
+                       --routines \
+                       --triggers \
+                       --all-databases \
+                       --host=$MYSQL_HOST \
+                       --user=$MYSQL_USER \
+                       --password=$MYSQL_PASSWORD | \
+              gzip > /tmp/$BACKUP_FILE.gz
+              
+              # Upload to S3 with encryption
+              aws s3 cp /tmp/$BACKUP_FILE.gz \
+                       s3://reverse-tender-db-backups/mysql/$BACKUP_FILE.gz \
+                       --server-side-encryption AES256 \
+                       --storage-class STANDARD_IA
+              
+              # Cross-region replication
+              aws s3 cp s3://reverse-tender-db-backups/mysql/$BACKUP_FILE.gz \
+                       s3://reverse-tender-db-backups-dr/mysql/$BACKUP_FILE.gz \
+                       --source-region us-west-2 \
+                       --region eu-west-1
+              
+              # Cleanup old backups (keep 30 days)
+              aws s3 ls s3://reverse-tender-db-backups/mysql/ | \
+              while read -r line; do
+                createDate=$(echo $line | awk '{print $1" "$2}')
+                createDate=$(date -d "$createDate" +%s)
+                olderThan=$(date -d "30 days ago" +%s)
+                if [[ $createDate -lt $olderThan ]]; then
+                  fileName=$(echo $line | awk '{print $4}')
+                  if [[ $fileName != "" ]]; then
+                    aws s3 rm s3://reverse-tender-db-backups/mysql/$fileName
+                  fi
+                fi
+              done
+              
+              echo "MySQL backup completed: $BACKUP_FILE"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 65534
+              capabilities:
+                drop:
+                - ALL
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+            resources:
+              requests:
+                cpu: 200m
+                memory: 512Mi
+              limits:
+                cpu: 1000m
+                memory: 2Gi
+            env:
+            - name: MYSQL_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: database-credentials
+                  key: host
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: database-credentials
+                  key: username
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: database-credentials
+                  key: password
+            volumeMounts:
+            - name: aws-credentials
+              mountPath: /root/.aws
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          volumes:
+          - name: aws-credentials
+            secret:
+              secretName: aws-credentials
+          - name: tmp
+            emptyDir: {}
+          restartPolicy: OnFailure
+---
+# Service Accounts
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backup-replication
+  namespace: disaster-recovery-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: database-backup
+  namespace: disaster-recovery-system
+---
+# Backup Monitoring
+apiVersion: v1
+kind: Service
+metadata:
+  name: velero-metrics
+  namespace: disaster-recovery-system
+  labels:
+    app: velero
+spec:
+  selector:
+    app: velero
+  ports:
+  - name: metrics
+    port: 8085
+    targetPort: 8085
+  type: ClusterIP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: velero-backup-metrics
+  namespace: monitoring
+  labels:
+    app: velero
+spec:
+  selector:
+    matchLabels:
+      app: velero
+  namespaceSelector:
+    matchNames:
+    - disaster-recovery-system
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+---
+# Backup Alert Rules
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: backup-alerts
+  namespace: monitoring
+spec:
+  groups:
+  - name: backup.rules
+    rules:
+    - alert: BackupFailed
+      expr: increase(velero_backup_failure_total[1h]) > 0
+      for: 0m
+      labels:
+        severity: critical
+        component: backup
+      annotations:
+        summary: "Velero backup failed"
+        description: "Velero backup {{ $labels.schedule }} has failed."
+    
+    - alert: BackupMissing
+      expr: time() - velero_backup_last_successful_timestamp > 86400
+      for: 1h
+      labels:
+        severity: critical
+        component: backup
+      annotations:
+        summary: "Backup missing"
+        description: "No successful backup in the last 24 hours."
+    
+    - alert: RestoreFailed
+      expr: increase(velero_restore_failed_total[1h]) > 0
+      for: 0m
+      labels:
+        severity: critical
+        component: backup
+      annotations:
+        summary: "Velero restore failed"
+        description: "Velero restore {{ $labels.schedule }} has failed."
+

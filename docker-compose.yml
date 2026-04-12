@@ -80,12 +80,12 @@ services:
       - reverse_tender_network
 
   # Gateway Service - RPC Gateway with Cross-Service Infrastructure
-  gateway-service:
+  gateway:
     build:
-      context: ./services/gateway-service
+      context: ./services/gateway
       dockerfile: Dockerfile
       args:
-        SERVICE_NAME: gateway-service
+        SERVICE_NAME: gateway
     container_name: gateway_service
     restart: unless-stopped
     ports:
@@ -119,15 +119,15 @@ services:
       - WORKFLOW_TIMEOUT=300
       # Service Discovery
       - SERVICE_DISCOVERY_ENABLED=true
-      - AUTH_SERVICE_URL=http://auth-service:8001
-      - USER_SERVICE_URL=http://user-service:8002
-      - ANALYTICS_SERVICE_URL=http://analytics-service:8003
-      - PAYMENT_SERVICE_URL=http://payment-service:8004
-      - BIDDING_SERVICE_URL=http://bidding-service:8005
-      - NOTIFICATION_SERVICE_URL=http://notification-service:8006
-      - ORDER_SERVICE_URL=http://order-service:8007
-      - VIN_OCR_SERVICE_URL=http://vin-ocr-service:8008
-      - AUCTION_SERVICE_URL=http://auction-service:8009
+      - AUTH_SERVICE_URL=http://auth:8001
+      - USER_SERVICE_URL=http://users:8002
+      - ANALYTICS_SERVICE_URL=http://analytics:8003
+      - PAYMENT_SERVICE_URL=http://payments:8004
+      - BIDDING_SERVICE_URL=http://bidding:8005
+      - NOTIFICATION_SERVICE_URL=http://notifications:8006
+      - ORDER_SERVICE_URL=http://orders:8007
+      - VIN_OCR_SERVICE_URL=http://vin-ocr:8008
+      - AUCTION_SERVICE_URL=http://auctions:8009
       # Laravel Octane Configuration
       - OCTANE_SERVER=frankenphp
       - OCTANE_WORKERS=4
@@ -146,7 +146,7 @@ services:
       - mysql
       - redis
     volumes:
-      - ./services/gateway-service:/var/www/html
+      - ./services/gateway:/var/www/html
       - ./shared:/var/www/html/shared
     networks:
       - reverse_tender_network
@@ -158,12 +158,12 @@ services:
       start_period: 60s
 
   # Microservices
-  auth-service:
+  auth:
     build:
-      context: ./services/auth-service
+      context: ./services/auth
       dockerfile: Dockerfile
       args:
-        SERVICE_NAME: auth-service
+        SERVICE_NAME: auth
     container_name: auth_service
     restart: unless-stopped
     ports:
@@ -184,7 +184,7 @@ services:
       # RPC Configuration
       - RPC_ENABLED=true
       - RPC_PORT=8001
-      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      - GATEWAY_SERVICE_URL=http://gateway:8000
       # Circuit Breaker Configuration
       - CIRCUIT_BREAKER_ENABLED=true
       # Laravel Octane Configuration
@@ -209,9 +209,9 @@ services:
     depends_on:
       - mysql
       - redis
-      - gateway-service
+      - gateway
     volumes:
-      - ./services/auth-service:/var/www/html
+      - ./services/auth:/var/www/html
       - ./shared:/var/www/html/shared
     networks:
       - reverse_tender_network
@@ -222,12 +222,12 @@ services:
       retries: 3
       start_period: 60s
 
-  user-service:
+  users:
     build:
-      context: ./services/user-service
+      context: ./services/users
       dockerfile: Dockerfile
       args:
-        SERVICE_NAME: user-service
+        SERVICE_NAME: users
     container_name: user_service
     restart: unless-stopped
     ports:
@@ -248,7 +248,7 @@ services:
       # RPC Configuration
       - RPC_ENABLED=true
       - RPC_PORT=8002
-      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      - GATEWAY_SERVICE_URL=http://gateway:8000
       # Circuit Breaker Configuration
       - CIRCUIT_BREAKER_ENABLED=true
       # Third-party Integration
@@ -270,9 +270,9 @@ services:
     depends_on:
       - mysql
       - redis
-      - gateway-service
+      - gateway
     volumes:
-      - ./services/user-service:/var/www/html
+      - ./services/users:/var/www/html
       - ./shared:/var/www/html/shared
     networks:
       - reverse_tender_network
@@ -283,12 +283,12 @@ services:
       retries: 3
       start_period: 60s
 
-  analytics-service:
+  analytics:
     build:
-      context: ./services/analytics-service
+      context: ./services/analytics
       dockerfile: Dockerfile
       args:
-        SERVICE_NAME: analytics-service
+        SERVICE_NAME: analytics
     container_name: analytics_service
     restart: unless-stopped
     ports:
@@ -309,7 +309,7 @@ services:
       # RPC Configuration
       - RPC_ENABLED=true
       - RPC_PORT=8003
-      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      - GATEWAY_SERVICE_URL=http://gateway:8000
       # Circuit Breaker Configuration
       - CIRCUIT_BREAKER_ENABLED=true
       # Third-party Integration
@@ -331,9 +331,9 @@ services:
     depends_on:
       - mysql
       - redis
-      - gateway-service
+      - gateway
     volumes:
-      - ./services/analytics-service:/var/www/html
+      - ./services/analytics:/var/www/html
       - ./shared:/var/www/html/shared
     networks:
       - reverse_tender_network
@@ -344,12 +344,12 @@ services:
       retries: 3
       start_period: 60s
 
-  payment-service:
+  payments:
     build:
-      context: ./services/payment-service
+      context: ./services/payments
       dockerfile: Dockerfile
       args:
-        SERVICE_NAME: payment-service
+        SERVICE_NAME: payments
     container_name: payment_service
     restart: unless-stopped
     ports:
@@ -370,7 +370,7 @@ services:
       # RPC Configuration
       - RPC_ENABLED=true
       - RPC_PORT=8004
-      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      - GATEWAY_SERVICE_URL=http://gateway:8000
       # Circuit Breaker Configuration
       - CIRCUIT_BREAKER_ENABLED=true
       # Third-party Integration
@@ -397,9 +397,9 @@ services:
     depends_on:
       - mysql
       - redis
-      - gateway-service
+      - gateway
     volumes:
-      - ./services/payment-service:/var/www/html
+      - ./services/payments:/var/www/html
       - ./shared:/var/www/html/shared
     networks:
       - reverse_tender_network
@@ -410,12 +410,12 @@ services:
       retries: 5
       start_period: 90s
 
-  bidding-service:
+  bidding:
     build:
-      context: ./services/bidding-service
+      context: ./services/bidding
       dockerfile: Dockerfile
       args:
-        SERVICE_NAME: bidding-service
+        SERVICE_NAME: bidding
     container_name: bidding_service
     restart: unless-stopped
     ports:
@@ -438,7 +438,7 @@ services:
       # RPC Configuration
       - RPC_ENABLED=true
       - RPC_PORT=8005
-      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      - GATEWAY_SERVICE_URL=http://gateway:8000
       # Circuit Breaker Configuration
       - CIRCUIT_BREAKER_ENABLED=true
       # Third-party Integration
@@ -460,9 +460,9 @@ services:
     depends_on:
       - mysql
       - redis
-      - gateway-service
+      - gateway
     volumes:
-      - ./services/bidding-service:/var/www/html
+      - ./services/bidding:/var/www/html
       - ./shared:/var/www/html/shared
     networks:
       - reverse_tender_network
@@ -473,12 +473,12 @@ services:
       retries: 3
       start_period: 60s
 
-  notification-service:
+  notifications:
     build:
-      context: ./services/notification-service
+      context: ./services/notifications
       dockerfile: Dockerfile
       args:
-        SERVICE_NAME: notification-service
+        SERVICE_NAME: notifications
     container_name: notification_service
     restart: unless-stopped
     ports:
@@ -499,7 +499,7 @@ services:
       # RPC Configuration
       - RPC_ENABLED=true
       - RPC_PORT=8006
-      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      - GATEWAY_SERVICE_URL=http://gateway:8000
       # Circuit Breaker Configuration
       - CIRCUIT_BREAKER_ENABLED=true
       # Third-party Integration
@@ -521,9 +521,9 @@ services:
     depends_on:
       - mysql
       - redis
-      - gateway-service
+      - gateway
     volumes:
-      - ./services/notification-service:/var/www/html
+      - ./services/notifications:/var/www/html
       - ./shared:/var/www/html/shared
     networks:
       - reverse_tender_network
@@ -534,12 +534,12 @@ services:
       retries: 3
       start_period: 60s
 
-  order-service:
+  orders:
     build:
-      context: ./services/order-service
+      context: ./services/orders
       dockerfile: Dockerfile
       args:
-        SERVICE_NAME: order-service
+        SERVICE_NAME: orders
     container_name: order_service
     restart: unless-stopped
     ports:
@@ -560,7 +560,7 @@ services:
       # RPC Configuration
       - RPC_ENABLED=true
       - RPC_PORT=8007
-      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      - GATEWAY_SERVICE_URL=http://gateway:8000
       # Circuit Breaker Configuration
       - CIRCUIT_BREAKER_ENABLED=true
       # Third-party Integration
@@ -582,9 +582,9 @@ services:
     depends_on:
       - mysql
       - redis
-      - gateway-service
+      - gateway
     volumes:
-      - ./services/order-service:/var/www/html
+      - ./services/orders:/var/www/html
       - ./shared:/var/www/html/shared
     networks:
       - reverse_tender_network
@@ -595,12 +595,12 @@ services:
       retries: 3
       start_period: 60s
 
-  vin-ocr-service:
+  vin-ocr:
     build:
-      context: ./services/vin-ocr-service
+      context: ./services/vin-ocr
       dockerfile: Dockerfile
       args:
-        SERVICE_NAME: vin-ocr-service
+        SERVICE_NAME: vin-ocr
     container_name: vin_ocr_service
     restart: unless-stopped
     ports:
@@ -621,7 +621,7 @@ services:
       # RPC Configuration
       - RPC_ENABLED=true
       - RPC_PORT=8008
-      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      - GATEWAY_SERVICE_URL=http://gateway:8000
       # Circuit Breaker Configuration
       - CIRCUIT_BREAKER_ENABLED=true
       # Third-party Integration
@@ -643,9 +643,9 @@ services:
     depends_on:
       - mysql
       - redis
-      - gateway-service
+      - gateway
     volumes:
-      - ./services/vin-ocr-service:/var/www/html
+      - ./services/vin-ocr:/var/www/html
       - ./shared:/var/www/html/shared
     networks:
       - reverse_tender_network
@@ -656,12 +656,12 @@ services:
       retries: 3
       start_period: 60s
 
-  auction-service:
+  auctions:
     build:
-      context: ./services/auction-service
+      context: ./services/auctions
       dockerfile: Dockerfile
       args:
-        SERVICE_NAME: auction-service
+        SERVICE_NAME: auctions
     container_name: auction_service
     restart: unless-stopped
     ports:
@@ -682,7 +682,7 @@ services:
       # RPC Configuration
       - RPC_ENABLED=true
       - RPC_PORT=8009
-      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      - GATEWAY_SERVICE_URL=http://gateway:8000
       # Circuit Breaker Configuration
       - CIRCUIT_BREAKER_ENABLED=true
       # Third-party Integration
@@ -704,9 +704,9 @@ services:
     depends_on:
       - mysql
       - redis
-      - gateway-service
+      - gateway
     volumes:
-      - ./services/auction-service:/var/www/html
+      - ./services/auctions:/var/www/html
       - ./shared:/var/www/html/shared
     networks:
       - reverse_tender_network
@@ -765,7 +765,7 @@ services:
       # RPC Handler Configuration
       - RPC_HANDLER_ENABLED=true
       - SERVICE_DISCOVERY_ENABLED=true
-      - SERVICE_REGISTRY_URL=http://gateway-service:8000/registry
+      - SERVICE_REGISTRY_URL=http://gateway:8000/registry
       - HEALTH_CHECK_INTERVAL=30
       - SERVICE_DISCOVERY_TIMEOUT=5
       # Caching Configuration
@@ -847,16 +847,16 @@ services:
       - ./docker/nginx/conf.d:/etc/nginx/conf.d
       - ./docker/ssl:/etc/nginx/ssl
     depends_on:
-      - gateway-service
-      - auth-service
-      - user-service
-      - analytics-service
-      - payment-service
-      - bidding-service
-      - notification-service
-      - order-service
-      - vin-ocr-service
-      - auction-service
+      - gateway
+      - auth
+      - users
+      - analytics
+      - payments
+      - bidding
+      - notifications
+      - orders
+      - vin-ocr
+      - auctions
       - shared-service
     networks:
       - reverse_tender_network
@@ -864,10 +864,10 @@ services:
   # Queue Workers
   horizon:
     build:
-      context: ./services/auth-service
+      context: ./services/auth
       dockerfile: Dockerfile
       args:
-        SERVICE_NAME: auth-service
+        SERVICE_NAME: auth
     container_name: reverse_tender_horizon
     restart: unless-stopped
     command: php artisan horizon
@@ -877,7 +877,7 @@ services:
       - REDIS_PORT=6379
       # RPC Configuration
       - RPC_ENABLED=true
-      - GATEWAY_SERVICE_URL=http://gateway-service:8000
+      - GATEWAY_SERVICE_URL=http://gateway:8000
       # Circuit Breaker Configuration
       - CIRCUIT_BREAKER_ENABLED=true
       # PHP Opcache Configuration
@@ -887,9 +887,9 @@ services:
       - PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
     depends_on:
       - redis
-      - gateway-service
+      - gateway
     volumes:
-      - ./services/auth-service:/var/www/html
+      - ./services/auth:/var/www/html
       - ./shared:/var/www/html/shared
     networks:
       - reverse_tender_network

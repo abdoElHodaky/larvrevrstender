@@ -1,0 +1,567 @@
+# Deployments for Reverse Tender Platform with Database Failover Support
+# Updated for comprehensive database failover architecture v3.0
+# Supports: Neon PostgreSQL, Cloud-Native PostgreSQL, MongoDB Atlas
+
+---
+# Database Failover Init Container
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-failover-init
+  labels:
+    app.kubernetes.io/name: database-failover-init
+    app.kubernetes.io/component: init-container
+data:
+  init-database-failover.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "🔄 Initializing Database Failover System..."
+    
+    # Test Primary Database (Neon PostgreSQL)
+    if [ "$DB_FAILOVER_ENABLED" = "true" ]; then
+      echo "🧪 Testing Primary Database (Neon PostgreSQL)..."
+      if timeout 10 pg_isready -h "$NEON_DB_HOST" -p 5432 -U "$NEON_DB_USERNAME"; then
+        echo "✅ Primary database (Neon) is available"
+        echo "neon" > /shared/active-database
+        echo "$NEON_DATABASE_URL" > /shared/database-url
+        exit 0
+      else
+        echo "❌ Primary database (Neon) is unavailable"
+      fi
+      
+      # Test Secondary Database (CNPG PostgreSQL)
+      echo "🧪 Testing Secondary Database (CNPG PostgreSQL)..."
+      if timeout 10 pg_isready -h "$CNPG_DB_HOST" -p 5432 -U "$CNPG_DB_USERNAME"; then
+        echo "✅ Secondary database (CNPG) is available"
+        echo "cnpg" > /shared/active-database
+        echo "postgresql://$CNPG_DB_USERNAME:$CNPG_DB_PASSWORD@$CNPG_DB_HOST:5432/$CNPG_DB_DATABASE" > /shared/database-url
+        exit 0
+      else
+        echo "❌ Secondary database (CNPG) is unavailable"
+      fi
+      
+      # Test Tertiary Database (MongoDB Atlas)
+      echo "🧪 Testing Tertiary Database (MongoDB Atlas)..."
+      if timeout 10 mongosh --eval "db.adminCommand('ping')" "$MONGODB_ATLAS_CONNECTION_STRING" --quiet; then
+        echo "✅ Tertiary database (MongoDB Atlas) is available"
+        echo "mongodb" > /shared/active-database
+        echo "$MONGODB_ATLAS_CONNECTION_STRING" > /shared/database-url
+        exit 0
+      else
+        echo "❌ Tertiary database (MongoDB Atlas) is unavailable"
+      fi
+      
+      echo "💥 All databases are unavailable! Using fallback configuration..."
+      echo "fallback" > /shared/active-database
+      echo "sqlite:///tmp/fallback.db" > /shared/database-url
+    else
+      echo "⚠️ Database failover is disabled, using primary database"
+      echo "neon" > /shared/active-database
+      echo "$NEON_DATABASE_URL" > /shared/database-url
+    fi
+
+---
+# API Gateway Deployment with Database Failover
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  labels:
+    app: api-gateway
+    tier: gateway
+    app.kubernetes.io/name: api-gateway
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: reverse-tender-platform
+    database.kubernetes.io/failover-enabled: "true"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        tier: gateway
+      annotations:
+        database.kubernetes.io/failover-enabled: "true"
+        database.kubernetes.io/providers: "neon,cnpg,mongodb"
+    spec:
+      serviceAccountName: reverse-tender-sa
+      
+      # Init Container for Database Failover
+      initContainers:
+      - name: database-failover-init
+        image: postgres:16-alpine
+        command: ["/bin/sh", "/scripts/init-database-failover.sh"]
+        env:
+        # Database Failover Configuration
+        - name: DB_FAILOVER_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: database-failover-config
+              key: DB_FAILOVER_ENABLED
+        
+        # Neon PostgreSQL Configuration
+        - name: NEON_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DATABASE_URL
+        - name: NEON_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DB_HOST
+        - name: NEON_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DB_USERNAME
+        
+        # CNPG PostgreSQL Configuration
+        - name: CNPG_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_HOST
+        - name: CNPG_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_USERNAME
+        - name: CNPG_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_PASSWORD
+        - name: CNPG_DB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_DATABASE
+        
+        # MongoDB Atlas Configuration
+        - name: MONGODB_ATLAS_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: MONGODB_ATLAS_CONNECTION_STRING
+        
+        volumeMounts:
+        - name: database-failover-scripts
+          mountPath: /scripts
+        - name: shared-data
+          mountPath: /shared
+      
+      containers:
+      - name: api-gateway
+        image: reversetender/api-gateway:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        
+        env:
+        # Application Configuration
+        - name: APP_ENV
+          value: "production"
+        - name: APP_DEBUG
+          value: "false"
+        
+        # Database Failover Configuration
+        - name: DB_FAILOVER_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: database-failover-config
+              key: DB_FAILOVER_ENABLED
+        - name: DB_FAILOVER_STRATEGY
+          valueFrom:
+            configMapKeyRef:
+              name: database-failover-config
+              key: DB_FAILOVER_STRATEGY
+        - name: DB_FAILOVER_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: database-failover-config
+              key: DB_FAILOVER_TIMEOUT
+        
+        # Primary Database: Neon PostgreSQL
+        - name: NEON_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DATABASE_URL
+        - name: NEON_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DB_HOST
+        - name: NEON_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DB_USERNAME
+        - name: NEON_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DB_PASSWORD
+        - name: NEON_DB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DB_DATABASE
+        
+        # Secondary Database: CNPG PostgreSQL
+        - name: CNPG_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_HOST
+        - name: CNPG_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_USERNAME
+        - name: CNPG_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_PASSWORD
+        - name: CNPG_DB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_DATABASE
+        
+        # Tertiary Database: MongoDB Atlas
+        - name: MONGODB_ATLAS_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: MONGODB_ATLAS_CONNECTION_STRING
+        - name: MONGODB_ATLAS_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: MONGODB_ATLAS_USERNAME
+        - name: MONGODB_ATLAS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: MONGODB_ATLAS_PASSWORD
+        - name: MONGODB_ATLAS_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: MONGODB_ATLAS_DATABASE
+        
+        # Redis Configuration
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: UPSTASH_REDIS_URL
+        
+        # RPC Configuration
+        - name: RPC_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: common-config
+              key: SAJYA_ENABLED
+        
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        
+        # Health Checks with Database Failover Support
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        # Database Health Check
+        startupProbe:
+          httpGet:
+            path: /health/database
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+        
+        volumeMounts:
+        - name: shared-data
+          mountPath: /shared
+          readOnly: true
+      
+      volumes:
+      - name: database-failover-scripts
+        configMap:
+          name: database-failover-init
+          defaultMode: 0755
+      - name: shared-data
+        emptyDir: {}
+
+---
+# Auth Service Deployment with Database Failover
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  labels:
+    app: auth-service
+    tier: backend
+    app.kubernetes.io/name: auth-service
+    app.kubernetes.io/component: authentication
+    database.kubernetes.io/failover-enabled: "true"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+        tier: backend
+      annotations:
+        database.kubernetes.io/failover-enabled: "true"
+        database.kubernetes.io/providers: "neon,cnpg,mongodb"
+    spec:
+      serviceAccountName: reverse-tender-sa
+      
+      # Init Container for Database Failover
+      initContainers:
+      - name: database-failover-init
+        image: postgres:16-alpine
+        command: ["/bin/sh", "/scripts/init-database-failover.sh"]
+        env:
+        # Database Failover Configuration
+        - name: DB_FAILOVER_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: database-failover-config
+              key: DB_FAILOVER_ENABLED
+        
+        # Database Connection Details (same as main container)
+        - name: NEON_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DATABASE_URL
+        - name: NEON_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DB_HOST
+        - name: NEON_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DB_USERNAME
+        - name: CNPG_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_HOST
+        - name: CNPG_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_USERNAME
+        - name: CNPG_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_PASSWORD
+        - name: CNPG_DB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_DATABASE
+        - name: MONGODB_ATLAS_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: MONGODB_ATLAS_CONNECTION_STRING
+        
+        volumeMounts:
+        - name: database-failover-scripts
+          mountPath: /scripts
+        - name: shared-data
+          mountPath: /shared
+      
+      containers:
+      - name: auth-service
+        image: reversetender/auth-service:latest
+        ports:
+        - containerPort: 8001
+          name: http
+        - containerPort: 8081
+          name: rpc
+        
+        env:
+        # Application Configuration
+        - name: APP_ENV
+          value: "production"
+        - name: APP_DEBUG
+          value: "false"
+        
+        # Database Failover Configuration (same as API Gateway)
+        - name: DB_FAILOVER_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: database-failover-config
+              key: DB_FAILOVER_ENABLED
+        - name: DB_FAILOVER_STRATEGY
+          valueFrom:
+            configMapKeyRef:
+              name: database-failover-config
+              key: DB_FAILOVER_STRATEGY
+        
+        # All Database Configurations (same pattern as API Gateway)
+        - name: NEON_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: NEON_DATABASE_URL
+        - name: CNPG_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: CNPG_DB_HOST
+        - name: MONGODB_ATLAS_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: database-failover-secrets
+              key: MONGODB_ATLAS_CONNECTION_STRING
+        
+        # RPC Configuration
+        - name: RPC_ENABLED
+          value: "true"
+        - name: RPC_PORT
+          value: "8081"
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        
+        # Health Checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        
+        startupProbe:
+          httpGet:
+            path: /health/database
+            port: 8001
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 30
+        
+        volumeMounts:
+        - name: shared-data
+          mountPath: /shared
+          readOnly: true
+      
+      volumes:
+      - name: database-failover-scripts
+        configMap:
+          name: database-failover-init
+          defaultMode: 0755
+      - name: shared-data
+        emptyDir: {}
+
+---
+# Database Failover Sidecar Container Template
+# This can be used as a sidecar for monitoring database health
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-failover-sidecar
+  labels:
+    app.kubernetes.io/name: database-failover-sidecar
+    app.kubernetes.io/component: monitoring-sidecar
+data:
+  monitor-databases.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "🔄 Starting Database Failover Monitor..."
+    
+    while true; do
+      # Check current active database
+      ACTIVE_DB=$(cat /shared/active-database 2>/dev/null || echo "unknown")
+      echo "📊 Current active database: $ACTIVE_DB"
+      
+      # Test all databases and update active database if needed
+      if [ "$DB_FAILOVER_ENABLED" = "true" ]; then
+        # Test Primary (Neon)
+        if timeout 5 pg_isready -h "$NEON_DB_HOST" -p 5432 -U "$NEON_DB_USERNAME" >/dev/null 2>&1; then
+          if [ "$ACTIVE_DB" != "neon" ]; then
+            echo "✅ Switching to primary database (Neon)"
+            echo "neon" > /shared/active-database
+            echo "$NEON_DATABASE_URL" > /shared/database-url
+            # Send webhook notification
+            curl -X POST "$DB_FAILOVER_WEBHOOK_URL" -H "Content-Type: application/json" \
+              -d '{"event":"database_failover","from":"'$ACTIVE_DB'","to":"neon","timestamp":"'$(date -Iseconds)'"}' || true
+          fi
+        elif timeout 5 pg_isready -h "$CNPG_DB_HOST" -p 5432 -U "$CNPG_DB_USERNAME" >/dev/null 2>&1; then
+          if [ "$ACTIVE_DB" != "cnpg" ]; then
+            echo "⚠️ Switching to secondary database (CNPG)"
+            echo "cnpg" > /shared/active-database
+            echo "postgresql://$CNPG_DB_USERNAME:$CNPG_DB_PASSWORD@$CNPG_DB_HOST:5432/$CNPG_DB_DATABASE" > /shared/database-url
+            # Send webhook notification
+            curl -X POST "$DB_FAILOVER_WEBHOOK_URL" -H "Content-Type: application/json" \
+              -d '{"event":"database_failover","from":"'$ACTIVE_DB'","to":"cnpg","timestamp":"'$(date -Iseconds)'"}' || true
+          fi
+        elif timeout 5 mongosh --eval "db.adminCommand('ping')" "$MONGODB_ATLAS_CONNECTION_STRING" --quiet >/dev/null 2>&1; then
+          if [ "$ACTIVE_DB" != "mongodb" ]; then
+            echo "🚨 Switching to tertiary database (MongoDB)"
+            echo "mongodb" > /shared/active-database
+            echo "$MONGODB_ATLAS_CONNECTION_STRING" > /shared/database-url
+            # Send webhook notification
+            curl -X POST "$DB_FAILOVER_WEBHOOK_URL" -H "Content-Type: application/json" \
+              -d '{"event":"database_failover","from":"'$ACTIVE_DB'","to":"mongodb","timestamp":"'$(date -Iseconds)'"}' || true
+          fi
+        else
+          echo "💥 All databases are unavailable!"
+        fi
+      fi
+      
+      # Wait before next check
+      sleep ${DB_FAILOVER_HEALTH_CHECK_INTERVAL:-30}
+    done

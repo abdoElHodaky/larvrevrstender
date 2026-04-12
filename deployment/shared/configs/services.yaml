@@ -226,7 +226,7 @@ services:
       MAIL_HOST: "${MAIL_HOST}"
       MAIL_PORT: "587"
       MAIL_ENCRYPTION: "tls"
-      SMS_PROVIDER: "twilio"
+      SMS_PROVIDER: "unifonic"
       PUSH_PROVIDER: "fcm"
     
     database:

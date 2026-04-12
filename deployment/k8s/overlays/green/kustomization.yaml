@@ -1,0 +1,116 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: green-environment
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+namespace: reverse-tender
+
+resources:
+- ../../base
+
+commonLabels:
+  blue-green.deployment/environment: green
+  blue-green.deployment/color: green
+  app.kubernetes.io/instance: reverse-tender-green
+
+commonAnnotations:
+  blue-green.deployment/timestamp: "2024-02-20T13:30:00Z"
+  blue-green.deployment/strategy: "blue-green"
+
+configMapGenerator:
+- name: environment-config
+  literals:
+  - ENVIRONMENT_COLOR=green
+  - ENVIRONMENT_STATUS=standby
+  - TRAFFIC_WEIGHT=0
+  - DEPLOYMENT_TIMESTAMP=2024-02-20T13:30:00Z
+
+patches:
+- target:
+    kind: Deployment
+    labelSelector: "tier=gateway"
+  patch: |-
+    - op: add
+      path: /spec/template/metadata/labels/blue-green.deployment~1environment
+      value: green
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ENVIRONMENT_COLOR
+        valueFrom:
+          configMapKeyRef:
+            name: environment-config
+            key: ENVIRONMENT_COLOR
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ENVIRONMENT_STATUS
+        valueFrom:
+          configMapKeyRef:
+            name: environment-config
+            key: ENVIRONMENT_STATUS
+
+- target:
+    kind: Service
+    labelSelector: "tier=gateway"
+  patch: |-
+    - op: replace
+      path: /metadata/name
+      value: api-gateway-green
+    - op: add
+      path: /metadata/labels/blue-green.deployment~1environment
+      value: green
+
+- target:
+    kind: Ingress
+  patch: |-
+    - op: replace
+      path: /spec/rules/0/http/paths/0/backend/service/name
+      value: api-gateway-green
+
+replicas:
+- name: api-gateway
+  count: 3
+- name: auth-service
+  count: 2
+- name: user-service
+  count: 2
+- name: auction-service
+  count: 2
+- name: bidding-service
+  count: 2
+- name: payment-service
+  count: 3
+- name: order-service
+  count: 2
+- name: notification-service
+  count: 2
+- name: analytics-service
+  count: 2
+- name: vin-ocr-service
+  count: 2
+
+images:
+- name: reversetender/api-gateway
+  newTag: green-latest
+- name: reversetender/auth-service
+  newTag: green-latest
+- name: reversetender/user-service
+  newTag: green-latest
+- name: reversetender/auction-service
+  newTag: green-latest
+- name: reversetender/bidding-service
+  newTag: green-latest
+- name: reversetender/payment-service
+  newTag: green-latest
+- name: reversetender/order-service
+  newTag: green-latest
+- name: reversetender/notification-service
+  newTag: green-latest
+- name: reversetender/analytics-service
+  newTag: green-latest
+- name: reversetender/vin-ocr-service
+  newTag: green-latest

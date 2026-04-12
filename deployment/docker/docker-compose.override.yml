@@ -32,20 +32,20 @@ services:
       - "8000:8000"
 
   # Auth Service - Development configuration
-  auth-service:
+  auth:
     environment:
       <<: *octane-dev-env
       APP_ENV: local
       APP_DEBUG: true
       LOG_LEVEL: debug
     volumes:
-      - ../../services/auth-service:/var/www:cached
-      - ./logs/auth-service:/var/www/storage/logs
+      - ../../services/auth:/var/www:cached
+      - ./logs/auth:/var/www/storage/logs
     ports:
       - "8001:8001"
 
   # Bidding Service - Development configuration
-  bidding-service:
+  bidding:
     environment:
       <<: *octane-dev-env
       APP_ENV: local
@@ -53,58 +53,58 @@ services:
       LOG_LEVEL: debug
       REVERB_SCHEME: http
     volumes:
-      - ../../services/bidding-service:/var/www:cached
-      - ./logs/bidding-service:/var/www/storage/logs
+      - ../../services/bidding:/var/www:cached
+      - ./logs/bidding:/var/www/storage/logs
     ports:
       - "8005:8005"
       - "8080:8080"
 
   # User Service - Development configuration
-  user-service:
+  users:
     environment:
       <<: *octane-dev-env
       APP_ENV: local
       APP_DEBUG: true
       LOG_LEVEL: debug
     volumes:
-      - ../../services/user-service:/var/www:cached
-      - ./logs/user-service:/var/www/storage/logs
+      - ../../services/users:/var/www:cached
+      - ./logs/users:/var/www/storage/logs
     ports:
       - "8002:8002"
 
   # Order Service - Development configuration
-  order-service:
+  orders:
     environment:
       <<: *octane-dev-env
       APP_ENV: local
       APP_DEBUG: true
       LOG_LEVEL: debug
     volumes:
-      - ../../services/order-service:/var/www:cached
-      - ./logs/order-service:/var/www/storage/logs
+      - ../../services/orders:/var/www:cached
+      - ./logs/orders:/var/www/storage/logs
     ports:
       - "8007:8007"
 
   # Notification Service - Development configuration
-  notification-service:
+  notifications:
     environment:
       <<: *octane-dev-env
       APP_ENV: local
       APP_DEBUG: true
       LOG_LEVEL: debug
     volumes:
-      - ../../services/notification-service:/var/www:cached
-      - ./logs/notification-service:/var/www/storage/logs
+      - ../../services/notifications:/var/www:cached
+      - ./logs/notifications:/var/www/storage/logs
     ports:
       - "8006:8006"
 
   # Payment Service - Development configuration
-  payment-service:
+  payments:
     build:
       context: ../../
       dockerfile: deployment/docker/Dockerfile.payment
       args:
-        SERVICE_NAME: payment-service
+        SERVICE_NAME: payments
     environment:
       <<: *octane-dev-env
       APP_ENV: local
@@ -126,48 +126,48 @@ services:
       PAYMENT_METRICS_ENABLED: true
       PAYMENT_AUDIT_ENABLED: true
     volumes:
-      - ../../services/payment-service:/var/www:cached
-      - ./logs/payment-service:/var/www/storage/logs
-      - ./config/payment-service:/var/www/config:ro
+      - ../../services/payments:/var/www:cached
+      - ./logs/payments:/var/www/storage/logs
+      - ./config/payments:/var/www/config:ro
     ports:
       - "8004:8004"
 
   # Analytics Service - Development configuration
-  analytics-service:
+  analytics:
     environment:
       <<: *octane-dev-env
       APP_ENV: local
       APP_DEBUG: true
       LOG_LEVEL: debug
     volumes:
-      - ../../services/analytics-service:/var/www:cached
-      - ./logs/analytics-service:/var/www/storage/logs
+      - ../../services/analytics:/var/www:cached
+      - ./logs/analytics:/var/www/storage/logs
     ports:
       - "8003:8003"
 
   # VIN OCR Service - Development configuration
-  vin-ocr-service:
+  vin-ocr:
     environment:
       <<: *octane-dev-env
       APP_ENV: local
       APP_DEBUG: true
       LOG_LEVEL: debug
     volumes:
-      - ../../services/vin-ocr-service:/var/www:cached
-      - ./logs/vin-ocr-service:/var/www/storage/logs
+      - ../../services/vin-ocr:/var/www:cached
+      - ./logs/vin-ocr:/var/www/storage/logs
     ports:
       - "8008:8008"
 
   # Auction Service - Development configuration
-  auction-service:
+  auctions:
     environment:
       <<: *octane-dev-env
       APP_ENV: local
       APP_DEBUG: true
       LOG_LEVEL: debug
     volumes:
-      - ../../services/auction-service:/var/www:cached
-      - ./logs/auction-service:/var/www/storage/logs
+      - ../../services/auctions:/var/www:cached
+      - ./logs/auctions:/var/www/storage/logs
     ports:
       - "8009:8009"
 

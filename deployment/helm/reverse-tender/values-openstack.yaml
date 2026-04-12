@@ -1,0 +1,383 @@
+# OpenStack-specific Helm values for Reverse Tender Platform
+# Optimized for OpenStack with Octavia Load Balancer
+
+# Global OpenStack-specific settings
+global:
+  imageRegistry: "docker.io/reversetender"
+  imagePullPolicy: IfNotPresent
+  storageClass: "cinder-csi"
+  cloudProvider: "openstack"
+  region: "RegionOne"
+
+# Blue-Green deployment configuration for OpenStack
+blueGreen:
+  enabled: true
+  activeEnvironment: "blue"  # blue or green
+  trafficSwitching:
+    strategy: "openstack-octavia"  # OpenStack-specific strategy
+    canaryPercentage: 10
+    stabilizationTime: 300  # 5 minutes
+  healthChecks:
+    enabled: true
+    path: "/octane/health"
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# OpenStack Octavia Load Balancer with NGINX Ingress Controller
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    # OpenStack Octavia Load Balancer specific annotations
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    
+    # OpenStack-specific load balancer annotations
+    service.beta.kubernetes.io/openstack-internal-load-balancer: "false"
+    loadbalancer.openstack.org/load-balancer-id: "${OCTAVIA_LB_ID}"
+    loadbalancer.openstack.org/floating-network-id: "${FLOATING_NETWORK_ID}"
+    loadbalancer.openstack.org/class: "octavia"
+    loadbalancer.openstack.org/proxy-protocol: "true"
+    loadbalancer.openstack.org/timeout-client-data: "50000"
+    loadbalancer.openstack.org/timeout-member-connect: "5000"
+    loadbalancer.openstack.org/timeout-member-data: "50000"
+    loadbalancer.openstack.org/timeout-tcp-inspect: "0"
+    loadbalancer.openstack.org/connection-limit: "2000"
+    loadbalancer.openstack.org/keep-floatingip: "true"
+    loadbalancer.openstack.org/health-check-delay: "10"
+    loadbalancer.openstack.org/health-check-timeout: "5"
+    loadbalancer.openstack.org/health-check-max-retries: "3"
+    loadbalancer.openstack.org/health-check-http-method: "GET"
+    loadbalancer.openstack.org/health-check-http-url-path: "/octane/health"
+    loadbalancer.openstack.org/health-check-http-expected-codes: "200"
+    
+    # Rate limiting and CORS
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    
+    # Blue-Green traffic management
+    nginx.ingress.kubernetes.io/canary: "false"
+    nginx.ingress.kubernetes.io/canary-weight: "0"
+    
+  hosts:
+    - host: api.reversetender.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: gateway-service
+            port: 80
+    - host: app.reversetender.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: gateway-service
+            port: 80
+  tls:
+    - secretName: reversetender-tls
+      hosts:
+        - api.reversetender.com
+        - app.reversetender.com
+
+# Blue-Green specific ingress for environment isolation
+blueGreenIngress:
+  enabled: true
+  blue:
+    host: blue.reversetender.com
+    annotations:
+      nginx.ingress.kubernetes.io/canary: "false"
+      loadbalancer.openstack.org/floating-network-id: "${FLOATING_NETWORK_ID}"
+  green:
+    host: green.reversetender.com
+    annotations:
+      nginx.ingress.kubernetes.io/canary: "true"
+      nginx.ingress.kubernetes.io/canary-weight: "0"
+      loadbalancer.openstack.org/floating-network-id: "${FLOATING_NETWORK_ID}"
+
+# OpenStack Octavia Load Balancer service configuration
+service:
+  type: LoadBalancer  # Use LoadBalancer for OpenStack Octavia
+  annotations:
+    # OpenStack Octavia Load Balancer annotations
+    service.beta.kubernetes.io/openstack-internal-load-balancer: "false"
+    loadbalancer.openstack.org/load-balancer-id: "${OCTAVIA_LB_ID}"
+    loadbalancer.openstack.org/floating-network-id: "${FLOATING_NETWORK_ID}"
+    loadbalancer.openstack.org/class: "octavia"
+    loadbalancer.openstack.org/proxy-protocol: "true"
+    loadbalancer.openstack.org/timeout-client-data: "50000"
+    loadbalancer.openstack.org/timeout-member-connect: "5000"
+    loadbalancer.openstack.org/timeout-member-data: "50000"
+    loadbalancer.openstack.org/timeout-tcp-inspect: "0"
+    loadbalancer.openstack.org/connection-limit: "2000"
+    loadbalancer.openstack.org/keep-floatingip: "true"
+    loadbalancer.openstack.org/health-check-delay: "10"
+    loadbalancer.openstack.org/health-check-timeout: "5"
+    loadbalancer.openstack.org/health-check-max-retries: "3"
+    loadbalancer.openstack.org/health-check-http-method: "GET"
+    loadbalancer.openstack.org/health-check-http-url-path: "/octane/health"
+    loadbalancer.openstack.org/health-check-http-expected-codes: "200"
+
+# OpenStack-specific resource configurations
+resources:
+  # Gateway service (optimized for OpenStack)
+  gateway-service:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+  
+  # Saga pattern services (balanced for OpenStack)
+  auction-service:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  payment-service:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  order-service:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  bidding-service:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# OpenStack-specific autoscaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 15
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  # OpenStack-optimized scaling behavior
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+
+# OpenStack Database configuration (Trove or external)
+postgresql:
+  enabled: false  # Use OpenStack Trove or external database
+  external:
+    enabled: true
+    host: "postgres.openstack.local"
+    port: 5432
+    database: "reversetender"
+    sslMode: "require"
+
+# OpenStack Redis configuration (external)
+redis:
+  enabled: false  # Use external Redis
+  external:
+    enabled: true
+    host: "redis.openstack.local"
+    port: 6379
+    ssl: false
+
+# OpenStack-specific ConfigMap settings
+configMap:
+  data:
+    # OpenStack-specific environment variables
+    CLOUD_PROVIDER: "openstack"
+    OS_REGION_NAME: "RegionOne"
+    OS_PROJECT_ID: "${OS_PROJECT_ID}"
+    OS_PROJECT_NAME: "${OS_PROJECT_NAME}"
+    OS_USER_DOMAIN_NAME: "${OS_USER_DOMAIN_NAME}"
+    OS_PROJECT_DOMAIN_NAME: "${OS_PROJECT_DOMAIN_NAME}"
+    
+    # Octavia Load Balancer specific
+    INGRESS_CONTROLLER: "nginx"
+    LOAD_BALANCER_TYPE: "openstack-octavia"
+    
+    # Blue-Green specific
+    BLUE_GREEN_ENABLED: "true"
+    BLUE_GREEN_STRATEGY: "openstack-octavia"
+    HEALTH_CHECK_PATH: "/octane/health"
+    
+    # Performance optimizations for OpenStack
+    OCTANE_WORKERS: "4"
+    OCTANE_TASK_WORKERS: "6"
+    OCTANE_MAX_REQUESTS: "500"
+    OCTANE_MEMORY_LIMIT: "512M"
+    
+    # OpenStack-specific caching
+    CACHE_DRIVER: "redis"
+    SESSION_DRIVER: "redis"
+    QUEUE_CONNECTION: "redis"
+
+# OpenStack-specific secrets
+secrets:
+  data:
+    # OpenStack credentials
+    OS_USERNAME: "${OS_USERNAME}"
+    OS_PASSWORD: "${OS_PASSWORD}"
+    OS_AUTH_URL: "${OS_AUTH_URL}"
+    OS_TENANT_ID: "${OS_TENANT_ID}"
+    OS_TENANT_NAME: "${OS_TENANT_NAME}"
+    
+    # Database credentials
+    DB_PASSWORD: "${DB_PASSWORD}"
+    REDIS_PASSWORD: "${REDIS_PASSWORD}"
+
+# Pod Disruption Budget for OpenStack
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  maxUnavailable: 1
+
+# OpenStack-specific node affinity
+nodeSelector:
+  kubernetes.io/os: linux
+
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: openstack.org/az
+              operator: Exists
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - reverse-tender
+          topologyKey: kubernetes.io/hostname
+
+# OpenStack-specific tolerations
+tolerations:
+  - key: "node.openstack.org/unschedulable"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+# OpenStack monitoring integration
+monitoring:
+  enabled: true
+  openstackMonitoring:
+    enabled: true
+    ceilometer:
+      enabled: true
+    gnocchi:
+      enabled: true
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+  grafana:
+    enabled: true
+
+# OpenStack-specific security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_BIND_SERVICE
+
+# OpenStack-specific network policies
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8000
+
+# OpenStack Swift Object Storage configuration
+storage:
+  swift:
+    enabled: true
+    authUrl: "${OS_AUTH_URL}"
+    username: "${OS_USERNAME}"
+    password: "${OS_PASSWORD}"
+    tenantName: "${OS_TENANT_NAME}"
+    container: "reversetender-assets"
+    region: "RegionOne"
+
+# OpenStack Cinder Block Storage configuration
+persistence:
+  enabled: true
+  storageClass: "cinder-csi"
+  accessMode: ReadWriteOnce
+  size: 20Gi
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "cinder-csi"
+
+# OpenStack Heat integration
+heat:
+  enabled: true
+  stackName: "reversetender-stack"
+  templatePath: "/deployment/openstack/heat/main.yaml"
+  parameters:
+    flavor: "m1.medium"
+    image: "ubuntu-20.04"
+    key_name: "reversetender-key"
+    network: "private-network"
+    security_group: "reversetender-sg"
+
+# OpenStack Magnum integration (if using Magnum for Kubernetes)
+magnum:
+  enabled: false
+  clusterTemplate: "kubernetes-cluster-template"
+  nodeCount: 3
+  masterCount: 1
+  flavor: "m1.medium"
+  masterFlavor: "m1.large"

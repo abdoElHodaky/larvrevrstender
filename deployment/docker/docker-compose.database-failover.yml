@@ -1,0 +1,389 @@
+version: '3.8'
+
+# Database Failover Docker Compose Configuration for Reverse Tender Platform
+# Updated for comprehensive database failover architecture v3.0
+# Supports: Neon PostgreSQL, Cloud-Native PostgreSQL, MongoDB Atlas
+
+services:
+  # =============================================================================
+  # API GATEWAY WITH DATABASE FAILOVER
+  # =============================================================================
+  api-gateway:
+    image: reversetender/api-gateway:${APP_VERSION:-latest}
+    container_name: rt_api_gateway_failover
+    ports:
+      - "${API_GATEWAY_PORT:-8000}:8000"
+    environment:
+      # Application Configuration
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_URL=${APP_URL:-https://reversetender.com}
+      
+      # Database Failover Configuration
+      - DB_FAILOVER_ENABLED=${DB_FAILOVER_ENABLED:-true}
+      - DB_FAILOVER_STRATEGY=${DB_FAILOVER_STRATEGY:-primary-secondary-tertiary}
+      - DB_FAILOVER_TIMEOUT=${DB_FAILOVER_TIMEOUT:-30}
+      - DB_FAILOVER_RETRY_ATTEMPTS=${DB_FAILOVER_RETRY_ATTEMPTS:-3}
+      - DB_FAILOVER_RETRY_DELAY=${DB_FAILOVER_RETRY_DELAY:-5}
+      
+      # Circuit Breaker Configuration
+      - DB_FAILOVER_CIRCUIT_BREAKER_ENABLED=${DB_FAILOVER_CIRCUIT_BREAKER_ENABLED:-true}
+      - DB_FAILOVER_CIRCUIT_BREAKER_THRESHOLD=${DB_FAILOVER_CIRCUIT_BREAKER_THRESHOLD:-5}
+      - DB_FAILOVER_CIRCUIT_BREAKER_TIMEOUT=${DB_FAILOVER_CIRCUIT_BREAKER_TIMEOUT:-60}
+      
+      # Primary Database: Neon PostgreSQL
+      - DB_PRIMARY_PROVIDER=${DB_PRIMARY_PROVIDER:-neon}
+      - NEON_DATABASE_URL=${NEON_DATABASE_URL}
+      - NEON_DB_HOST=${NEON_DB_HOST}
+      - NEON_DB_DATABASE=${NEON_DB_DATABASE:-reverse_tender}
+      - NEON_DB_USERNAME=${NEON_DB_USERNAME}
+      - NEON_DB_PASSWORD=${NEON_DB_PASSWORD}
+      - NEON_API_KEY=${NEON_API_KEY}
+      - NEON_PROJECT_ID=${NEON_PROJECT_ID}
+      - DB_PRIMARY_POOL_SIZE=${DB_PRIMARY_POOL_SIZE:-20}
+      
+      # Secondary Database: CNPG PostgreSQL
+      - DB_SECONDARY_PROVIDER=${DB_SECONDARY_PROVIDER:-cnpg}
+      - CNPG_DB_HOST=${CNPG_DB_HOST:-postgres-cnpg}
+      - CNPG_DB_DATABASE=${CNPG_DB_DATABASE:-reverse_tender}
+      - CNPG_DB_USERNAME=${CNPG_DB_USERNAME}
+      - CNPG_DB_PASSWORD=${CNPG_DB_PASSWORD}
+      - DB_SECONDARY_POOL_SIZE=${DB_SECONDARY_POOL_SIZE:-15}
+      
+      # Tertiary Database: MongoDB Atlas
+      - DB_TERTIARY_PROVIDER=${DB_TERTIARY_PROVIDER:-mongodb-atlas}
+      - MONGODB_ATLAS_CONNECTION_STRING=${MONGODB_ATLAS_CONNECTION_STRING}
+      - MONGODB_ATLAS_USERNAME=${MONGODB_ATLAS_USERNAME}
+      - MONGODB_ATLAS_PASSWORD=${MONGODB_ATLAS_PASSWORD}
+      - MONGODB_ATLAS_DATABASE=${MONGODB_ATLAS_DATABASE:-reverse_tender}
+      - DB_TERTIARY_POOL_SIZE=${DB_TERTIARY_POOL_SIZE:-10}
+      
+      # Health Check Configuration
+      - DB_HEALTH_CHECK_ENABLED=${DB_HEALTH_CHECK_ENABLED:-true}
+      - DB_HEALTH_CHECK_INTERVAL=${DB_HEALTH_CHECK_INTERVAL:-30}
+      - DB_HEALTH_CHECK_TIMEOUT=${DB_HEALTH_CHECK_TIMEOUT:-10}
+      - DB_HEALTH_CHECK_RETRIES=${DB_HEALTH_CHECK_RETRIES:-3}
+      
+      # Redis Configuration
+      - REDIS_URL=${UPSTASH_REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      
+      # Monitoring Configuration
+      - DB_MONITORING_ENABLED=${DB_MONITORING_ENABLED:-true}
+      - DB_METRICS_ENABLED=${DB_METRICS_ENABLED:-true}
+      - DB_SLOW_QUERY_LOG=${DB_SLOW_QUERY_LOG:-true}
+      - DB_SLOW_QUERY_THRESHOLD=${DB_SLOW_QUERY_THRESHOLD:-1000}
+      
+      # Webhook Notifications
+      - DB_FAILOVER_WEBHOOK_ENABLED=${DB_FAILOVER_WEBHOOK_ENABLED:-true}
+      - DB_FAILOVER_WEBHOOK_URL=${DB_FAILOVER_WEBHOOK_URL}
+      - DB_FAILOVER_SLACK_WEBHOOK=${DB_FAILOVER_SLACK_WEBHOOK}
+      
+    volumes:
+      - ./logs/api-gateway:/var/www/storage/logs
+      - ./config/database-failover:/var/www/config/database-failover:ro
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - postgres-cnpg
+      - database-health-monitor
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/database"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =============================================================================
+  # AUTH SERVICE WITH DATABASE FAILOVER
+  # =============================================================================
+  auth:
+    image: reversetender/auth:${APP_VERSION:-latest}
+    container_name: rt_auth_service_failover
+    ports:
+      - "${AUTH_SERVICE_PORT:-8001}:8001"
+      - "${AUTH_RPC_PORT:-8081}:8081"
+    environment:
+      # Application Configuration
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      
+      # Database Failover Configuration (same as API Gateway)
+      - DB_FAILOVER_ENABLED=${DB_FAILOVER_ENABLED:-true}
+      - DB_FAILOVER_STRATEGY=${DB_FAILOVER_STRATEGY:-primary-secondary-tertiary}
+      - DB_FAILOVER_TIMEOUT=${DB_FAILOVER_TIMEOUT:-30}
+      
+      # Primary Database: Neon PostgreSQL
+      - NEON_DATABASE_URL=${NEON_DATABASE_URL}
+      - NEON_DB_HOST=${NEON_DB_HOST}
+      - NEON_DB_USERNAME=${NEON_DB_USERNAME}
+      - NEON_DB_PASSWORD=${NEON_DB_PASSWORD}
+      
+      # Secondary Database: CNPG PostgreSQL
+      - CNPG_DB_HOST=${CNPG_DB_HOST:-postgres-cnpg}
+      - CNPG_DB_USERNAME=${CNPG_DB_USERNAME}
+      - CNPG_DB_PASSWORD=${CNPG_DB_PASSWORD}
+      
+      # Tertiary Database: MongoDB Atlas
+      - MONGODB_ATLAS_CONNECTION_STRING=${MONGODB_ATLAS_CONNECTION_STRING}
+      
+      # RPC Configuration
+      - RPC_ENABLED=${RPC_ENABLED:-true}
+      - RPC_PORT=${AUTH_RPC_PORT:-8081}
+      - JWT_SECRET=${JWT_SECRET}
+      
+    volumes:
+      - ./logs/auth:/var/www/storage/logs
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - postgres-cnpg
+      - database-health-monitor
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health/database"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================================================
+  # SECONDARY DATABASE: POSTGRESQL (CNPG-LIKE SETUP)
+  # =============================================================================
+  postgres-cnpg:
+    image: postgres:16-alpine
+    container_name: rt_postgres_cnpg
+    ports:
+      - "${CNPG_DB_PORT:-5432}:5432"
+    environment:
+      - POSTGRES_DB=${CNPG_DB_DATABASE:-reverse_tender}
+      - POSTGRES_USER=${CNPG_DB_USERNAME:-postgres}
+      - POSTGRES_PASSWORD=${CNPG_DB_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--data-checksums
+      # PostgreSQL Configuration for High Availability
+      - POSTGRES_MAX_CONNECTIONS=${CNPG_MAX_CONNECTIONS:-200}
+      - POSTGRES_SHARED_BUFFERS=${CNPG_SHARED_BUFFERS:-256MB}
+      - POSTGRES_EFFECTIVE_CACHE_SIZE=${CNPG_EFFECTIVE_CACHE_SIZE:-1GB}
+      - POSTGRES_WAL_LEVEL=replica
+      - POSTGRES_MAX_WAL_SENDERS=10
+      - POSTGRES_MAX_REPLICATION_SLOTS=10
+    volumes:
+      - postgres_cnpg_data:/var/lib/postgresql/data
+      - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./config/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./logs/postgres-cnpg:/var/log/postgresql
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CNPG_DB_USERNAME:-postgres} -d ${CNPG_DB_DATABASE:-reverse_tender}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: ${CNPG_MEMORY_LIMIT:-2G}
+          cpus: ${CNPG_CPU_LIMIT:-1.0}
+        reservations:
+          memory: ${CNPG_MEMORY_REQUEST:-1G}
+          cpus: ${CNPG_CPU_REQUEST:-0.5}
+
+  # =============================================================================
+  # TERTIARY DATABASE: MONGODB (LOCAL DEVELOPMENT)
+  # =============================================================================
+  mongodb-local:
+    image: mongo:7.0
+    container_name: rt_mongodb_local
+    ports:
+      - "${MONGODB_PORT:-27017}:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_ATLAS_USERNAME:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_ATLAS_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGODB_ATLAS_DATABASE:-reverse_tender}
+    volumes:
+      - mongodb_local_data:/data/db
+      - ./config/mongodb/mongod.conf:/etc/mongod.conf:ro
+      - ./logs/mongodb:/var/log/mongodb
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: 0.5
+        reservations:
+          memory: 512M
+          cpus: 0.25
+
+  # =============================================================================
+  # DATABASE HEALTH MONITOR
+  # =============================================================================
+  database-health-monitor:
+    image: nginx:alpine
+    container_name: rt_db_health_monitor
+    ports:
+      - "${DB_HEALTH_PORT:-8080}:8080"
+    environment:
+      # Database Connection Details for Health Checks
+      - NEON_DB_HOST=${NEON_DB_HOST}
+      - NEON_DB_USERNAME=${NEON_DB_USERNAME}
+      - CNPG_DB_HOST=${CNPG_DB_HOST:-postgres-cnpg}
+      - CNPG_DB_USERNAME=${CNPG_DB_USERNAME}
+      - MONGODB_ATLAS_CONNECTION_STRING=${MONGODB_ATLAS_CONNECTION_STRING}
+      - MONGODB_LOCAL_HOST=mongodb-local
+      
+      # Health Check Configuration
+      - DB_HEALTH_CHECK_INTERVAL=${DB_HEALTH_CHECK_INTERVAL:-30}
+      - DB_HEALTH_CHECK_TIMEOUT=${DB_HEALTH_CHECK_TIMEOUT:-10}
+      
+    volumes:
+      - ./config/health-monitor/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/health-monitor/health-scripts:/usr/share/nginx/html:ro
+      - ./logs/health-monitor:/var/log/nginx
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - postgres-cnpg
+      - mongodb-local
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # =============================================================================
+  # DATABASE FAILOVER WEBHOOK SERVICE
+  # =============================================================================
+  database-failover-webhook:
+    image: nginx:alpine
+    container_name: rt_db_failover_webhook
+    ports:
+      - "${DB_WEBHOOK_PORT:-8082}:8080"
+    environment:
+      # Webhook Configuration
+      - WEBHOOK_ENABLED=${DB_FAILOVER_WEBHOOK_ENABLED:-true}
+      - WEBHOOK_PORT=8080
+      - DB_FAILOVER_WEBHOOK_URL=${DB_FAILOVER_WEBHOOK_URL}
+      - DB_FAILOVER_SLACK_WEBHOOK=${DB_FAILOVER_SLACK_WEBHOOK}
+      - DB_FAILOVER_WEBHOOK_SECRET=${DB_FAILOVER_WEBHOOK_SECRET}
+    volumes:
+      - ./config/webhook/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/webhook/webhook-handler.sh:/usr/local/bin/webhook-handler.sh:ro
+      - ./logs/webhook:/var/log/nginx
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # =============================================================================
+  # REDIS (SHARED CACHE AND SESSION STORE)
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: rt_redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+      - ./config/redis/redis.conf:/etc/redis/redis.conf:ro
+      - ./logs/redis:/var/log/redis
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: 0.5
+        reservations:
+          memory: 256M
+          cpus: 0.25
+
+  # =============================================================================
+  # PROMETHEUS MONITORING
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: rt_prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus/database-failover-rules.yml:/etc/prometheus/database-failover-rules.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - reverse-tender-network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+
+  # =============================================================================
+  # GRAFANA DASHBOARDS
+  # =============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: rt_grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - reverse-tender-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  reverse-tender-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  postgres_cnpg_data:
+    driver: local
+  mongodb_local_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

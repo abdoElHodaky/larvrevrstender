@@ -1,0 +1,1674 @@
+# CircleCI Configuration for Laravel Microservices Platform
+# Enterprise-grade CI/CD with optimal performance and cost efficiency
+# Version: 2.1 with advanced features
+
+version: 2.1
+
+# ============================================================================
+# ORBS - Reusable packages of configuration
+# ============================================================================
+orbs:
+  docker: circleci/docker@2.6.0
+  node: circleci/node@5.2.0
+  slack: circleci/slack@4.13.3
+  codecov: codecov/codecov@4.0.1
+
+# ============================================================================
+# EXECUTORS - Reusable execution environments
+# ============================================================================
+executors:
+  # Small executor for lightweight tasks - PHP 8.2
+  small-executor-php82:
+    docker:
+      - image: cimg/php:8.2-node
+    resource_class: small
+    environment:
+      PHP_VERSION: "8.2"
+      NODE_VERSION: "18"
+    
+  # Small executor for lightweight tasks - PHP 8.3
+  small-executor-php83:
+    docker:
+      - image: cimg/php:8.3-node
+    resource_class: small
+    environment:
+      PHP_VERSION: "8.3"
+      NODE_VERSION: "18"
+    
+  # Medium executor for service testing - PHP 8.2
+  medium-executor-php82:
+    docker:
+      - image: cimg/php:8.2-node
+      - image: cimg/postgres:15.0
+        environment:
+          POSTGRES_USER: laravel
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: laravel_test
+      - image: cimg/redis:7.0
+    resource_class: medium
+    environment:
+      PHP_VERSION: "8.2"
+      NODE_VERSION: "18"
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: laravel_test
+      DB_USERNAME: laravel
+      DB_PASSWORD: secret
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+    
+  # Medium executor for service testing - PHP 8.3
+  medium-executor-php83:
+    docker:
+      - image: cimg/php:8.3-node
+      - image: cimg/postgres:15.0
+        environment:
+          POSTGRES_USER: laravel
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: laravel_test
+      - image: cimg/redis:7.0
+    resource_class: medium
+    environment:
+      PHP_VERSION: "8.3"
+      NODE_VERSION: "18"
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: laravel_test
+      DB_USERNAME: laravel
+      DB_PASSWORD: secret
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+    
+  # Large executor for Docker builds - PHP 8.2
+  large-executor-php82:
+    docker:
+      - image: cimg/php:8.2-node
+    resource_class: large
+    environment:
+      PHP_VERSION: "8.2"
+      NODE_VERSION: "18"
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+    
+  # Large executor for Docker builds - PHP 8.3
+  large-executor-php83:
+    docker:
+      - image: cimg/php:8.3-node
+    resource_class: large
+    environment:
+      PHP_VERSION: "8.3"
+      NODE_VERSION: "18"
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+    
+  # XLarge executor for performance testing - PHP 8.2
+  xlarge-executor-php82:
+    docker:
+      - image: cimg/php:8.2-node
+    resource_class: xlarge
+    environment:
+      PHP_VERSION: "8.2"
+      NODE_VERSION: "18"
+      
+  # XLarge executor for performance testing - PHP 8.3
+  xlarge-executor-php83:
+    docker:
+      - image: cimg/php:8.3-node
+    resource_class: xlarge
+    environment:
+      PHP_VERSION: "8.3"
+      NODE_VERSION: "18"
+
+# ============================================================================
+# COMMANDS - Reusable command sequences
+# ============================================================================
+commands:
+  # Setup PHP environment with extensions (dynamic version)
+  setup-php:
+    description: "Setup PHP with required extensions based on PHP_VERSION environment variable"
+    steps:
+      - run:
+          name: Install PHP extensions
+          command: |
+            echo "Setting up PHP ${PHP_VERSION} with extensions..."
+            sudo apt-get update
+            sudo apt-get install -y \
+              php${PHP_VERSION}-pgsql \
+              php${PHP_VERSION}-redis \
+              php${PHP_VERSION}-gd \
+              php${PHP_VERSION}-zip \
+              php${PHP_VERSION}-xml \
+              php${PHP_VERSION}-mbstring \
+              php${PHP_VERSION}-curl \
+              php${PHP_VERSION}-bcmath \
+              php${PHP_VERSION}-intl
+            
+            # Verify PHP configuration
+            echo "PHP Version:"
+            php -v
+            echo "PHP Extensions:"
+            php -m | grep -E "(pdo_pgsql|redis|gd|zip)"
+  
+  # Install and cache Composer dependencies (Phase 5: Advanced Caching)
+  install-composer-deps:
+    description: "Install Composer dependencies with advanced multi-level caching"
+    parameters:
+      service:
+        type: string
+        default: "."
+    steps:
+      - restore_cache:
+          keys:
+            # Primary cache: exact match on composer.lock + PHP version
+            - composer-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/composer.lock" }}-{{ checksum "<< parameters.service >>/composer.json" }}
+            # Secondary cache: composer.lock only
+            - composer-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/composer.lock" }}
+            # Tertiary cache: job-specific
+            - composer-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-
+            # Fallback cache: global
+            - composer-v3-{{ arch }}-
+            - composer-v3-
+      
+      - run:
+          name: Install Composer dependencies with advanced caching
+          command: |
+            cd << parameters.service >>
+            
+            # Enable Composer parallel downloads and optimize cache
+            composer config --global process-timeout 600
+            composer config --global cache-files-maxsize "1GB"
+            composer config --global cache-vcs-maxsize "500MB"
+            
+            # Install with optimizations
+            composer install \
+              --no-interaction \
+              --prefer-dist \
+              --optimize-autoloader \
+              --classmap-authoritative \
+              --no-dev
+            
+            # Generate optimized autoloader
+            composer dump-autoload --optimize --classmap-authoritative
+            
+      - save_cache:
+          key: composer-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/composer.lock" }}-{{ checksum "<< parameters.service >>/composer.json" }}
+          paths:
+            - << parameters.service >>/vendor
+            - ~/.composer/cache
+            - ~/.composer/auth.json
+  
+  # Install and cache Node dependencies (Phase 5: Advanced Caching)
+  install-node-deps:
+    description: "Install Node dependencies with advanced multi-level caching"
+    parameters:
+      service:
+        type: string
+        default: "."
+    steps:
+      - restore_cache:
+          keys:
+            # Primary cache: exact match on package-lock.json + Node version
+            - node-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/package-lock.json" }}-{{ checksum "<< parameters.service >>/package.json" }}
+            # Secondary cache: package-lock.json only
+            - node-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/package-lock.json" }}
+            # Tertiary cache: yarn.lock fallback
+            - node-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/yarn.lock" }}
+            # Quaternary cache: job-specific
+            - node-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-
+            # Fallback cache: global
+            - node-v3-{{ arch }}-
+            - node-v3-
+      
+      - run:
+          name: Install Node dependencies with advanced caching
+          command: |
+            cd << parameters.service >>
+            
+            # Configure npm for optimal caching and performance
+            npm config set cache ~/.npm --global
+            npm config set prefer-offline true --global
+            npm config set audit false --global
+            npm config set fund false --global
+            
+            if [ -f package-lock.json ]; then
+              # Use npm ci for faster, reliable, reproducible builds
+              npm ci --prefer-offline --no-audit --no-fund
+            elif [ -f yarn.lock ]; then
+              # Configure yarn for optimal caching
+              yarn config set cache-folder ~/.yarn-cache
+              yarn install --frozen-lockfile --prefer-offline --silent
+            else
+              echo "No package-lock.json or yarn.lock found, using npm install"
+              npm install --prefer-offline --no-audit --no-fund
+            fi
+            
+      - save_cache:
+          key: node-v3-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/package-lock.json" }}-{{ checksum "<< parameters.service >>/package.json" }}
+          paths:
+            - << parameters.service >>/node_modules
+            - ~/.npm
+            - ~/.yarn-cache
+
+  # Advanced build artifact caching (Phase 5: Advanced Caching)
+  cache-build-artifacts:
+    description: "Cache build artifacts and compiled assets with intelligent versioning"
+    parameters:
+      service:
+        type: string
+      cache_paths:
+        type: string
+        default: "public/build,public/mix-manifest.json,public/hot"
+    steps:
+      - restore_cache:
+          keys:
+            # Primary cache: exact match on source files
+            - build-artifacts-v1-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/webpack.mix.js" }}-{{ checksum "<< parameters.service >>/package.json" }}
+            # Secondary cache: webpack config only
+            - build-artifacts-v1-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/webpack.mix.js" }}
+            # Fallback cache: job-specific
+            - build-artifacts-v1-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-
+            
+      - run:
+          name: Build assets with caching optimization
+          command: |
+            cd << parameters.service >>
+            
+            # Check if build is needed
+            if [ -f "public/mix-manifest.json" ] && [ -d "public/build" ]; then
+              echo "Build artifacts found in cache, checking if rebuild needed..."
+              
+              # Check if source files are newer than build
+              if [ "webpack.mix.js" -nt "public/mix-manifest.json" ] || [ "package.json" -nt "public/mix-manifest.json" ]; then
+                echo "Source files updated, rebuilding..."
+                npm run production
+              else
+                echo "Build artifacts are up to date, skipping build"
+              fi
+            else
+              echo "No cached build artifacts found, building..."
+              npm run production
+            fi
+            
+      - save_cache:
+          key: build-artifacts-v1-{{ .Environment.CIRCLE_JOB }}-{{ arch }}-{{ checksum "<< parameters.service >>/webpack.mix.js" }}-{{ checksum "<< parameters.service >>/package.json" }}
+          paths:
+            - << parameters.service >>/public/build
+            - << parameters.service >>/public/mix-manifest.json
+            - << parameters.service >>/public/hot
+
+  # Enhanced workspace persistence (Phase 5: Advanced Caching)
+  persist-workspace-data:
+    description: "Persist workspace data with compression and optimization"
+    parameters:
+      workspace_data:
+        type: string
+        default: "affected_services,build_info,test_results"
+    steps:
+      - run:
+          name: Prepare workspace data for persistence
+          command: |
+            mkdir -p /tmp/workspace
+            
+            # Compress large files to save space
+            if [ -f "composer.lock" ]; then
+              gzip -c composer.lock > /tmp/workspace/composer.lock.gz
+            fi
+            
+            # Create build metadata
+            echo "Build Time: $(date)" > /tmp/workspace/build_metadata.txt
+            echo "Commit SHA: ${CIRCLE_SHA1}" >> /tmp/workspace/build_metadata.txt
+            echo "Branch: ${CIRCLE_BRANCH}" >> /tmp/workspace/build_metadata.txt
+            echo "Job: ${CIRCLE_JOB}" >> /tmp/workspace/build_metadata.txt
+            
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - "*"
+
+  # Dockerfile optimization analysis (Phase 9: Docker Optimization)
+  analyze-dockerfile:
+    description: "Analyze and optimize Dockerfile with best practices"
+    parameters:
+      service:
+        type: string
+    steps:
+      - run:
+          name: Dockerfile optimization analysis
+          command: |
+            cd << parameters.service >>
+            
+            if [ ! -f "Dockerfile" ]; then
+              echo "No Dockerfile found for << parameters.service >>"
+              exit 0
+            fi
+            
+            echo "=== DOCKERFILE ANALYSIS FOR << parameters.service >> ==="
+            
+            # Create analysis report
+            mkdir -p /tmp/dockerfile-analysis
+            REPORT_FILE="/tmp/dockerfile-analysis/<< parameters.service >>-dockerfile-analysis.md"
+            
+            echo "# Dockerfile Analysis: << parameters.service >>" > $REPORT_FILE
+            echo "Generated: $(date)" >> $REPORT_FILE
+            echo "" >> $REPORT_FILE
+            
+            # Basic Dockerfile metrics
+            LINES=$(wc -l < Dockerfile)
+            LAYERS=$(grep -c "^RUN\|^COPY\|^ADD" Dockerfile || echo "0")
+            echo "## Basic Metrics" >> $REPORT_FILE
+            echo "- **Total Lines**: $LINES" >> $REPORT_FILE
+            echo "- **Build Layers**: $LAYERS" >> $REPORT_FILE
+            echo "" >> $REPORT_FILE
+            
+            # Best practices analysis
+            echo "## Best Practices Analysis" >> $REPORT_FILE
+            
+            # Check base image
+            BASE_IMAGE=$(grep "^FROM" Dockerfile | head -1 | awk '{print $2}')
+            echo "- **Base Image**: $BASE_IMAGE" >> $REPORT_FILE
+            
+            if echo "$BASE_IMAGE" | grep -q ":latest"; then
+              echo "  - ⚠️ **Warning**: Using 'latest' tag is not recommended for production" >> $REPORT_FILE
+            else
+              echo "  - ✅ **Good**: Using specific version tag" >> $REPORT_FILE
+            fi
+            
+            # Check for multi-stage builds
+            if grep -q "^FROM.*AS" Dockerfile; then
+              echo "- ✅ **Multi-stage build detected** - Good for optimization" >> $REPORT_FILE
+            else
+              echo "- 💡 **Suggestion**: Consider using multi-stage builds for smaller images" >> $REPORT_FILE
+            fi
+            
+            # Check for USER directive
+            if grep -q "^USER" Dockerfile; then
+              echo "- ✅ **Security**: Non-root user specified" >> $REPORT_FILE
+            else
+              echo "- ⚠️ **Security**: Consider adding USER directive to run as non-root" >> $REPORT_FILE
+            fi
+            
+            # Check for HEALTHCHECK
+            if grep -q "^HEALTHCHECK" Dockerfile; then
+              echo "- ✅ **Monitoring**: Health check configured" >> $REPORT_FILE
+            else
+              echo "- 💡 **Suggestion**: Consider adding HEALTHCHECK for better monitoring" >> $REPORT_FILE
+            fi
+            
+            # Check for cache optimization
+            if grep -q "COPY.*package.*json" Dockerfile && grep -q "RUN.*npm install" Dockerfile; then
+              echo "- ✅ **Caching**: Package files copied before dependencies (good for caching)" >> $REPORT_FILE
+            fi
+            
+            if grep -q "COPY.*composer.*json" Dockerfile && grep -q "RUN.*composer install" Dockerfile; then
+              echo "- ✅ **Caching**: Composer files copied before dependencies (good for caching)" >> $REPORT_FILE
+            fi
+            
+            # Check for cleanup commands
+            if grep -q "apt-get.*clean\|rm -rf /var/lib/apt/lists" Dockerfile; then
+              echo "- ✅ **Size**: Package cache cleanup detected" >> $REPORT_FILE
+            elif grep -q "apt-get\|apk add" Dockerfile; then
+              echo "- 💡 **Size**: Consider cleaning package cache to reduce image size" >> $REPORT_FILE
+            fi
+            
+            # Check for .dockerignore
+            if [ -f ".dockerignore" ]; then
+              echo "- ✅ **Build Context**: .dockerignore file present" >> $REPORT_FILE
+              DOCKERIGNORE_LINES=$(wc -l < .dockerignore)
+              echo "  - **Entries**: $DOCKERIGNORE_LINES" >> $REPORT_FILE
+            else
+              echo "- 💡 **Build Context**: Consider adding .dockerignore to reduce build context" >> $REPORT_FILE
+            fi
+            
+            # Optimization recommendations
+            echo "" >> $REPORT_FILE
+            echo "## Optimization Recommendations" >> $REPORT_FILE
+            
+            # Layer consolidation
+            RUN_COUNT=$(grep -c "^RUN" Dockerfile || echo "0")
+            if [ "$RUN_COUNT" -gt 5 ]; then
+              echo "- **Layer Optimization**: Consider consolidating RUN commands (currently $RUN_COUNT)" >> $REPORT_FILE
+            fi
+            
+            # BuildKit recommendations
+            if ! grep -q "# syntax=docker/dockerfile" Dockerfile; then
+              echo "- **BuildKit**: Consider adding BuildKit syntax for advanced features:" >> $REPORT_FILE
+              echo "  \`\`\`dockerfile" >> $REPORT_FILE
+              echo "  # syntax=docker/dockerfile:1" >> $REPORT_FILE
+              echo "  \`\`\`" >> $REPORT_FILE
+            fi
+            
+            # Cache mount recommendations
+            if grep -q "npm install\|composer install\|pip install" Dockerfile && ! grep -q "--mount=type=cache" Dockerfile; then
+              echo "- **Cache Mounts**: Consider using BuildKit cache mounts for package managers:" >> $REPORT_FILE
+              echo "  \`\`\`dockerfile" >> $REPORT_FILE
+              echo "  RUN --mount=type=cache,target=/root/.npm npm install" >> $REPORT_FILE
+              echo "  \`\`\`" >> $REPORT_FILE
+            fi
+            
+            echo "" >> $REPORT_FILE
+            echo "---" >> $REPORT_FILE
+            echo "*Analysis completed at $(date)*" >> $REPORT_FILE
+            
+            # Display report
+            cat $REPORT_FILE
+            
+      - persist_to_workspace:
+          root: /tmp/dockerfile-analysis
+          paths:
+            - "*"
+
+  # Run PHPUnit tests with coverage
+  run-phpunit-tests:
+    description: "Run PHPUnit tests with coverage reporting"
+    parameters:
+      service:
+        type: string
+    steps:
+      - run:
+          name: Setup test environment
+          command: |
+            cd << parameters.service >>
+            cp .env.testing .env
+            php artisan key:generate
+            php artisan config:cache
+            
+      - run:
+          name: Run database migrations
+          command: |
+            cd << parameters.service >>
+            php artisan migrate --force
+            
+      - run:
+          name: Run PHPUnit tests
+          command: |
+            cd << parameters.service >>
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml
+            
+      - store_test_results:
+          path: << parameters.service >>/test-results.xml
+          
+      - store_artifacts:
+          path: << parameters.service >>/coverage-html
+          destination: coverage-<< parameters.service >>
+          
+      - codecov/upload:
+          file: << parameters.service >>/coverage.xml
+          flags: << parameters.service >>
+  
+  # Build and push Docker image with layer caching
+  # Build Docker image with advanced caching (Phase 5: Advanced Caching)
+  build-docker-image:
+    description: "Build Docker image with advanced multi-layer caching and BuildKit optimization"
+    parameters:
+      service:
+        type: string
+      registry:
+        type: string
+        default: "ghcr.io"
+      image_name:
+        type: string
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+          version: 20.10.14
+          
+      - run:
+          name: Enable BuildKit and configure Docker
+          command: |
+            # Enable BuildKit for advanced caching features
+            echo 'export DOCKER_BUILDKIT=1' >> $BASH_ENV
+            echo 'export BUILDKIT_PROGRESS=plain' >> $BASH_ENV
+            source $BASH_ENV
+            
+      - run:
+          name: Build Docker image with advanced caching
+          command: |
+            cd services/<< parameters.service >>
+            
+            # Pull multiple cache sources for maximum cache hit rate
+            echo "Pulling cache images..."
+            docker pull << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:cache || true
+            docker pull << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:latest || true
+            docker pull << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:main || true
+            
+            # Build with advanced caching strategies
+            docker build \
+              --cache-from=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:cache \
+              --cache-from=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:latest \
+              --cache-from=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:main \
+              --target=production \
+              --tag=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:${CIRCLE_SHA1} \
+              --tag=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:latest \
+              --tag=<< parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:cache \
+              --build-arg BUILDKIT_INLINE_CACHE=1 \
+              --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+              --build-arg VCS_REF=${CIRCLE_SHA1} \
+              .
+            
+            # Analyze image efficiency
+            echo "=== Image Analysis ==="
+            docker images << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:${CIRCLE_SHA1} --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+            
+            # Push images with optimized order (cache first for next builds)
+            echo $GITHUB_TOKEN | docker login << parameters.registry >> -u $GITHUB_USERNAME --password-stdin
+            docker push << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:cache
+            docker push << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:${CIRCLE_SHA1}
+            docker push << parameters.registry >>/<< parameters.image_name >>/<< parameters.service >>:latest
+            
+      - run:
+          name: Cleanup and optimize
+          command: |
+            # Cleanup local images to save space
+            docker image prune -f
+            docker system prune -f
+  
+  # Notify Slack on job completion
+  notify-slack:
+    description: "Send Slack notification"
+    parameters:
+      status:
+        type: string
+      job_name:
+        type: string
+    steps:
+      - slack/notify:
+          event: << parameters.status >>
+          custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":circleci: *<< parameters.job_name >>* << parameters.status >> for `${CIRCLE_BRANCH}` branch"
+                  }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "Build: <${CIRCLE_BUILD_URL}|#${CIRCLE_BUILD_NUM}> | Commit: <https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/commit/${CIRCLE_SHA1}|${CIRCLE_SHA1:0:7}>"
+                    }
+                  ]
+                }
+              ]
+            }
+
+# ============================================================================
+# JOBS - Individual units of work
+# ============================================================================
+jobs:
+  # Phase 0: Change Detection & Planning
+  # Enhanced Change Detection (Phase 7: Conditional Execution)
+  change-detection:
+    executor: small-executor-php83  # Use PHP 8.3 for change detection (lightweight)
+    steps:
+      - checkout
+      - run:
+          name: Enhanced change detection with smart filtering
+          command: |
+            # Get changed files with better comparison logic
+            if [ "$CIRCLE_BRANCH" != "main" ]; then
+              git fetch origin main
+              CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+            else
+              CHANGED_FILES=$(git diff --name-only HEAD~1...HEAD)
+            fi
+            
+            echo "=== CHANGE DETECTION ANALYSIS ==="
+            echo "Branch: ${CIRCLE_BRANCH}"
+            echo "Changed files:"
+            echo "$CHANGED_FILES"
+            
+            # Initialize tracking variables
+            AFFECTED_SERVICES=""
+            SKIP_EXPENSIVE_JOBS=true
+            SKIP_DOCKER_BUILDS=true
+            SKIP_PERFORMANCE_TESTS=true
+            
+            # Determine affected services with dependency mapping
+            declare -A service_deps
+            service_deps[shared]=""
+            service_deps[auth]="shared"
+            service_deps[user]="shared auth"
+            service_deps[vin-ocr]="shared auth"
+            service_deps[notification]="shared auth user"
+            service_deps[payment]="shared auth user"
+            service_deps[auction]="shared auth user"
+            service_deps[bidding]="shared auth user auction"
+            service_deps[order]="shared auth user auction bidding payment"
+            service_deps[analytics]="shared auth user auction bidding"
+            service_deps[gateway]="shared auth user auction bidding payment order analytics notification vin-ocr"
+            
+            # Check each service for changes
+            for service in shared auth user auction bidding payment gateway order analytics notification vin-ocr; do
+              if echo "$CHANGED_FILES" | grep -q "services/$service/"; then
+                AFFECTED_SERVICES="$AFFECTED_SERVICES $service"
+                
+                # Add dependent services
+                for dep_service in shared auth user auction bidding payment gateway order analytics notification vin-ocr; do
+                  if echo "${service_deps[$dep_service]}" | grep -q "$service"; then
+                    if ! echo "$AFFECTED_SERVICES" | grep -q "$dep_service"; then
+                      AFFECTED_SERVICES="$AFFECTED_SERVICES $dep_service"
+                      echo "Added $dep_service due to dependency on $service"
+                    fi
+                  fi
+                done
+              fi
+            done
+            
+            # Check for different types of changes
+            GLOBAL_CHANGES=false
+            INFRASTRUCTURE_CHANGES=false
+            
+            if echo "$CHANGED_FILES" | grep -qE "(\.circleci/|\.github/workflows/)"; then
+              echo "CI/CD configuration changes detected"
+              GLOBAL_CHANGES=true
+              INFRASTRUCTURE_CHANGES=true
+              AFFECTED_SERVICES="shared auth user auction bidding payment gateway order analytics notification vin-ocr"
+            fi
+            
+            if echo "$CHANGED_FILES" | grep -qE "(docker-compose|Dockerfile|\.dockerignore)"; then
+              echo "Docker configuration changes detected"
+              GLOBAL_CHANGES=true
+              SKIP_DOCKER_BUILDS=false
+              AFFECTED_SERVICES="shared auth user auction bidding payment gateway order analytics notification vin-ocr"
+            fi
+            
+            if echo "$CHANGED_FILES" | grep -qE "(composer\.json|composer\.lock|package\.json|package-lock\.json)"; then
+              echo "Dependency changes detected"
+              SKIP_EXPENSIVE_JOBS=false
+            fi
+            
+            if echo "$CHANGED_FILES" | grep -qE "(\.env|config/|database/migrations/)"; then
+              echo "Configuration or schema changes detected"
+              SKIP_EXPENSIVE_JOBS=false
+              SKIP_PERFORMANCE_TESTS=false
+            fi
+            
+            # Branch-specific logic
+            if [ "${CIRCLE_BRANCH}" = "main" ] || [ "${CIRCLE_BRANCH}" = "develop" ]; then
+              echo "Main/develop branch detected - running full pipeline"
+              SKIP_EXPENSIVE_JOBS=false
+              SKIP_DOCKER_BUILDS=false
+              SKIP_PERFORMANCE_TESTS=false
+            fi
+            
+            # If no services affected, still run basic checks
+            if [ -z "$AFFECTED_SERVICES" ]; then
+              echo "No service changes detected, running basic validation only"
+              AFFECTED_SERVICES="shared"  # Always check shared as minimum
+            fi
+            
+            echo "=== EXECUTION PLAN ==="
+            echo "Affected services: $AFFECTED_SERVICES"
+            echo "Global changes: $GLOBAL_CHANGES"
+            echo "Infrastructure changes: $INFRASTRUCTURE_CHANGES"
+            echo "Skip expensive jobs: $SKIP_EXPENSIVE_JOBS"
+            echo "Skip Docker builds: $SKIP_DOCKER_BUILDS"
+            echo "Skip performance tests: $SKIP_PERFORMANCE_TESTS"
+            
+            # Save to workspace for conditional execution
+            mkdir -p /tmp/workspace
+            echo "$AFFECTED_SERVICES" > /tmp/workspace/affected_services
+            echo "$GLOBAL_CHANGES" > /tmp/workspace/global_changes
+            echo "$INFRASTRUCTURE_CHANGES" > /tmp/workspace/infrastructure_changes
+            echo "$SKIP_EXPENSIVE_JOBS" > /tmp/workspace/skip_expensive_jobs
+            echo "$SKIP_DOCKER_BUILDS" > /tmp/workspace/skip_docker_builds
+            echo "$SKIP_PERFORMANCE_TESTS" > /tmp/workspace/skip_performance_tests
+            
+            # Advanced Features Analysis (Phases 5,7,9 Remaining)
+            echo "=== ADVANCED FEATURES ANALYSIS ==="
+            
+            # Cache analysis (Phase 5)
+            CACHE_ANALYSIS="Cache: "
+            [ -d ~/.composer/cache ] && CACHE_ANALYSIS="${CACHE_ANALYSIS}Composer($(du -sh ~/.composer/cache 2>/dev/null | cut -f1 || echo '0')) "
+            [ -d ~/.npm ] && CACHE_ANALYSIS="${CACHE_ANALYSIS}npm($(du -sh ~/.npm 2>/dev/null | cut -f1 || echo '0')) "
+            echo "$CACHE_ANALYSIS" > /tmp/workspace/cache_analysis
+            
+            # Test parallelization (Phase 7)
+            TEST_COUNT=$(find . -name "*Test.php" -o -name "*.test.js" | grep -v vendor | wc -l)
+            PARALLEL_JOBS=$(( TEST_COUNT > 4 ? 4 : TEST_COUNT ))
+            echo "Tests: $TEST_COUNT, Parallel: $PARALLEL_JOBS" > /tmp/workspace/test_analysis
+            
+            # Multi-platform check (Phase 9)
+            MULTIPLATFORM="false"
+            if command -v docker >/dev/null 2>&1; then
+              export DOCKER_CLI_EXPERIMENTAL=enabled
+              if docker buildx ls 2>/dev/null | grep -q "linux/arm64"; then
+                MULTIPLATFORM="true"
+              fi
+            fi
+            echo "$MULTIPLATFORM" > /tmp/workspace/multiplatform_support
+            
+            echo "Advanced analysis complete"
+            
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - affected_services
+            - global_changes
+            - infrastructure_changes
+            - skip_expensive_jobs
+            - skip_docker_builds
+            - skip_performance_tests
+            
+      - notify-slack:
+          status: "started"
+          job_name: "Change Detection"
+  
+  # Phase 1: Security Scanning
+  security-scanning:
+    executor: small-executor-php83  # Use PHP 8.3 for security scanning (lightweight)
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+          
+      - run:
+          name: Install Trivy
+          command: |
+            sudo apt-get update
+            sudo apt-get install wget apt-transport-https gnupg lsb-release
+            wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+            echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+            sudo apt-get update
+            sudo apt-get install trivy
+            
+      - run:
+          name: Run Trivy filesystem scan
+          command: |
+            trivy fs --format json --output trivy-results.json .
+            trivy fs --format table .
+            
+      - run:
+          name: Run dependency audit
+          command: |
+            # Check for affected services
+            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+            
+            for service in $AFFECTED_SERVICES; do
+              if [ -d "services/$service" ]; then
+                echo "Auditing $service dependencies..."
+                cd services/$service
+                
+                # PHP dependencies audit
+                if [ -f composer.lock ]; then
+                  composer audit --format=json > ../../audit-$service-php.json || true
+                fi
+                
+                # Node dependencies audit
+                if [ -f package-lock.json ]; then
+                  npm audit --json > ../../audit-$service-node.json || true
+                fi
+                
+                cd ../..
+              fi
+            done
+            
+      - store_artifacts:
+          path: trivy-results.json
+          destination: security/trivy-results.json
+          
+      - store_artifacts:
+          path: audit-*.json
+          destination: security/
+          
+      - notify-slack:
+          status: "passed"
+          job_name: "Security Scanning"
+  
+  # Phase 1: Code Quality PHP 8.2
+  code-quality-php82:
+    executor: medium-executor-php82  # Use PHP 8.2 specific executor
+    steps:
+      - checkout
+      - setup-php
+      - install-composer-deps
+      
+      - run:
+          name: Run PHP CodeSniffer
+          command: |
+            if [ -f vendor/bin/phpcs ]; then
+              vendor/bin/phpcs --standard=PSR12 --report=junit --report-file=phpcs-results.xml services/
+            fi
+            
+      - run:
+          name: Run PHPStan
+          command: |
+            if [ -f vendor/bin/phpstan ]; then
+              vendor/bin/phpstan analyse --error-format=junit > phpstan-results.xml || true
+            fi
+            
+      - store_test_results:
+          path: phpcs-results.xml
+          
+      - store_test_results:
+          path: phpstan-results.xml
+          
+      - notify-slack:
+          status: "passed"
+          job_name: "Code Quality PHP 8.2"
+  
+  # Phase 1: Code Quality PHP 8.3
+  code-quality-php83:
+    executor: medium-executor-php83  # Use PHP 8.3 specific executor
+    steps:
+      - checkout
+      - setup-php
+      - install-composer-deps
+      
+      - run:
+          name: Run PHP CodeSniffer
+          command: |
+            if [ -f vendor/bin/phpcs ]; then
+              vendor/bin/phpcs --standard=PSR12 --report=junit --report-file=phpcs-results.xml services/
+            fi
+            
+      - run:
+          name: Run PHPStan
+          command: |
+            if [ -f vendor/bin/phpstan ]; then
+              vendor/bin/phpstan analyse --error-format=junit > phpstan-results.xml || true
+            fi
+            
+      - store_test_results:
+          path: phpcs-results.xml
+          
+      - store_test_results:
+          path: phpstan-results.xml
+          
+      - notify-slack:
+          status: "passed"
+          job_name: "Code Quality PHP 8.3"
+
+# ============================================================================
+# DYNAMIC SERVICE JOBS - Generated for each microservice
+# ============================================================================
+
+# Service Testing Jobs (Phase 2)
+  # Test job for auth service (core service - use medium resources)
+  test-auth-service:
+    executor: medium-executor-php83  # Core service needs medium resources
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup-php
+      - install-composer-deps:
+          service: services/auth
+      - run:
+          name: Check for Node dependencies
+          command: |
+            if [ -f services/auth/package.json ]; then
+              echo "Installing Node dependencies for auth"
+            fi
+      - install-node-deps:
+          service: services/auth
+      - run:
+          name: Setup auth test environment
+          command: |
+            cd services/auth
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear any existing cache
+            php artisan cache:clear || true
+            php artisan view:clear || true
+
+      - run:
+          name: Run auth database migrations
+          command: |
+            cd services/auth
+            php artisan migrate --force --seed
+
+      - run:
+          name: Run auth PHPUnit tests
+          command: |
+            cd services/auth
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html
+
+      - run:
+          name: Run auth Feature tests
+          command: |
+            cd services/auth
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml
+            fi
+
+      - store_test_results:
+          path: services/auth/test-results.xml
+      - store_test_results:
+          path: services/auth/feature-test-results.xml
+      - store_artifacts:
+          path: services/auth/coverage-html
+          destination: coverage-auth
+      - store_artifacts:
+          path: services/auth/testdox.html
+          destination: testdox-auth.html
+
+      - codecov/upload:
+          file: services/auth/coverage.xml
+          flags: auth
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Test auth Service"
+
+  # Test job for user service (core service - use medium resources)
+  test-user-service:
+    executor: medium-executor-php83  # Core service needs medium resources
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup-php
+      - install-composer-deps:
+          service: services/user
+      - run:
+          name: Check for Node dependencies
+          command: |
+            if [ -f services/user/package.json ]; then
+              echo "Installing Node dependencies for user"
+            fi
+      - install-node-deps:
+          service: services/user
+      - run:
+          name: Setup user test environment
+          command: |
+            cd services/user
+            if [ -f .env.testing ]; then
+              cp .env.testing .env
+            elif [ -f .env.example ]; then
+              cp .env.example .env
+            fi
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Cache configuration
+            php artisan config:cache
+            
+            # Clear any existing cache
+            php artisan cache:clear || true
+            php artisan view:clear || true
+
+      - run:
+          name: Run user database migrations
+          command: |
+            cd services/user
+            php artisan migrate --force --seed
+
+      - run:
+          name: Run user PHPUnit tests
+          command: |
+            cd services/user
+            vendor/bin/phpunit \
+              --coverage-clover=coverage.xml \
+              --coverage-html=coverage-html \
+              --log-junit=test-results.xml \
+              --testdox-html=testdox.html
+
+      - run:
+          name: Run user Feature tests
+          command: |
+            cd services/user
+            if [ -d tests/Feature ]; then
+              vendor/bin/phpunit tests/Feature \
+                --log-junit=feature-test-results.xml
+            fi
+
+      - store_test_results:
+          path: services/user/test-results.xml
+      - store_test_results:
+          path: services/user/feature-test-results.xml
+      - store_artifacts:
+          path: services/user/coverage-html
+          destination: coverage-user
+      - store_artifacts:
+          path: services/user/testdox.html
+          destination: testdox-user.html
+
+      - codecov/upload:
+          file: services/user/coverage.xml
+          flags: user
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Test user Service"
+
+  # Additional service test jobs would continue here...
+  # (For brevity, showing pattern for first 2 services)
+
+# Service Build Jobs (Phase 3)  
+  # Build job for auth service (Docker build - use large resources)
+  build-auth-service:
+    executor: large-executor-php83  # Docker builds need large resources
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - setup_remote_docker:
+          docker_layer_caching: true
+
+      - run:
+          name: Check if auth should be built (Phase 7: Conditional Execution)
+          command: |
+            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+            SKIP_DOCKER_BUILDS=$(cat /tmp/workspace/skip_docker_builds)
+            
+            # Check if service is affected and Docker builds are not skipped
+            if echo "$AFFECTED_SERVICES" | grep -q "auth" && [ "$SKIP_DOCKER_BUILDS" = "false" ]; then
+              echo "Building auth service (affected and Docker builds enabled)..."
+              echo "true" > /tmp/should_build_auth
+            elif echo "$AFFECTED_SERVICES" | grep -q "auth" && [ "$SKIP_DOCKER_BUILDS" = "true" ]; then
+              echo "Skipping auth Docker build (service affected but Docker builds disabled for optimization)"
+              echo "false" > /tmp/should_build_auth
+            else
+              echo "Skipping auth service build (not affected)"
+              echo "false" > /tmp/should_build_auth
+            fi
+
+      - run:
+          name: Build auth Docker image
+          command: |
+            if [ "$(cat /tmp/should_build_auth)" = "true" ]; then
+              cd services/auth
+              
+              # Pull cache images
+              docker pull ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:cache || true
+              docker pull ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:latest || true
+              
+              # Build multi-stage image with caching
+              docker build \
+                --cache-from=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:cache \
+                --cache-from=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:latest \
+                --target=production \
+                --tag=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:${CIRCLE_SHA1} \
+                --tag=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:latest \
+                --tag=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:cache \
+                --build-arg BUILDKIT_INLINE_CACHE=1 \
+                .
+              
+              # Analyze image size
+              echo "=== auth Image Analysis ==="
+              docker images ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+              
+              # Security scan with Trivy
+              if command -v trivy >/dev/null 2>&1; then
+                trivy image --exit-code 0 --severity HIGH,CRITICAL ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:${CIRCLE_SHA1}
+              fi
+            fi
+
+      - run:
+          name: Push auth Docker image
+          command: |
+            if [ "$(cat /tmp/should_build_auth)" = "true" ]; then
+              # Login to GitHub Container Registry
+              echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USERNAME --password-stdin
+              
+              # Push all tags
+              docker push ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:${CIRCLE_SHA1}
+              docker push ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:latest
+              docker push ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/auth:cache
+              
+              echo "Successfully pushed auth images"
+            fi
+
+      - notify-slack:
+          status: "passed"
+          job_name: "Build auth Service"
+
+  # Additional service build jobs would continue here...
+  # (For brevity, showing pattern for first service)
+
+# ============================================================================
+# ADDITIONAL JOBS - Advanced features
+# ============================================================================
+
+  # Advanced Docker Optimization (Phase 9: Docker Optimization)
+  docker-optimization:
+    executor: large-executor-php83  # Docker optimization needs large resources
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+          
+      - setup_remote_docker:
+          docker_layer_caching: true
+          version: 20.10.14
+          
+      - run:
+          name: Setup advanced Docker environment
+          command: |
+            # Enable BuildKit and experimental features
+            echo 'export DOCKER_BUILDKIT=1' >> $BASH_ENV
+            echo 'export BUILDKIT_PROGRESS=plain' >> $BASH_ENV
+            echo 'export DOCKER_CLI_EXPERIMENTAL=enabled' >> $BASH_ENV
+            source $BASH_ENV
+            
+            # Install Docker Buildx for advanced features
+            mkdir -p ~/.docker/cli-plugins
+            curl -L "https://github.com/docker/buildx/releases/download/v0.11.2/buildx-v0.11.2.linux-amd64" -o ~/.docker/cli-plugins/docker-buildx
+            chmod +x ~/.docker/cli-plugins/docker-buildx
+            
+            # Create and use advanced builder
+            docker buildx create --name advanced-builder --use --bootstrap || true
+            docker buildx inspect advanced-builder
+            
+      - run:
+          name: Install optimization tools
+          command: |
+            # Install dive for image layer analysis
+            curl -L "https://github.com/wagoodman/dive/releases/download/v0.10.0/dive_0.10.0_linux_amd64.deb" -o dive.deb
+            sudo dpkg -i dive.deb || sudo apt-get install -f -y
+            
+            # Install trivy for security scanning
+            sudo apt-get update
+            sudo apt-get install wget apt-transport-https gnupg lsb-release -y
+            wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+            echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+            sudo apt-get update
+            sudo apt-get install trivy -y
+            
+      - run:
+          name: Advanced Docker image optimization
+          command: |
+            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+            SKIP_DOCKER_BUILDS=$(cat /tmp/workspace/skip_docker_builds)
+            
+            # Create optimization report
+            mkdir -p /tmp/docker-optimization-reports
+            echo "# Docker Optimization Report" > /tmp/docker-optimization-reports/optimization-report.md
+            echo "Generated: $(date)" >> /tmp/docker-optimization-reports/optimization-report.md
+            echo "" >> /tmp/docker-optimization-reports/optimization-report.md
+            
+            for service in $AFFECTED_SERVICES; do
+              if [ -d "services/$service" ]; then
+                echo "=== OPTIMIZING $service DOCKER IMAGE ==="
+                cd services/$service
+                
+                # Check if Dockerfile exists
+                if [ ! -f "Dockerfile" ]; then
+                  echo "No Dockerfile found for $service, skipping..."
+                  cd ../..
+                  continue
+                fi
+                
+                # Build optimized image with advanced caching
+                echo "Building optimized image for $service..."
+                docker buildx build \
+                  --platform linux/amd64 \
+                  --cache-from=type=registry,ref=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/$service:cache \
+                  --cache-to=type=registry,ref=ghcr.io/${CIRCLE_PROJECT_USERNAME}/larvrevrstender/$service:cache,mode=max \
+                  --target=production \
+                  --tag=temp-$service:optimized \
+                  --build-arg BUILDKIT_INLINE_CACHE=1 \
+                  --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+                  --build-arg VCS_REF=${CIRCLE_SHA1} \
+                  --load \
+                  . || echo "Build failed for $service, continuing..."
+                
+                # Image size analysis
+                if docker images temp-$service:optimized --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep -q "temp-$service"; then
+                  echo "## $service Image Analysis" >> /tmp/docker-optimization-reports/optimization-report.md
+                  
+                  # Get image size
+                  IMAGE_SIZE=$(docker images temp-$service:optimized --format "{{.Size}}")
+                  echo "- **Image Size**: $IMAGE_SIZE" >> /tmp/docker-optimization-reports/optimization-report.md
+                  
+                  # Layer analysis with dive
+                  echo "Analyzing layers for $service..."
+                  dive temp-$service:optimized --ci --lowestEfficiency=0.95 --highestWastedBytes=20MB > /tmp/docker-optimization-reports/$service-dive-analysis.txt 2>&1 || true
+                  
+                  # Security scan with caching
+                  echo "Running security scan for $service..."
+                  trivy image --cache-dir /tmp/trivy-cache --format json --output /tmp/docker-optimization-reports/$service-security.json temp-$service:optimized || true
+                  trivy image --cache-dir /tmp/trivy-cache --format table temp-$service:optimized > /tmp/docker-optimization-reports/$service-security.txt || true
+                  
+                  # Count vulnerabilities
+                  if [ -f "/tmp/docker-optimization-reports/$service-security.json" ]; then
+                    CRITICAL_VULNS=$(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL") | .VulnerabilityID' /tmp/docker-optimization-reports/$service-security.json 2>/dev/null | wc -l || echo "0")
+                    HIGH_VULNS=$(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity=="HIGH") | .VulnerabilityID' /tmp/docker-optimization-reports/$service-security.json 2>/dev/null | wc -l || echo "0")
+                    echo "- **Critical Vulnerabilities**: $CRITICAL_VULNS" >> /tmp/docker-optimization-reports/optimization-report.md
+                    echo "- **High Vulnerabilities**: $HIGH_VULNS" >> /tmp/docker-optimization-reports/optimization-report.md
+                  fi
+                  
+                  # Optimization suggestions (compact)
+                  echo "- **Suggestions**:" >> /tmp/docker-optimization-reports/optimization-report.md
+                  grep -q "FROM.*:latest" Dockerfile && echo "  - Use specific tags" >> /tmp/docker-optimization-reports/optimization-report.md
+                  ! grep -q "USER" Dockerfile && echo "  - Add USER directive" >> /tmp/docker-optimization-reports/optimization-report.md
+                  ! grep -q "HEALTHCHECK" Dockerfile && echo "  - Add HEALTHCHECK" >> /tmp/docker-optimization-reports/optimization-report.md
+                  
+                  echo "" >> /tmp/docker-optimization-reports/optimization-report.md
+                  
+                  # Cleanup temporary image
+                  docker rmi temp-$service:optimized || true
+                else
+                  echo "Failed to build image for $service"
+                fi
+                
+                cd ../..
+              fi
+            done
+            
+            # Generate summary
+            echo "## Optimization Summary" >> /tmp/docker-optimization-reports/optimization-report.md
+            echo "- **Services Analyzed**: $(echo $AFFECTED_SERVICES | wc -w)" >> /tmp/docker-optimization-reports/optimization-report.md
+            echo "- **Optimization Date**: $(date)" >> /tmp/docker-optimization-reports/optimization-report.md
+            echo "- **Branch**: ${CIRCLE_BRANCH}" >> /tmp/docker-optimization-reports/optimization-report.md
+            echo "- **Commit**: ${CIRCLE_SHA1}" >> /tmp/docker-optimization-reports/optimization-report.md
+            
+            # Display summary
+            echo "=== DOCKER OPTIMIZATION COMPLETE ==="
+            cat /tmp/docker-optimization-reports/optimization-report.md
+            
+      - store_artifacts:
+          path: /tmp/docker-optimization-reports
+          destination: docker-optimization
+          
+      - run:
+          name: Cleanup optimization environment
+          command: |
+            # Cleanup build cache and temporary files
+            docker buildx prune -f || true
+            docker system prune -f || true
+            rm -rf /tmp/trivy-cache || true
+            
+      - notify-slack:
+          status: "passed"
+          job_name: "Docker Optimization"
+
+  # Dockerfile Analysis (Phase 9: Docker Optimization)
+  dockerfile-analysis:
+    executor: small-executor-php83
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Analyze Dockerfiles
+          command: |
+            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+            mkdir -p /tmp/dockerfile-reports
+            
+            for service in $AFFECTED_SERVICES; do
+              if [ -f "services/$service/Dockerfile" ]; then
+                cd services/$service
+                LINES=$(wc -l < Dockerfile)
+                BASE=$(grep "^FROM" Dockerfile | awk '{print $2}')
+                REPORT="/tmp/dockerfile-reports/$service.txt"
+                echo "$service: $LINES lines, base: $BASE" > $REPORT
+                echo "$BASE" | grep -q ":latest" && echo "Issue: latest tag" >> $REPORT
+                ! grep -q "^USER" Dockerfile && echo "Issue: no USER" >> $REPORT
+                cd ../..
+              fi
+            done
+            
+            echo "Analysis complete"
+            ls /tmp/dockerfile-reports/
+            
+      - store_artifacts:
+          path: /tmp/dockerfile-reports
+          destination: dockerfile-analysis
+  
+  # Performance Testing Job (Phase 7: Conditional Execution)
+  performance-testing:
+    executor: xlarge-executor-php83  # Performance testing needs maximum resources
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+          
+      - run:
+          name: Check if performance tests should run
+          command: |
+            SKIP_PERFORMANCE_TESTS=$(cat /tmp/workspace/skip_performance_tests)
+            
+            if [ "$SKIP_PERFORMANCE_TESTS" = "true" ]; then
+              echo "Skipping performance tests (optimization enabled)"
+              echo "false" > /tmp/should_run_performance_tests
+            else
+              echo "Running performance tests (required for this change type)"
+              echo "true" > /tmp/should_run_performance_tests
+            fi
+            
+      - run:
+          name: Install performance testing tools
+          command: |
+            if [ "$(cat /tmp/should_run_performance_tests)" = "true" ]; then
+              # Install k6 for load testing
+              sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+              echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+              sudo apt-get update
+              sudo apt-get install k6
+            else
+              echo "Skipping performance test tool installation"
+            fi
+            
+      - run:
+          name: Run performance tests
+          command: |
+            if [ "$(cat /tmp/should_run_performance_tests)" = "true" ]; then
+              # Run load tests for affected services
+              AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+              
+              for service in $AFFECTED_SERVICES; do
+                if [ -f "tests/performance/$service-load-test.js" ]; then
+                  echo "Running performance tests for $service..."
+                  k6 run tests/performance/$service-load-test.js
+                fi
+              done
+            else
+              echo "Performance tests skipped due to conditional execution optimization"
+            fi
+            
+      - store_artifacts:
+          path: performance-results/
+          destination: performance/
+          
+      - notify-slack:
+          status: "passed"
+          job_name: "Performance Testing"
+  
+  # Blue-Green Deployment Job
+  blue-green-deployment:
+    executor: medium-executor-php83  # Deployment needs medium resources
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+          
+      - run:
+          name: Deploy to staging (blue-green)
+          command: |
+            echo "Deploying affected services to staging environment..."
+            AFFECTED_SERVICES=$(cat /tmp/workspace/affected_services)
+            
+            # Deploy each affected service
+            for service in $AFFECTED_SERVICES; do
+              echo "Deploying $service..."
+              # Deployment logic would go here
+              # This would integrate with your deployment infrastructure
+            done
+            
+      - run:
+          name: Run health checks
+          command: |
+            echo "Running health checks on deployed services..."
+            # Health check logic would go here
+            
+      - run:
+          name: Switch traffic (if health checks pass)
+          command: |
+            echo "Switching traffic to new deployment..."
+            # Traffic switching logic would go here
+            
+      - notify-slack:
+          status: "passed"
+          job_name: "Blue-Green Deployment"
+
+# ============================================================================
+# WORKFLOWS - Complete orchestration of all jobs
+# ============================================================================
+workflows:
+  version: 2
+  enterprise-pipeline:
+    jobs:
+      # Phase 0: Change Detection (Sequential)
+      - change-detection:
+          filters:
+            branches:
+              only: /.*/
+      
+      # Phase 1: Parallel Security & Quality (3 concurrent)
+      - security-scanning:
+          requires: [change-detection]
+          
+      - code-quality-php82:
+          requires: [change-detection]
+          
+      - code-quality-php83:
+          requires: [change-detection]
+      
+      # Phase 2: Service Testing (11 parallel services)
+      - test-auth-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-user-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-auction-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-bidding-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-payment-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-gateway-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-order-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-analytics-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-notification-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-vin-ocr-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      - test-shared-service:
+          requires:
+            - security-scanning
+            - code-quality-php82
+            - code-quality-php83
+          filters:
+            branches:
+              only: /.*/
+      
+      # Phase 3: Service Builds (11 parallel services with dependencies)
+      - build-auth-service:
+          requires:
+            - test-auth-service
+            - test-shared-service
+          filters:
+            branches:
+              only: /.*/
+      - build-user-service:
+          requires:
+            - test-user-service
+            - test-shared-service
+            - test-auth-service
+          filters:
+            branches:
+              only: /.*/
+      - build-auction-service:
+          requires:
+            - test-auction-service
+            - test-shared-service
+            - test-auth-service
+            - test-user-service
+          filters:
+            branches:
+              only: /.*/
+      - build-bidding-service:
+          requires:
+            - test-bidding-service
+            - test-shared-service
+            - test-auth-service
+            - test-user-service
+            - test-auction-service
+          filters:
+            branches:
+              only: /.*/
+      - build-payment-service:
+          requires:
+            - test-payment-service
+            - test-shared-service
+            - test-auth-service
+            - test-user-service
+          filters:
+            branches:
+              only: /.*/
+      - build-gateway-service:
+          requires:
+            - test-gateway-service
+            - test-shared-service
+            - test-auth-service
+            - test-user-service
+            - test-auction-service
+            - test-bidding-service
+            - test-payment-service
+            - test-order-service
+            - test-analytics-service
+            - test-notification-service
+            - test-vin-ocr-service
+          filters:
+            branches:
+              only: /.*/
+      - build-order-service:
+          requires:
+            - test-order-service
+            - test-shared-service
+            - test-auth-service
+            - test-user-service
+            - test-auction-service
+            - test-bidding-service
+            - test-payment-service
+          filters:
+            branches:
+              only: /.*/
+      - build-analytics-service:
+          requires:
+            - test-analytics-service
+            - test-shared-service
+            - test-auth-service
+            - test-user-service
+            - test-auction-service
+            - test-bidding-service
+          filters:
+            branches:
+              only: /.*/
+      - build-notification-service:
+          requires:
+            - test-notification-service
+            - test-shared-service
+            - test-auth-service
+            - test-user-service
+          filters:
+            branches:
+              only: /.*/
+      - build-vin-ocr-service:
+          requires:
+            - test-vin-ocr-service
+            - test-shared-service
+            - test-auth-service
+          filters:
+            branches:
+              only: /.*/
+      - build-shared-service:
+          requires:
+            - test-shared-service
+          filters:
+            branches:
+              only: /.*/
+      
+      # Phase 4: Advanced Docker Optimization (Phase 9)
+      - dockerfile-analysis:
+          requires:
+            - change-detection
+          filters:
+            branches:
+              only: /.*/
+              
+      - docker-optimization:
+          requires:
+            - build-auth-service
+            - build-user-service
+            - build-auction-service
+            - build-bidding-service
+            - build-payment-service
+            - build-gateway-service
+            - build-order-service
+            - build-analytics-service
+            - build-notification-service
+            - build-vin-ocr-service
+            - build-shared-service
+          filters:
+            branches:
+              only: /.*/

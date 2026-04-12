@@ -1,0 +1,101 @@
+{{- range $serviceName, $serviceConfig := .Values.microservices }}
+{{- if $serviceConfig.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "reverse-tender.fullname" $ }}-{{ $serviceName }}-{{ $.Values.environment }}
+  labels:
+    {{- include "reverse-tender.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $serviceName }}
+    environment: {{ $.Values.environment }}
+spec:
+  {{- if not $.Values.autoscaling.enabled }}
+  replicas: {{ $serviceConfig.replicaCount | default 2 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "reverse-tender.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $serviceName }}
+      environment: {{ $.Values.environment }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") $ | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") $ | sha256sum }}
+        {{- with $.Values.pod.annotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "reverse-tender.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $serviceName }}
+        environment: {{ $.Values.environment }}
+        {{- with $.Values.pod.labels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with $.Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "reverse-tender.serviceAccountName" $ }}
+      securityContext:
+        {{- toYaml $.Values.pod.securityContext | nindent 8 }}
+      containers:
+        - name: {{ $serviceName }}
+          securityContext:
+            {{- toYaml $.Values.container.securityContext | nindent 12 }}
+          image: "{{ $.Values.image.registry }}/{{ $serviceConfig.image.repository }}:{{ $.Values.image.tag | default $.Chart.AppVersion }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $serviceConfig.service.port }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml $.Values.healthChecks.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml $.Values.healthChecks.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml ($serviceConfig.resources | default $.Values.resources) | nindent 12 }}
+          env:
+            - name: SERVICE_NAME
+              value: {{ $serviceName }}
+            - name: SERVICE_PORT
+              value: "{{ $serviceConfig.service.port }}"
+            - name: ENVIRONMENT
+              value: {{ $.Values.environment }}
+            - name: BLUE_GREEN_ENABLED
+              value: "{{ $.Values.blueGreen.enabled }}"
+          envFrom:
+            - configMapRef:
+                name: {{ include "reverse-tender.fullname" $ }}-config
+            - secretRef:
+                name: {{ include "reverse-tender.fullname" $ }}-secret
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: var-cache
+              mountPath: /var/cache
+            - name: var-log
+              mountPath: /var/log
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: var-cache
+          emptyDir: {}
+        - name: var-log
+          emptyDir: {}
+      {{- with $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}

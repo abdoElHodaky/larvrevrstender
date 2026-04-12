@@ -1,0 +1,231 @@
+# Linode LKE Gateway Configuration for Reverse Tender Platform
+# Optimized for Linode NodeBalancer with NGINX Gateway Fabric
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: reverse-tender-linode-gateway
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/part-of: reverse-tender-platform
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/cloud-provider: "linode"
+  annotations:
+    # Linode NodeBalancer annotations
+    service.beta.kubernetes.io/linode-loadbalancer-throttle: "20"
+    service.beta.kubernetes.io/linode-loadbalancer-region: "${LINODE_REGION}"
+    service.beta.kubernetes.io/linode-loadbalancer-hostname-only-ingress: "true"
+    
+    # Health check configuration
+    service.beta.kubernetes.io/linode-loadbalancer-check-type: "http"
+    service.beta.kubernetes.io/linode-loadbalancer-check-path: "/health"
+    service.beta.kubernetes.io/linode-loadbalancer-check-interval: "10"
+    service.beta.kubernetes.io/linode-loadbalancer-check-timeout: "5"
+    service.beta.kubernetes.io/linode-loadbalancer-check-attempts: "3"
+    
+    # Description
+    gateway.networking.k8s.io/description: "Linode LKE-optimized gateway for JSON-RPC/tRPC microservices with NodeBalancer"
+spec:
+  # Reference to the Linode-optimized GatewayClass
+  gatewayClassName: reverse-tender-linode-gateway-class
+  
+  # Linode-optimized listeners configuration
+  listeners:
+    # Primary HTTPS listener - optimized for RPC API traffic
+    - name: https-rpc-api
+      hostname: "api.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: api-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        # Linode-specific TLS configuration
+        options:
+          # NodeBalancer SSL termination
+          service.beta.kubernetes.io/linode-loadbalancer-tls-secret-name: "api-tls-secret"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # Frontend application HTTPS listener
+    - name: https-app
+      hostname: "app.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: app-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          service.beta.kubernetes.io/linode-loadbalancer-tls-secret-name: "app-tls-secret"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # Admin panel HTTPS listener
+    - name: https-admin
+      hostname: "admin.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: admin-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          service.beta.kubernetes.io/linode-loadbalancer-tls-secret-name: "admin-tls-secret"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # WebSocket HTTPS listener - optimized for real-time bidding
+    - name: https-websocket
+      hostname: "ws.reversetender.com"
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: ws-tls-secret
+            kind: Secret
+            namespace: reverse-tender
+        options:
+          service.beta.kubernetes.io/linode-loadbalancer-tls-secret-name: "ws-tls-secret"
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+    
+    # HTTP listener for redirects
+    - name: http-redirect
+      hostname: "*.reversetender.com"
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+  # Linode-specific addresses configuration
+  addresses:
+    - type: IPAddress
+      value: "${LINODE_NODEBALANCER_IP}"
+
+---
+# Certificate management with cert-manager for Linode
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: reverse-tender-linode-issuer
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "linode"
+spec:
+  acme:
+    # Let's Encrypt ACME server
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: ${ACME_EMAIL}
+    privateKeySecretRef:
+      name: reverse-tender-linode-issuer-key
+    solvers:
+      # HTTP-01 challenge solver
+      - http01:
+          ingress:
+            class: nginx
+        selector:
+          dnsNames:
+            - "api.reversetender.com"
+            - "app.reversetender.com"
+            - "admin.reversetender.com"
+            - "ws.reversetender.com"
+
+---
+# SSL Certificate resources for automatic certificate management
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: api-tls-cert
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "linode"
+spec:
+  secretName: api-tls-secret
+  issuerRef:
+    name: reverse-tender-linode-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - api.reversetender.com
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: app-tls-cert
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "linode"
+spec:
+  secretName: app-tls-secret
+  issuerRef:
+    name: reverse-tender-linode-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - app.reversetender.com
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: admin-tls-cert
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "linode"
+spec:
+  secretName: admin-tls-secret
+  issuerRef:
+    name: reverse-tender-linode-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - admin.reversetender.com
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ws-tls-cert
+  namespace: reverse-tender
+  labels:
+    app.kubernetes.io/name: reverse-tender
+    app.kubernetes.io/component: gateway-api
+    app.kubernetes.io/cloud-provider: "linode"
+spec:
+  secretName: ws-tls-secret
+  issuerRef:
+    name: reverse-tender-linode-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - ws.reversetender.com
+
